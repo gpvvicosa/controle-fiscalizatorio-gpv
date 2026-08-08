@@ -532,13 +532,33 @@
         recordsTabBtn?.setAttribute('aria-pressed', String(painel));
       }
 
+      function atualizarVistaNaUrl_(modo) {
+        try {
+          const url = new URL(window.location.href);
+          if (modo === 'records') url.searchParams.set('view', 'painel');
+          else url.searchParams.delete('view');
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        } catch (e) {}
+      }
+
+      function vistaInicialDaUrl_() {
+        try {
+          const valor = String(new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
+          return ['painel', 'panel', 'records', 'planilha'].includes(valor) ? 'records' : 'form';
+        } catch (e) {
+          return 'form';
+        }
+      }
+
       function mostrarVistaFormulario_() {
         marcarAbaApp_('form');
+        atualizarVistaNaUrl_('form');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
       function mostrarVistaPlanilha_(opcoes = {}) {
         marcarAbaApp_('records');
+        atualizarVistaNaUrl_('records');
         if (opcoes.busca != null && recordsSearch) recordsSearch.value = String(opcoes.busca || '');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         if (opcoes.carregar !== false) carregarRegistros_(true);
@@ -1598,6 +1618,12 @@
             if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
           }
           if (obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
+        }
+
+        if (vistaInicialDaUrl_() === 'records') {
+          mostrarVistaPlanilha_();
+        } else {
+          marcarAbaApp_('form');
         }
       }
 
