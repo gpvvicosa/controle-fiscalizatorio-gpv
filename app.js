@@ -8,7 +8,10 @@
       const DB_VERSION = 1;
       const DB_STORE = 'pendentes';
       const API_URL = String(window.GPV_PUBLIC_CONFIG?.apiUrl || '').trim();
-      const ACCESS_KEY_STORAGE = 'gpvVistoriasAccessKeyV1';
+      const AUTH_USER_STORAGE = 'gpvVistoriasUsuarioBmV1';
+      const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
+      const AUTH_CLIENT_VERSION = 'bm-v1';
+      let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
         ok: true,
         titulo: 'Controle de Vistorias — GPV Viçosa',
@@ -28,27 +31,37 @@
         padroes: { cidade: 'Viçosa', enderecoCorrespondencia: 'O Mesmo' }
       });
 
-      function obterCodigoAcessoGpv() {
-        let chave = '';
-        try { chave = String(localStorage.getItem(ACCESS_KEY_STORAGE) || '').trim(); } catch (e) {}
-        if (chave) return chave;
-        const informado = window.prompt('Informe o código de acesso do GPV para conectar este aparelho ao sistema:');
-        chave = String(informado || '').trim();
-        if (!chave) throw new Error('Código de acesso do GPV não informado. O preenchimento offline continua disponível.');
-        try { localStorage.setItem(ACCESS_KEY_STORAGE, chave); } catch (e) {}
-        return chave;
+      function carregarSessaoLocalBm_() {
+        let usuario = null;
+        let sessionToken = '';
+        try { usuario = JSON.parse(localStorage.getItem(AUTH_USER_STORAGE) || 'null'); } catch (e) {}
+        try { sessionToken = String(localStorage.getItem(AUTH_SESSION_STORAGE) || '').trim(); } catch (e) {}
+        authState = { usuario: usuario && usuario.id ? usuario : null, sessionToken };
+        return authState;
       }
 
-      function esquecerCodigoAcessoGpv() {
-        try { localStorage.removeItem(ACCESS_KEY_STORAGE); } catch (e) {}
+      function salvarSessaoLocalBm_(usuario, sessionToken) {
+        authState = { usuario: usuario || null, sessionToken: String(sessionToken || '') };
+        try {
+          if (usuario) localStorage.setItem(AUTH_USER_STORAGE, JSON.stringify(usuario));
+          else localStorage.removeItem(AUTH_USER_STORAGE);
+          if (sessionToken) localStorage.setItem(AUTH_SESSION_STORAGE, String(sessionToken));
+          else localStorage.removeItem(AUTH_SESSION_STORAGE);
+          // Remove o código antigo do aparelho; V19 usa exclusivamente Nº BM.
+          localStorage.removeItem('gpvVistoriasAccessKeyV1');
+        } catch (e) {}
+        atualizarUsuarioLogadoUi_();
       }
 
-      async function apiRequest(action, data = {}, timeoutMs = 30000) {
+      function limparSessaoLocalBm_() {
+        salvarSessaoLocalBm_(null, '');
+      }
+
+      async function gatewayRequest_(action, data = {}, timeoutMs = 30000) {
         if (!navigator.onLine) throw new Error('Sem conexão com a internet.');
         if (!API_URL || API_URL.includes('COLE_AQUI')) {
           throw new Error('A URL da API ainda não foi configurada em config.js.');
         }
-        const codigoAcesso = obterCodigoAcessoGpv();
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
@@ -59,22 +72,20 @@
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              'X-GPV-Access-Key': codigoAcesso,
               'X-GPV-App-Version': String(window.GPV_PUBLIC_CONFIG?.appVersion || 'pwa')
             },
-            body: JSON.stringify({ action, ...data }),
+            body: JSON.stringify({ action, clientAuthVersion: AUTH_CLIENT_VERSION, ...data }),
             cache: 'no-store',
             signal: controller.signal
           });
           let result = null;
           try { result = await response.json(); } catch (e) {}
-          if (response.status === 401) {
-            esquecerCodigoAcessoGpv();
-            throw new Error('Código de acesso do GPV inválido. Na próxima tentativa, informe o código correto.');
-          }
           if (!response.ok || !result || result.ok === false) {
             const message = result?.error || result?.message || `Falha na comunicação (HTTP ${response.status}).`;
-            throw new Error(message);
+            const error = new Error(message);
+            error.code = String(result?.code || '');
+            error.status = response.status;
+            throw error;
           }
           return result;
         } catch (error) {
@@ -83,6 +94,28 @@
         } finally {
           clearTimeout(timer);
         }
+      }
+
+      async function apiRequest(action, data = {}, timeoutMs = 30000) {
+        const sessionToken = String(authState.sessionToken || '').trim();
+        if (!sessionToken) {
+          const error = new Error('Entre com seu Nº BM para continuar.');
+          error.code = 'AUTH_REQUIRED';
+          throw error;
+        }
+        try {
+          return await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs);
+        } catch (error) {
+          if (error?.code === 'AUTH_REQUIRED' || error?.status === 401) {
+            limparSessaoLocalBm_();
+            mostrarTelaLoginBm_('Sua identificação precisa ser confirmada novamente.');
+          }
+          throw error;
+        }
+      }
+
+      async function authRequest_(data = {}, timeoutMs = 30000) {
+        return gatewayRequest_('auth', data, timeoutMs);
       }
 
       const OCUPACOES_CBMMG = window.OCUPACOES_CBMMG || [];
@@ -94,6 +127,29 @@
       const errorBox = document.getElementById('errorBox');
       const draftStatus = document.getElementById('draftStatus');
       const appStatus = document.getElementById('appStatus');
+      const authGate = document.getElementById('authGate');
+      const authForm = document.getElementById('authForm');
+      const authBmInput = document.getElementById('authBmInput');
+      const authEnterBtn = document.getElementById('authEnterBtn');
+      const authMessage = document.getElementById('authMessage');
+      const authProfileChoice = document.getElementById('authProfileChoice');
+      const authProfileList = document.getElementById('authProfileList');
+      const authOfflineNote = document.getElementById('authOfflineNote');
+      const manageUsersBtn = document.getElementById('manageUsersBtn');
+      const logoutUserBtn = document.getElementById('logoutUserBtn');
+      const loggedUserMenuText = document.getElementById('loggedUserMenuText');
+      const userManagerModal = document.getElementById('userManagerModal');
+      const userManagerCloseBtn = document.getElementById('userManagerCloseBtn');
+      const userManagerCurrent = document.getElementById('userManagerCurrent');
+      const userManagerList = document.getElementById('userManagerList');
+      const userManagerForm = document.getElementById('userManagerForm');
+      const userManagerId = document.getElementById('userManagerId');
+      const userManagerName = document.getElementById('userManagerName');
+      const userManagerBm = document.getElementById('userManagerBm');
+      const userManagerMessage = document.getElementById('userManagerMessage');
+      const userManagerFormTitle = document.getElementById('userManagerFormTitle');
+      const userManagerSaveBtn = document.getElementById('userManagerSaveBtn');
+      const userManagerCancelBtn = document.getElementById('userManagerCancelBtn');
       const successScreen = document.getElementById('successScreen');
       const whatsappOrientacoesBtn = document.getElementById('whatsappOrientacoesBtn');
       const whatsappOrientacoesNote = document.getElementById('whatsappOrientacoesNote');
@@ -1977,6 +2033,208 @@
         posicionarMenuMais_(gatilho || navMoreMenuBtn || dashboardMoreMenuBtn);
       }
 
+      function atualizarUsuarioLogadoUi_() {
+        const usuario = authState.usuario;
+        if (loggedUserMenuText) {
+          loggedUserMenuText.textContent = usuario
+            ? `${usuario.nome} · Nº BM ${usuario.bm}`
+            : 'Encerrar o acesso neste aparelho';
+        }
+      }
+
+      function mostrarTelaLoginBm_(mensagem = '') {
+        if (!authGate) return;
+        authGate.classList.add('show');
+        authGate.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('auth-locked');
+        if (authMessage) authMessage.textContent = mensagem;
+        if (authProfileChoice) authProfileChoice.hidden = true;
+        if (authProfileList) authProfileList.innerHTML = '';
+        if (authOfflineNote) authOfflineNote.hidden = navigator.onLine;
+        if (authEnterBtn) authEnterBtn.disabled = !navigator.onLine;
+        setTimeout(() => authBmInput?.focus(), 30);
+      }
+
+      function ocultarTelaLoginBm_() {
+        if (!authGate) return;
+        authGate.classList.remove('show');
+        authGate.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('auth-locked');
+        if (authMessage) authMessage.textContent = '';
+        if (authProfileChoice) authProfileChoice.hidden = true;
+      }
+
+      function normalizarBmCliente_(valor) {
+        return String(valor || '').replace(/\D/g, '').slice(0, 7);
+      }
+
+      async function concluirLoginBm_(bm, userId = '') {
+        if (!navigator.onLine) {
+          mostrarTelaLoginBm_('Primeiro acesso neste aparelho exige internet.');
+          return false;
+        }
+        const numero = normalizarBmCliente_(bm);
+        if (!/^\d{7}$/.test(numero)) {
+          if (authMessage) authMessage.textContent = 'Informe um Nº BM com 7 dígitos.';
+          return false;
+        }
+        if (authEnterBtn) authEnterBtn.disabled = true;
+        if (authMessage) authMessage.textContent = 'Verificando Nº BM...';
+        try {
+          const result = await authRequest_({ bm: numero, userId }, 30000);
+          if (result?.requiresSelection) {
+            if (authProfileChoice) authProfileChoice.hidden = false;
+            if (authProfileList) {
+              authProfileList.innerHTML = (result.usuarios || []).map(u => `
+                <button type="button" class="auth-profile-btn" data-auth-user-id="${escapeHtml(u.id)}">
+                  <strong>${escapeHtml(u.nome)}</strong><span>Nº BM ${escapeHtml(u.bm)}${u.provisorio ? ' · provisório' : ''}</span>
+                </button>
+              `).join('');
+            }
+            if (authMessage) authMessage.textContent = 'Escolha seu nome para continuar.';
+            return false;
+          }
+          if (!result?.autenticado || !result?.usuario || !result?.sessionToken) throw new Error('Não foi possível concluir a identificação.');
+          salvarSessaoLocalBm_(result.usuario, result.sessionToken);
+          ocultarTelaLoginBm_();
+          if (result.usuario.provisorio) {
+            setTimeout(() => alert('Seu Nº BM está cadastrado provisoriamente como 1234567. Atualize-o em Mais → Gerenciar usuários quando souber o número correto.'), 250);
+          }
+          return true;
+        } catch (error) {
+          if (authMessage) authMessage.textContent = error?.message || 'Não foi possível entrar.';
+          return false;
+        } finally {
+          if (authEnterBtn) authEnterBtn.disabled = !navigator.onLine;
+        }
+      }
+
+      async function inicializarAutenticacaoBm_() {
+        carregarSessaoLocalBm_();
+        atualizarUsuarioLogadoUi_();
+        if (authState.usuario && authState.sessionToken) {
+          if (!navigator.onLine) {
+            ocultarTelaLoginBm_();
+            return loadInitialData();
+          }
+          try {
+            const result = await authRequest_({ sessionToken: authState.sessionToken }, 20000);
+            if (result?.autenticado && result?.usuario) {
+              salvarSessaoLocalBm_(result.usuario, result.sessionToken || authState.sessionToken);
+              ocultarTelaLoginBm_();
+              return loadInitialData();
+            }
+          } catch (error) {
+            limparSessaoLocalBm_();
+          }
+        }
+        loadingOverlay.classList.remove('show');
+        mostrarTelaLoginBm_();
+      }
+
+      function resetarFormularioUsuario_() {
+        if (userManagerId) userManagerId.value = '';
+        if (userManagerName) userManagerName.value = '';
+        if (userManagerBm) userManagerBm.value = '';
+        if (userManagerFormTitle) userManagerFormTitle.textContent = 'Adicionar usuário';
+        if (userManagerSaveBtn) userManagerSaveBtn.textContent = 'Adicionar usuário';
+        if (userManagerCancelBtn) userManagerCancelBtn.hidden = true;
+        if (userManagerMessage) userManagerMessage.textContent = '';
+      }
+
+      function renderizarListaUsuarios_(usuarios = []) {
+        if (!userManagerList) return;
+        const atualId = String(authState.usuario?.id || '');
+        userManagerList.innerHTML = usuarios.map(u => {
+          const ehAtual = String(u.id || '') === atualId;
+          return `<article class="user-manager-item${u.provisorio ? ' provisional' : ''}">
+            <div class="user-manager-avatar" aria-hidden="true">${escapeHtml(String(u.nome || '?').charAt(0).toUpperCase())}</div>
+            <div class="user-manager-item-copy">
+              <strong>${escapeHtml(u.nome)}</strong>
+              <span>Nº BM ${escapeHtml(u.bm)}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''}</span>
+            </div>
+            <div class="user-manager-item-actions">
+              <button type="button" class="user-edit-btn" data-user-edit="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" data-user-bm="${escapeHtml(u.bm)}">Editar</button>
+              <button type="button" class="user-delete-btn" data-user-delete="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" ${ehAtual ? 'disabled title="Você está conectado com este usuário"' : ''}>Excluir</button>
+            </div>
+          </article>`;
+        }).join('');
+      }
+
+      async function abrirGerenciadorUsuarios_() {
+        fecharMenuMais_();
+        if (!navigator.onLine) {
+          alert('Conecte o aparelho à internet para gerenciar usuários.');
+          return;
+        }
+        if (userManagerModal) userManagerModal.hidden = false;
+        document.body.classList.add('user-manager-open');
+        resetarFormularioUsuario_();
+        if (userManagerCurrent) userManagerCurrent.textContent = authState.usuario
+          ? `Conectado como ${authState.usuario.nome} · Nº BM ${authState.usuario.bm}`
+          : '';
+        if (userManagerList) userManagerList.innerHTML = '<div class="user-manager-loading">Carregando usuários...</div>';
+        try {
+          const result = await apiRequest('users', {}, 30000);
+          renderizarListaUsuarios_(result?.usuarios || []);
+        } catch (error) {
+          if (userManagerMessage) userManagerMessage.textContent = error?.message || 'Não foi possível carregar os usuários.';
+        }
+      }
+
+      function fecharGerenciadorUsuarios_() {
+        if (userManagerModal) userManagerModal.hidden = true;
+        document.body.classList.remove('user-manager-open');
+        resetarFormularioUsuario_();
+      }
+
+      async function salvarUsuarioGerenciado_(event) {
+        event?.preventDefault();
+        if (!navigator.onLine) return;
+        const id = String(userManagerId?.value || '').trim();
+        const nome = String(userManagerName?.value || '').trim();
+        const bm = normalizarBmCliente_(userManagerBm?.value || '');
+        if (userManagerMessage) userManagerMessage.textContent = '';
+        if (!nome || !/^\d{7}$/.test(bm)) {
+          if (userManagerMessage) userManagerMessage.textContent = 'Informe nome e Nº BM com 7 dígitos.';
+          return;
+        }
+        if (userManagerSaveBtn) userManagerSaveBtn.disabled = true;
+        try {
+          const action = id ? 'user_update' : 'user_add';
+          const result = await apiRequest(action, { userId: id, nome, bm }, 30000);
+          if (result?.sessionToken && result?.usuarioAtual) {
+            salvarSessaoLocalBm_(result.usuarioAtual, result.sessionToken);
+            if (userManagerCurrent) userManagerCurrent.textContent = `Conectado como ${result.usuarioAtual.nome} · Nº BM ${result.usuarioAtual.bm}`;
+          }
+          renderizarListaUsuarios_(result?.usuarios || []);
+          resetarFormularioUsuario_();
+          if (userManagerMessage) userManagerMessage.textContent = id ? 'Usuário atualizado.' : 'Usuário adicionado.';
+        } catch (error) {
+          if (userManagerMessage) userManagerMessage.textContent = error?.message || 'Não foi possível salvar o usuário.';
+        } finally {
+          if (userManagerSaveBtn) userManagerSaveBtn.disabled = false;
+        }
+      }
+
+      async function excluirUsuarioGerenciado_(id, nome) {
+        if (!id || !confirm(`Excluir ${nome || 'este usuário'} da lista de acesso?`)) return;
+        try {
+          const result = await apiRequest('user_delete', { userId: id }, 30000);
+          renderizarListaUsuarios_(result?.usuarios || []);
+          if (userManagerMessage) userManagerMessage.textContent = 'Usuário excluído.';
+        } catch (error) {
+          if (userManagerMessage) userManagerMessage.textContent = error?.message || 'Não foi possível excluir o usuário.';
+        }
+      }
+
+      function sairUsuarioBm_() {
+        fecharMenuMais_();
+        if (!confirm('Sair deste usuário e voltar para a tela de Nº BM?')) return;
+        limparSessaoLocalBm_();
+        mostrarTelaLoginBm_();
+      }
+
       function renderizarTutorial_() {
         const total = tutorialStepEls.length || 1;
         tutorialStepIndex = Math.min(Math.max(0, tutorialStepIndex), total - 1);
@@ -2184,15 +2442,52 @@
         renderizarTutorial_();
       });
       updateAppBtn?.addEventListener('click', atualizarAplicativo_);
+      manageUsersBtn?.addEventListener('click', abrirGerenciadorUsuarios_);
+      logoutUserBtn?.addEventListener('click', sairUsuarioBm_);
+      authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); });
+      authForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+        await concluirLoginBm_(authBmInput?.value || '');
+        if (authState.usuario && authState.sessionToken) await loadInitialData();
+      });
+      authProfileList?.addEventListener('click', async event => {
+        const btn = event.target.closest('[data-auth-user-id]');
+        if (!btn) return;
+        const entrou = await concluirLoginBm_(authBmInput?.value || '', btn.dataset.authUserId || '');
+        if (entrou) await loadInitialData();
+      });
+      userManagerCloseBtn?.addEventListener('click', fecharGerenciadorUsuarios_);
+      userManagerModal?.addEventListener('click', event => { if (event.target === userManagerModal) fecharGerenciadorUsuarios_(); });
+      userManagerBm?.addEventListener('input', () => { userManagerBm.value = normalizarBmCliente_(userManagerBm.value); });
+      userManagerCancelBtn?.addEventListener('click', resetarFormularioUsuario_);
+      userManagerForm?.addEventListener('submit', salvarUsuarioGerenciado_);
+      userManagerList?.addEventListener('click', event => {
+        const editar = event.target.closest('[data-user-edit]');
+        if (editar) {
+          userManagerId.value = editar.dataset.userEdit || '';
+          userManagerName.value = editar.dataset.userName || '';
+          userManagerBm.value = editar.dataset.userBm || '';
+          userManagerFormTitle.textContent = 'Editar usuário';
+          userManagerSaveBtn.textContent = 'Salvar alterações';
+          userManagerCancelBtn.hidden = false;
+          userManagerMessage.textContent = '';
+          userManagerName.focus();
+          return;
+        }
+        const excluir = event.target.closest('[data-user-delete]');
+        if (excluir && !excluir.disabled) excluirUsuarioGerenciado_(excluir.dataset.userDelete || '', excluir.dataset.userName || '');
+      });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); }
+        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
-      window.addEventListener('offline', atualizarStatusConexao);
+      window.addEventListener('offline', () => { atualizarStatusConexao(); if (authEnterBtn) authEnterBtn.disabled = true; if (authOfflineNote && authGate?.classList.contains('show')) authOfflineNote.hidden = false; });
       window.addEventListener('online', () => {
         atualizarStatusConexao();
+        if (authEnterBtn) authEnterBtn.disabled = false;
+        if (authOfflineNote) authOfflineNote.hidden = true;
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
         setTimeout(() => enviarPendentes(true), 650);
         if (document.body.classList.contains('records-mode')) {
@@ -2228,5 +2523,6 @@
       }
 
       atualizarStatusConexao();
-      inicializarFilaOffline().then(loadInitialData).catch(loadInitialData);
+      carregarSessaoLocalBm_();
+      inicializarFilaOffline().then(inicializarAutenticacaoBm_).catch(inicializarAutenticacaoBm_);
     })();

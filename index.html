@@ -40,6 +40,29 @@
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
 
+  <div class="auth-gate" id="authGate" aria-hidden="false">
+    <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="auth-logo-wrap" aria-hidden="true">
+        <img src="assets/logo-gpv.png" alt="">
+      </div>
+      <span class="auth-kicker">Acesso institucional</span>
+      <h1 id="authTitle">Controle Fiscalizatório</h1>
+      <p class="auth-subtitle">Informe seu <strong>Nº BM</strong> para acessar o aplicativo.</p>
+      <form id="authForm" autocomplete="off">
+        <label class="auth-label" for="authBmInput">Nº BM</label>
+        <input class="auth-input" id="authBmInput" type="text" inputmode="numeric" maxlength="7" placeholder="0000000" autocomplete="off">
+        <button class="auth-enter-btn" id="authEnterBtn" type="submit">Entrar</button>
+      </form>
+      <div class="auth-message" id="authMessage" role="status" aria-live="polite"></div>
+      <div class="auth-profile-choice" id="authProfileChoice" hidden>
+        <strong>Este Nº BM está temporariamente associado a mais de um usuário.</strong>
+        <span>Escolha seu nome para continuar e depois atualize o Nº BM em Mais → Gerenciar usuários.</span>
+        <div class="auth-profile-list" id="authProfileList"></div>
+      </div>
+      <p class="auth-offline-note" id="authOfflineNote" hidden>Primeiro acesso neste aparelho exige conexão com a internet.</p>
+    </section>
+  </div>
+
   <header class="topbar app-header">
     <div class="topbar-inner">
       <div class="brand-mark" aria-hidden="true">
@@ -93,6 +116,14 @@
     <button class="app-more-menu-item" id="updateAppBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7.2 7.2 0 1 0 1 7"/><path d="M19 4.5V8h-3.5"/></svg>
       <span><strong>Atualizar app</strong><small>Buscar a versão mais recente</small></span>
+    </button>
+    <button class="app-more-menu-item" id="manageUsersBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.5-5 5.5-5s4.9 1.8 5.5 5M16 8h5M18.5 5.5v5"/></svg>
+      <span><strong>Gerenciar usuários</strong><small>Incluir, editar ou excluir Nº BM</small></span>
+    </button>
+    <button class="app-more-menu-item" id="logoutUserBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
+      <span><strong>Trocar usuário / Sair</strong><small id="loggedUserMenuText">Encerrar o acesso neste aparelho</small></span>
     </button>
   </div>
 
@@ -163,7 +194,7 @@
         <article class="tutorial-step" data-tutorial-step="7">
           <div class="tutorial-step-icon">⋯</div>
           <h3>7. Usar o menu Mais</h3>
-          <p>Em <strong>Mais</strong>, os recursos aparecem nesta ordem: <strong>Tutorial</strong>, <strong>Planilha Excel</strong> e <strong>Atualizar app</strong>.</p>
+          <p>Em <strong>Mais</strong>, os três primeiros recursos permanecem nesta ordem: <strong>Tutorial</strong>, <strong>Planilha Excel</strong> e <strong>Atualizar app</strong>. Abaixo ficam <strong>Gerenciar usuários</strong> e <strong>Trocar usuário / Sair</strong>.</p>
           <p class="tutorial-note">Usuários autorizados também podem abrir a planilha diretamente pelo botão <strong>Planilha</strong> disponível no Painel.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="8">
@@ -685,6 +716,36 @@
     </aside>
   </div>
 
+  <div class="user-manager-overlay" id="userManagerModal" hidden>
+    <section class="user-manager-card" role="dialog" aria-modal="true" aria-labelledby="userManagerTitle">
+      <header class="user-manager-header">
+        <div>
+          <span class="user-manager-kicker">Acesso por Nº BM</span>
+          <h2 id="userManagerTitle">Gerenciar usuários</h2>
+          <p>Qualquer usuário conectado pode incluir, editar ou excluir usuários autorizados.</p>
+        </div>
+        <button class="user-manager-close" id="userManagerCloseBtn" type="button" aria-label="Fechar">×</button>
+      </header>
+      <div class="user-manager-current" id="userManagerCurrent"></div>
+      <div class="user-manager-list" id="userManagerList"></div>
+      <form class="user-manager-form" id="userManagerForm" autocomplete="off">
+        <input type="hidden" id="userManagerId">
+        <div class="user-manager-form-title" id="userManagerFormTitle">Adicionar usuário</div>
+        <label>Nome
+          <input id="userManagerName" type="text" maxlength="80" placeholder="Ex.: Sd Fulano">
+        </label>
+        <label>Nº BM
+          <input id="userManagerBm" type="text" inputmode="numeric" maxlength="7" placeholder="0000000">
+        </label>
+        <div class="user-manager-message" id="userManagerMessage" role="status" aria-live="polite"></div>
+        <div class="user-manager-actions">
+          <button class="btn btn-secondary" id="userManagerCancelBtn" type="button" hidden>Cancelar edição</button>
+          <button class="btn btn-primary" id="userManagerSaveBtn" type="submit">Adicionar usuário</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <div class="city-check-overlay" id="cityCheckModal" hidden>
     <section class="city-check-card" role="dialog" aria-modal="true" aria-labelledby="cityCheckTitle" aria-describedby="cityCheckText">
       <div class="city-check-icon" aria-hidden="true">!</div>
@@ -706,6 +767,6 @@
   </div>
   <script src="config.js"></script>
   <script src="ocupacoes.js"></script>
-  <script src="app.js?v=18.4"></script>
+  <script src="app.js?v=19.0"></script>
 </body>
 </html>
