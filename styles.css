@@ -3268,41 +3268,54 @@ body.tutorial-open { overflow: hidden; }
   #navMoreMenuBtn { order: 3 !important; grid-column: 3 !important; grid-row: 1 !important; }
 }
 
-/* Indicador moderno de conectividade: somente ícone, sem legenda visual. */
+/* Indicador de conectividade em barra: verde animada online e vermelha pulsante offline. */
 .connection-banner {
-  width: 42px;
-  min-width: 42px;
-  height: 38px;
-  min-height: 38px;
-  margin: 0 0 10px auto;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 5px;
+  min-height: 5px;
+  margin: 0 0 10px;
   padding: 0;
-  display: grid;
-  place-items: center;
-  gap: 0;
+  overflow: hidden;
+  border: 0;
   border-radius: 999px;
-  border: 1px solid #b7e4c7;
-  background: #effaf3;
-  box-shadow: 0 3px 12px rgba(16,24,40,.05);
+  background: #16a34a;
+  box-shadow: 0 1px 4px rgba(22, 163, 74, .22);
+  transition: background-color .22s ease, box-shadow .22s ease;
+}
+.connection-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -34%;
+  width: 34%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.78), rgba(255,255,255,0));
+  animation: connectionBarSweep 1.9s ease-in-out infinite;
 }
 .connection-banner.offline {
-  border-color: #fed7aa;
-  background: #fff7ed;
+  background: #dc2626;
+  box-shadow: 0 1px 5px rgba(220, 38, 38, .30);
+  animation: connectionBarOfflinePulse 1.15s ease-in-out infinite;
+}
+.connection-banner.offline::after {
+  display: none;
 }
 .connection-dot,
-.connection-copy { display: none !important; }
+.connection-copy,
 .connection-icon {
-  width: 23px;
-  height: 23px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  display: none !important;
 }
-.connection-icon-online { color: #16864b; }
-.connection-icon-offline { display: none; color: #d97706; }
-.connection-banner.offline .connection-icon-online { display: none; }
-.connection-banner.offline .connection-icon-offline { display: block; }
+@keyframes connectionBarSweep {
+  0% { transform: translateX(0); opacity: 0; }
+  14% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translateX(395%); opacity: 0; }
+}
+@keyframes connectionBarOfflinePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 1px 5px rgba(220, 38, 38, .30); }
+  50% { opacity: .48; box-shadow: 0 1px 12px rgba(220, 38, 38, .62); }
+}
 .sr-only {
   position: absolute !important;
   width: 1px !important;
@@ -3314,16 +3327,18 @@ body.tutorial-open { overflow: hidden; }
   white-space: nowrap !important;
   border: 0 !important;
 }
-
 @media (max-width: 767px) {
   .connection-banner {
-    width: 40px;
-    min-width: 40px;
-    height: 36px;
-    min-height: 36px;
-    margin-bottom: 7px;
+    height: 5px;
+    min-height: 5px;
+    margin-bottom: 8px;
   }
-  .connection-icon { width: 22px; height: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .connection-banner::after,
+  .connection-banner.offline {
+    animation: none !important;
+  }
 }
 
 
