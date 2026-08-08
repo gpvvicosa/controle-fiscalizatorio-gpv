@@ -106,7 +106,7 @@
         <button class="tutorial-close" id="tutorialCloseBtn" type="button" aria-label="Fechar tutorial">×</button>
       </header>
       <div class="tutorial-progress">
-        <span id="tutorialStepCounter">Etapa 1 de 8</span>
+        <span id="tutorialStepCounter">Etapa 1 de 9</span>
         <div class="tutorial-progress-track" aria-hidden="true"><span id="tutorialProgressBar"></span></div>
       </div>
       <div class="tutorial-body" id="tutorialSteps">
@@ -116,47 +116,58 @@
           <p>O aplicativo reúne o registro de vistorias em campo e a consulta dos processos fiscalizatórios. No celular, a abertura prioriza a <strong>Vistoria</strong>; no computador, o <strong>Painel</strong> é a visualização principal.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="1">
+          <div class="tutorial-step-icon">🛡️</div>
+          <h3>1. Situação do licenciamento</h3>
+          <p>Depois de escolher a cidade, informe se o local <strong>possui AVCB ou CLCB</strong>, <strong>não possui</strong> ou está <strong>dispensado de licenciamento</strong>.</p>
+          <ul>
+            <li><strong>Não possui:</strong> o sistema define <strong>Autuado</strong> automaticamente.</li>
+            <li><strong>Possui AVCB ou CLCB:</strong> aparece o campo <strong>Nº do PSCIP</strong> e a decisão de autuar ou não permanece com o vistoriador.</li>
+            <li><strong>Dispensado de licenciamento:</strong> não há autuação automática; qualquer sanção depende da avaliação do vistoriador.</li>
+          </ul>
+          <p class="tutorial-note"><strong>Advertência não é escolhida manualmente no app.</strong> Ela é uma progressão automática do sistema a partir de Autuado, conforme as regras de prazo.</p>
+        </article>
+        <article class="tutorial-step" data-tutorial-step="2">
           <div class="tutorial-step-icon">🏢</div>
-          <h3>1. CNPJ e dados da empresa</h3>
+          <h3>2. CNPJ e dados da empresa</h3>
           <p>Na Vistoria, informe o <strong>CNPJ</strong>. Assim que os 14 dígitos forem preenchidos e houver internet, o sistema faz a consulta automaticamente e completa os dados disponíveis da empresa, incluindo <strong>Razão Social</strong> e <strong>endereço</strong>.</p>
           <p class="tutorial-note">Depois, confira os dados encontrados e informe o <strong>Nome Fantasia</strong> quando necessário. Complete normalmente os demais dados específicos da vistoria.</p>
         </article>
-        <article class="tutorial-step" data-tutorial-step="2">
+        <article class="tutorial-step" data-tutorial-step="3">
           <div class="tutorial-step-icon">☁️</div>
-          <h3>2. Online e offline</h3>
+          <h3>3. Online e offline</h3>
           <p>O símbolo de <strong>nuvem com ✓</strong> indica conexão disponível. A <strong>nuvem desconectada</strong> indica que o aparelho está sem internet.</p>
           <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho. Se você registrar uma vistoria sem sinal, ela permanece segura na fila offline e será enviada quando a conexão voltar.</p>
         </article>
-        <article class="tutorial-step" data-tutorial-step="3">
+        <article class="tutorial-step" data-tutorial-step="4">
           <div class="tutorial-step-icon">🖥️</div>
-          <h3>3. Consultar o Painel</h3>
+          <h3>4. Consultar o Painel</h3>
           <p>Use <strong>Painel</strong> para pesquisar estabelecimento, CNPJ, Nº do PSCIP ou endereço. Os filtros ajudam a localizar registros por cidade, demanda, situação, tipo de vistoria e período.</p>
         </article>
-        <article class="tutorial-step" data-tutorial-step="4">
+        <article class="tutorial-step" data-tutorial-step="5">
           <div class="tutorial-step-icon">📋</div>
-          <h3>4. Abrir a Ficha do Processo</h3>
+          <h3>5. Abrir a Ficha do Processo</h3>
           <p>No computador, clique em uma linha da tabela. No celular, toque no cartão do registro. A ficha mostra situação atual, dados do processo, local e histórico disponível.</p>
         </article>
-        <article class="tutorial-step" data-tutorial-step="5">
+        <article class="tutorial-step" data-tutorial-step="6">
           <div class="tutorial-step-icon">🚦</div>
-          <h3>5. Entender as situações</h3>
+          <h3>6. Entender as situações</h3>
           <ul>
             <li><strong>Autuado:</strong> fiscalização inicial com irregularidade.</li>
-            <li><strong>Advertência:</strong> prazo de regularização no fluxo fiscalizatório.</li>
+            <li><strong>Advertência:</strong> progressão automática do fluxo fiscalizatório após o prazo definido.</li>
             <li><strong>Notificado:</strong> pendência técnica do fluxo de liberação, sem entrar no fluxo de multas.</li>
             <li><strong>Regularizado:</strong> pendência de fiscalização encerrada.</li>
             <li><strong>Liberado:</strong> fluxo de liberação concluído.</li>
           </ul>
         </article>
-        <article class="tutorial-step" data-tutorial-step="6">
+        <article class="tutorial-step" data-tutorial-step="7">
           <div class="tutorial-step-icon">⋯</div>
-          <h3>6. Usar o menu Mais</h3>
+          <h3>7. Usar o menu Mais</h3>
           <p>Em <strong>Mais</strong> ficam os recursos auxiliares, como o acesso à <strong>Planilha administrativa</strong>, este <strong>Tutorial do App</strong> e a opção de <strong>Atualizar aplicativo</strong>.</p>
           <p class="tutorial-note">Usuários autorizados também podem abrir a planilha diretamente pelo botão <strong>Planilha</strong> disponível no Painel.</p>
         </article>
-        <article class="tutorial-step" data-tutorial-step="7">
+        <article class="tutorial-step" data-tutorial-step="8">
           <div class="tutorial-step-icon">⬇️</div>
-          <h3>7. Instalar e manter o app atualizado</h3>
+          <h3>8. Instalar e manter o app atualizado</h3>
           <p>No Android/Chrome, use o menu do navegador e escolha <strong>Instalar aplicativo</strong>. No iPhone/iPad, use <strong>Compartilhar → Adicionar à Tela de Início</strong>. Quando houver uma nova versão, abra <strong>Mais → Atualizar aplicativo</strong>.</p>
           <p class="tutorial-note"><strong>Pronto.</strong> Você pode abrir este tutorial novamente a qualquer momento pelo menu Mais.</p>
         </article>
@@ -366,7 +377,22 @@
               </div>
             </div>
             <div class="field half">
-              <div class="sequence-note"><strong>Próximo passo:</strong> informe o CNPJ. A cidade escolhida aqui não será alterada pela consulta automática.</div>
+              <div class="sequence-note"><strong>Próximo passo:</strong> informe a situação do licenciamento. A cidade escolhida aqui não será alterada pela consulta automática.</div>
+            </div>
+            <div class="field half">
+              <label class="required" for="licenciamento">Situação do licenciamento</label>
+              <select id="licenciamento" name="licenciamento">
+                <option value="">Selecione</option>
+                <option value="possui">Possui AVCB ou CLCB</option>
+                <option value="nao_possui">Não possui</option>
+                <option value="dispensado">Dispensado de licenciamento</option>
+              </select>
+              <div class="hint">A resposta define o comportamento inicial da sanção e do Nº do PSCIP.</div>
+            </div>
+            <div class="field half" id="pscipLicenciamentoWrap" hidden>
+              <label for="pscip">Nº do PSCIP</label>
+              <input id="pscip" name="pscip" placeholder="Informe o Nº do PSCIP">
+              <div class="hint">Com AVCB ou CLCB, a decisão de autuar ou não continua sendo do vistoriador.</div>
             </div>
           </div>
         </div>
@@ -509,10 +535,7 @@
             <div class="field">
               <label for="sancao">Sanção</label>
               <select id="sancao" name="sancao"><option value="">Selecione</option></select>
-            </div>
-            <div class="field">
-              <label for="pscip">Nº do PSCIP</label>
-              <input id="pscip" name="pscip" placeholder="Nº do Projeto / PSCIP">
+              <div class="hint licensing-auto-note" id="sancaoAutomaticaHint" hidden>Autuado definido automaticamente porque foi informado que o local não possui AVCB ou CLCB.</div>
             </div>
             <div class="field">
               <label for="pf">Nº do PF</label>

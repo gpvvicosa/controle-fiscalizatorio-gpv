@@ -18,7 +18,7 @@
         planilhaUrl: '',
         opcoes: {
           cidade: ['Viçosa','Cajuri','Canaã','Araponga','Coimbra','Ervália','Paula Cândido','Pedra do Anta','Porto Firme','Presidente Bernardes','São Geraldo','São Miguel do Anta','Teixeiras','Outro'],
-          sancao: ['Autuado','Advertência','Notificado','Regularizado','Liberado'],
+          sancao: ['Autuado','Notificado','Regularizado','Liberado'],
           tipoVistoria: [], natureza: [],
           demandaPrincipal: ['Alerta Vermelho','Liberação','Iniciativa'],
           categoriaMeta: ['', 'Brigada','CLCB','Renovação AVCB','Eventos declaratórios','Nível de risco III'],
@@ -171,6 +171,11 @@
       const citySelect = document.getElementById('cidadeSelect');
       const otherCityWrap = document.getElementById('outraCidadeWrap');
       const otherCity = document.getElementById('outraCidade');
+      const licenciamentoSelect = document.getElementById('licenciamento');
+      const pscipLicenciamentoWrap = document.getElementById('pscipLicenciamentoWrap');
+      const pscipInput = document.getElementById('pscip');
+      const sancaoSelect = document.getElementById('sancao');
+      const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
       const consultarCnpjBtn = document.getElementById('consultarCnpjBtn');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const ocupacaoInput = document.getElementById('ocupacao');
@@ -209,6 +214,8 @@
       let pendingCache = [];
       let deferredInstallPrompt = null;
       let tutorialStepIndex = 0;
+      let sancaoDefinidaAutomaticamente = false;
+      let sancaoAntesDoAutomatico = '';
 
       function value(id) {
         const el = document.getElementById(id);
@@ -1381,7 +1388,8 @@
 
       function populateOptions(op) {
         fillCity(op.cidade);
-        fillSelect('sancao', op.sancao, 'Selecione');
+        const sancoesManuais = (op.sancao || []).filter(v => normalize(v) !== normalize('Advertência'));
+        fillSelect('sancao', sancoesManuais, 'Selecione');
         fillDatalist('dlTipoVistoria', op.tipoVistoria);
         fillDatalist('dlNatureza', op.natureza);
         fillDatalist('dlDemanda', op.demandaPrincipal);
@@ -1405,6 +1413,8 @@
           nomeFantasia: value('nomeFantasia'),
           razaoSocial: value('razaoSocial'),
           cnpj: value('cnpj'),
+          _appLicenciamento: value('licenciamento'),
+          _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           sancao: value('sancao'),
           pscip: value('pscip'),
           pf: value('pf'),
@@ -1447,6 +1457,7 @@
       function validateRequired(showMessage = true) {
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const checks = [
+          ['licenciamento', 'Situação do licenciamento'],
           ['endereco', 'Endereço'],
           ['nomeResponsavel', 'Nome do responsável'],
           ['mae', 'Mãe']
@@ -1486,6 +1497,38 @@
         const isOther = citySelect.value === 'Outro';
         otherCityWrap.classList.toggle('show', isOther);
         if (!isOther) otherCity.classList.remove('invalid');
+      }
+
+      function syncLicenciamento() {
+        const situacao = value('licenciamento');
+        const possui = situacao === 'possui';
+        const naoPossui = situacao === 'nao_possui';
+
+        if (pscipLicenciamentoWrap) pscipLicenciamentoWrap.hidden = !possui;
+        if (!possui && pscipInput) pscipInput.value = '';
+
+        if (naoPossui) {
+          if (!sancaoDefinidaAutomaticamente) {
+            sancaoAntesDoAutomatico = value('sancao');
+          }
+          sancaoDefinidaAutomaticamente = true;
+          if (sancaoSelect) {
+            sancaoSelect.value = 'Autuado';
+            sancaoSelect.disabled = true;
+          }
+          if (sancaoAutomaticaHint) sancaoAutomaticaHint.hidden = false;
+        } else {
+          if (sancaoSelect) sancaoSelect.disabled = false;
+          if (sancaoDefinidaAutomaticamente && sancaoSelect) {
+            const existeAnterior = Array.from(sancaoSelect.options).some(op => op.value === sancaoAntesDoAutomatico);
+            sancaoSelect.value = existeAnterior ? sancaoAntesDoAutomatico : '';
+          }
+          sancaoDefinidaAutomaticamente = false;
+          sancaoAntesDoAutomatico = '';
+          if (sancaoAutomaticaHint) sancaoAutomaticaHint.hidden = true;
+        }
+
+        syncNotificado();
       }
 
       function syncNotificado() {
@@ -1641,6 +1684,9 @@
           }
           const p = draft.payload;
           currentRecordId = String(draft.recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
+          sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
+          if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
+          sancaoDefinidaAutomaticamente = String(p._appLicenciamento || '') === 'nao_possui';
           const cityOptions = Array.from(citySelect.options).map(o => o.value);
           if (cityOptions.includes(p.cidade)) {
             citySelect.value = p.cidade;
@@ -1649,12 +1695,13 @@
             otherCity.value = p.cidade;
           }
           Object.entries(p).forEach(([key, val]) => {
-            if (key === 'cidade' || key === 'ocupacao' || key === '_appRegistroId') return;
+            if (key === 'cidade' || key === 'ocupacao' || key.startsWith('_app')) return;
             const el = document.getElementById(key);
             if (el) el.value = val == null ? '' : val;
           });
           restaurarOcupacoesSelecionadas(p.ocupacao);
           syncOtherCity();
+          syncLicenciamento();
           syncNotificado();
           appStatus.textContent = 'Rascunho anterior recuperado.';
         } catch (e) {}
@@ -1666,7 +1713,11 @@
         currentRecordId = criarIdRegistro();
         citySelect.value = appConfig?.padroes?.cidade || 'Viçosa';
         otherCity.value = '';
+        sancaoDefinidaAutomaticamente = false;
+        sancaoAntesDoAutomatico = '';
+        if (licenciamentoSelect) licenciamentoSelect.value = '';
         syncOtherCity();
+        syncLicenciamento();
         document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
         document.getElementById('enderecoResponsavel').readOnly = false;
         document.getElementById('enderecoResponsavel').style.background = '';
@@ -1856,7 +1907,8 @@
       });
       form.addEventListener('change', scheduleDraftSave);
       citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
-      document.getElementById('sancao').addEventListener('change', () => { syncNotificado(); scheduleDraftSave(); });
+      licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
+      sancaoSelect?.addEventListener('change', () => { syncNotificado(); scheduleDraftSave(); });
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyCnpjMask);
       consultarCnpjBtn.addEventListener('click', () => consultarCnpj(false));

@@ -3325,3 +3325,41 @@ body.tutorial-open { overflow: hidden; }
   }
   .connection-icon { width: 22px; height: 22px; }
 }
+
+
+/* =============================================================================
+   V17 — SITUAÇÃO DO LICENCIAMENTO E SANÇÃO AUTOMÁTICA (08/08/2026)
+   ============================================================================= */
+#pscipLicenciamentoWrap[hidden],
+#sancaoAutomaticaHint[hidden] {
+  display: none !important;
+}
+
+#sancao:disabled {
+  opacity: 1;
+  color: #7f1d1d;
+  background: #fff1f2;
+  border-color: #fecdd3;
+  cursor: not-allowed;
+  -webkit-text-fill-color: #7f1d1d;
+}
+
+.licensing-auto-note {
+  margin-top: 7px;
+  padding: 8px 10px;
+  border: 1px solid #fecdd3;
+  border-radius: 9px;
+  background: #fff1f2;
+  color: #991b1b;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+@media (max-width: 767px) {
+  #licenciamento {
+    font-size: 16px;
+  }
+  .licensing-auto-note {
+    font-size: 12px;
+  }
+}
