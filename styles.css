@@ -3350,6 +3350,10 @@ body.tutorial-open { overflow: hidden; }
   display: none !important;
 }
 
+#pscipLicenciamentoWrap.is-visible:not([hidden]) {
+  display: block !important;
+}
+
 #sancao:disabled {
   opacity: 1;
   color: #7f1d1d;

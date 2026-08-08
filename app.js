@@ -1504,8 +1504,18 @@
         const possui = situacao === 'possui';
         const naoPossui = situacao === 'nao_possui';
 
-        if (pscipLicenciamentoWrap) pscipLicenciamentoWrap.hidden = !possui;
-        if (!possui && pscipInput) pscipInput.value = '';
+        if (pscipLicenciamentoWrap) {
+          pscipLicenciamentoWrap.hidden = !possui;
+          pscipLicenciamentoWrap.classList.toggle('is-visible', possui);
+          pscipLicenciamentoWrap.setAttribute('aria-hidden', possui ? 'false' : 'true');
+          // Redundância proposital: garante a exibição mesmo se uma versão antiga
+          // do CSS/HTML ainda estiver temporariamente em cache no PWA.
+          pscipLicenciamentoWrap.style.display = possui ? 'block' : 'none';
+        }
+        if (pscipInput) {
+          pscipInput.disabled = !possui;
+          if (!possui) pscipInput.value = '';
+        }
 
         if (naoPossui) {
           if (!sancaoDefinidaAutomaticamente) {
@@ -1908,6 +1918,7 @@
       form.addEventListener('change', scheduleDraftSave);
       citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
+      licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); scheduleDraftSave(); });
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyCnpjMask);
