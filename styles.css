@@ -1638,16 +1638,18 @@ input:focus, select:focus, textarea:focus {
   color: #667085;
 }
 .app-credit p {
-  max-width: 720px;
-  margin: 0 auto 5px;
-  font-size: 11px;
-  line-height: 1.55;
+  max-width: 820px;
+  margin: 0 auto 10px;
+  font-size: 20px;
+  line-height: 1.5;
   font-style: italic;
+  font-weight: 600;
 }
 .app-credit strong {
   display: block;
   color: #8f171c;
-  font-size: 10.5px;
+  font-size: 18px;
+  line-height: 1.4;
   font-weight: 850;
   letter-spacing: .015em;
 }
@@ -1681,11 +1683,19 @@ input:focus, select:focus, textarea:focus {
   }
 
   .app-credit {
-    margin: 12px 4px 0;
-    padding: 13px 12px 8px;
+    margin: 14px 4px 0;
+    padding: 18px 14px 10px;
   }
-  .app-credit p { font-size: 10.5px; }
-  .app-credit strong { font-size: 10px; }
+  .app-credit p {
+    max-width: 520px;
+    margin-bottom: 9px;
+    font-size: 18px;
+    line-height: 1.5;
+  }
+  .app-credit strong {
+    font-size: 17px;
+    line-height: 1.4;
+  }
 }
 
 /* =============================================================================
