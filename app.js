@@ -106,11 +106,23 @@
       const recordsCityFilter = document.getElementById('recordsCityFilter');
       const recordsDemandFilter = document.getElementById('recordsDemandFilter');
       const recordsSanctionFilter = document.getElementById('recordsSanctionFilter');
+      const recordsTypeFilter = document.getElementById('recordsTypeFilter');
+      const recordsPeriodFilter = document.getElementById('recordsPeriodFilter');
       const recordsClearFiltersBtn = document.getElementById('recordsClearFiltersBtn');
       const recordsRefreshBtn = document.getElementById('recordsRefreshBtn');
       const recordsStatus = document.getElementById('recordsStatus');
       const recordsList = document.getElementById('recordsList');
-      const recordsLoadMoreBtn = document.getElementById('recordsLoadMoreBtn');
+      const recordsTableBody = document.getElementById('recordsTableBody');
+      const recordsPrevBtn = document.getElementById('recordsPrevBtn');
+      const recordsNextBtn = document.getElementById('recordsNextBtn');
+      const recordsPageLabel = document.getElementById('recordsPageLabel');
+      const recordsPaginationSummary = document.getElementById('recordsPaginationSummary');
+      const kpiTotal = document.getElementById('kpiTotal');
+      const kpiAutuado = document.getElementById('kpiAutuado');
+      const kpiAdvertencia = document.getElementById('kpiAdvertencia');
+      const kpiNotificado = document.getElementById('kpiNotificado');
+      const kpiRegularizado = document.getElementById('kpiRegularizado');
+      const kpiLiberado = document.getElementById('kpiLiberado');
       const recordsOpenSheetLink = document.getElementById('recordsOpenSheetLink');
       const recordDetailScreen = document.getElementById('recordDetailScreen');
       const recordDetailCloseBtn = document.getElementById('recordDetailCloseBtn');
@@ -120,6 +132,11 @@
       const recordDetailLoading = document.getElementById('recordDetailLoading');
       const recordDetailGroups = document.getElementById('recordDetailGroups');
       const recordDetailSheetLink = document.getElementById('recordDetailSheetLink');
+      const recordDetailBackdrop = document.getElementById('recordDetailBackdrop');
+      const recordDetailStatusBadge = document.getElementById('recordDetailStatusBadge');
+      const recordHistoryPanel = document.getElementById('recordHistoryPanel');
+      const recordHistoryCount = document.getElementById('recordHistoryCount');
+      const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
       const connectionBanner = document.getElementById('connectionBanner');
       const connectionTitle = document.getElementById('connectionTitle');
       const connectionText = document.getElementById('connectionText');
@@ -135,6 +152,7 @@
       const mobileMoreMenuBtn = document.getElementById('mobileMoreMenuBtn');
       const contingenciaLinkMenu = document.getElementById('contingenciaLinkMenu');
       const updateAppBtn = document.getElementById('updateAppBtn');
+      const adminSheetMenuLink = document.getElementById('adminSheetMenuLink');
       const moreMenuTriggers = [desktopMoreMenuBtn, mobileMoreMenuBtn].filter(Boolean);
       const citySelect = document.getElementById('cidadeSelect');
       const otherCityWrap = document.getElementById('outraCidadeWrap');
@@ -156,13 +174,14 @@
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
       const recordsState = {
-        offset: 0,
-        limite: 30,
+        pagina: 1,
+        limite: 25,
         total: 0,
-        temMais: false,
+        totalPaginas: 1,
         carregando: false,
         planilhaUrl: '',
-        itens: []
+        itens: [],
+        resumo: null
       };
       let saveTimer = null;
       let cnpjTimer = null;
@@ -330,7 +349,7 @@
         atualizarBotaoPlanilhaSucesso_();
         if (document.body.classList.contains('records-mode') && !online) {
           recordsStatus.className = 'records-status error';
-          recordsStatus.textContent = 'A consulta da planilha precisa de internet. O formulário e os registros pendentes continuam disponíveis offline.';
+          recordsStatus.textContent = 'O Painel Fiscalizatório precisa de internet. O formulário e os registros pendentes continuam disponíveis offline.';
         }
       }
 
@@ -477,7 +496,7 @@
         if (destino) recordsState.planilhaUrl = destino;
         const finalUrl = recordsState.planilhaUrl || String(appConfig?.planilhaUrl || '').trim();
 
-        [recordsOpenSheetLink, recordDetailSheetLink].forEach(link => {
+        [recordsOpenSheetLink, recordDetailSheetLink, adminSheetMenuLink].forEach(link => {
           if (!link) return;
           if (finalUrl) {
             link.href = finalUrl;
@@ -493,54 +512,62 @@
         if (!recordsSuccessBtn) return;
         const label = recordsSuccessBtn.querySelector('.records-success-label');
         const online = navigator.onLine;
-
         recordsSuccessBtn.disabled = !online;
         if (!online) {
-          if (label) label.textContent = 'Planilha indisponível offline';
+          if (label) label.textContent = 'Painel indisponível offline';
         } else if (ultimoRegistroConsultaChave) {
-          if (label) label.textContent = 'Ver registro na planilha';
+          if (label) label.textContent = 'Ver registro no painel';
         } else {
-          if (label) label.textContent = 'Abrir planilha';
+          if (label) label.textContent = 'Abrir painel';
         }
       }
 
       function marcarAbaApp_(modo) {
-        const planilha = modo === 'records';
-        document.body.classList.toggle('records-mode', planilha);
-        recordsPanel.hidden = !planilha;
-
-        formTabBtn?.classList.toggle('active', !planilha);
-        recordsTabBtn?.classList.toggle('active', planilha);
-        formTabBtn?.setAttribute('aria-pressed', String(!planilha));
-        recordsTabBtn?.setAttribute('aria-pressed', String(planilha));
+        const painel = modo === 'records';
+        document.body.classList.toggle('records-mode', painel);
+        recordsPanel.hidden = !painel;
+        formTabBtn?.classList.toggle('active', !painel);
+        recordsTabBtn?.classList.toggle('active', painel);
+        formTabBtn?.setAttribute('aria-pressed', String(!painel));
+        recordsTabBtn?.setAttribute('aria-pressed', String(painel));
       }
 
       function mostrarVistaFormulario_() {
-        fecharDetalheRegistro_();
         marcarAbaApp_('form');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
       function mostrarVistaPlanilha_(opcoes = {}) {
-        successScreen.classList.remove('show');
         marcarAbaApp_('records');
-
-        if (Object.prototype.hasOwnProperty.call(opcoes, 'busca')) {
-          recordsSearch.value = String(opcoes.busca || '');
-        }
-
+        if (opcoes.busca != null && recordsSearch) recordsSearch.value = String(opcoes.busca || '');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         if (opcoes.carregar !== false) carregarRegistros_(true);
       }
 
-      function preencherSelectConsulta_(select, valores, primeiroRotulo) {
+      function preencherSelectConsulta_(select, valores, rotuloTodos) {
         if (!select) return;
-        const atual = String(select.value || '');
-        const lista = Array.isArray(valores) ? valores : [];
-        select.innerHTML =
-          `<option value="">${escapeHtml(primeiroRotulo)}</option>` +
-          lista.map(valor => `<option value="${escapeAttr(valor)}">${escapeHtml(valor)}</option>`).join('');
+        const atual = select.value;
+        const lista = Array.isArray(valores) ? valores.filter(Boolean) : [];
+        select.innerHTML = `<option value="">${escapeHtml(rotuloTodos)}</option>` +
+          lista.map(v => `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
         if (lista.includes(atual)) select.value = atual;
+      }
+
+      function preencherPeriodosConsulta_(anos) {
+        if (!recordsPeriodFilter) return;
+        const atual = recordsPeriodFilter.value;
+        const fixos = [
+          ['', 'Todo o período'],
+          ['30d', 'Últimos 30 dias'],
+          ['90d', 'Últimos 90 dias'],
+          ['365d', 'Últimos 12 meses']
+        ];
+        const anosValidos = (Array.isArray(anos) ? anos : [])
+          .map(v => String(v || '').trim()).filter(v => /^\d{4}$/.test(v));
+        recordsPeriodFilter.innerHTML = fixos.map(([v, t]) => `<option value="${v}">${t}</option>`).join('') +
+          anosValidos.map(ano => `<option value="ano:${ano}">Ano ${ano}</option>`).join('');
+        const existe = Array.from(recordsPeriodFilter.options).some(o => o.value === atual);
+        if (existe) recordsPeriodFilter.value = atual;
       }
 
       function filtrosConsultaAtuais_() {
@@ -548,109 +575,147 @@
           busca: String(recordsSearch?.value || '').trim(),
           cidade: String(recordsCityFilter?.value || '').trim(),
           demanda: String(recordsDemandFilter?.value || '').trim(),
-          sancao: String(recordsSanctionFilter?.value || '').trim()
+          sancao: String(recordsSanctionFilter?.value || '').trim(),
+          tipo: String(recordsTypeFilter?.value || '').trim(),
+          periodo: String(recordsPeriodFilter?.value || '').trim()
         };
       }
 
+      function classeStatus_(valor) {
+        const n = normalize(valor);
+        if (n === 'autuado') return 'status-autuado';
+        if (n === 'advertencia') return 'status-advertencia';
+        if (n === 'notificado') return 'status-notificado';
+        if (n === 'regularizado') return 'status-regularizado';
+        if (n === 'liberado') return 'status-liberado';
+        return 'status-neutral';
+      }
+
+      function statusBadgeHtml_(valor) {
+        const texto = String(valor || 'Sem situação');
+        return `<span class="status-badge ${classeStatus_(texto)}">${escapeHtml(texto)}</span>`;
+      }
+
+      function atualizarKpis_(resumo) {
+        const r = resumo || {};
+        if (kpiTotal) kpiTotal.textContent = Number(r.total || 0).toLocaleString('pt-BR');
+        if (kpiAutuado) kpiAutuado.textContent = Number(r.autuado || 0).toLocaleString('pt-BR');
+        if (kpiAdvertencia) kpiAdvertencia.textContent = Number(r.advertencia || 0).toLocaleString('pt-BR');
+        if (kpiNotificado) kpiNotificado.textContent = Number(r.notificado || 0).toLocaleString('pt-BR');
+        if (kpiRegularizado) kpiRegularizado.textContent = Number(r.regularizado || 0).toLocaleString('pt-BR');
+        if (kpiLiberado) kpiLiberado.textContent = Number(r.liberado || 0).toLocaleString('pt-BR');
+      }
+
       function renderizarRegistros_() {
-        if (!recordsState.itens.length) {
+        const itens = recordsState.itens || [];
+        if (!itens.length) {
           recordsList.innerHTML = '<div class="records-empty">Nenhum registro encontrado com os filtros informados.</div>';
+          recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
           return;
         }
 
-        recordsList.innerHTML = recordsState.itens.map(item => {
+        recordsTableBody.innerHTML = itens.map(item => {
           const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
-          const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo)
-            ? item.razaoSocial
-            : '';
-          const endereco = [item.endereco, item.numero, item.bairro].filter(Boolean).join(', ');
-          const cnpj = item.cnpj || '—';
-          const demanda = item.demanda || '—';
-          const sancao = item.sancao || '—';
-          const cidade = item.cidade || '—';
-          const carimbo = item.carimbo || '';
-          const projeto = item.projeto || item.pf || '';
-
-          return `
-            <button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}"
-                    aria-label="Abrir ficha de ${escapeAttr(titulo)}">
-              <div class="records-card-top">
-                <div class="records-card-title">${escapeHtml(titulo)}</div>
-                <div class="records-card-date">${escapeHtml(carimbo)}</div>
-              </div>
-              ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
-              <div class="records-card-meta">
-                <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(cidade)}</strong></div>
-                <div class="records-meta-item"><span>CNPJ</span><strong>${escapeHtml(cnpj)}</strong></div>
-                <div class="records-meta-item"><span>Demanda</span><strong>${escapeHtml(demanda)}</strong></div>
-                <div class="records-meta-item"><span>Sanção</span><strong>${escapeHtml(sancao)}</strong></div>
-              </div>
-              ${projeto ? `<div class="records-card-address"><strong>PSCIP/PF:</strong> ${escapeHtml(projeto)}</div>` : ''}
-              ${endereco ? `<div class="records-card-address">📍 ${escapeHtml(endereco)}</div>` : ''}
-              <div class="records-card-cta">Ver ficha completa ›</div>
-            </button>
-          `;
+          return `<tr class="records-table-row" data-record-key="${escapeAttr(item.chave || '')}" tabindex="0">
+            <td>${escapeHtml(item.carimbo || '—')}</td>
+            <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? `<small>${escapeHtml(item.razaoSocial)}</small>` : ''}</td>
+            <td>${escapeHtml(item.cidade || '—')}</td>
+            <td class="records-mono">${escapeHtml(item.cnpj || '—')}</td>
+            <td>${escapeHtml(item.demanda || '—')}</td>
+            <td>${statusBadgeHtml_(item.sancao)}</td>
+            <td class="records-mono">${escapeHtml(item.projeto || '—')}</td>
+            <td class="records-mono">${escapeHtml(item.pf || '—')}</td>
+            <td>${escapeHtml(item.tipoVistoria || '—')}</td>
+          </tr>`;
         }).join('');
+
+        recordsList.innerHTML = itens.map(item => {
+          const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? item.razaoSocial : '';
+          const endereco = [item.endereco, item.numero, item.bairro].filter(Boolean).join(', ');
+          return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+            <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(item.carimbo || '')}</div></div>
+            ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
+            <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span>${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
+            <div class="records-card-meta">
+              <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(item.cidade || '—')}</strong></div>
+              <div class="records-meta-item"><span>CNPJ</span><strong>${escapeHtml(item.cnpj || '—')}</strong></div>
+              <div class="records-meta-item"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto || '—')}</strong></div>
+              <div class="records-meta-item"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
+            </div>
+            ${endereco ? `<div class="records-card-address">${escapeHtml(endereco)}</div>` : ''}
+            <div class="records-card-cta">Ver ficha completa <span aria-hidden="true">→</span></div>
+          </button>`;
+        }).join('');
+      }
+
+      function atualizarPaginacao_() {
+        const total = recordsState.total || 0;
+        const pagina = recordsState.pagina || 1;
+        const totalPaginas = Math.max(1, recordsState.totalPaginas || 1);
+        const inicio = total ? ((pagina - 1) * recordsState.limite) + 1 : 0;
+        const fim = Math.min(total, pagina * recordsState.limite);
+        if (recordsPaginationSummary) recordsPaginationSummary.textContent = total ? `Mostrando ${inicio}–${fim} de ${total} registros` : 'Nenhum registro';
+        if (recordsPageLabel) recordsPageLabel.textContent = `Página ${pagina} de ${totalPaginas}`;
+        if (recordsPrevBtn) recordsPrevBtn.disabled = pagina <= 1 || recordsState.carregando;
+        if (recordsNextBtn) recordsNextBtn.disabled = pagina >= totalPaginas || recordsState.carregando;
       }
 
       async function carregarRegistros_(reiniciar = true) {
         if (recordsState.carregando) return;
-
         if (!navigator.onLine) {
           recordsStatus.className = 'records-status error';
-          recordsStatus.textContent = 'Sem internet. A consulta da planilha é somente online.';
-          recordsLoadMoreBtn.hidden = true;
+          recordsStatus.textContent = 'Sem internet. O Painel Fiscalizatório é consultado somente online.';
           return;
         }
 
+        if (reiniciar) recordsState.pagina = 1;
         recordsState.carregando = true;
-        recordsRefreshBtn.disabled = true;
-        recordsLoadMoreBtn.disabled = true;
+        if (recordsRefreshBtn) recordsRefreshBtn.disabled = true;
+        atualizarPaginacao_();
         recordsStatus.className = 'records-status loading';
-        recordsStatus.textContent = reiniciar ? 'Carregando registros...' : 'Carregando mais registros...';
+        recordsStatus.textContent = 'Atualizando Painel Fiscalizatório...';
 
-        if (reiniciar) {
-          recordsState.offset = 0;
-          recordsState.itens = [];
-        }
-
+        const offset = (recordsState.pagina - 1) * recordsState.limite;
         try {
           const resposta = await apiRequest('config', {
             consulta: 'registros',
-            filtros: {
-              ...filtrosConsultaAtuais_(),
-              offset: recordsState.offset,
-              limite: recordsState.limite
-            }
-          }, 45000);
+            filtros: { ...filtrosConsultaAtuais_(), offset, limite: recordsState.limite }
+          }, 50000);
 
-          const novos = Array.isArray(resposta?.itens) ? resposta.itens : [];
-          recordsState.itens = reiniciar ? novos : recordsState.itens.concat(novos);
+          recordsState.itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
           recordsState.total = Number(resposta?.total || 0);
-          recordsState.temMais = Boolean(resposta?.temMais);
-          recordsState.offset = Number(resposta?.offset || 0) + novos.length;
+          recordsState.totalPaginas = Math.max(1, Math.ceil(recordsState.total / recordsState.limite));
+          recordsState.resumo = resposta?.resumo || null;
+          if (recordsState.pagina > recordsState.totalPaginas) recordsState.pagina = recordsState.totalPaginas;
 
           const disponiveis = resposta?.filtrosDisponiveis || {};
           preencherSelectConsulta_(recordsCityFilter, disponiveis.cidades, 'Todas as cidades');
           preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas as demandas');
-          preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas as sanções');
+          preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas as situações');
+          preencherSelectConsulta_(recordsTypeFilter, disponiveis.tipos, 'Todos os tipos');
+          preencherPeriodosConsulta_(disponiveis.anos);
           atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
-
+          atualizarKpis_(resposta?.resumo || {});
           renderizarRegistros_();
+          atualizarPaginacao_();
+
           recordsStatus.className = 'records-status';
-          recordsStatus.innerHTML = `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} encontrado${recordsState.total === 1 ? '' : 's'}. Mais recentes primeiro.`;
-          recordsLoadMoreBtn.hidden = !recordsState.temMais;
+          const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(Boolean);
+          recordsStatus.innerHTML = filtrosAtivos
+            ? `<strong>${recordsState.total}</strong> resultado${recordsState.total === 1 ? '' : 's'} com os filtros atuais. Os indicadores acima representam o total da base.`
+            : `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} na consulta. Mais recentes primeiro.`;
         } catch (erro) {
           recordsStatus.className = 'records-status error';
-          recordsStatus.textContent = erro?.message || 'Não foi possível consultar a planilha.';
+          recordsStatus.textContent = erro?.message || 'Não foi possível carregar o Painel Fiscalizatório.';
           if (!recordsState.itens.length) {
-            recordsList.innerHTML = '<div class="records-empty">A lista não pôde ser carregada agora.</div>';
+            recordsList.innerHTML = '<div class="records-empty">O painel não pôde ser carregado agora.</div>';
+            recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
           }
-          recordsLoadMoreBtn.hidden = true;
         } finally {
           recordsState.carregando = false;
-          recordsRefreshBtn.disabled = false;
-          recordsLoadMoreBtn.disabled = false;
+          if (recordsRefreshBtn) recordsRefreshBtn.disabled = false;
+          atualizarPaginacao_();
         }
       }
 
@@ -658,59 +723,68 @@
         if (!recordDetailScreen) return;
         recordDetailScreen.classList.remove('show');
         recordDetailScreen.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('detail-open');
         recordDetailGroups.innerHTML = '';
+        recordHistoryTimeline.innerHTML = '';
+        recordHistoryPanel.hidden = true;
         recordDetailLoading.hidden = false;
+      }
+
+      function renderizarHistorico_(historico) {
+        const itens = Array.isArray(historico) ? historico : [];
+        if (!itens.length) {
+          recordHistoryPanel.hidden = true;
+          return;
+        }
+        recordHistoryPanel.hidden = false;
+        recordHistoryCount.textContent = `${itens.length} registro${itens.length === 1 ? '' : 's'}`;
+        recordHistoryTimeline.innerHTML = itens.map(item => {
+          const titulo = item.sancao || item.demanda || item.tipoVistoria || 'Registro';
+          const detalhes = [item.demanda, item.tipoVistoria, item.projeto ? `PSCIP ${item.projeto}` : '', item.pf ? `PF ${item.pf}` : '', item.reds ? `REDS ${item.reds}` : ''].filter(Boolean);
+          return `<article class="history-item ${classeStatus_(item.sancao)}">
+            <div class="history-marker" aria-hidden="true"></div>
+            <div class="history-body"><time>${escapeHtml(item.carimbo || '')}</time><strong>${escapeHtml(titulo)}</strong>${detalhes.length ? `<p>${escapeHtml(detalhes.join(' · '))}</p>` : ''}</div>
+          </article>`;
+        }).join('');
       }
 
       function renderizarFichaRegistro_(registro) {
         const ordem = ['Estabelecimento', 'Processo', 'Edificação', 'Endereço', 'Responsável', 'Controle', 'Outros'];
         const grupos = new Map();
-
         (registro?.campos || []).forEach(campo => {
           const grupo = String(campo?.grupo || 'Outros');
           if (!grupos.has(grupo)) grupos.set(grupo, []);
           grupos.get(grupo).push(campo);
         });
 
-        recordDetailGroups.innerHTML = ordem
-          .filter(grupo => grupos.has(grupo))
-          .map(grupo => {
-            const campos = grupos.get(grupo) || [];
-            return `
-              <section class="record-detail-group">
-                <h3>${escapeHtml(grupo)}</h3>
-                <div class="record-detail-fields">
-                  ${campos.map(campo => `
-                    <div class="record-detail-field">
-                      <label>${escapeHtml(campo.rotulo || '')}</label>
-                      <div>${escapeHtml(campo.valor || '')}</div>
-                    </div>
-                  `).join('')}
-                </div>
-              </section>
-            `;
-          }).join('');
+        recordDetailGroups.innerHTML = ordem.filter(grupo => grupos.has(grupo)).map(grupo => {
+          const campos = grupos.get(grupo) || [];
+          return `<section class="record-detail-group"><h3>${escapeHtml(grupo)}</h3><div class="record-detail-fields">${campos.map(campo => `<div class="record-detail-field"><label>${escapeHtml(campo.rotulo || '')}</label><div>${escapeHtml(campo.valor || '')}</div></div>`).join('')}</div></section>`;
+        }).join('');
 
         recordDetailTitle.textContent = registro?.titulo || 'Ficha do registro';
         recordDetailSubtitle.textContent = registro?.subtitulo || '';
-        recordDetailLine.textContent = registro?.linhaAtual ? `Linha atual na planilha: ${registro.linhaAtual}` : '';
+        recordDetailLine.textContent = registro?.linhaAtual ? `Registro localizado na linha ${registro.linhaAtual} da base administrativa.` : '';
+        const situacao = registro?.situacaoAtual || 'Sem situação';
+        recordDetailStatusBadge.textContent = situacao;
+        recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
+        renderizarHistorico_(registro?.historico || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
       }
 
       async function abrirDetalheRegistro_(chave) {
         if (!chave || !navigator.onLine) return;
-
         recordDetailScreen.classList.add('show');
         recordDetailScreen.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('detail-open');
         recordDetailLoading.hidden = false;
-        recordDetailLoading.textContent = 'Carregando ficha...';
+        recordDetailLoading.textContent = 'Carregando ficha completa...';
         recordDetailGroups.innerHTML = '';
+        recordHistoryTimeline.innerHTML = '';
+        recordHistoryPanel.hidden = true;
 
         try {
-          const registro = await apiRequest('config', {
-            consulta: 'registro',
-            chave
-          }, 45000);
+          const registro = await apiRequest('config', { consulta: 'registro', chave }, 50000);
           recordDetailLoading.hidden = true;
           renderizarFichaRegistro_(registro);
         } catch (erro) {
@@ -729,17 +803,14 @@
 
       async function abrirRegistroSucessoNaPlanilha_() {
         if (!navigator.onLine) {
-          alert('A consulta da planilha precisa de internet. O registro continua seguro no aparelho e será sincronizado quando a conexão voltar.');
+          alert('O Painel Fiscalizatório precisa de internet. O registro continua seguro no aparelho e será sincronizado quando a conexão voltar.');
           return;
         }
-
         const p = ultimoRegistroParaOrientacoes || {};
         const busca = p.cnpj || p.nomeFantasia || p.razaoSocial || '';
         mostrarVistaPlanilha_({ busca, carregar: false });
-
         recordsStatus.className = 'records-status loading';
         recordsStatus.textContent = 'Confirmando o registro enviado...';
-
         const chave = await aguardarChaveUltimoRegistro_();
         await carregarRegistros_(true);
         if (chave) await abrirDetalheRegistro_(chave);
@@ -1573,30 +1644,42 @@
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
-      recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(true));
+      recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false));
       recordsClearFiltersBtn?.addEventListener('click', () => {
         recordsSearch.value = '';
         recordsCityFilter.value = '';
         recordsDemandFilter.value = '';
         recordsSanctionFilter.value = '';
+        recordsTypeFilter.value = '';
+        recordsPeriodFilter.value = '';
         carregarRegistros_(true);
       });
       recordsSearch?.addEventListener('input', () => {
         clearTimeout(recordsSearchTimer);
         recordsSearchTimer = setTimeout(() => carregarRegistros_(true), 420);
       });
-      [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter].forEach(select => {
+      [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter, recordsTypeFilter, recordsPeriodFilter].forEach(select => {
         select?.addEventListener('change', () => carregarRegistros_(true));
       });
-      recordsLoadMoreBtn?.addEventListener('click', () => carregarRegistros_(false));
+      recordsPrevBtn?.addEventListener('click', () => { if (recordsState.pagina > 1) { recordsState.pagina -= 1; carregarRegistros_(false); } });
+      recordsNextBtn?.addEventListener('click', () => { if (recordsState.pagina < recordsState.totalPaginas) { recordsState.pagina += 1; carregarRegistros_(false); } });
       recordsList?.addEventListener('click', event => {
         const card = event.target.closest('.records-card');
         if (card) abrirDetalheRegistro_(card.dataset.recordKey || '');
       });
-      recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
-      recordDetailScreen?.addEventListener('click', event => {
-        if (event.target === recordDetailScreen) fecharDetalheRegistro_();
+      recordsTableBody?.addEventListener('click', event => {
+        const row = event.target.closest('.records-table-row');
+        if (row) abrirDetalheRegistro_(row.dataset.recordKey || '');
       });
+      recordsTableBody?.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const row = event.target.closest('.records-table-row');
+        if (!row) return;
+        event.preventDefault();
+        abrirDetalheRegistro_(row.dataset.recordKey || '');
+      });
+      recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
+      recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
       moreMenuTriggers.forEach(btn => btn.addEventListener('click', event => {
         event.stopPropagation();
         alternarMenuMais_();
@@ -1606,7 +1689,7 @@
       updateAppBtn?.addEventListener('click', atualizarAplicativo_);
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') fecharMenuMais_();
+        if (event.key === 'Escape') { fecharMenuMais_(); fecharDetalheRegistro_(); }
       });
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
       window.addEventListener('offline', atualizarStatusConexao);

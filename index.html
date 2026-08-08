@@ -65,6 +65,10 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l3 3v12H7z"/><path d="M14 4.5v3h3M9.5 11h5M9.5 14h5"/></svg>
       <span><strong>Google Form de contingência</strong><small>Usar somente se o app estiver indisponível</small></span>
     </a>
+    <a class="app-more-menu-item" id="adminSheetMenuLink" href="#" target="_blank" rel="noopener" role="menuitem" hidden>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
+      <span><strong>Planilha administrativa</strong><small>Abrir o Google Sheets privado</small></span>
+    </a>
     <button class="app-more-menu-item" id="updateAppBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7 7 0 1 0 1 7"/><path d="M19 4v4h-4"/></svg>
       <span><strong>Atualizar aplicativo</strong><small>Buscar a versão mais recente</small></span>
@@ -86,7 +90,7 @@
       </button>
       <button class="app-view-btn" id="recordsTabBtn" type="button" aria-pressed="false">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
-        <span>Planilha</span>
+        <span>Painel</span>
       </button>
     </nav>
 
@@ -117,59 +121,94 @@
     <div id="errorBox" class="alert error"></div>
     <div id="noticeNotificado" class="alert warning">Ao selecionar <strong>Notificado</strong>, a Demanda será registrada com <strong>Liberação</strong>.</div>
 
-    <section class="records-panel" id="recordsPanel" hidden aria-labelledby="recordsTitle">
-      <div class="records-header">
-        <div class="records-header-copy">
-          <div class="records-readonly-badge"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Somente leitura</span></div>
-          <h2 id="recordsTitle">Processo Fiscalizatório</h2>
-          <p>Visualização otimizada para celular. Consulte registros sem risco de alterar a planilha.</p>
+    <section class="records-panel dashboard-panel" id="recordsPanel" hidden aria-labelledby="recordsTitle">
+      <div class="dashboard-hero">
+        <div class="dashboard-hero-copy">
+          <div class="dashboard-eyebrow"><span class="dashboard-live-dot" aria-hidden="true"></span> Ambiente interno GPV</div>
+          <h2 id="recordsTitle">Painel Fiscalizatório</h2>
+          <p>Consulta operacional dos registros da planilha Processo Fiscalizatório, sem alterar os dados.</p>
         </div>
-        <a class="records-sheet-link" id="recordsOpenSheetLink" href="#" target="_blank" rel="noopener" hidden>
-          Abrir no Google Sheets
-        </a>
+        <div class="dashboard-hero-actions">
+          <button class="dashboard-icon-btn" id="recordsRefreshBtn" type="button" title="Atualizar painel" aria-label="Atualizar painel">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7v5h-5M5 17v-5h5"/><path d="M7.4 8.2A6.5 6.5 0 0 1 18.5 12M5.5 12a6.5 6.5 0 0 0 11.1 3.8"/></svg>
+          </button>
+          <a class="records-sheet-link" id="recordsOpenSheetLink" href="#" target="_blank" rel="noopener" hidden>
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
+            <span>Abrir painel administrativa</span>
+          </a>
+        </div>
       </div>
 
-      <div class="records-toolbar">
-        <label class="records-search-field" for="recordsSearch">
-          <span>Pesquisar</span>
-          <input id="recordsSearch" type="search" autocomplete="off"
-                 placeholder="Nome, CNPJ, CPF, rua, Nº do PSCIP...">
+      <div class="dashboard-kpis" aria-label="Indicadores fiscalizatórios">
+        <article class="dashboard-kpi kpi-total">
+          <div class="dashboard-kpi-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l3 3v12H7z"/><path d="M14 4.5v3h3M9.5 11h5M9.5 14h5M9.5 17h3"/></svg></div>
+          <div><span>Registros</span><strong id="kpiTotal">—</strong><small>Total cadastrado</small></div>
+        </article>
+        <article class="dashboard-kpi kpi-autuado">
+          <div class="dashboard-kpi-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3.8 7.1v5.6c0 4.1 3.5 7.1 8.2 8.3 4.7-1.2 8.2-4.2 8.2-8.3V7.1z"/><path d="M12 8v5M12 16.5h.01"/></svg></div>
+          <div><span>Autuados</span><strong id="kpiAutuado">—</strong><small>Em autuação</small></div>
+        </article>
+        <article class="dashboard-kpi kpi-advertencia">
+          <div class="dashboard-kpi-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 20H3z"/><path d="M12 9v5M12 17h.01"/></svg></div>
+          <div><span>Advertências</span><strong id="kpiAdvertencia">—</strong><small>Prazo em curso</small></div>
+        </article>
+        <article class="dashboard-kpi kpi-notificado">
+          <div class="dashboard-kpi-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+          <div><span>Notificados</span><strong id="kpiNotificado">—</strong><small>Fluxo de liberação</small></div>
+        </article>
+        <article class="dashboard-kpi kpi-regularizado">
+          <div class="dashboard-kpi-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></div>
+          <div><span>Regularizados</span><strong id="kpiRegularizado">—</strong><small>Fiscalização encerrada</small></div>
+        </article>
+        <article class="dashboard-kpi kpi-liberado">
+          <div class="dashboard-kpi-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10h12v10H6z"/><path d="M9 10V7a3 3 0 0 1 6 0"/><path d="m9.5 15 1.7 1.7 3.5-3.5"/></svg></div>
+          <div><span>Liberados</span><strong id="kpiLiberado">—</strong><small>Liberação concluída</small></div>
+        </article>
+      </div>
+
+      <div class="dashboard-filters">
+        <label class="dashboard-search" for="recordsSearch">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+          <input id="recordsSearch" type="search" autocomplete="off" placeholder="Pesquisar estabelecimento, CNPJ, CPF, Nº PSCIP, Nº PF, REDS ou endereço">
         </label>
 
-        <div class="records-filter-grid">
-          <label>
-            <span>Cidade</span>
-            <select id="recordsCityFilter">
-              <option value="">Todas</option>
-            </select>
-          </label>
-          <label>
-            <span>Demanda</span>
-            <select id="recordsDemandFilter">
-              <option value="">Todas</option>
-            </select>
-          </label>
-          <label>
-            <span>Sanção</span>
-            <select id="recordsSanctionFilter">
-              <option value="">Todas</option>
-            </select>
-          </label>
+        <div class="dashboard-filter-grid">
+          <label><span>Cidade</span><select id="recordsCityFilter"><option value="">Todas</option></select></label>
+          <label><span>Demanda</span><select id="recordsDemandFilter"><option value="">Todas</option></select></label>
+          <label><span>Situação</span><select id="recordsSanctionFilter"><option value="">Todas</option></select></label>
+          <label><span>Tipo de vistoria</span><select id="recordsTypeFilter"><option value="">Todos</option></select></label>
+          <label><span>Período</span><select id="recordsPeriodFilter"><option value="">Todo o período</option><option value="30d">Últimos 30 dias</option><option value="90d">Últimos 90 dias</option><option value="365d">Últimos 12 meses</option></select></label>
         </div>
 
-        <div class="records-toolbar-actions">
+        <div class="dashboard-filter-actions">
           <button class="btn btn-secondary" id="recordsClearFiltersBtn" type="button">Limpar filtros</button>
-          <button class="btn btn-primary records-refresh-btn" id="recordsRefreshBtn" type="button"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7v5h-5M5 17v-5h5"/><path d="M7.4 8.2A6.5 6.5 0 0 1 18.5 12M5.5 12a6.5 6.5 0 0 0 11.1 3.8"/></svg><span>Atualizar</span></button>
         </div>
       </div>
 
-      <div class="records-status" id="recordsStatus" role="status" aria-live="polite">
-        Toque em <strong>Planilha</strong> para carregar os registros.
+      <div class="records-status" id="recordsStatus" role="status" aria-live="polite">Abra o <strong>Painel</strong> para carregar os registros.</div>
+
+      <div class="dashboard-results">
+        <div class="records-table-wrap" aria-label="Registros fiscalizatórios">
+          <table class="records-table">
+            <thead>
+              <tr>
+                <th>Data</th><th>Estabelecimento</th><th>Cidade</th><th>CNPJ</th><th>Demanda</th><th>Situação</th><th>Nº PSCIP</th><th>Nº PF</th><th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTableBody"></tbody>
+          </table>
+        </div>
+        <div class="records-list" id="recordsList"></div>
       </div>
-      <div class="records-list" id="recordsList"></div>
-      <button class="btn btn-secondary records-load-more" id="recordsLoadMoreBtn" type="button" hidden>
-        Carregar mais registros
-      </button>
+
+      <div class="dashboard-pagination" id="recordsPagination">
+        <div class="dashboard-pagination-summary" id="recordsPaginationSummary">—</div>
+        <div class="dashboard-pagination-controls">
+          <button class="pagination-btn" id="recordsPrevBtn" type="button">← Anterior</button>
+          <span id="recordsPageLabel">Página 1</span>
+          <button class="pagination-btn" id="recordsNextBtn" type="button">Próxima →</button>
+        </div>
+      </div>
     </section>
 
     <form id="vistoriaForm" novalidate>
@@ -445,7 +484,7 @@
         </button>
         <button class="btn btn-planilha" id="recordsSuccessBtn" type="button">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
-          <span class="records-success-label">Ver registro na planilha</span>
+          <span class="records-success-label">Ver registro no painel</span>
         </button>
         <button class="btn btn-primary" id="newRecordBtn" type="button">Nova vistoria</button>
         <button class="btn btn-secondary" id="closeSuccessBtn" type="button">Continuar nesta tela</button>
@@ -455,21 +494,29 @@
   </div>
 
   <div class="record-detail-screen" id="recordDetailScreen" aria-hidden="true">
+    <div class="record-detail-backdrop" id="recordDetailBackdrop" aria-hidden="true"></div>
     <div class="record-detail-shell" role="dialog" aria-modal="true" aria-labelledby="recordDetailTitle">
       <div class="record-detail-topbar">
-        <button class="record-detail-back" id="recordDetailCloseBtn" type="button" aria-label="Voltar para a lista">← Voltar</button>
-        <a class="record-detail-sheet-link" id="recordDetailSheetLink" href="#" target="_blank" rel="noopener" hidden>
-          Google Sheets
-        </a>
+        <button class="record-detail-back" id="recordDetailCloseBtn" type="button" aria-label="Fechar ficha">← Voltar</button>
+        <a class="record-detail-sheet-link" id="recordDetailSheetLink" href="#" target="_blank" rel="noopener" hidden>Abrir no Sheets</a>
       </div>
       <div class="record-detail-heading">
-        <div class="records-readonly-badge"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Consulta</span></div>
+        <div class="record-detail-heading-row">
+          <div class="records-readonly-badge"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Consulta interna</span></div>
+          <span class="status-badge status-neutral" id="recordDetailStatusBadge">Situação</span>
+        </div>
         <h2 id="recordDetailTitle">Ficha do registro</h2>
         <p id="recordDetailSubtitle"></p>
         <div class="record-detail-line" id="recordDetailLine"></div>
       </div>
       <div class="record-detail-loading" id="recordDetailLoading">Carregando ficha...</div>
-      <div class="record-detail-groups" id="recordDetailGroups"></div>
+      <div class="record-detail-content">
+        <div class="record-detail-groups" id="recordDetailGroups"></div>
+        <section class="record-history-panel" id="recordHistoryPanel" hidden>
+          <div class="record-history-head"><h3>Histórico do local</h3><span id="recordHistoryCount"></span></div>
+          <div class="record-history-timeline" id="recordHistoryTimeline"></div>
+        </section>
+      </div>
     </div>
   </div>
 
