@@ -379,12 +379,13 @@
       function atualizarBotaoOrientacoes_() {
         if (!whatsappOrientacoesBtn) return;
         const numero = telefoneWhatsApp_(ultimoRegistroParaOrientacoes?.telefone);
+        const label = whatsappOrientacoesBtn.querySelector('.whatsapp-btn-label');
         whatsappOrientacoesBtn.disabled = !numero;
         if (numero) {
-          whatsappOrientacoesBtn.textContent = '📲 Enviar orientações pelo WhatsApp';
-          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'A mensagem será aberta no WhatsApp do responsável para conferência antes do envio.';
+          if (label) label.textContent = 'Enviar orientações pelo WhatsApp';
+          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'O WhatsApp será aberto com a mensagem pronta para conferência e envio.';
         } else {
-          whatsappOrientacoesBtn.textContent = '📲 WhatsApp — telefone não informado';
+          if (label) label.textContent = 'WhatsApp — telefone não informado';
           if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para usar o envio de orientações pelo WhatsApp.';
         }
       }
@@ -402,7 +403,16 @@
         }
         const mensagem = montarMensagemOrientacoes_(payload);
         const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
-        window.open(url, '_blank', 'noopener');
+
+        // Navegação direta, disparada pelo toque do vistoriador. Em PWA instalado no
+        // Android isso é mais confiável que window.open(), que pode ser bloqueado
+        // como pop-up. O sistema operacional encaminha o link para o WhatsApp quando
+        // o aplicativo está disponível.
+        try {
+          window.location.assign(url);
+        } catch (erro) {
+          window.location.href = url;
+        }
       }
 
       function mostrarSucesso(titulo, mensagem) {
