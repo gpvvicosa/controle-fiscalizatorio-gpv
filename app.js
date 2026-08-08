@@ -171,17 +171,19 @@
       const citySelect = document.getElementById('cidadeSelect');
       const otherCityWrap = document.getElementById('outraCidadeWrap');
       const otherCity = document.getElementById('outraCidade');
+      const cityCheckModal = document.getElementById('cityCheckModal');
+      const cityCheckText = document.getElementById('cityCheckText');
+      const cityCheckChangeBtn = document.getElementById('cityCheckChangeBtn');
+      const cityCheckKeepBtn = document.getElementById('cityCheckKeepBtn');
       const licenciamentoSelect = document.getElementById('licenciamento');
       const pscipLicenciamentoWrap = document.getElementById('pscipLicenciamentoWrap');
       const pscipInput = document.getElementById('pscip');
       const sancaoSelect = document.getElementById('sancao');
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
-      const consultarCnpjBtn = document.getElementById('consultarCnpjBtn');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const identificadorInput = document.getElementById('cnpj');
       const identificadorLabel = document.getElementById('identificadorLabel');
       const cpfInput = document.getElementById('cpf');
-      const receitaCnpjLink = document.getElementById('receitaCnpjLink');
       const ocupacaoInput = document.getElementById('ocupacao');
       const ocupacaoResultados = document.getElementById('ocupacaoResultados');
       const ocupacaoMeta = document.getElementById('ocupacaoMeta');
@@ -1625,6 +1627,67 @@
         return Array.from(citySelect.options).find(opt => normalize(opt.value) === target);
       }
 
+      function aplicarCidadeRetornadaCnpj_(cidadeRetornada) {
+        const cidade = String(cidadeRetornada || '').trim();
+        if (!cidade) return;
+        const opcao = findCityOption(cidade);
+        if (opcao) {
+          citySelect.value = opcao.value;
+          otherCity.value = '';
+        } else {
+          citySelect.value = 'Outro';
+          otherCity.value = cidade;
+        }
+        syncOtherCity();
+        citySelect.dispatchEvent(new Event('change', { bubbles: true }));
+        otherCity.dispatchEvent(new Event('input', { bubbles: true }));
+        scheduleDraftSave();
+      }
+
+      function confirmarCidadeRetornadaCnpj_(cidadeRetornada) {
+        const retornada = String(cidadeRetornada || '').trim();
+        const atual = cityValue();
+        if (!retornada || !atual || normalize(retornada) === normalize(atual)) {
+          return Promise.resolve({ alterada: false, divergencia: false });
+        }
+
+        if (!cityCheckModal || !cityCheckText || !cityCheckChangeBtn || !cityCheckKeepBtn) {
+          const alterar = window.confirm(`O CNPJ consultado está cadastrado em ${retornada}, mas a cidade selecionada é ${atual}. Deseja alterar a cidade para ${retornada}?`);
+          if (alterar) aplicarCidadeRetornadaCnpj_(retornada);
+          return Promise.resolve({ alterada: alterar, divergencia: true });
+        }
+
+        cityCheckText.textContent = `O CNPJ consultado está cadastrado em ${retornada}, mas a cidade selecionada é ${atual}. Deseja alterar a cidade da vistoria para ${retornada}?`;
+        cityCheckModal.hidden = false;
+        document.body.classList.add('city-check-open');
+
+        return new Promise(resolve => {
+          let encerrado = false;
+          const finalizar = alterada => {
+            if (encerrado) return;
+            encerrado = true;
+            cityCheckModal.hidden = true;
+            document.body.classList.remove('city-check-open');
+            cityCheckChangeBtn.removeEventListener('click', onAlterar);
+            cityCheckKeepBtn.removeEventListener('click', onManter);
+            document.removeEventListener('keydown', onKeydown);
+            resolve({ alterada, divergencia: true });
+          };
+          const onAlterar = () => {
+            aplicarCidadeRetornadaCnpj_(retornada);
+            finalizar(true);
+          };
+          const onManter = () => finalizar(false);
+          const onKeydown = event => {
+            if (event.key === 'Escape') onManter();
+          };
+          cityCheckChangeBtn.addEventListener('click', onAlterar);
+          cityCheckKeepBtn.addEventListener('click', onManter);
+          document.addEventListener('keydown', onKeydown);
+          setTimeout(() => cityCheckChangeBtn.focus(), 30);
+        });
+      }
+
       function setFieldIfBlank(id, newValue) {
         const el = document.getElementById(id);
         const text = String(newValue == null ? '' : newValue).trim();
@@ -1664,22 +1727,25 @@
         }
         const cnpj = digits(value('cnpj'));
         if (automatico && cnpj === ultimoCnpjConsultado) return;
-        consultarCnpjBtn.disabled = true;
         showCnpjStatus('CNPJ identificado. Consultando dados cadastrais...', 'info');
         try {
           const result = await apiRequest('cnpj', { cnpj }, 30000);
-          consultarCnpjBtn.disabled = false;
           ultimoCnpjConsultado = cnpj;
           const preenchidos = fillFromCnpj(result || {});
+          const conferenciaCidade = await confirmarCidadeRetornadaCnpj_(result?.cidade);
+          const complementoCidade = conferenciaCidade.divergencia
+            ? (conferenciaCidade.alterada
+                ? ` Cidade alterada para ${String(result?.cidade || '').trim()}.`
+                : ` Cidade atual mantida em ${cityValue()}.`)
+            : '';
           showCnpjStatus(
             preenchidos
-              ? `Consulta concluída. ${preenchidos} campo(s) vazio(s) foram preenchidos automaticamente. Confira os dados antes de registrar.`
-              : 'Consulta concluída. Os campos retornados já estavam preenchidos; nenhum valor foi sobrescrito.',
+              ? `Consulta concluída. ${preenchidos} campo(s) vazio(s) foram preenchidos automaticamente.${complementoCidade} Confira os dados antes de registrar.`
+              : `Consulta concluída. Os campos retornados já estavam preenchidos; nenhum valor foi sobrescrito.${complementoCidade}`,
             'success'
           );
           setTimeout(() => document.getElementById('responsavelSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 900);
         } catch (error) {
-          consultarCnpjBtn.disabled = false;
           showCnpjStatus(error?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');
         }
       }
@@ -1704,8 +1770,6 @@
 
       function atualizarInterfaceIdentificador_(tipo) {
         if (identificadorLabel) identificadorLabel.textContent = tipo === 'cnpj' ? 'CNPJ' : tipo === 'cpf' ? 'CPF' : 'CNPJ ou CPF';
-        if (consultarCnpjBtn) consultarCnpjBtn.hidden = tipo !== 'cnpj';
-        if (receitaCnpjLink) receitaCnpjLink.hidden = tipo !== 'cnpj';
         if (cpfInput && tipo !== 'cpf' && !cpfCopiadoDoIdentificador) {
           cpfInput.readOnly = false;
           cpfInput.classList.remove('cpf-synced-from-identifier');
@@ -1972,7 +2036,6 @@
       function aplicarConfig(data) {
         appConfig = data || DEFAULT_CONFIG;
         populateOptions(appConfig.opcoes || {});
-        document.getElementById('receitaCnpjLink').href = appConfig.receitaCnpjUrl || DEFAULT_CONFIG.receitaCnpjUrl;
         atualizarLinkPlanilha_(appConfig?.planilhaUrl || '');
         if (!value('enderecoCorrespondencia')) document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
       }
@@ -2025,7 +2088,6 @@
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); scheduleDraftSave(); });
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
-      consultarCnpjBtn.addEventListener('click', () => consultarCnpj(false));
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
       document.getElementById('telefone').addEventListener('input', applyPhoneMask);
       ocupacaoInput.addEventListener('focus', () => pesquisarOcupacoes(ocupacaoInput.value));

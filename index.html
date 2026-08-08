@@ -411,10 +411,8 @@
               <label class="required" for="cnpj" id="identificadorLabel">CNPJ ou CPF</label>
               <div class="input-action">
                 <input id="cnpj" name="cnpj" inputmode="numeric" autocomplete="off" placeholder="Digite somente os números" maxlength="18" aria-describedby="cnpjStatus">
-                <button class="lookup-btn" id="consultarCnpjBtn" type="button" hidden><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5"/></svg><span>Consultar CNPJ</span></button>
               </div>
               <div class="lookup-status" id="cnpjStatus"></div>
-              <a class="official-link" id="receitaCnpjLink" href="#" target="_blank" rel="noopener" hidden>Conferir CNPJ na Receita Federal</a>
             </div>
             <div class="field half">
               <label for="nomeFantasia">Nome Fantasia</label>
@@ -687,11 +685,27 @@
     </aside>
   </div>
 
+  <div class="city-check-overlay" id="cityCheckModal" hidden>
+    <section class="city-check-card" role="dialog" aria-modal="true" aria-labelledby="cityCheckTitle" aria-describedby="cityCheckText">
+      <div class="city-check-icon" aria-hidden="true">!</div>
+      <div class="city-check-copy">
+        <span class="city-check-kicker">Conferência automática</span>
+        <h2 id="cityCheckTitle">Cidade diferente no CNPJ</h2>
+        <p id="cityCheckText"></p>
+        <p class="city-check-note">Confirme qual cidade corresponde ao local efetivamente vistoriado.</p>
+      </div>
+      <div class="city-check-actions">
+        <button class="btn btn-primary" id="cityCheckChangeBtn" type="button">Alterar cidade</button>
+        <button class="btn btn-secondary" id="cityCheckKeepBtn" type="button">Manter cidade atual</button>
+      </div>
+    </section>
+  </div>
+
   <div class="loading show" id="loadingOverlay">
     <div class="loading-box"><span class="spinner"></span><span id="loadingText">Carregando aplicativo...</span></div>
   </div>
   <script src="config.js"></script>
   <script src="ocupacoes.js"></script>
-  <script src="app.js?v=17.2"></script>
+  <script src="app.js?v=18.4"></script>
 </body>
 </html>
