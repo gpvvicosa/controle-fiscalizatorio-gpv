@@ -117,12 +117,18 @@
       const recordsNextBtn = document.getElementById('recordsNextBtn');
       const recordsPageLabel = document.getElementById('recordsPageLabel');
       const recordsPaginationSummary = document.getElementById('recordsPaginationSummary');
+      const recordsPageButtons = document.getElementById('recordsPageButtons');
+      const recordsPageSize = document.getElementById('recordsPageSize');
+      const dashboardNewInspectionBtn = document.getElementById('dashboardNewInspectionBtn');
       const kpiTotal = document.getElementById('kpiTotal');
       const kpiAutuado = document.getElementById('kpiAutuado');
       const kpiAdvertencia = document.getElementById('kpiAdvertencia');
       const kpiNotificado = document.getElementById('kpiNotificado');
       const kpiRegularizado = document.getElementById('kpiRegularizado');
       const kpiLiberado = document.getElementById('kpiLiberado');
+      const kpiRegularizadoPercent = document.getElementById('kpiRegularizadoPercent');
+      const kpiLiberadoPercent = document.getElementById('kpiLiberadoPercent');
+      const kpiAdvertenciaPercent = document.getElementById('kpiAdvertenciaPercent');
       const recordsOpenSheetLink = document.getElementById('recordsOpenSheetLink');
       const recordDetailScreen = document.getElementById('recordDetailScreen');
       const recordDetailCloseBtn = document.getElementById('recordDetailCloseBtn');
@@ -134,6 +140,7 @@
       const recordDetailSheetLink = document.getElementById('recordDetailSheetLink');
       const recordDetailBackdrop = document.getElementById('recordDetailBackdrop');
       const recordDetailStatusBadge = document.getElementById('recordDetailStatusBadge');
+      const recordCurrentStatus = document.querySelector('.record-current-status');
       const recordHistoryPanel = document.getElementById('recordHistoryPanel');
       const recordHistoryCount = document.getElementById('recordHistoryCount');
       const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
@@ -175,13 +182,14 @@
       let recordsSearchTimer = null;
       const recordsState = {
         pagina: 1,
-        limite: 25,
+        limite: 8,
         total: 0,
         totalPaginas: 1,
         carregando: false,
         planilhaUrl: '',
         itens: [],
-        resumo: null
+        resumo: null,
+        chaveSelecionada: ''
       };
       let saveTimer = null;
       let cnpjTimer = null;
@@ -574,6 +582,7 @@
 
       function mostrarVistaFormulario_() {
         marcarAbaApp_('form');
+        fecharDetalheRegistro_();
         atualizarVistaNaUrl_('form');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -599,7 +608,7 @@
         if (!recordsPeriodFilter) return;
         const atual = recordsPeriodFilter.value;
         const fixos = [
-          ['', 'Todo o período'],
+          ['', 'Todos'],
           ['30d', 'Últimos 30 dias'],
           ['90d', 'Últimos 90 dias'],
           ['365d', 'Últimos 12 meses']
@@ -638,35 +647,63 @@
         return `<span class="status-badge ${classeStatus_(texto)}">${escapeHtml(texto)}</span>`;
       }
 
+      function percentualResumo_(valor, total) {
+        const base = Number(total || 0);
+        const numero = Number(valor || 0);
+        if (!base) return '0% do total';
+        const percentual = (numero / base) * 100;
+        return `${percentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% do total`;
+      }
+
       function atualizarKpis_(resumo) {
         const r = resumo || {};
-        if (kpiTotal) kpiTotal.textContent = Number(r.total || 0).toLocaleString('pt-BR');
+        const total = Number(r.total || 0);
+        if (kpiTotal) kpiTotal.textContent = total.toLocaleString('pt-BR');
         if (kpiAutuado) kpiAutuado.textContent = Number(r.autuado || 0).toLocaleString('pt-BR');
         if (kpiAdvertencia) kpiAdvertencia.textContent = Number(r.advertencia || 0).toLocaleString('pt-BR');
         if (kpiNotificado) kpiNotificado.textContent = Number(r.notificado || 0).toLocaleString('pt-BR');
         if (kpiRegularizado) kpiRegularizado.textContent = Number(r.regularizado || 0).toLocaleString('pt-BR');
         if (kpiLiberado) kpiLiberado.textContent = Number(r.liberado || 0).toLocaleString('pt-BR');
+        if (kpiRegularizadoPercent) kpiRegularizadoPercent.textContent = percentualResumo_(r.regularizado, total);
+        if (kpiLiberadoPercent) kpiLiberadoPercent.textContent = percentualResumo_(r.liberado, total);
+        if (kpiAdvertenciaPercent) kpiAdvertenciaPercent.textContent = percentualResumo_(r.advertencia, total);
+      }
+
+      function formatarDataPainel_(valor) {
+        const texto = String(valor || '').trim();
+        const br = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (br) return `${br[1].padStart(2, '0')}/${br[2].padStart(2, '0')}/${br[3]}`;
+        const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (iso) return `${iso[3].padStart(2, '0')}/${iso[2].padStart(2, '0')}/${iso[1]}`;
+        return texto || '—';
+      }
+
+      function marcarLinhaSelecionada_() {
+        if (!recordsTableBody) return;
+        recordsTableBody.querySelectorAll('.records-table-row').forEach(row => {
+          row.classList.toggle('selected', Boolean(recordsState.chaveSelecionada) && row.dataset.recordKey === recordsState.chaveSelecionada);
+        });
       }
 
       function renderizarRegistros_() {
         const itens = recordsState.itens || [];
         if (!itens.length) {
           recordsList.innerHTML = '<div class="records-empty">Nenhum registro encontrado com os filtros informados.</div>';
-          recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
+          recordsTableBody.innerHTML = '<tr><td colspan="8" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
           return;
         }
 
         recordsTableBody.innerHTML = itens.map(item => {
           const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
-          return `<tr class="records-table-row" data-record-key="${escapeAttr(item.chave || '')}" tabindex="0">
-            <td>${escapeHtml(item.carimbo || '—')}</td>
+          const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
+          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" tabindex="0">
+            <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
             <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? `<small>${escapeHtml(item.razaoSocial)}</small>` : ''}</td>
             <td>${escapeHtml(item.cidade || '—')}</td>
             <td class="records-mono">${escapeHtml(item.cnpj || '—')}</td>
             <td>${escapeHtml(item.demanda || '—')}</td>
             <td>${statusBadgeHtml_(item.sancao)}</td>
             <td class="records-mono">${escapeHtml(item.projeto || '—')}</td>
-            <td class="records-mono">${escapeHtml(item.pf || '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
           </tr>`;
         }).join('');
@@ -676,7 +713,7 @@
           const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? item.razaoSocial : '';
           const endereco = [item.endereco, item.numero, item.bairro].filter(Boolean).join(', ');
           return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
-            <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(item.carimbo || '')}</div></div>
+            <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
             <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span>${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
             <div class="records-card-meta">
@@ -691,16 +728,37 @@
         }).join('');
       }
 
+      function paginasPainel_(pagina, totalPaginas) {
+        if (totalPaginas <= 5) return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+        const paginas = new Set([1, totalPaginas, pagina - 1, pagina, pagina + 1]);
+        return Array.from(paginas).filter(p => p >= 1 && p <= totalPaginas).sort((a, b) => a - b);
+      }
+
       function atualizarPaginacao_() {
         const total = recordsState.total || 0;
         const pagina = recordsState.pagina || 1;
         const totalPaginas = Math.max(1, recordsState.totalPaginas || 1);
         const inicio = total ? ((pagina - 1) * recordsState.limite) + 1 : 0;
         const fim = Math.min(total, pagina * recordsState.limite);
-        if (recordsPaginationSummary) recordsPaginationSummary.textContent = total ? `Mostrando ${inicio}–${fim} de ${total} registros` : 'Nenhum registro';
+        if (recordsPaginationSummary) recordsPaginationSummary.textContent = total ? `Mostrando ${inicio} a ${fim} de ${total} registros` : 'Nenhum registro';
         if (recordsPageLabel) recordsPageLabel.textContent = `Página ${pagina} de ${totalPaginas}`;
         if (recordsPrevBtn) recordsPrevBtn.disabled = pagina <= 1 || recordsState.carregando;
         if (recordsNextBtn) recordsNextBtn.disabled = pagina >= totalPaginas || recordsState.carregando;
+
+        if (recordsPageButtons) {
+          const paginas = paginasPainel_(pagina, totalPaginas);
+          const partes = [];
+          paginas.forEach((numero, indice) => {
+            const anterior = paginas[indice - 1];
+            if (anterior && numero - anterior > 1) partes.push('<span class="pagination-ellipsis" aria-hidden="true">…</span>');
+            partes.push(`<button class="pagination-page${numero === pagina ? ' active' : ''}" type="button" data-page="${numero}" ${recordsState.carregando ? 'disabled' : ''}>${numero}</button>`);
+          });
+          recordsPageButtons.innerHTML = partes.join('');
+        }
+
+        if (recordsPageSize && String(recordsPageSize.value) !== String(recordsState.limite)) {
+          recordsPageSize.value = String(recordsState.limite);
+        }
       }
 
       async function carregarRegistros_(reiniciar = true) {
@@ -719,28 +777,35 @@
         recordsStatus.textContent = 'Atualizando Painel Fiscalizatório...';
 
         const offset = (recordsState.pagina - 1) * recordsState.limite;
+        const limiteApi = Math.max(10, recordsState.limite);
         try {
           const resposta = await apiRequest('config', {
             consulta: 'registros',
-            filtros: { ...filtrosConsultaAtuais_(), offset, limite: recordsState.limite }
+            filtros: { ...filtrosConsultaAtuais_(), offset, limite: limiteApi }
           }, 50000);
 
-          recordsState.itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
+          recordsState.itens = (Array.isArray(resposta?.itens) ? resposta.itens : []).slice(0, recordsState.limite);
           recordsState.total = Number(resposta?.total || 0);
           recordsState.totalPaginas = Math.max(1, Math.ceil(recordsState.total / recordsState.limite));
           recordsState.resumo = resposta?.resumo || null;
           if (recordsState.pagina > recordsState.totalPaginas) recordsState.pagina = recordsState.totalPaginas;
 
           const disponiveis = resposta?.filtrosDisponiveis || {};
-          preencherSelectConsulta_(recordsCityFilter, disponiveis.cidades, 'Todas as cidades');
-          preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas as demandas');
-          preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas as situações');
-          preencherSelectConsulta_(recordsTypeFilter, disponiveis.tipos, 'Todos os tipos');
+          preencherSelectConsulta_(recordsCityFilter, disponiveis.cidades, 'Todos');
+          preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas');
+          preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas');
+          preencherSelectConsulta_(recordsTypeFilter, disponiveis.tipos, 'Todas');
           preencherPeriodosConsulta_(disponiveis.anos);
           atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
           atualizarKpis_(resposta?.resumo || {});
+          const chaveAindaVisivel = recordsState.itens.some(item => item.chave === recordsState.chaveSelecionada);
+          if (!chaveAindaVisivel) recordsState.chaveSelecionada = recordsState.itens[0]?.chave || '';
           renderizarRegistros_();
           atualizarPaginacao_();
+
+          if (window.innerWidth >= 1181 && recordsState.chaveSelecionada) {
+            await abrirDetalheRegistro_(recordsState.chaveSelecionada);
+          }
 
           recordsStatus.className = 'records-status';
           const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(Boolean);
@@ -752,7 +817,7 @@
           recordsStatus.textContent = erro?.message || 'Não foi possível carregar o Painel Fiscalizatório.';
           if (!recordsState.itens.length) {
             recordsList.innerHTML = '<div class="records-empty">O painel não pôde ser carregado agora.</div>';
-            recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
+            recordsTableBody.innerHTML = '<tr><td colspan="8" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
           }
         } finally {
           recordsState.carregando = false;
@@ -763,6 +828,7 @@
 
       function fecharDetalheRegistro_() {
         if (!recordDetailScreen) return;
+        if (document.body.classList.contains('records-mode') && window.innerWidth >= 1181) return;
         recordDetailScreen.classList.remove('show');
         recordDetailScreen.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('detail-open');
@@ -770,6 +836,64 @@
         recordHistoryTimeline.innerHTML = '';
         recordHistoryPanel.hidden = true;
         recordDetailLoading.hidden = false;
+      }
+
+      function descricaoSituacaoPainel_(situacao) {
+        const n = normalize(situacao);
+        if (n === 'liberado') return 'Processo de liberação concluído';
+        if (n === 'regularizado') return 'Fiscalização regularizada';
+        if (n === 'advertencia') return 'Prazo de regularização em acompanhamento';
+        if (n === 'autuado') return 'Fiscalização com irregularidade registrada';
+        if (n === 'notificado') return 'Pendência técnica no fluxo de liberação';
+        return 'Situação registrada no processo';
+      }
+
+      function valorCampoFicha_(registro, ...rotulos) {
+        const procurados = rotulos.map(normalize);
+        const campos = Array.isArray(registro?.campos) ? registro.campos : [];
+        for (const campo of campos) {
+          const chave = normalize(campo?.rotulo || '');
+          if (procurados.includes(chave)) return String(campo?.valor || '').trim();
+        }
+        return '';
+      }
+
+      function enderecoFicha_(registro) {
+        const partes = [
+          valorCampoFicha_(registro, 'Endereço do estabelecimento'),
+          valorCampoFicha_(registro, 'Nº'),
+          valorCampoFicha_(registro, 'Complemento'),
+          valorCampoFicha_(registro, 'Bairro')
+        ].filter(Boolean);
+        const cidade = valorCampoFicha_(registro, 'Cidade');
+        const endereco = partes.join(', ');
+        return [endereco, cidade].filter(Boolean).join(' — ');
+      }
+
+      function montarGrupoFicha_(titulo, campos) {
+        const validos = (campos || []).filter(item => item && item[1]);
+        if (!validos.length) return '';
+        return `<section class="record-detail-group"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => `<div class="record-detail-field"><label>${escapeHtml(rotulo)}</label><div>${escapeHtml(valor)}</div></div>`).join('')}</div></section>`;
+      }
+
+      function descricaoHistorico_(item) {
+        const n = normalize(item?.sancao || '');
+        let texto = '';
+        if (n === 'autuado') texto = 'Irregularidades registradas na fiscalização.';
+        else if (n === 'advertencia') texto = 'Prazo de regularização em acompanhamento.';
+        else if (n === 'notificado') texto = 'Pendências técnicas registradas para liberação.';
+        else if (n === 'regularizado') texto = 'Fiscalização regularizada.';
+        else if (n === 'liberado') texto = 'Processo de liberação concluído.';
+        else texto = 'Registro incluído no histórico do local.';
+
+        const complementos = [
+          item?.tipoVistoria,
+          item?.demanda,
+          item?.projeto ? `PSCIP ${item.projeto}` : '',
+          item?.pf ? `PF ${item.pf}` : '',
+          item?.reds ? `REDS ${item.reds}` : ''
+        ].filter(Boolean);
+        return complementos.length ? `${texto} ${complementos.join(' · ')}` : texto;
       }
 
       function renderizarHistorico_(historico) {
@@ -781,46 +905,65 @@
         recordHistoryPanel.hidden = false;
         recordHistoryCount.textContent = `${itens.length} registro${itens.length === 1 ? '' : 's'}`;
         recordHistoryTimeline.innerHTML = itens.map(item => {
-          const titulo = item.sancao || item.demanda || item.tipoVistoria || 'Registro';
-          const detalhes = [item.demanda, item.tipoVistoria, item.projeto ? `PSCIP ${item.projeto}` : '', item.pf ? `PF ${item.pf}` : '', item.reds ? `REDS ${item.reds}` : ''].filter(Boolean);
+          const titulo = item.sancao || item.tipoVistoria || item.demanda || 'Vistoria realizada';
           return `<article class="history-item ${classeStatus_(item.sancao)}">
             <div class="history-marker" aria-hidden="true"></div>
-            <div class="history-body"><time>${escapeHtml(item.carimbo || '')}</time><strong>${escapeHtml(titulo)}</strong>${detalhes.length ? `<p>${escapeHtml(detalhes.join(' · '))}</p>` : ''}</div>
+            <div class="history-body"><time>${escapeHtml(item.carimbo || '')}</time><strong>${escapeHtml(titulo)}</strong><p>${escapeHtml(descricaoHistorico_(item))}</p></div>
           </article>`;
         }).join('');
       }
 
       function renderizarFichaRegistro_(registro) {
-        const ordem = ['Estabelecimento', 'Processo', 'Edificação', 'Endereço', 'Responsável', 'Controle', 'Outros'];
-        const grupos = new Map();
-        (registro?.campos || []).forEach(campo => {
-          const grupo = String(campo?.grupo || 'Outros');
-          if (!grupos.has(grupo)) grupos.set(grupo, []);
-          grupos.get(grupo).push(campo);
-        });
-
-        recordDetailGroups.innerHTML = ordem.filter(grupo => grupos.has(grupo)).map(grupo => {
-          const campos = grupos.get(grupo) || [];
-          return `<section class="record-detail-group"><h3>${escapeHtml(grupo)}</h3><div class="record-detail-fields">${campos.map(campo => `<div class="record-detail-field"><label>${escapeHtml(campo.rotulo || '')}</label><div>${escapeHtml(campo.valor || '')}</div></div>`).join('')}</div></section>`;
-        }).join('');
-
-        recordDetailTitle.textContent = registro?.titulo || 'Ficha do registro';
-        recordDetailSubtitle.textContent = registro?.subtitulo || '';
-        recordDetailLine.textContent = registro?.linhaAtual ? `Registro localizado na linha ${registro.linhaAtual} da base administrativa.` : '';
         const situacao = registro?.situacaoAtual || 'Sem situação';
+        const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
+        const cnpj = valorCampoFicha_(registro, 'CNPJ');
+        const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
+        const processo = [
+          ['Nº PSCIP', valorCampoFicha_(registro, 'Nº do PSCIP / Projeto')],
+          ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
+          ['Demanda', valorCampoFicha_(registro, 'Demanda')],
+          ['Tipo de vistoria', valorCampoFicha_(registro, 'Tipo de vistoria')],
+          ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
+          ['REDS', valorCampoFicha_(registro, 'REDS')]
+        ];
+        const local = [
+          ['Estabelecimento', estabelecimento],
+          ['Razão Social', razaoSocial && normalize(razaoSocial) !== normalize(estabelecimento) ? razaoSocial : ''],
+          ['Endereço', enderecoFicha_(registro)],
+          ['CNPJ', cnpj]
+        ];
+        const responsavel = [
+          ['Responsável', valorCampoFicha_(registro, 'Responsável')],
+          ['Nome', valorCampoFicha_(registro, 'Nome')],
+          ['CPF', valorCampoFicha_(registro, 'CPF')],
+          ['Telefone', valorCampoFicha_(registro, 'Telefone')],
+          ['E-mail', valorCampoFicha_(registro, 'E-mail')]
+        ];
+
+        recordDetailGroups.innerHTML =
+          montarGrupoFicha_('Processo', processo) +
+          montarGrupoFicha_('Local', local) +
+          montarGrupoFicha_('Responsável', responsavel);
+
+        recordDetailTitle.textContent = 'Ficha do Processo';
+        recordDetailSubtitle.textContent = descricaoSituacaoPainel_(situacao);
+        recordDetailLine.textContent = [estabelecimento, cnpj].filter(Boolean).join(' • ');
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
+        if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
         renderizarHistorico_(registro?.historico || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
       }
 
       async function abrirDetalheRegistro_(chave) {
         if (!chave || !navigator.onLine) return;
+        recordsState.chaveSelecionada = chave;
+        marcarLinhaSelecionada_();
         recordDetailScreen.classList.add('show');
         recordDetailScreen.setAttribute('aria-hidden', 'false');
         document.body.classList.add('detail-open');
         recordDetailLoading.hidden = false;
-        recordDetailLoading.textContent = 'Carregando ficha completa...';
+        recordDetailLoading.textContent = 'Carregando ficha do processo...';
         recordDetailGroups.innerHTML = '';
         recordHistoryTimeline.innerHTML = '';
         recordHistoryPanel.hidden = true;
@@ -1698,6 +1841,7 @@
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
+      dashboardNewInspectionBtn?.addEventListener('click', mostrarVistaFormulario_);
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false));
       recordsClearFiltersBtn?.addEventListener('click', () => {
@@ -1718,6 +1862,18 @@
       });
       recordsPrevBtn?.addEventListener('click', () => { if (recordsState.pagina > 1) { recordsState.pagina -= 1; carregarRegistros_(false); } });
       recordsNextBtn?.addEventListener('click', () => { if (recordsState.pagina < recordsState.totalPaginas) { recordsState.pagina += 1; carregarRegistros_(false); } });
+      recordsPageButtons?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-page]');
+        const pagina = Number(botao?.dataset?.page || 0);
+        if (!pagina || pagina === recordsState.pagina || recordsState.carregando) return;
+        recordsState.pagina = pagina;
+        carregarRegistros_(false);
+      });
+      recordsPageSize?.addEventListener('change', () => {
+        const limite = Number(recordsPageSize.value || 8);
+        recordsState.limite = [8, 15, 25].includes(limite) ? limite : 8;
+        carregarRegistros_(true);
+      });
       recordsList?.addEventListener('click', event => {
         const card = event.target.closest('.records-card');
         if (card) abrirDetalheRegistro_(card.dataset.recordKey || '');

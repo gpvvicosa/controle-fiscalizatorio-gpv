@@ -1,7 +1,7 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v13-responsivo-pc-tablet-mobile';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v14-painel-desktop-mockup';
 const APP_SHELL = [
   './', './index.html', './styles.css', './config.js', './ocupacoes.js', './app.js', './manifest.webmanifest',
-  './offline.html', './assets/cabecalho.webp',
+  './offline.html', './assets/cabecalho.webp', './assets/logo-cbmmg.png', './assets/logo-gpv.png',
   './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable-512.png'
 ];
 self.addEventListener('install', event => {
