@@ -12,6 +12,8 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
+      const APP_VERSION = '22.0';
+      const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
         ok: true,
@@ -128,7 +130,7 @@
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              'X-GPV-App-Version': String(window.GPV_PUBLIC_CONFIG?.appVersion || 'pwa')
+              'X-GPV-App-Version': `v${APP_VERSION}`
             },
             body: JSON.stringify({ action, clientAuthVersion: AUTH_CLIENT_VERSION, ...data }),
             cache: 'no-store',
@@ -262,8 +264,12 @@
       const recordHistoryPanel = document.getElementById('recordHistoryPanel');
       const recordHistoryCount = document.getElementById('recordHistoryCount');
       const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
+      const recordAuditPanel = document.getElementById('recordAuditPanel');
+      const recordAuditCount = document.getElementById('recordAuditCount');
+      const recordAuditList = document.getElementById('recordAuditList');
       const connectionBanner = document.getElementById('connectionBanner');
       const connectionStateText = document.getElementById('connectionStateText');
+      const syncSummary = document.getElementById('syncSummary');
       const pendingPanel = document.getElementById('pendingPanel');
       const pendingTitle = document.getElementById('pendingTitle');
       const pendingText = document.getElementById('pendingText');
@@ -277,6 +283,9 @@
       const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
       const tutorialMenuBtn = document.getElementById('tutorialMenuBtn');
       const updateAppBtn = document.getElementById('updateAppBtn');
+      const aboutSystemBtn = document.getElementById('aboutSystemBtn');
+      const deviceNameBtn = document.getElementById('deviceNameBtn');
+      const deviceNameMenuText = document.getElementById('deviceNameMenuText');
       const adminSheetMenuLink = document.getElementById('adminSheetMenuLink');
       const moreMenuTriggers = [navMoreMenuBtn, dashboardMoreMenuBtn].filter(Boolean);
       const tutorialModal = document.getElementById('tutorialModal');
@@ -299,6 +308,8 @@
       const sancaoSelect = document.getElementById('sancao');
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
       const cnpjStatus = document.getElementById('cnpjStatus');
+      const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
+      const establishmentHistoryResults = document.getElementById('establishmentHistoryResults');
       const identificadorInput = document.getElementById('cnpj');
       const identificadorLabel = document.getElementById('identificadorLabel');
       const cpfInput = document.getElementById('cpf');
@@ -310,6 +321,16 @@
       const ocupacaoMeta = document.getElementById('ocupacaoMeta');
       const ocupacoesSelecionadasBox = document.getElementById('ocupacoesSelecionadasBox');
       const ocupacoesSelecionadasLista = document.getElementById('ocupacoesSelecionadasLista');
+      const reviewModal = document.getElementById('reviewModal');
+      const reviewList = document.getElementById('reviewList');
+      const reviewDuplicateNotice = document.getElementById('reviewDuplicateNotice');
+      const reviewCancelBtn = document.getElementById('reviewCancelBtn');
+      const reviewCancelTopBtn = document.getElementById('reviewCancelTopBtn');
+      const reviewConfirmBtn = document.getElementById('reviewConfirmBtn');
+      const aboutSystemModal = document.getElementById('aboutSystemModal');
+      const aboutSystemCloseBtn = document.getElementById('aboutSystemCloseBtn');
+      const aboutSystemGrid = document.getElementById('aboutSystemGrid');
+      const aboutSystemNote = document.getElementById('aboutSystemNote');
 
       let ocupacaoTouchStartY = null;
       let ocupacaoArrastando = false;
@@ -351,6 +372,9 @@
       let sancaoDefinidaAutomaticamente = false;
       let sancaoAntesDoAutomatico = '';
       let cpfCopiadoDoIdentificador = '';
+      let estabelecimentoLookupTimer = null;
+      let estabelecimentoLookupSequencia = 0;
+      let historicoEstabelecimentoAtual = [];
 
       function value(id) {
         const el = document.getElementById(id);
@@ -405,6 +429,26 @@
       function digits(v) { return String(v || '').replace(/\D/g, ''); }
       function normalize(v) {
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      }
+
+      function nomeDispositivo_() {
+        try { return String(localStorage.getItem(DEVICE_NAME_STORAGE) || '').trim(); } catch (e) { return ''; }
+      }
+
+      function salvarNomeDispositivo_(nome) {
+        const limpo = String(nome || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+        try {
+          if (limpo) localStorage.setItem(DEVICE_NAME_STORAGE, limpo);
+          else localStorage.removeItem(DEVICE_NAME_STORAGE);
+        } catch (e) {}
+        atualizarNomeDispositivoUi_();
+        return limpo;
+      }
+
+      function atualizarNomeDispositivoUi_() {
+        if (!deviceNameMenuText) return;
+        const nome = nomeDispositivo_();
+        deviceNameMenuText.textContent = nome ? nome : 'Definir nome deste celular ou tablet';
       }
 
       function normalizarTermoOcupacao(v) {
@@ -507,6 +551,26 @@
         salvarPendentes(obterPendentes().filter(item => item && item.id !== id));
       }
 
+      function atualizarResumoSincronizacao_() {
+        if (!syncSummary) return;
+        const quantidade = obterPendentes().length;
+        syncSummary.classList.remove('is-ok', 'is-pending', 'is-offline');
+        if (!navigator.onLine) {
+          syncSummary.classList.add('is-offline');
+          syncSummary.textContent = quantidade
+            ? `Offline • ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando envio`
+            : 'Offline • nenhum envio pendente';
+          return;
+        }
+        if (quantidade) {
+          syncSummary.classList.add('is-pending');
+          syncSummary.textContent = `${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
+          return;
+        }
+        syncSummary.classList.add('is-ok');
+        syncSummary.textContent = 'Tudo sincronizado';
+      }
+
       function atualizarPainelPendentes() {
         const quantidade = obterPendentes().length;
         pendingPanel.classList.toggle('show', quantidade > 0);
@@ -520,6 +584,7 @@
           : '';
         sendPendingBtn.disabled = !navigator.onLine || sendingQueue || quantidade === 0;
         sendPendingBtn.textContent = sendingQueue ? 'Enviando...' : 'Enviar pendentes';
+        atualizarResumoSincronizacao_();
       }
 
       function atualizarStatusConexao() {
@@ -1095,6 +1160,31 @@
         }).join('');
       }
 
+
+      function renderizarAuditoriaRegistro_(auditoria) {
+        const itens = Array.isArray(auditoria) ? auditoria : [];
+        if (!recordAuditPanel || !recordAuditList || !recordAuditCount) return;
+        if (!itens.length) {
+          recordAuditPanel.hidden = true;
+          recordAuditList.innerHTML = '';
+          return;
+        }
+        recordAuditPanel.hidden = false;
+        recordAuditCount.textContent = `${itens.length} evento${itens.length === 1 ? '' : 's'}`;
+        recordAuditList.innerHTML = itens.map(item => {
+          const autor = [item.usuario, item.dispositivo].filter(Boolean).join(' • ');
+          const mudanca = item.campo
+            ? `${item.campo}${item.valorAnterior || item.novoValor ? `: ${item.valorAnterior || '—'} → ${item.novoValor || '—'}` : ''}`
+            : '';
+          return `<article class="record-audit-item">
+            <strong>${escapeHtml(item.acao || 'Alteração')}</strong>
+            <span>${escapeHtml([item.dataHora, autor, item.origem].filter(Boolean).join(' • '))}</span>
+            ${mudanca ? `<p>${escapeHtml(mudanca)}</p>` : ''}
+            ${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}
+          </article>`;
+        }).join('');
+      }
+
       function renderizarFichaRegistro_(registro) {
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
@@ -1109,7 +1199,8 @@
           ['Demanda', valorCampoFicha_(registro, 'Demanda')],
           ['Tipo de vistoria', valorCampoFicha_(registro, 'Tipo de vistoria')],
           ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
-          ['REDS', valorCampoFicha_(registro, 'REDS')]
+          ['REDS', valorCampoFicha_(registro, 'REDS')],
+          ['Enviado por', valorCampoFicha_(registro, 'Enviado por')]
         ];
         const local = [
           ['Estabelecimento', estabelecimento],
@@ -1137,6 +1228,7 @@
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
         renderizarHistorico_(registro?.historico || []);
+        renderizarAuditoriaRegistro_(registro?.auditoria || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
       }
 
@@ -1152,6 +1244,8 @@
         recordDetailGroups.innerHTML = '';
         recordHistoryTimeline.innerHTML = '';
         recordHistoryPanel.hidden = true;
+        if (recordAuditList) recordAuditList.innerHTML = '';
+        if (recordAuditPanel) recordAuditPanel.hidden = true;
 
         try {
           const registro = await apiRequest('config', { consulta: 'registro', chave }, 50000);
@@ -1581,6 +1675,7 @@
           _appUsuarioId: String(authState.usuario?.id || ''),
           _appUsuarioNome: String(authState.usuario?.nome || ''),
           _appUsuarioSessao: String(authState.sessionToken || ''),
+          _appDispositivo: nomeDispositivo_(),
           cidade: cityValue() || 'Viçosa',
           nomeFantasia: value('nomeFantasia'),
           razaoSocial: value('razaoSocial'),
@@ -1853,6 +1948,7 @@
 
         ultimoCnpjConsultado = '';
         cnpjAssociadoDadosEmpresa = String(novoCnpj || '');
+        esconderHistoricoEstabelecimento_();
         scheduleDraftSave();
       }
 
@@ -1938,6 +2034,7 @@
               : `Consulta concluída. Os dados cadastrais já correspondem a este CNPJ.${complementoCidade}`,
             'success'
           );
+          consultarHistoricoEstabelecimento_({ silencioso: true }).catch(() => {});
           // Mantém a posição atual após validar o CNPJ. O usuário segue o formulário manualmente.
         } catch (error) {
           if (sequencia !== cnpjConsultaSequencia || digits(value('cnpj')) !== cnpj) return;
@@ -1981,6 +2078,7 @@
           ultimoCnpjConsultado = '';
           atualizarInterfaceIdentificador_('');
           clearCnpjStatus();
+          esconderHistoricoEstabelecimento_();
           return;
         }
 
@@ -1996,6 +2094,7 @@
             sincronizarIdentificadorComCpf_(raw);
             showCnpjStatus('CPF identificado. O número foi levado para o CPF do responsável.', 'success');
             scheduleDraftSave();
+            consultarHistoricoEstabelecimento_({ silencioso: true }).catch(() => {});
           }, 650);
           return;
         }
@@ -2009,6 +2108,7 @@
           cnpjTimer = setTimeout(() => consultarCnpj(true), 700);
         } else {
           ultimoCnpjConsultado = '';
+          esconderHistoricoEstabelecimento_();
         }
       }
 
@@ -2021,6 +2121,133 @@
         if (cpfCopiadoDoIdentificador && digits(v) !== cpfCopiadoDoIdentificador) cpfCopiadoDoIdentificador = '';
       }
 
+
+
+      function esconderHistoricoEstabelecimento_() {
+        historicoEstabelecimentoAtual = [];
+        if (!establishmentHistoryPanel || !establishmentHistoryResults) return;
+        establishmentHistoryResults.innerHTML = '';
+        establishmentHistoryPanel.hidden = true;
+      }
+
+      function rotuloHistoricoEstabelecimento_(item) {
+        const nome = item?.nomeFantasia || item?.razaoSocial || 'Estabelecimento anterior';
+        const id = item?.cnpj ? formatarCnpjTela_(item.cnpj) : (item?.cpfEstabelecimento ? formatarCpfTela_(item.cpfEstabelecimento) : '');
+        const endereco = [item?.endereco, item?.numero, item?.bairro].filter(Boolean).join(', ');
+        return { nome, detalhe: [id, endereco, item?.carimbo].filter(Boolean).join(' • ') };
+      }
+
+      function renderizarHistoricoEstabelecimento_(resultados) {
+        historicoEstabelecimentoAtual = Array.isArray(resultados) ? resultados : [];
+        if (!establishmentHistoryPanel || !establishmentHistoryResults) return;
+        if (!historicoEstabelecimentoAtual.length) {
+          esconderHistoricoEstabelecimento_();
+          return;
+        }
+        establishmentHistoryResults.innerHTML = historicoEstabelecimentoAtual.map((item, index) => {
+          const rotulo = rotuloHistoricoEstabelecimento_(item);
+          return `<div class="establishment-history-item">
+            <div class="establishment-history-copy">
+              <strong>${escapeHtml(rotulo.nome)}</strong>
+              <span>${escapeHtml(rotulo.detalhe || 'Registro anterior encontrado')}</span>
+            </div>
+            <button class="establishment-history-use" type="button" data-history-establishment-index="${index}">Usar dados</button>
+          </div>`;
+        }).join('');
+        establishmentHistoryPanel.hidden = false;
+      }
+
+      function setFieldHistoricoSeVazio_(id, valor, formatter = null) {
+        const el = document.getElementById(id);
+        if (!el) return false;
+        let texto = String(valor == null ? '' : valor).trim();
+        if (!texto || String(el.value || '').trim()) return false;
+        if (formatter) texto = formatter(texto);
+        el.value = texto;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      }
+
+      function aplicarHistoricoEstabelecimento_(item) {
+        if (!item) return;
+        const nome = item.nomeFantasia || item.razaoSocial || 'este estabelecimento';
+        if (!window.confirm(`Usar os dados históricos de ${nome}? Os campos já preenchidos não serão substituídos.`)) return;
+
+        let alterados = 0;
+        const tipoAtual = tipoIdentificador_(value('cnpj'));
+        if (!tipoAtual && item.cnpj) {
+          identificadorInput.value = formatarCnpjTela_(item.cnpj);
+          atualizarInterfaceIdentificador_('cnpj');
+          cnpjAssociadoDadosEmpresa = digits(item.cnpj);
+          alterados += 1;
+        } else if (!tipoAtual && item.cpfEstabelecimento) {
+          identificadorInput.value = formatarCpfTela_(item.cpfEstabelecimento);
+          atualizarInterfaceIdentificador_('cpf');
+          sincronizarIdentificadorComCpf_(item.cpfEstabelecimento);
+          alterados += 1;
+        }
+
+        if (setFieldHistoricoSeVazio_('nomeFantasia', item.nomeFantasia)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('razaoSocial', item.razaoSocial)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('endereco', item.endereco)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('numero', item.numero)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('complemento', item.complemento)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('bairro', item.bairro)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('enderecoCorrespondencia', item.enderecoCorrespondencia)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('telefone', item.telefone, formatarTelefoneTela_)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('responsavel', item.responsavel)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('nomeResponsavel', item.nomeResponsavel)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('cpf', item.cpfResponsavel, formatarCpfTela_)) alterados += 1;
+        if (setFieldHistoricoSeVazio_('email', item.email)) alterados += 1;
+
+        if (!cityValue() && item.cidade) {
+          aplicarCidadeRetornadaCnpj_(item.cidade);
+          alterados += 1;
+        }
+        if (document.getElementById('mesmoEnderecoResponsavel')?.checked) syncResponsibleAddress();
+        scheduleDraftSave();
+        if (item.cnpj && digits(value('cnpj')) === digits(item.cnpj)) {
+          setTimeout(() => consultarCnpj(true), 120);
+        }
+        appStatus.textContent = alterados
+          ? `${alterados} dado(s) histórico(s) recuperado(s). Confira antes de registrar.`
+          : 'Os campos atuais já estavam preenchidos; nenhum dado histórico foi substituído.';
+      }
+
+      async function consultarHistoricoEstabelecimento_(opcoes = {}) {
+        if (!navigator.onLine) {
+          esconderHistoricoEstabelecimento_();
+          return;
+        }
+        const identificador = digits(value('cnpj'));
+        const nome = String(value('nomeFantasia') || value('razaoSocial') || '').trim();
+        const tipo = tipoIdentificador_(identificador);
+        if (!tipo && nome.length < 3) {
+          esconderHistoricoEstabelecimento_();
+          return;
+        }
+
+        const sequencia = ++estabelecimentoLookupSequencia;
+        try {
+          const result = await apiRequest('config', {
+            consulta: 'estabelecimento_historico',
+            filtros: {
+              identificador: tipo ? identificador : '',
+              nome: tipo ? '' : nome
+            }
+          }, 30000);
+          if (sequencia !== estabelecimentoLookupSequencia) return;
+          renderizarHistoricoEstabelecimento_(result?.resultados || []);
+        } catch (erro) {
+          if (sequencia !== estabelecimentoLookupSequencia) return;
+          if (!opcoes.silencioso) esconderHistoricoEstabelecimento_();
+        }
+      }
+
+      function agendarHistoricoEstabelecimento_(delay = 650) {
+        clearTimeout(estabelecimentoLookupTimer);
+        estabelecimentoLookupTimer = setTimeout(() => consultarHistoricoEstabelecimento_({ silencioso: true }), delay);
+      }
 
       function showResponsavelLookupStatus_(message, type = 'info') {
         if (!responsavelLookupStatus) return;
@@ -2308,6 +2535,9 @@
         responsavelLookupSequencia += 1;
         telefoneResponsavelAssociado = '';
         esconderResponsavelLookupResultados_();
+        clearTimeout(estabelecimentoLookupTimer);
+        estabelecimentoLookupSequencia += 1;
+        esconderHistoricoEstabelecimento_();
         clearResponsavelLookupStatus_();
         cpfCopiadoDoIdentificador = '';
         atualizarInterfaceIdentificador_('');
@@ -2320,14 +2550,105 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
+
+      async function consultarDuplicidadeAntesEnvio_(payload) {
+        if (!navigator.onLine) return null;
+        try {
+          return await apiRequest('config', { consulta: 'duplicidade', payload }, 7000);
+        } catch (erro) {
+          appStatus.textContent = 'Não foi possível conferir duplicidade agora; o registro poderá ser enviado normalmente.';
+          return null;
+        }
+      }
+
+      function textoLicenciamentoRevisao_(valor) {
+        if (valor === 'possui') return 'Possui AVCB ou CLCB';
+        if (valor === 'nao_possui') return 'Não possui';
+        if (valor === 'dispensado') return 'Dispensado de licenciamento';
+        return valor || '—';
+      }
+
+      function mostrarRevisaoAntesEnvio_(payload, duplicidade) {
+        const identificador = digits(payload?.cnpj);
+        const idFormatado = identificador.length === 14
+          ? formatarCnpjTela_(identificador)
+          : (identificador.length === 11 ? formatarCpfTela_(identificador) : identificador);
+        const itens = [
+          ['Estabelecimento', payload?.nomeFantasia || payload?.razaoSocial || '—'],
+          ['CNPJ / CPF', idFormatado || '—'],
+          ['Cidade', payload?.cidade || '—'],
+          ['Endereço', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || '—'],
+          ['Responsável / RT', payload?.nomeResponsavel || '—'],
+          ['Telefone', payload?.telefone || '—'],
+          ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
+          ['Demanda', [payload?.demandaPrincipal, payload?.categoriaMeta].filter(Boolean).join(' | ') || '—'],
+          ['Sanção', payload?.sancao || '—'],
+          ['Nº PSCIP', payload?.pscip || '—'],
+          ['Enviado por', authState.usuario?.nome || '—']
+        ];
+
+        const duplicados = Array.isArray(duplicidade?.encontrados) ? duplicidade.encontrados : [];
+        const avisoDuplicidade = duplicidade?.duplicado && duplicados.length
+          ? `Atenção: já existe vistoria recente deste CNPJ/CPF no mesmo endereço. Registro mais recente: ${duplicados[0].carimbo || 'data não informada'} — ${duplicados[0].estabelecimento || 'estabelecimento'}${duplicados[0].sancao ? ` — ${duplicados[0].sancao}` : ''}. Se esta é uma nova vistoria, você pode continuar.`
+          : '';
+
+        if (!reviewModal || !reviewList || !reviewConfirmBtn || !reviewCancelBtn) {
+          const texto = itens.map(([r, v]) => `${r}: ${v}`).join('\n');
+          return Promise.resolve(window.confirm(`${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}\n\nConfirmar e registrar?`));
+        }
+
+        reviewList.innerHTML = itens.map(([rotulo, valor]) =>
+          `<div class="review-row"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong></div>`
+        ).join('');
+        if (reviewDuplicateNotice) {
+          reviewDuplicateNotice.hidden = !avisoDuplicidade;
+          reviewDuplicateNotice.textContent = avisoDuplicidade;
+        }
+        reviewModal.hidden = false;
+        document.body.classList.add('review-open');
+
+        return new Promise(resolve => {
+          let encerrado = false;
+          const finalizar = confirmado => {
+            if (encerrado) return;
+            encerrado = true;
+            reviewModal.hidden = true;
+            document.body.classList.remove('review-open');
+            reviewConfirmBtn.removeEventListener('click', onConfirmar);
+            reviewCancelBtn.removeEventListener('click', onCancelar);
+            reviewCancelTopBtn?.removeEventListener('click', onCancelar);
+            document.removeEventListener('keydown', onKeydown);
+            resolve(confirmado);
+          };
+          const onConfirmar = () => finalizar(true);
+          const onCancelar = () => finalizar(false);
+          const onKeydown = event => { if (event.key === 'Escape') onCancelar(); };
+
+          reviewConfirmBtn.addEventListener('click', onConfirmar);
+          reviewCancelBtn.addEventListener('click', onCancelar);
+          reviewCancelTopBtn?.addEventListener('click', onCancelar);
+          document.addEventListener('keydown', onKeydown);
+          setTimeout(() => reviewConfirmBtn.focus(), 30);
+        });
+      }
+
       async function submit() {
         if (submitting || !validateRequired(true)) return;
         const payload = buildPayload();
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
+        saveDraft();
+
+        if (navigator.onLine) appStatus.textContent = 'Conferindo possível duplicidade antes do envio...';
+        const duplicidade = await consultarDuplicidadeAntesEnvio_(payload);
+        const confirmado = await mostrarRevisaoAntesEnvio_(payload, duplicidade);
+        if (!confirmado) {
+          appStatus.textContent = 'Revise os campos e confirme novamente quando estiver pronto.';
+          return;
+        }
+
         ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
-        saveDraft();
 
         // Estratégia local-first: antes de qualquer tentativa de internet, a vistoria
         // entra na fila do aparelho. Isso torna o botão praticamente imediato e
@@ -2732,6 +3053,67 @@
         window.location.replace(url.toString());
       }
 
+
+      function renderizarSobreSistema_(statusServidor = null) {
+        if (!aboutSystemGrid) return;
+        const pendentes = obterPendentes().length;
+        const itens = [
+          ['Versão do app', `V${APP_VERSION}`],
+          ['Usuário', authState.usuario?.nome || 'Não identificado'],
+          ['Aparelho', nomeDispositivo_() || 'Não identificado'],
+          ['Conexão', navigator.onLine ? 'Online' : 'Offline'],
+          ['Sincronização', pendentes ? `${pendentes} pendente${pendentes === 1 ? '' : 's'}` : 'Tudo sincronizado'],
+          ['Servidor', statusServidor ? 'Disponível' : (navigator.onLine ? 'Verificando...' : 'Indisponível offline')],
+          ['Auditoria', statusServidor?.auditoria ? 'Ativa' : (statusServidor ? 'Não confirmada' : '—')],
+          ['Backup automático', statusServidor?.triggerBackup ? 'Ativo • diário' : (statusServidor ? 'Não confirmado' : '—')],
+          ['Último backup', statusServidor?.ultimoBackup || 'Ainda não informado'],
+          ['Retenção de backups', statusServidor?.retencaoBackups ? `${statusServidor.retencaoBackups} cópias` : '—']
+        ];
+        aboutSystemGrid.innerHTML = itens.map(([rotulo, valor]) =>
+          `<div class="about-item"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong></div>`
+        ).join('');
+        if (aboutSystemNote) {
+          aboutSystemNote.textContent = statusServidor?.aviso
+            ? `Atenção administrativa: ${statusServidor.aviso}`
+            : 'Os tokens, chaves e segredos do sistema não são exibidos nesta tela.';
+        }
+      }
+
+      async function abrirSobreSistema_() {
+        fecharMenuMais_();
+        if (!aboutSystemModal) return;
+        renderizarSobreSistema_(null);
+        aboutSystemModal.hidden = false;
+        document.body.classList.add('about-open');
+        if (!navigator.onLine) return;
+        try {
+          const status = await apiRequest('config', { consulta: 'sistema_status' }, 35000);
+          renderizarSobreSistema_(status || {});
+        } catch (erro) {
+          if (aboutSystemNote) aboutSystemNote.textContent = 'Não foi possível consultar o status administrativo agora. O aplicativo continua disponível.';
+        }
+      }
+
+      function fecharSobreSistema_() {
+        if (!aboutSystemModal) return;
+        aboutSystemModal.hidden = true;
+        document.body.classList.remove('about-open');
+      }
+
+      function definirNomeDispositivo_() {
+        fecharMenuMais_();
+        const atual = nomeDispositivo_();
+        const resposta = window.prompt(
+          'Digite um nome simples para identificar este aparelho na auditoria. Ex.: Tablet GPV 01 ou Celular Galliano.',
+          atual
+        );
+        if (resposta == null) return;
+        const salvo = salvarNomeDispositivo_(resposta);
+        appStatus.textContent = salvo
+          ? `Aparelho identificado como “${salvo}”.`
+          : 'Identificação do aparelho removida.';
+      }
+
       function aplicarConfig(data) {
         appConfig = data || DEFAULT_CONFIG;
         populateOptions(appConfig.opcoes || {});
@@ -2744,6 +3126,7 @@
         try { cached = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || 'null'); } catch (e) {}
         aplicarConfig(cached || DEFAULT_CONFIG);
         restoreDraft();
+        atualizarNomeDispositivoUi_();
         loadingOverlay.classList.remove('show');
         atualizarStatusConexao();
         appStatus.textContent = navigator.onLine ? 'Aplicativo pronto. Sincronizando configurações...' : 'Modo offline — aplicativo pronto para preenchimento.';
@@ -2789,6 +3172,19 @@
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
       document.getElementById('telefone').addEventListener('input', applyPhoneMask);
+      document.getElementById('nomeFantasia')?.addEventListener('input', () => {
+        if (!tipoIdentificador_(value('cnpj'))) agendarHistoricoEstabelecimento_(700);
+      });
+      document.getElementById('razaoSocial')?.addEventListener('input', () => {
+        if (!tipoIdentificador_(value('cnpj'))) agendarHistoricoEstabelecimento_(700);
+      });
+      establishmentHistoryResults?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-history-establishment-index]');
+        if (!botao) return;
+        const indice = Number(botao.dataset.historyEstablishmentIndex);
+        if (!Number.isInteger(indice) || !historicoEstabelecimentoAtual[indice]) return;
+        aplicarHistoricoEstabelecimento_(historicoEstabelecimentoAtual[indice]);
+      });
       responsavelLookupResultados?.addEventListener('click', event => {
         const botao = event.target.closest('[data-responsavel-index]');
         if (!botao) return;
@@ -2890,6 +3286,10 @@
         renderizarTutorial_();
       });
       updateAppBtn?.addEventListener('click', atualizarAplicativo_);
+      aboutSystemBtn?.addEventListener('click', abrirSobreSistema_);
+      deviceNameBtn?.addEventListener('click', definirNomeDispositivo_);
+      aboutSystemCloseBtn?.addEventListener('click', fecharSobreSistema_);
+      aboutSystemModal?.addEventListener('click', event => { if (event.target === aboutSystemModal) fecharSobreSistema_(); });
       manageUsersBtn?.addEventListener('click', abrirGerenciadorUsuarios_);
       logoutUserBtn?.addEventListener('click', sairUsuarioBm_);
       authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); });
@@ -2934,7 +3334,7 @@
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); }
+        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));

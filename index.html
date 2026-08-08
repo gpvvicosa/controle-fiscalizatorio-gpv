@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:rgba(255,255,255,.96)}
     .loading-box{max-width:90vw;padding:16px 20px;border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.12);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=21.0">
+  <link rel="stylesheet" href="styles.css?v=22.0">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -56,7 +56,7 @@
   <div class="auth-gate" id="authGate" aria-hidden="false">
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-logo-wrap" aria-hidden="true">
-        <img src="assets/logo-gpv.png?v=21.0" width="512" height="512" alt="">
+        <img src="assets/logo-gpv.png?v=22.0" width="512" height="512" alt="">
       </div>
       <span class="auth-kicker">Acesso institucional</span>
       <h1 id="authTitle">Controle Fiscalizatório</h1>
@@ -105,7 +105,7 @@
 
       <div class="dashboard-header-actions" aria-label="Ações do painel">
         <div class="dashboard-gpv-mark" aria-hidden="true">
-          <img src="assets/logo-gpv.png?v=21.0" width="512" height="512" alt="">
+          <img src="assets/logo-gpv.png?v=22.0" width="512" height="512" alt="">
         </div>
         <a class="dashboard-header-action dashboard-sheet-header-link" id="dashboardSheetHeaderLink" href="#" target="_blank" rel="noopener" hidden>
           <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
@@ -139,6 +139,14 @@
     <button class="app-more-menu-item" id="updateAppBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7.2 7.2 0 1 0 1 7"/><path d="M19 4.5V8h-3.5"/></svg>
       <span><strong>Atualizar app</strong><small>Buscar a versão mais recente</small></span>
+    </button>
+    <button class="app-more-menu-item" id="aboutSystemBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v6M12 7.5h.01"/></svg>
+      <span><strong>Sobre o sistema</strong><small>Versão, sincronização e serviços</small></span>
+    </button>
+    <button class="app-more-menu-item" id="deviceNameBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><path d="M10 17.5h4"/></svg>
+      <span><strong>Identificar aparelho</strong><small id="deviceNameMenuText">Definir nome deste celular ou tablet</small></span>
     </button>
     <button class="app-more-menu-item" id="manageUsersBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.5-5 5.5-5s4.9 1.8 5.5 5M16 8h5M18.5 5.5v5"/></svg>
@@ -266,6 +274,7 @@
 <div class="connection-banner connection-online" id="connectionBanner" role="status" aria-live="polite" aria-label="Online — conexão disponível">
       <span class="sr-only" id="connectionStateText">Online</span>
     </div>
+    <div class="sync-summary" id="syncSummary" role="status" aria-live="polite">Verificando sincronização...</div>
 
     <div class="install-panel" id="installPanel" hidden>
       <div class="install-copy">
@@ -470,6 +479,13 @@
                 <input id="cnpj" name="cnpj" inputmode="numeric" autocomplete="off" placeholder="Digite somente os números" maxlength="18" aria-describedby="cnpjStatus">
               </div>
               <div class="lookup-status" id="cnpjStatus"></div>
+              <div class="establishment-history-panel" id="establishmentHistoryPanel" hidden>
+                <div class="establishment-history-head">
+                  <strong>Histórico da planilha</strong>
+                  <span>Dados já utilizados em vistorias anteriores</span>
+                </div>
+                <div id="establishmentHistoryResults"></div>
+              </div>
             </div>
             <div class="field half">
               <label for="nomeFantasia">Nome Fantasia</label>
@@ -741,6 +757,10 @@
           <div class="record-history-head"><h3>Histórico</h3><span id="recordHistoryCount"></span></div>
           <div class="record-history-timeline" id="recordHistoryTimeline"></div>
         </section>
+        <section class="record-audit-panel" id="recordAuditPanel" hidden>
+          <div class="record-history-head"><h3>Alterações registradas</h3><span id="recordAuditCount"></span></div>
+          <div class="record-audit-list" id="recordAuditList"></div>
+        </section>
       </div>
     </aside>
   </div>
@@ -775,6 +795,39 @@
     </section>
   </div>
 
+
+  <div class="review-overlay" id="reviewModal" hidden>
+    <section class="review-card" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+      <header class="review-header">
+        <div>
+          <span>Conferência antes do envio</span>
+          <h2 id="reviewTitle">Revise os dados principais</h2>
+        </div>
+        <button class="review-close" id="reviewCancelTopBtn" type="button" aria-label="Voltar ao formulário">×</button>
+      </header>
+      <div class="review-list" id="reviewList"></div>
+      <div class="review-warning" id="reviewDuplicateNotice" hidden></div>
+      <div class="review-actions">
+        <button class="btn btn-secondary" id="reviewCancelBtn" type="button">Voltar e corrigir</button>
+        <button class="btn btn-primary" id="reviewConfirmBtn" type="button">Confirmar e registrar</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="about-overlay" id="aboutSystemModal" hidden>
+    <section class="about-card" role="dialog" aria-modal="true" aria-labelledby="aboutSystemTitle">
+      <header class="about-header">
+        <div>
+          <span>Controle Fiscalizatório GPV</span>
+          <h2 id="aboutSystemTitle">Sobre o sistema</h2>
+        </div>
+        <button class="review-close" id="aboutSystemCloseBtn" type="button" aria-label="Fechar">×</button>
+      </header>
+      <div class="about-grid" id="aboutSystemGrid"></div>
+      <div class="about-note" id="aboutSystemNote"></div>
+    </section>
+  </div>
+
   <div class="city-check-overlay" id="cityCheckModal" hidden>
     <section class="city-check-card" role="dialog" aria-modal="true" aria-labelledby="cityCheckTitle" aria-describedby="cityCheckText">
       <div class="city-check-icon" aria-hidden="true">!</div>
@@ -794,8 +847,8 @@
   <div class="loading show" id="loadingOverlay">
     <div class="loading-box"><span class="spinner"></span><span id="loadingText">Carregando aplicativo...</span></div>
   </div>
-  <script src="config.js?v=21.0"></script>
-  <script src="ocupacoes.js?v=21.0"></script>
-  <script src="app.js?v=21.1"></script>
+  <script src="config.js?v=22.0"></script>
+  <script src="ocupacoes.js?v=22.0"></script>
+  <script src="app.js?v=22.0"></script>
 </body>
 </html>

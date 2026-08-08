@@ -3940,3 +3940,195 @@ body.user-manager-open { overflow: hidden; }
     justify-self: start;
   }
 }
+
+
+/* =============================================================================
+   V22 — sincronização, histórico inteligente, revisão, auditoria e sobre
+   ============================================================================= */
+body.review-open,body.about-open{overflow:hidden}
+.sync-summary{
+  margin:6px 2px 12px;
+  min-height:18px;
+  font-size:12px;
+  line-height:1.35;
+  font-weight:700;
+  color:#3f4a55;
+  text-align:center;
+}
+.sync-summary.is-pending{color:#8a5a00}
+.sync-summary.is-offline{color:#8f171c}
+.sync-summary.is-ok{color:#24623d}
+
+.establishment-history-panel{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid rgba(112,18,22,.16);
+  border-radius:14px;
+  background:#fffaf8;
+}
+.establishment-history-panel[hidden]{display:none!important}
+.establishment-history-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.establishment-history-head strong{font-size:13px;color:#5d1f23}
+.establishment-history-head span{font-size:11px;color:#6b7280;text-align:right}
+.establishment-history-item{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+  padding:10px 0;
+  border-top:1px solid rgba(112,18,22,.09);
+}
+.establishment-history-item:first-child{border-top:0}
+.establishment-history-copy strong{display:block;font-size:13px;color:#27272a}
+.establishment-history-copy span{display:block;margin-top:2px;font-size:11px;color:#6b7280}
+.establishment-history-use{
+  border:1px solid rgba(112,18,22,.2);
+  border-radius:10px;
+  background:#fff;
+  color:#701216;
+  padding:8px 10px;
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.review-overlay,.about-overlay{
+  position:fixed;
+  inset:0;
+  z-index:12000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(24,18,18,.58);
+  backdrop-filter:blur(3px);
+}
+.review-overlay[hidden],.about-overlay[hidden]{display:none!important}
+.review-card,.about-card{
+  width:min(560px,100%);
+  max-height:min(86vh,760px);
+  overflow:auto;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(0,0,0,.28);
+}
+.review-header,.about-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 18px 14px;
+  border-bottom:1px solid #ece8e8;
+}
+.review-header span,.about-header span{
+  display:block;
+  margin-bottom:3px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#8f171c;
+}
+.review-header h2,.about-header h2{margin:0;font-size:20px;color:#2b2425}
+.review-close{
+  flex:0 0 auto;
+  width:36px;
+  height:36px;
+  border:0;
+  border-radius:50%;
+  background:#f4eeee;
+  color:#6f2226;
+  font-size:24px;
+  line-height:1;
+  cursor:pointer;
+}
+.review-list{padding:12px 18px}
+.review-row{
+  display:grid;
+  grid-template-columns:minmax(120px,.7fr) 1.3fr;
+  gap:12px;
+  padding:9px 0;
+  border-bottom:1px solid #f0ecec;
+}
+.review-row:last-child{border-bottom:0}
+.review-row span{font-size:12px;color:#6b7280}
+.review-row strong{font-size:13px;color:#27272a;overflow-wrap:anywhere}
+.review-warning{
+  margin:0 18px 14px;
+  padding:11px 12px;
+  border-radius:12px;
+  background:#fff4d8;
+  color:#704500;
+  font-size:12px;
+  line-height:1.45;
+}
+.review-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  padding:14px 18px 18px;
+  border-top:1px solid #ece8e8;
+}
+
+.about-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:16px 18px;
+}
+.about-item{
+  padding:11px 12px;
+  border:1px solid #ece8e8;
+  border-radius:12px;
+  background:#fbfafa;
+}
+.about-item span{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#7a6e70}
+.about-item strong{display:block;margin-top:4px;font-size:13px;color:#27272a;overflow-wrap:anywhere}
+.about-note{
+  margin:0 18px 18px;
+  padding:11px 12px;
+  border-radius:12px;
+  background:#f6f3f3;
+  color:#5a5052;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.record-audit-panel{
+  margin-top:18px;
+  padding-top:4px;
+}
+.record-audit-panel[hidden]{display:none!important}
+.record-audit-list{display:grid;gap:8px}
+.record-audit-item{
+  padding:10px 12px;
+  border:1px solid #eee8e8;
+  border-radius:12px;
+  background:#fbfafa;
+}
+.record-audit-item strong{display:block;font-size:12px;color:#3d3032}
+.record-audit-item span{display:block;margin-top:3px;font-size:11px;color:#6b7280}
+.record-audit-item p{margin:5px 0 0;font-size:11px;line-height:1.4;color:#4b5563}
+
+@media (max-width:640px){
+  .sync-summary{font-size:11px;margin-top:5px}
+  .establishment-history-head{display:block}
+  .establishment-history-head span{text-align:left;margin-top:2px}
+  .establishment-history-item{grid-template-columns:1fr}
+  .establishment-history-use{width:100%}
+  .review-overlay,.about-overlay{align-items:flex-end;padding:0}
+  .review-card,.about-card{
+    width:100%;
+    max-height:88vh;
+    border-radius:20px 20px 0 0;
+  }
+  .review-row{grid-template-columns:1fr;gap:3px}
+  .review-actions{display:grid;grid-template-columns:1fr 1fr}
+  .about-grid{grid-template-columns:1fr}
+}

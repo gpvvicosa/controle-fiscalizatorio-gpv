@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v21-1-fluxo-cnpj';
-const VERSION = '21.1';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v22-confiabilidade-auditoria';
+const VERSION = '22.0';
 const APP_SHELL = [
   './',
   './index.html',
