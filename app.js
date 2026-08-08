@@ -130,7 +130,12 @@
       const installPanel = document.getElementById('installPanel');
       const installBtn = document.getElementById('installBtn');
       const installText = document.getElementById('installText');
-      const splashScreen = document.getElementById('splashScreen');
+      const appMoreMenu = document.getElementById('appMoreMenu');
+      const desktopMoreMenuBtn = document.getElementById('desktopMoreMenuBtn');
+      const mobileMoreMenuBtn = document.getElementById('mobileMoreMenuBtn');
+      const contingenciaLinkMenu = document.getElementById('contingenciaLinkMenu');
+      const updateAppBtn = document.getElementById('updateAppBtn');
+      const moreMenuTriggers = [desktopMoreMenuBtn, mobileMoreMenuBtn].filter(Boolean);
       const citySelect = document.getElementById('cidadeSelect');
       const otherCityWrap = document.getElementById('outraCidadeWrap');
       const otherCity = document.getElementById('outraCidade');
@@ -1446,24 +1451,57 @@
         setTimeout(() => enviarPendentes(true), 80);
       }
 
-      function abrirAbertura() {
-        splashScreen.classList.add('show');
-        splashScreen.setAttribute('aria-hidden', 'false');
+      function fecharMenuMais_() {
+        if (!appMoreMenu) return;
+        appMoreMenu.hidden = true;
+        moreMenuTriggers.forEach(btn => btn.setAttribute('aria-expanded', 'false'));
       }
 
-      function fecharAbertura(scrollToForm) {
-        splashScreen.classList.remove('show');
-        splashScreen.setAttribute('aria-hidden', 'true');
-        if (scrollToForm) {
-          document.getElementById('cidadeSecao').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      function alternarMenuMais_() {
+        if (!appMoreMenu) return;
+        const vaiAbrir = appMoreMenu.hidden;
+        appMoreMenu.hidden = !vaiAbrir;
+        moreMenuTriggers.forEach(btn => btn.setAttribute('aria-expanded', vaiAbrir ? 'true' : 'false'));
+      }
+
+      async function atualizarAplicativo_() {
+        fecharMenuMais_();
+        if (!navigator.onLine) {
+          alert('Conecte o aparelho à internet para buscar a versão mais recente do aplicativo.');
+          return;
         }
+
+        appStatus.textContent = 'Buscando a versão mais recente do aplicativo...';
+        if (updateAppBtn) updateAppBtn.disabled = true;
+
+        try {
+          if ('serviceWorker' in navigator) {
+            const registros = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registros.map(registro => registro.update().catch(() => null)));
+          }
+          if ('caches' in window) {
+            const chaves = await caches.keys();
+            await Promise.all(
+              chaves
+                .filter(chave => String(chave).startsWith('gpv-vistorias-pwa-'))
+                .map(chave => caches.delete(chave))
+            );
+          }
+        } catch (erro) {
+          console.log('Atualização manual do app:', erro && erro.message ? erro.message : erro);
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('atualizar', Date.now().toString());
+        window.location.replace(url.toString());
       }
 
       function aplicarConfig(data) {
         appConfig = data || DEFAULT_CONFIG;
         populateOptions(appConfig.opcoes || {});
-        document.getElementById('contingenciaLink').href = appConfig.formularioContingenciaUrl || DEFAULT_CONFIG.formularioContingenciaUrl;
-        document.getElementById('contingenciaLinkSplash').href = appConfig.formularioContingenciaUrl || DEFAULT_CONFIG.formularioContingenciaUrl;
+        if (contingenciaLinkMenu) {
+          contingenciaLinkMenu.href = appConfig.formularioContingenciaUrl || DEFAULT_CONFIG.formularioContingenciaUrl;
+        }
         document.getElementById('receitaCnpjLink').href = appConfig.receitaCnpjUrl || DEFAULT_CONFIG.receitaCnpjUrl;
         atualizarLinkPlanilha_(appConfig?.planilhaUrl || '');
         if (!value('enderecoCorrespondencia')) document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
@@ -1559,9 +1597,17 @@
       recordDetailScreen?.addEventListener('click', event => {
         if (event.target === recordDetailScreen) fecharDetalheRegistro_();
       });
-      document.getElementById('entrarFormularioBtn').addEventListener('click', () => fecharAbertura(true));
-      document.getElementById('fecharAberturaBtn').addEventListener('click', () => fecharAbertura(false));
-      splashScreen.addEventListener('click', event => { if (event.target === splashScreen) fecharAbertura(false); });
+      moreMenuTriggers.forEach(btn => btn.addEventListener('click', event => {
+        event.stopPropagation();
+        alternarMenuMais_();
+      }));
+      appMoreMenu?.addEventListener('click', event => event.stopPropagation());
+      contingenciaLinkMenu?.addEventListener('click', fecharMenuMais_);
+      updateAppBtn?.addEventListener('click', atualizarAplicativo_);
+      document.addEventListener('click', fecharMenuMais_);
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') fecharMenuMais_();
+      });
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
       window.addEventListener('offline', atualizarStatusConexao);
       window.addEventListener('online', () => {
@@ -1602,5 +1648,4 @@
 
       atualizarStatusConexao();
       inicializarFilaOffline().then(loadInitialData).catch(loadInitialData);
-      abrirAbertura();
     })();

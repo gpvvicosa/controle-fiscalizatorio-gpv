@@ -1,7 +1,7 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v9-cabecalho-mobile';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v10-menu-rodape';
 const APP_SHELL = [
   './', './index.html', './styles.css', './config.js', './ocupacoes.js', './app.js', './manifest.webmanifest',
-  './offline.html', './assets/cabecalho.webp', './assets/abertura.webp',
+  './offline.html', './assets/cabecalho.webp',
   './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable-512.png'
 ];
 self.addEventListener('install', event => {

@@ -40,23 +40,6 @@
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
 
-<div class="splash-screen" id="splashScreen" aria-hidden="true">
-    <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splashTitle">
-      <img class="splash-image" src="assets/abertura.webp" alt="Abertura do app Controle Fiscalizatório GPV Viçosa">
-      <div class="splash-content">
-        <div class="splash-badge">Aplicativo institucional</div>
-        <h2 id="splashTitle">Controle Fiscalizatório GPV Viçosa</h2>
-        <p>Use o app para registrar as vistorias com mais rapidez. Se estiver com pressa, comece por cidade, CNPJ, endereço e dados do responsável.</p>
-        <div class="splash-actions">
-          <button type="button" class="btn btn-primary" id="entrarFormularioBtn">Abrir formulário de vistoria</button>
-          <button type="button" class="btn btn-outline" id="fecharAberturaBtn">Fechar abertura</button>
-          <a id="contingenciaLinkSplash" class="hero-linkbtn secondary" href="#" target="_blank" rel="noopener">Abrir Google Form de contingência</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-
   <header class="topbar app-header">
     <div class="topbar-inner">
       <div class="brand-mark" aria-hidden="true">
@@ -66,16 +49,34 @@
         <strong>Controle Fiscalizatório</strong>
         <span>GPV · 3º Pelotão · Viçosa</span>
       </div>
-      <div class="topbar-unit" aria-label="Aplicativo institucional">
-        <span class="unit-dot"></span>
-        <span>GPV</span>
-      </div>
+      <button class="more-menu-trigger desktop-more-trigger" id="desktopMoreMenuBtn" type="button" aria-label="Abrir mais opções" aria-expanded="false" aria-controls="appMoreMenu">
+        <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>
+        <span>Mais</span>
+      </button>
     </div>
   </header>
+
+  <div class="app-more-menu" id="appMoreMenu" hidden role="menu" aria-label="Mais opções">
+    <div class="app-more-menu-head">
+      <strong>Mais opções</strong>
+      <span>Recursos auxiliares</span>
+    </div>
+    <a class="app-more-menu-item" id="contingenciaLinkMenu" href="#" target="_blank" rel="noopener" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l3 3v12H7z"/><path d="M14 4.5v3h3M9.5 11h5M9.5 14h5"/></svg>
+      <span><strong>Google Form de contingência</strong><small>Usar somente se o app estiver indisponível</small></span>
+    </a>
+    <button class="app-more-menu-item" id="updateAppBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7 7 0 1 0 1 7"/><path d="M19 4v4h-4"/></svg>
+      <span><strong>Atualizar aplicativo</strong><small>Buscar a versão mais recente</small></span>
+    </button>
+  </div>
 
   <main class="page">
     <section class="hero" aria-label="Controle Fiscalizatório GPV Viçosa">
       <img class="hero-banner" src="assets/cabecalho.webp" alt="Controle Fiscalizatório GPV Viçosa">
+      <button class="more-menu-trigger mobile-more-trigger" id="mobileMoreMenuBtn" type="button" aria-label="Abrir mais opções" aria-expanded="false" aria-controls="appMoreMenu">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>
+      </button>
     </section>
 
     <nav class="app-view-nav" aria-label="Áreas do aplicativo">
@@ -411,11 +412,12 @@
         </div>
       </section>
 
-      <div class="utility-row">
-        <span>O rascunho e as vistorias pendentes são salvos neste aparelho. Se a internet cair, continue preenchendo normalmente.</span>
-        <a id="contingenciaLink" href="#" target="_blank" rel="noopener">Abrir Google Form de contingência</a>
-      </div>
     </form>
+
+    <footer class="app-credit" aria-label="Crédito do aplicativo">
+      <p>“Organização, responsabilidade e compromisso: cada vistoria contribui para uma sociedade mais segura.”</p>
+      <strong>— Sgt BM Galliano</strong>
+    </footer>
   </main>
 
   <div class="bottom-bar">
