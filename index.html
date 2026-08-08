@@ -61,6 +61,17 @@
       <img class="hero-banner" src="assets/cabecalho.webp" alt="Controle Fiscalizatório GPV Viçosa">
     </section>
 
+    <nav class="app-view-nav" aria-label="Áreas do aplicativo">
+      <button class="app-view-btn active" id="formTabBtn" type="button" aria-pressed="true">
+        <span aria-hidden="true">📝</span>
+        <span>Vistoria</span>
+      </button>
+      <button class="app-view-btn" id="recordsTabBtn" type="button" aria-pressed="false">
+        <span aria-hidden="true">📊</span>
+        <span>Planilha</span>
+      </button>
+    </nav>
+
 <div class="connection-banner" id="connectionBanner" role="status" aria-live="polite">
       <span class="connection-dot" aria-hidden="true"></span>
       <div class="connection-copy">
@@ -87,6 +98,61 @@
 
     <div id="errorBox" class="alert error"></div>
     <div id="noticeNotificado" class="alert warning">Ao selecionar <strong>Notificado</strong>, a Demanda será registrada com <strong>Liberação</strong>.</div>
+
+    <section class="records-panel" id="recordsPanel" hidden aria-labelledby="recordsTitle">
+      <div class="records-header">
+        <div class="records-header-copy">
+          <div class="records-readonly-badge">🔒 Somente leitura</div>
+          <h2 id="recordsTitle">Processo Fiscalizatório</h2>
+          <p>Visualização otimizada para celular. Consulte registros sem risco de alterar a planilha.</p>
+        </div>
+        <a class="records-sheet-link" id="recordsOpenSheetLink" href="#" target="_blank" rel="noopener" hidden>
+          Abrir no Google Sheets
+        </a>
+      </div>
+
+      <div class="records-toolbar">
+        <label class="records-search-field" for="recordsSearch">
+          <span>Pesquisar</span>
+          <input id="recordsSearch" type="search" autocomplete="off"
+                 placeholder="Nome, CNPJ, CPF, rua, Nº do PSCIP...">
+        </label>
+
+        <div class="records-filter-grid">
+          <label>
+            <span>Cidade</span>
+            <select id="recordsCityFilter">
+              <option value="">Todas</option>
+            </select>
+          </label>
+          <label>
+            <span>Demanda</span>
+            <select id="recordsDemandFilter">
+              <option value="">Todas</option>
+            </select>
+          </label>
+          <label>
+            <span>Sanção</span>
+            <select id="recordsSanctionFilter">
+              <option value="">Todas</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="records-toolbar-actions">
+          <button class="btn btn-secondary" id="recordsClearFiltersBtn" type="button">Limpar filtros</button>
+          <button class="btn btn-primary records-refresh-btn" id="recordsRefreshBtn" type="button">↻ Atualizar</button>
+        </div>
+      </div>
+
+      <div class="records-status" id="recordsStatus" role="status" aria-live="polite">
+        Toque em <strong>Planilha</strong> para carregar os registros.
+      </div>
+      <div class="records-list" id="recordsList"></div>
+      <button class="btn btn-secondary records-load-more" id="recordsLoadMoreBtn" type="button" hidden>
+        Carregar mais registros
+      </button>
+    </section>
 
     <form id="vistoriaForm" novalidate>
       <section class="section essential" id="cidadeSecao">
@@ -358,10 +424,33 @@
           </span>
           <span class="whatsapp-btn-label">Enviar orientações pelo WhatsApp</span>
         </button>
+        <button class="btn btn-planilha" id="recordsSuccessBtn" type="button">
+          <span aria-hidden="true">📊</span>
+          <span class="records-success-label">Ver registro na planilha</span>
+        </button>
         <button class="btn btn-primary" id="newRecordBtn" type="button">Nova vistoria</button>
         <button class="btn btn-secondary" id="closeSuccessBtn" type="button">Continuar nesta tela</button>
       </div>
       <div class="success-whatsapp-note" id="whatsappOrientacoesNote">A mensagem será aberta no WhatsApp para conferência antes do envio.</div>
+    </div>
+  </div>
+
+  <div class="record-detail-screen" id="recordDetailScreen" aria-hidden="true">
+    <div class="record-detail-shell" role="dialog" aria-modal="true" aria-labelledby="recordDetailTitle">
+      <div class="record-detail-topbar">
+        <button class="record-detail-back" id="recordDetailCloseBtn" type="button" aria-label="Voltar para a lista">← Voltar</button>
+        <a class="record-detail-sheet-link" id="recordDetailSheetLink" href="#" target="_blank" rel="noopener" hidden>
+          Google Sheets
+        </a>
+      </div>
+      <div class="record-detail-heading">
+        <div class="records-readonly-badge">🔒 Consulta</div>
+        <h2 id="recordDetailTitle">Ficha do registro</h2>
+        <p id="recordDetailSubtitle"></p>
+        <div class="record-detail-line" id="recordDetailLine"></div>
+      </div>
+      <div class="record-detail-loading" id="recordDetailLoading">Carregando ficha...</div>
+      <div class="record-detail-groups" id="recordDetailGroups"></div>
     </div>
   </div>
 

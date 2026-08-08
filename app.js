@@ -15,6 +15,7 @@
         formularioContingenciaUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSennudBo6iSNJvdLg0753X9t7mTtKkdZcuTafg0EHnfEXD0Yg/viewform?usp=header',
         receitaCnpjUrl: 'https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp',
         consultaCnpjFonte: 'OpenCNPJ',
+        planilhaUrl: '',
         opcoes: {
           cidade: ['Viçosa','Cajuri','Canaã','Araponga','Coimbra','Ervália','Paula Cândido','Pedra do Anta','Porto Firme','Presidente Bernardes','São Geraldo','São Miguel do Anta','Teixeiras','Outro'],
           sancao: ['Autuado','Advertência','Notificado','Regularizado','Liberado'],
@@ -97,6 +98,28 @@
       const whatsappOrientacoesBtn = document.getElementById('whatsappOrientacoesBtn');
       const whatsappOrientacoesNote = document.getElementById('whatsappOrientacoesNote');
       const successTitle = document.getElementById('successTitle');
+      const recordsSuccessBtn = document.getElementById('recordsSuccessBtn');
+      const formTabBtn = document.getElementById('formTabBtn');
+      const recordsTabBtn = document.getElementById('recordsTabBtn');
+      const recordsPanel = document.getElementById('recordsPanel');
+      const recordsSearch = document.getElementById('recordsSearch');
+      const recordsCityFilter = document.getElementById('recordsCityFilter');
+      const recordsDemandFilter = document.getElementById('recordsDemandFilter');
+      const recordsSanctionFilter = document.getElementById('recordsSanctionFilter');
+      const recordsClearFiltersBtn = document.getElementById('recordsClearFiltersBtn');
+      const recordsRefreshBtn = document.getElementById('recordsRefreshBtn');
+      const recordsStatus = document.getElementById('recordsStatus');
+      const recordsList = document.getElementById('recordsList');
+      const recordsLoadMoreBtn = document.getElementById('recordsLoadMoreBtn');
+      const recordsOpenSheetLink = document.getElementById('recordsOpenSheetLink');
+      const recordDetailScreen = document.getElementById('recordDetailScreen');
+      const recordDetailCloseBtn = document.getElementById('recordDetailCloseBtn');
+      const recordDetailTitle = document.getElementById('recordDetailTitle');
+      const recordDetailSubtitle = document.getElementById('recordDetailSubtitle');
+      const recordDetailLine = document.getElementById('recordDetailLine');
+      const recordDetailLoading = document.getElementById('recordDetailLoading');
+      const recordDetailGroups = document.getElementById('recordDetailGroups');
+      const recordDetailSheetLink = document.getElementById('recordDetailSheetLink');
       const connectionBanner = document.getElementById('connectionBanner');
       const connectionTitle = document.getElementById('connectionTitle');
       const connectionText = document.getElementById('connectionText');
@@ -125,6 +148,17 @@
       let appConfig = {};
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
+      let ultimoRegistroConsultaChave = '';
+      let recordsSearchTimer = null;
+      const recordsState = {
+        offset: 0,
+        limite: 30,
+        total: 0,
+        temMais: false,
+        carregando: false,
+        planilhaUrl: '',
+        itens: []
+      };
       let saveTimer = null;
       let cnpjTimer = null;
       let ultimoCnpjConsultado = '';
@@ -288,6 +322,11 @@
           if (cnpjStatus) showCnpjStatus('Sem internet. A consulta automática de CNPJ fica disponível quando a conexão voltar.', 'info');
         }
         atualizarPainelPendentes();
+        atualizarBotaoPlanilhaSucesso_();
+        if (document.body.classList.contains('records-mode') && !online) {
+          recordsStatus.className = 'records-status error';
+          recordsStatus.textContent = 'A consulta da planilha precisa de internet. O formulário e os registros pendentes continuam disponíveis offline.';
+        }
       }
 
       function chamarSalvarNoServidor(payload) {
@@ -315,7 +354,11 @@
         for (const item of [...lista]) {
           if (!navigator.onLine) break;
           try {
-            await chamarSalvarNoServidor(item.payload || {});
+            const resultadoServidor = await chamarSalvarNoServidor(item.payload || {});
+            if (item.id === String(ultimoRegistroParaOrientacoes?._appRegistroId || '')) {
+              ultimoRegistroConsultaChave = String(resultadoServidor?.chaveConsulta || '');
+              atualizarBotaoPlanilhaSucesso_();
+            }
             removerPendente(item.id);
             enviados += 1;
           } catch (erro) {
@@ -419,11 +462,287 @@
         successTitle.textContent = titulo;
         document.getElementById('successText').textContent = mensagem;
         atualizarBotaoOrientacoes_();
+        atualizarBotaoPlanilhaSucesso_();
         successScreen.classList.add('show');
+      }
+
+
+      function atualizarLinkPlanilha_(url) {
+        const destino = String(url || '').trim();
+        if (destino) recordsState.planilhaUrl = destino;
+        const finalUrl = recordsState.planilhaUrl || String(appConfig?.planilhaUrl || '').trim();
+
+        [recordsOpenSheetLink, recordDetailSheetLink].forEach(link => {
+          if (!link) return;
+          if (finalUrl) {
+            link.href = finalUrl;
+            link.hidden = false;
+          } else {
+            link.href = '#';
+            link.hidden = true;
+          }
+        });
+      }
+
+      function atualizarBotaoPlanilhaSucesso_() {
+        if (!recordsSuccessBtn) return;
+        const label = recordsSuccessBtn.querySelector('.records-success-label');
+        const online = navigator.onLine;
+
+        recordsSuccessBtn.disabled = !online;
+        if (!online) {
+          if (label) label.textContent = 'Planilha indisponível offline';
+        } else if (ultimoRegistroConsultaChave) {
+          if (label) label.textContent = 'Ver registro na planilha';
+        } else {
+          if (label) label.textContent = 'Abrir planilha';
+        }
+      }
+
+      function marcarAbaApp_(modo) {
+        const planilha = modo === 'records';
+        document.body.classList.toggle('records-mode', planilha);
+        recordsPanel.hidden = !planilha;
+
+        formTabBtn?.classList.toggle('active', !planilha);
+        recordsTabBtn?.classList.toggle('active', planilha);
+        formTabBtn?.setAttribute('aria-pressed', String(!planilha));
+        recordsTabBtn?.setAttribute('aria-pressed', String(planilha));
+      }
+
+      function mostrarVistaFormulario_() {
+        fecharDetalheRegistro_();
+        marcarAbaApp_('form');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function mostrarVistaPlanilha_(opcoes = {}) {
+        successScreen.classList.remove('show');
+        marcarAbaApp_('records');
+
+        if (Object.prototype.hasOwnProperty.call(opcoes, 'busca')) {
+          recordsSearch.value = String(opcoes.busca || '');
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (opcoes.carregar !== false) carregarRegistros_(true);
+      }
+
+      function preencherSelectConsulta_(select, valores, primeiroRotulo) {
+        if (!select) return;
+        const atual = String(select.value || '');
+        const lista = Array.isArray(valores) ? valores : [];
+        select.innerHTML =
+          `<option value="">${escapeHtml(primeiroRotulo)}</option>` +
+          lista.map(valor => `<option value="${escapeAttr(valor)}">${escapeHtml(valor)}</option>`).join('');
+        if (lista.includes(atual)) select.value = atual;
+      }
+
+      function filtrosConsultaAtuais_() {
+        return {
+          busca: String(recordsSearch?.value || '').trim(),
+          cidade: String(recordsCityFilter?.value || '').trim(),
+          demanda: String(recordsDemandFilter?.value || '').trim(),
+          sancao: String(recordsSanctionFilter?.value || '').trim()
+        };
+      }
+
+      function renderizarRegistros_() {
+        if (!recordsState.itens.length) {
+          recordsList.innerHTML = '<div class="records-empty">Nenhum registro encontrado com os filtros informados.</div>';
+          return;
+        }
+
+        recordsList.innerHTML = recordsState.itens.map(item => {
+          const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo)
+            ? item.razaoSocial
+            : '';
+          const endereco = [item.endereco, item.numero, item.bairro].filter(Boolean).join(', ');
+          const cnpj = item.cnpj || '—';
+          const demanda = item.demanda || '—';
+          const sancao = item.sancao || '—';
+          const cidade = item.cidade || '—';
+          const carimbo = item.carimbo || '';
+          const projeto = item.projeto || item.pf || '';
+
+          return `
+            <button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}"
+                    aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+              <div class="records-card-top">
+                <div class="records-card-title">${escapeHtml(titulo)}</div>
+                <div class="records-card-date">${escapeHtml(carimbo)}</div>
+              </div>
+              ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
+              <div class="records-card-meta">
+                <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(cidade)}</strong></div>
+                <div class="records-meta-item"><span>CNPJ</span><strong>${escapeHtml(cnpj)}</strong></div>
+                <div class="records-meta-item"><span>Demanda</span><strong>${escapeHtml(demanda)}</strong></div>
+                <div class="records-meta-item"><span>Sanção</span><strong>${escapeHtml(sancao)}</strong></div>
+              </div>
+              ${projeto ? `<div class="records-card-address"><strong>PSCIP/PF:</strong> ${escapeHtml(projeto)}</div>` : ''}
+              ${endereco ? `<div class="records-card-address">📍 ${escapeHtml(endereco)}</div>` : ''}
+              <div class="records-card-cta">Ver ficha completa ›</div>
+            </button>
+          `;
+        }).join('');
+      }
+
+      async function carregarRegistros_(reiniciar = true) {
+        if (recordsState.carregando) return;
+
+        if (!navigator.onLine) {
+          recordsStatus.className = 'records-status error';
+          recordsStatus.textContent = 'Sem internet. A consulta da planilha é somente online.';
+          recordsLoadMoreBtn.hidden = true;
+          return;
+        }
+
+        recordsState.carregando = true;
+        recordsRefreshBtn.disabled = true;
+        recordsLoadMoreBtn.disabled = true;
+        recordsStatus.className = 'records-status loading';
+        recordsStatus.textContent = reiniciar ? 'Carregando registros...' : 'Carregando mais registros...';
+
+        if (reiniciar) {
+          recordsState.offset = 0;
+          recordsState.itens = [];
+        }
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'registros',
+            filtros: {
+              ...filtrosConsultaAtuais_(),
+              offset: recordsState.offset,
+              limite: recordsState.limite
+            }
+          }, 45000);
+
+          const novos = Array.isArray(resposta?.itens) ? resposta.itens : [];
+          recordsState.itens = reiniciar ? novos : recordsState.itens.concat(novos);
+          recordsState.total = Number(resposta?.total || 0);
+          recordsState.temMais = Boolean(resposta?.temMais);
+          recordsState.offset = Number(resposta?.offset || 0) + novos.length;
+
+          const disponiveis = resposta?.filtrosDisponiveis || {};
+          preencherSelectConsulta_(recordsCityFilter, disponiveis.cidades, 'Todas as cidades');
+          preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas as demandas');
+          preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas as sanções');
+          atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
+
+          renderizarRegistros_();
+          recordsStatus.className = 'records-status';
+          recordsStatus.innerHTML = `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} encontrado${recordsState.total === 1 ? '' : 's'}. Mais recentes primeiro.`;
+          recordsLoadMoreBtn.hidden = !recordsState.temMais;
+        } catch (erro) {
+          recordsStatus.className = 'records-status error';
+          recordsStatus.textContent = erro?.message || 'Não foi possível consultar a planilha.';
+          if (!recordsState.itens.length) {
+            recordsList.innerHTML = '<div class="records-empty">A lista não pôde ser carregada agora.</div>';
+          }
+          recordsLoadMoreBtn.hidden = true;
+        } finally {
+          recordsState.carregando = false;
+          recordsRefreshBtn.disabled = false;
+          recordsLoadMoreBtn.disabled = false;
+        }
+      }
+
+      function fecharDetalheRegistro_() {
+        if (!recordDetailScreen) return;
+        recordDetailScreen.classList.remove('show');
+        recordDetailScreen.setAttribute('aria-hidden', 'true');
+        recordDetailGroups.innerHTML = '';
+        recordDetailLoading.hidden = false;
+      }
+
+      function renderizarFichaRegistro_(registro) {
+        const ordem = ['Estabelecimento', 'Processo', 'Edificação', 'Endereço', 'Responsável', 'Controle', 'Outros'];
+        const grupos = new Map();
+
+        (registro?.campos || []).forEach(campo => {
+          const grupo = String(campo?.grupo || 'Outros');
+          if (!grupos.has(grupo)) grupos.set(grupo, []);
+          grupos.get(grupo).push(campo);
+        });
+
+        recordDetailGroups.innerHTML = ordem
+          .filter(grupo => grupos.has(grupo))
+          .map(grupo => {
+            const campos = grupos.get(grupo) || [];
+            return `
+              <section class="record-detail-group">
+                <h3>${escapeHtml(grupo)}</h3>
+                <div class="record-detail-fields">
+                  ${campos.map(campo => `
+                    <div class="record-detail-field">
+                      <label>${escapeHtml(campo.rotulo || '')}</label>
+                      <div>${escapeHtml(campo.valor || '')}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </section>
+            `;
+          }).join('');
+
+        recordDetailTitle.textContent = registro?.titulo || 'Ficha do registro';
+        recordDetailSubtitle.textContent = registro?.subtitulo || '';
+        recordDetailLine.textContent = registro?.linhaAtual ? `Linha atual na planilha: ${registro.linhaAtual}` : '';
+        atualizarLinkPlanilha_(registro?.planilhaUrl || '');
+      }
+
+      async function abrirDetalheRegistro_(chave) {
+        if (!chave || !navigator.onLine) return;
+
+        recordDetailScreen.classList.add('show');
+        recordDetailScreen.setAttribute('aria-hidden', 'false');
+        recordDetailLoading.hidden = false;
+        recordDetailLoading.textContent = 'Carregando ficha...';
+        recordDetailGroups.innerHTML = '';
+
+        try {
+          const registro = await apiRequest('config', {
+            consulta: 'registro',
+            chave
+          }, 45000);
+          recordDetailLoading.hidden = true;
+          renderizarFichaRegistro_(registro);
+        } catch (erro) {
+          recordDetailLoading.hidden = false;
+          recordDetailLoading.textContent = erro?.message || 'Não foi possível abrir a ficha.';
+        }
+      }
+
+      async function aguardarChaveUltimoRegistro_() {
+        for (let tentativa = 0; tentativa < 24; tentativa += 1) {
+          if (ultimoRegistroConsultaChave || !sendingQueue) break;
+          await new Promise(resolve => setTimeout(resolve, 250));
+        }
+        return ultimoRegistroConsultaChave;
+      }
+
+      async function abrirRegistroSucessoNaPlanilha_() {
+        if (!navigator.onLine) {
+          alert('A consulta da planilha precisa de internet. O registro continua seguro no aparelho e será sincronizado quando a conexão voltar.');
+          return;
+        }
+
+        const p = ultimoRegistroParaOrientacoes || {};
+        const busca = p.cnpj || p.nomeFantasia || p.razaoSocial || '';
+        mostrarVistaPlanilha_({ busca, carregar: false });
+
+        recordsStatus.className = 'records-status loading';
+        recordsStatus.textContent = 'Confirmando o registro enviado...';
+
+        const chave = await aguardarChaveUltimoRegistro_();
+        await carregarRegistros_(true);
+        if (chave) await abrirDetalheRegistro_(chave);
       }
 
       function salvarRegistroOffline(payload) {
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
+        ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
         enfileirarRegistro(payload);
         localStorage.removeItem(DRAFT_KEY);
@@ -1099,6 +1418,7 @@
         const payload = buildPayload();
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
+        ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
         saveDraft();
 
@@ -1145,6 +1465,7 @@
         document.getElementById('contingenciaLink').href = appConfig.formularioContingenciaUrl || DEFAULT_CONFIG.formularioContingenciaUrl;
         document.getElementById('contingenciaLinkSplash').href = appConfig.formularioContingenciaUrl || DEFAULT_CONFIG.formularioContingenciaUrl;
         document.getElementById('receitaCnpjLink').href = appConfig.receitaCnpjUrl || DEFAULT_CONFIG.receitaCnpjUrl;
+        atualizarLinkPlanilha_(appConfig?.planilhaUrl || '');
         if (!value('enderecoCorrespondencia')) document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
       }
 
@@ -1211,6 +1532,33 @@
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
       document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
+      recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
+      formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
+      recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
+      recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(true));
+      recordsClearFiltersBtn?.addEventListener('click', () => {
+        recordsSearch.value = '';
+        recordsCityFilter.value = '';
+        recordsDemandFilter.value = '';
+        recordsSanctionFilter.value = '';
+        carregarRegistros_(true);
+      });
+      recordsSearch?.addEventListener('input', () => {
+        clearTimeout(recordsSearchTimer);
+        recordsSearchTimer = setTimeout(() => carregarRegistros_(true), 420);
+      });
+      [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter].forEach(select => {
+        select?.addEventListener('change', () => carregarRegistros_(true));
+      });
+      recordsLoadMoreBtn?.addEventListener('click', () => carregarRegistros_(false));
+      recordsList?.addEventListener('click', event => {
+        const card = event.target.closest('.records-card');
+        if (card) abrirDetalheRegistro_(card.dataset.recordKey || '');
+      });
+      recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
+      recordDetailScreen?.addEventListener('click', event => {
+        if (event.target === recordDetailScreen) fecharDetalheRegistro_();
+      });
       document.getElementById('entrarFormularioBtn').addEventListener('click', () => fecharAbertura(true));
       document.getElementById('fecharAberturaBtn').addEventListener('click', () => fecharAbertura(false));
       splashScreen.addEventListener('click', event => { if (event.target === splashScreen) fecharAbertura(false); });
@@ -1220,6 +1568,9 @@
         atualizarStatusConexao();
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
         setTimeout(() => enviarPendentes(true), 650);
+        if (document.body.classList.contains('records-mode')) {
+          setTimeout(() => carregarRegistros_(true), 900);
+        }
       });
 
       window.addEventListener('beforeinstallprompt', event => {
