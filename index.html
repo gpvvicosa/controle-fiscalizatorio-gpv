@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#991b1b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Vistorias GPV">
+  <meta name="description" content="Controle Fiscalizatório GPV Viçosa — registro de vistorias com suporte offline.">
+  <title>Controle de Vistorias — GPV Viçosa</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-mark"><img src="assets/icon-512.png" alt="Miniatura do app GPV Viçosa"></div>
+      <div class="brand">
+        <strong>Controle de Vistorias</strong>
+        <span>GPV Viçosa • Processo Fiscalizatório</span>
+      </div>
+      <div class="top-status" id="appStatus">Carregando...</div>
+    </div>
+  </header>
+
+  <div class="splash-screen" id="splashScreen" aria-hidden="true">
+    <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splashTitle">
+      <img class="splash-image" src="assets/abertura.webp" alt="Abertura do app Controle Fiscalizatório GPV Viçosa">
+      <div class="splash-content">
+        <div class="splash-badge">📱 Abertura do aplicativo</div>
+        <h2 id="splashTitle">Controle Fiscalizatório GPV Viçosa</h2>
+        <p>Use o app para registrar as vistorias com mais rapidez. Se estiver com pressa, comece por cidade, CNPJ, endereço e dados do responsável.</p>
+        <div class="splash-actions">
+          <button type="button" class="btn btn-primary" id="entrarFormularioBtn">Abrir formulário de vistoria</button>
+          <button type="button" class="btn btn-outline" id="fecharAberturaBtn">Fechar abertura</button>
+          <a id="contingenciaLinkSplash" class="hero-linkbtn secondary" href="#" target="_blank" rel="noopener">Abrir Google Form de contingência</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="page">
+    <section class="hero">
+      <img class="hero-banner" src="assets/cabecalho.webp" alt="Banner Controle Fiscalizatório GPV Viçosa">
+      <div class="hero-body">
+        <h1>Registro de vistoria</h1>
+        <p>Fluxo otimizado para uso em campo: escolha a cidade, consulte o CNPJ para preencher os dados disponíveis da empresa e, em seguida, informe o responsável.</p>
+        <div class="quick-note">⚡ Registro rápido: Endereço • Nome do responsável • Mãe</div>
+        <div class="hero-actions">
+          <button type="button" class="hero-linkbtn" id="abrirAberturaBtn">Ver abertura do app</button>
+          <a class="hero-linkbtn secondary" href="#cidadeSecao">Ir para o formulário</a>
+        </div>
+      </div>
+    </section>
+
+    <nav class="navchips" aria-label="Atalhos do formulário">
+      <a href="#cidadeSecao">1. 📍 Cidade</a>
+      <a href="#estabelecimento">2. 🏢 CNPJ / Empresa</a>
+      <a href="#responsavelSecao">3. 👤 Responsável</a>
+      <a href="#processo">4. 📋 Processo</a>
+      <a href="#edificacao">5. 🏗️ Edificação</a>
+    </nav>
+
+    <div class="connection-banner" id="connectionBanner" role="status" aria-live="polite">
+      <span class="connection-dot" aria-hidden="true"></span>
+      <div class="connection-copy">
+        <strong id="connectionTitle">Internet disponível</strong>
+        <span id="connectionText">O preenchimento fica salvo automaticamente neste aparelho.</span>
+      </div>
+    </div>
+
+    <div class="install-panel" id="installPanel" hidden>
+      <div class="install-copy">
+        <strong>📲 Instalar no celular</strong>
+        <span id="installText">Instale o Controle Fiscalizatório para abrir como aplicativo e manter a interface disponível offline.</span>
+      </div>
+      <button class="pending-send-btn" id="installBtn" type="button">Instalar app</button>
+    </div>
+
+    <div class="pending-panel" id="pendingPanel" role="status" aria-live="polite">
+      <div class="pending-copy">
+        <strong id="pendingTitle">Vistorias aguardando envio</strong>
+        <span id="pendingText"></span>
+      </div>
+      <button class="pending-send-btn" id="sendPendingBtn" type="button">Enviar pendentes</button>
+    </div>
+
+    <div id="errorBox" class="alert error"></div>
+    <div id="noticeNotificado" class="alert warning">Ao selecionar <strong>Notificado</strong>, a Demanda será registrada com <strong>Liberação</strong>.</div>
+
+    <form id="vistoriaForm" novalidate>
+      <section class="section essential" id="cidadeSecao">
+        <div class="section-head">
+          <div class="section-icon">📍</div>
+          <div class="head-text">
+            <h2>1. Cidade</h2>
+            <p>Comece selecionando o município onde a vistoria está sendo realizada.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="grid">
+            <div class="field half">
+              <label for="cidadeSelect">Cidade</label>
+              <select id="cidadeSelect"></select>
+              <div id="outraCidadeWrap" class="other-city">
+                <input id="outraCidade" placeholder="Digite a cidade">
+              </div>
+            </div>
+            <div class="field half">
+              <div class="sequence-note"><strong>Próximo passo:</strong> informe o CNPJ. A cidade escolhida aqui não será alterada pela consulta automática.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="estabelecimento">
+        <div class="section-head">
+          <div class="section-icon">🏢</div>
+          <div class="head-text">
+            <h2>2. CNPJ e dados da empresa</h2>
+            <p>Consulte o CNPJ e confira os dados preenchidos automaticamente.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="grid">
+            <div class="field wide">
+              <label for="cnpj">CNPJ</label>
+              <div class="input-action">
+                <input id="cnpj" name="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18">
+                <button class="lookup-btn" id="consultarCnpjBtn" type="button">🔎 Consultar CNPJ</button>
+              </div>
+              <div class="lookup-status" id="cnpjStatus"></div>
+              <a class="official-link" id="receitaCnpjLink" href="#" target="_blank" rel="noopener">Conferir na Receita Federal</a>
+            </div>
+            <div class="field half">
+              <label for="nomeFantasia">Nome Fantasia</label>
+              <input id="nomeFantasia" name="nomeFantasia" placeholder="Nome conhecido do estabelecimento">
+            </div>
+            <div class="field half">
+              <label for="razaoSocial">Razão Social</label>
+              <input id="razaoSocial" name="razaoSocial" placeholder="Razão Social">
+            </div>
+            <div class="field wide">
+              <label class="required" for="endereco">Endereço / logradouro</label>
+              <input id="endereco" name="endereco" autocomplete="street-address" placeholder="Ex.: Rua dos Passos">
+            </div>
+            <div class="field quarter mobile-half">
+              <label for="numero">Nº</label>
+              <input id="numero" name="numero" inputmode="text" placeholder="Ex.: 120 ou S/N">
+            </div>
+            <div class="field quarter mobile-half">
+              <label for="complemento">Complemento</label>
+              <input id="complemento" name="complemento" placeholder="Sala, bloco, referência...">
+            </div>
+            <div class="field half">
+              <label for="bairro">Bairro</label>
+              <input id="bairro" name="bairro" autocomplete="address-level3" placeholder="Bairro">
+            </div>
+            <div class="field wide">
+              <label for="enderecoCorrespondencia">Endereço para correspondência</label>
+              <input id="enderecoCorrespondencia" name="enderecoCorrespondencia" list="dlEnderecoCorrespondencia" placeholder="Ex.: O Mesmo">
+              <datalist id="dlEnderecoCorrespondencia"></datalist>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section essential" id="responsavelSecao">
+        <div class="section-head">
+          <div class="section-icon">👤</div>
+          <div class="head-text">
+            <h2>3. Responsável</h2>
+            <p>Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="grid">
+            <div class="field">
+              <label for="responsavel">Responsável / vínculo</label>
+              <input id="responsavel" name="responsavel" list="dlResponsavel" placeholder="Selecione ou digite">
+              <datalist id="dlResponsavel"></datalist>
+            </div>
+            <div class="field">
+              <label class="required" for="nomeResponsavel">Nome do responsável</label>
+              <input id="nomeResponsavel" name="nomeResponsavel" autocomplete="name" placeholder="Nome completo">
+            </div>
+            <div class="field">
+              <label for="rg">RG</label>
+              <input id="rg" name="rg" placeholder="RG">
+            </div>
+            <div class="field">
+              <label for="cpf">CPF</label>
+              <input id="cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00" maxlength="14">
+            </div>
+            <div class="field">
+              <label class="required" for="mae">Mãe</label>
+              <input id="mae" name="mae" placeholder="Nome da mãe">
+            </div>
+            <div class="field">
+              <label for="nascimento">Nascimento</label>
+              <input id="nascimento" name="nascimento" type="date">
+            </div>
+            <div class="field">
+              <label for="profissao">Profissão</label>
+              <input id="profissao" name="profissao" list="dlProfissao" placeholder="Selecione ou digite">
+              <datalist id="dlProfissao"></datalist>
+            </div>
+            <div class="field">
+              <label for="estadoCivil">Estado civil</label>
+              <input id="estadoCivil" name="estadoCivil" list="dlEstadoCivil" placeholder="Selecione ou digite">
+              <datalist id="dlEstadoCivil"></datalist>
+            </div>
+            <div class="field">
+              <label for="escolaridade">Escolaridade</label>
+              <input id="escolaridade" name="escolaridade" list="dlEscolaridade" placeholder="Selecione ou digite">
+              <datalist id="dlEscolaridade"></datalist>
+            </div>
+            <div class="field half">
+              <label for="telefone">Telefone</label>
+              <input id="telefone" name="telefone" inputmode="tel" autocomplete="tel" placeholder="(31) 99999-9999">
+            </div>
+            <div class="field half">
+              <label for="email">E-mail</label>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="email@exemplo.com">
+            </div>
+            <div class="field wide">
+              <div class="inline-check">
+                <input id="mesmoEnderecoResponsavel" type="checkbox">
+                <label for="mesmoEnderecoResponsavel">Usar o endereço da vistoria também como endereço do responsável.</label>
+              </div>
+            </div>
+            <div class="field wide">
+              <label for="enderecoResponsavel">Endereço do responsável</label>
+              <input id="enderecoResponsavel" name="enderecoResponsavel" placeholder="Endereço completo do responsável">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="processo">
+        <div class="section-head">
+          <div class="section-icon">📋</div>
+          <div class="head-text">
+            <h2>4. Processo e vistoria</h2>
+            <p>Dados administrativos e operacionais da vistoria.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="grid">
+            <div class="field">
+              <label for="sancao">Sanção</label>
+              <select id="sancao" name="sancao"><option value="">Selecione</option></select>
+            </div>
+            <div class="field">
+              <label for="pscip">Nº do PSCIP</label>
+              <input id="pscip" name="pscip" placeholder="Nº do Projeto / PSCIP">
+            </div>
+            <div class="field">
+              <label for="pf">Nº do PF</label>
+              <input id="pf" name="pf" placeholder="Nº do PF">
+            </div>
+            <div class="field">
+              <label for="tipoVistoria">Tipo de vistoria</label>
+              <input id="tipoVistoria" name="tipoVistoria" list="dlTipoVistoria" placeholder="Selecione ou digite">
+              <datalist id="dlTipoVistoria"></datalist>
+            </div>
+            <div class="field">
+              <label for="reds">REDS</label>
+              <input id="reds" name="reds" placeholder="Livre: números, letras e hífens">
+            </div>
+            <div class="field">
+              <label for="natureza">Natureza</label>
+              <input id="natureza" name="natureza" list="dlNatureza" placeholder="Selecione ou digite">
+              <datalist id="dlNatureza"></datalist>
+            </div>
+            <div class="field">
+              <label for="demandaPrincipal">Demanda</label>
+              <input id="demandaPrincipal" name="demandaPrincipal" list="dlDemanda" placeholder="Selecione ou digite">
+              <datalist id="dlDemanda"></datalist>
+            </div>
+            <div class="field">
+              <label for="categoriaMeta">Categoria da meta</label>
+              <select id="categoriaMeta" name="categoriaMeta"><option value="">Nenhuma / não se aplica</option></select>
+            </div>
+            <div class="field">
+              <label for="resim">RESIM</label>
+              <input id="resim" name="resim" placeholder="RESIM">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="edificacao">
+        <div class="section-head">
+          <div class="section-icon">🏗️</div>
+          <div class="head-text">
+            <h2>5. Características da edificação</h2>
+            <p>Área, pavimentos, altura e ocupação(ões) visíveis diretamente na página.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="grid">
+            <div class="field">
+              <label for="area">Área m²</label>
+              <input id="area" name="area" inputmode="decimal" placeholder="Área">
+            </div>
+            <div class="field">
+              <label for="pavimentos">Pavimentos</label>
+              <input id="pavimentos" name="pavimentos" inputmode="numeric" placeholder="Quantidade">
+            </div>
+            <div class="field">
+              <label for="altura">Altura</label>
+              <input id="altura" name="altura" inputmode="decimal" placeholder="Altura">
+            </div>
+            <div class="field wide occupancy-field">
+              <label for="ocupacao">Ocupação / atividade — CBMMG</label>
+              <div class="occupancy-selected" id="ocupacoesSelecionadasBox">
+                <div class="occupancy-selected-title">Ocupações selecionadas</div>
+                <div class="occupancy-chip-list" id="ocupacoesSelecionadasLista"></div>
+              </div>
+              <input id="ocupacao" name="ocupacao" autocomplete="off"
+                     placeholder="Digite, por exemplo: supermercado, igreja, academia, escritório...">
+              <div class="hint">Você pode adicionar mais de uma ocupação. Pesquise pela atividade, grupo ou divisão. Você pode digitar D-1 ou simplesmente D1; o app entende os dois formatos. Toque na sugestão e continue pesquisando a próxima.</div>
+              <div class="occupancy-results" id="ocupacaoResultados" role="listbox" aria-label="Sugestões de ocupação"></div>
+              <div class="occupancy-meta" id="ocupacaoMeta"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="utility-row">
+        <span>O rascunho e as vistorias pendentes são salvos neste aparelho. Se a internet cair, continue preenchendo normalmente.</span>
+        <a id="contingenciaLink" href="#" target="_blank" rel="noopener">Abrir Google Form de contingência</a>
+      </div>
+    </form>
+  </main>
+
+  <div class="bottom-bar">
+    <div class="bottom-inner">
+      <div class="draft" id="draftStatus">💾 Rascunho automático</div>
+      <button class="btn btn-secondary" type="button" id="clearBtn">Limpar</button>
+      <button class="btn btn-primary" type="button" id="submitBtn">Registrar vistoria</button>
+    </div>
+  </div>
+
+  <div class="success-screen" id="successScreen">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h2 id="successTitle">Vistoria registrada</h2>
+      <p id="successText">Os dados foram enviados para a planilha.</p>
+      <div class="success-actions">
+        <button class="btn btn-primary" id="newRecordBtn" type="button">Nova vistoria</button>
+        <button class="btn btn-secondary" id="closeSuccessBtn" type="button">Continuar nesta tela</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading show" id="loadingOverlay">
+    <div class="loading-box"><span class="spinner"></span><span id="loadingText">Carregando aplicativo...</span></div>
+  </div>
+  <script src="config.js"></script>
+  <script src="ocupacoes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
