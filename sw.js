@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260807-github-v4-layout-limpo';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260807-github-v5-whatsapp-orientacoes';
 const APP_SHELL = [
   './', './index.html', './styles.css', './config.js', './ocupacoes.js', './app.js', './manifest.webmanifest',
   './offline.html', './assets/cabecalho.webp', './assets/abertura.webp',

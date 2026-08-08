@@ -460,6 +460,21 @@
     .success-card h2 { margin: 0 0 7px; }
     .success-card p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
     .success-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .success-actions .btn { flex: 1 1 180px; }
+    .btn-whatsapp {
+      flex-basis: 100% !important;
+      background: #128c4a;
+      color: #fff;
+      min-height: 48px;
+    }
+    .btn-whatsapp:hover { background: #0f7a40; }
+    .btn-whatsapp:disabled { background: #d0d5dd; color: #667085; opacity: 1; cursor: default; }
+    .success-whatsapp-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
 
     .loading {
       display: none;

@@ -94,6 +94,8 @@
       const draftStatus = document.getElementById('draftStatus');
       const appStatus = document.getElementById('appStatus');
       const successScreen = document.getElementById('successScreen');
+      const whatsappOrientacoesBtn = document.getElementById('whatsappOrientacoesBtn');
+      const whatsappOrientacoesNote = document.getElementById('whatsappOrientacoesNote');
       const successTitle = document.getElementById('successTitle');
       const connectionBanner = document.getElementById('connectionBanner');
       const connectionTitle = document.getElementById('connectionTitle');
@@ -122,6 +124,7 @@
 
       let appConfig = {};
       let submitting = false;
+      let ultimoRegistroParaOrientacoes = null;
       let saveTimer = null;
       let cnpjTimer = null;
       let ultimoCnpjConsultado = '';
@@ -332,14 +335,86 @@
         }
       }
 
+      function telefoneWhatsApp_(valor) {
+        let numero = String(valor || '').replace(/\D/g, '');
+        if (/^55\d{10,11}$/.test(numero)) return numero;
+        if (/^\d{10,11}$/.test(numero)) return '55' + numero;
+        return '';
+      }
+
+      function dataOrientacao_(valor) {
+        const data = valor ? new Date(valor) : new Date();
+        if (Number.isNaN(data.getTime())) return '';
+        return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+
+      function montarMensagemOrientacoes_(p) {
+        const nome = String(p?.nomeResponsavel || '').trim();
+        const estabelecimento = String(p?.nomeFantasia || p?.razaoSocial || '').trim();
+        const data = dataOrientacao_(p?._appCriadoEm);
+        const linhas = [];
+
+        linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
+        linhas.push('');
+        linhas.push(`Foi realizada uma vistoria pelo GPV Viçosa${estabelecimento ? ` no estabelecimento ${estabelecimento}` : ''}${data ? ` em ${data}` : ''}.`);
+
+        const referencias = [];
+        if (p?.pscip) referencias.push(`Nº do PSCIP: ${p.pscip}`);
+        if (p?.pf) referencias.push(`Nº do PF: ${p.pf}`);
+        if (p?.sancao) referencias.push(`Situação registrada: ${p.sancao}`);
+        if (referencias.length) {
+          linhas.push('');
+          linhas.push(referencias.join(' | '));
+        }
+
+        linhas.push('');
+        linhas.push('Orientamos que acompanhe as providências e eventuais exigências referentes ao processo de segurança contra incêndio e pânico, observando os prazos e documentos informados durante a vistoria.');
+        linhas.push('');
+        linhas.push('Em caso de dúvidas, utilize os canais oficiais do Corpo de Bombeiros Militar de Minas Gerais.');
+        linhas.push('');
+        linhas.push('Esta mensagem tem caráter orientativo e não substitui notificações, autos ou demais documentos oficiais do processo.');
+        return linhas.join('\n');
+      }
+
+      function atualizarBotaoOrientacoes_() {
+        if (!whatsappOrientacoesBtn) return;
+        const numero = telefoneWhatsApp_(ultimoRegistroParaOrientacoes?.telefone);
+        whatsappOrientacoesBtn.disabled = !numero;
+        if (numero) {
+          whatsappOrientacoesBtn.textContent = '📲 Enviar orientações pelo WhatsApp';
+          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'A mensagem será aberta no WhatsApp do responsável para conferência antes do envio.';
+        } else {
+          whatsappOrientacoesBtn.textContent = '📲 WhatsApp — telefone não informado';
+          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para usar o envio de orientações pelo WhatsApp.';
+        }
+      }
+
+      function abrirOrientacoesWhatsApp_() {
+        if (!navigator.onLine) {
+          alert('Sem internet no momento. As orientações poderão ser abertas no WhatsApp quando a conexão voltar.');
+          return;
+        }
+        const payload = ultimoRegistroParaOrientacoes || {};
+        const numero = telefoneWhatsApp_(payload.telefone);
+        if (!numero) {
+          alert('Telefone do responsável não informado ou inválido.');
+          return;
+        }
+        const mensagem = montarMensagemOrientacoes_(payload);
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+        window.open(url, '_blank', 'noopener');
+      }
+
       function mostrarSucesso(titulo, mensagem) {
         successTitle.textContent = titulo;
         document.getElementById('successText').textContent = mensagem;
+        atualizarBotaoOrientacoes_();
         successScreen.classList.add('show');
       }
 
       function salvarRegistroOffline(payload) {
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
+        ultimoRegistroParaOrientacoes = { ...payload };
         enfileirarRegistro(payload);
         localStorage.removeItem(DRAFT_KEY);
         resetForm();
@@ -866,11 +941,7 @@
         if (setFieldIfBlank('numero', result.numero)) count += 1;
         if (setFieldIfBlank('complemento', result.complemento)) count += 1;
         if (setFieldIfBlank('bairro', result.bairro)) count += 1;
-        if (setFieldIfBlank('telefone', result.telefone)) {
-          applyPhoneMask({ target: document.getElementById('telefone') });
-          count += 1;
-        }
-        if (setFieldIfBlank('email', result.email)) count += 1;
+        // Telefone e e-mail pertencem ao responsável e não são preenchidos pela consulta do CNPJ.
 
         if (document.getElementById('mesmoEnderecoResponsavel').checked) {
           syncResponsibleAddress();
@@ -1018,6 +1089,7 @@
         const payload = buildPayload();
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
+        ultimoRegistroParaOrientacoes = { ...payload };
         saveDraft();
 
         // Estratégia local-first: antes de qualquer tentativa de internet, a vistoria
@@ -1128,6 +1200,7 @@
       clearBtn.addEventListener('click', () => { if (confirm('Limpar todos os campos e apagar o rascunho deste aparelho?')) resetForm(); });
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
       document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
+      whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
       document.getElementById('entrarFormularioBtn').addEventListener('click', () => fecharAbertura(true));
       document.getElementById('fecharAberturaBtn').addEventListener('click', () => fecharAbertura(false));
       splashScreen.addEventListener('click', event => { if (event.target === splashScreen) fecharAbertura(false); });
