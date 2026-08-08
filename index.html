@@ -38,18 +38,9 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand-mark"><img src="assets/icon-512.png" alt="Miniatura do app GPV Viçosa"></div>
-      <div class="brand">
-        <strong>Controle de Vistorias</strong>
-        <span>GPV Viçosa • Processo Fiscalizatório</span>
-      </div>
-      <div class="top-status" id="appStatus">Carregando...</div>
-    </div>
-  </header>
+<div id="appStatus" hidden aria-live="polite"></div>
 
-  <div class="splash-screen" id="splashScreen" aria-hidden="true">
+<div class="splash-screen" id="splashScreen" aria-hidden="true">
     <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splashTitle">
       <img class="splash-image" src="assets/abertura.webp" alt="Abertura do app Controle Fiscalizatório GPV Viçosa">
       <div class="splash-content">
@@ -66,28 +57,11 @@
   </div>
 
   <main class="page">
-    <section class="hero">
-      <img class="hero-banner" src="assets/cabecalho.webp" alt="Banner Controle Fiscalizatório GPV Viçosa">
-      <div class="hero-body">
-        <h1>Registro de vistoria</h1>
-        <p>Fluxo otimizado para uso em campo: escolha a cidade, consulte o CNPJ para preencher os dados disponíveis da empresa e, em seguida, informe o responsável.</p>
-        <div class="quick-note">⚡ Registro rápido: Endereço • Nome do responsável • Mãe</div>
-        <div class="hero-actions">
-          <button type="button" class="hero-linkbtn" id="abrirAberturaBtn">Ver abertura do app</button>
-          <a class="hero-linkbtn secondary" href="#cidadeSecao">Ir para o formulário</a>
-        </div>
-      </div>
+    <section class="hero" aria-label="Controle Fiscalizatório GPV Viçosa">
+      <img class="hero-banner" src="assets/cabecalho.webp" alt="Controle Fiscalizatório GPV Viçosa">
     </section>
 
-    <nav class="navchips" aria-label="Atalhos do formulário">
-      <a href="#cidadeSecao">1. 📍 Cidade</a>
-      <a href="#estabelecimento">2. 🏢 CNPJ / Empresa</a>
-      <a href="#responsavelSecao">3. 👤 Responsável</a>
-      <a href="#processo">4. 📋 Processo</a>
-      <a href="#edificacao">5. 🏗️ Edificação</a>
-    </nav>
-
-    <div class="connection-banner" id="connectionBanner" role="status" aria-live="polite">
+<div class="connection-banner" id="connectionBanner" role="status" aria-live="polite">
       <span class="connection-dot" aria-hidden="true"></span>
       <div class="connection-copy">
         <strong id="connectionTitle">Internet disponível</strong>

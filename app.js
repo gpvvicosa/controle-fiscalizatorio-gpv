@@ -275,10 +275,10 @@
       function atualizarStatusConexao() {
         const online = navigator.onLine;
         connectionBanner.classList.toggle('offline', !online);
-        connectionTitle.textContent = online ? '🟢 Internet disponível' : '🔴 Sem internet';
+        connectionTitle.textContent = online ? '🟢 Online' : '🔴 Offline';
         connectionText.textContent = online
-          ? 'O preenchimento e o rascunho continuam salvos automaticamente neste aparelho.'
-          : 'Continue preenchendo normalmente. Ao registrar, a vistoria será guardada neste aparelho para envio posterior.';
+          ? 'Preenchimento salvo automaticamente neste aparelho.'
+          : 'Continue preenchendo; o envio ficará pendente até a conexão voltar.';
         submitBtn.textContent = online ? 'Registrar vistoria' : 'Salvar no aparelho';
         if (!online) {
           appStatus.textContent = 'Sem internet — preenchimento salvo neste aparelho.';
@@ -1128,7 +1128,6 @@
       clearBtn.addEventListener('click', () => { if (confirm('Limpar todos os campos e apagar o rascunho deste aparelho?')) resetForm(); });
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
       document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
-      document.getElementById('abrirAberturaBtn').addEventListener('click', abrirAbertura);
       document.getElementById('entrarFormularioBtn').addEventListener('click', () => fecharAbertura(true));
       document.getElementById('fecharAberturaBtn').addEventListener('click', () => fecharAbertura(false));
       splashScreen.addEventListener('click', event => { if (event.target === splashScreen) fecharAbertura(false); });
