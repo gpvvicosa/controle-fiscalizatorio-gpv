@@ -3878,3 +3878,65 @@ body.user-manager-open { overflow: hidden; }
   .auth-device-choice { padding: 12px; }
   .auth-device-profile-btn { min-height: 50px; font-size: 14.5px; }
 }
+
+
+/* V21 — consulta de responsável/RT pelo telefone. */
+.responsible-phone-first {
+  grid-column: 1 / -1;
+}
+.responsavel-lookup-results {
+  display: none;
+  margin-top: 8px;
+  gap: 8px;
+}
+.responsavel-lookup-results.show {
+  display: grid;
+}
+.responsavel-lookup-option {
+  width: 100%;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  background: #fff;
+  color: #101828;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+}
+.responsavel-lookup-option:hover,
+.responsavel-lookup-option:focus-visible {
+  border-color: #fca5a5;
+  background: #fff7f7;
+  outline: none;
+}
+.responsavel-lookup-option strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.responsavel-lookup-option small {
+  display: block;
+  margin-top: 2px;
+  color: #667085;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.responsavel-lookup-option .lookup-select-label {
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .responsavel-lookup-option {
+    grid-template-columns: 1fr;
+  }
+  .responsavel-lookup-option .lookup-select-label {
+    justify-self: start;
+  }
+}

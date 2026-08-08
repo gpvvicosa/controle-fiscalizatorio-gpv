@@ -302,6 +302,9 @@
       const identificadorInput = document.getElementById('cnpj');
       const identificadorLabel = document.getElementById('identificadorLabel');
       const cpfInput = document.getElementById('cpf');
+      const telefoneInput = document.getElementById('telefone');
+      const responsavelLookupStatus = document.getElementById('responsavelLookupStatus');
+      const responsavelLookupResultados = document.getElementById('responsavelLookupResultados');
       const ocupacaoInput = document.getElementById('ocupacao');
       const ocupacaoResultados = document.getElementById('ocupacaoResultados');
       const ocupacaoMeta = document.getElementById('ocupacaoMeta');
@@ -330,6 +333,13 @@
       let saveTimer = null;
       let cnpjTimer = null;
       let ultimoCnpjConsultado = '';
+      let cnpjConsultaSequencia = 0;
+      let cnpjAssociadoDadosEmpresa = '';
+      let responsavelLookupTimer = null;
+      let responsavelLookupSequencia = 0;
+      let telefoneResponsavelAssociado = '';
+      let responsaveisLookupAtual = [];
+      let preenchendoResponsavelLookup = false;
       let ocupacoesExistentes = [];
       let ocupacaoSelecionada = null;
       let ocupacoesSelecionadas = [];
@@ -1809,24 +1819,70 @@
         });
       }
 
-      function setFieldIfBlank(id, newValue) {
+      function setFieldFromCnpj_(id, newValue, sobrescrever = false) {
         const el = document.getElementById(id);
         const text = String(newValue == null ? '' : newValue).trim();
-        if (!el || !text || String(el.value || '').trim()) return false;
-        el.value = text;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        return true;
+        if (!el || !text) return false;
+        if (!sobrescrever && String(el.value || '').trim()) return false;
+        const mudou = String(el.value || '').trim() !== text;
+        if (mudou) {
+          el.value = text;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return mudou;
+      }
+
+      function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
+        const campos = ['nomeFantasia', 'razaoSocial', 'endereco', 'numero', 'complemento', 'bairro'];
+        campos.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el || !String(el.value || '').trim()) return;
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        const correspondencia = document.getElementById('enderecoCorrespondencia');
+        if (correspondencia) {
+          correspondencia.value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
+          correspondencia.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        if (document.getElementById('mesmoEnderecoResponsavel')?.checked) {
+          syncResponsibleAddress();
+        }
+
+        ultimoCnpjConsultado = '';
+        cnpjAssociadoDadosEmpresa = String(novoCnpj || '');
+        scheduleDraftSave();
+      }
+
+      function prepararNovoCnpj_(novoCnpj) {
+        const atual = String(novoCnpj || '');
+        if (!atual || atual.length !== 14) return;
+        if (!cnpjAssociadoDadosEmpresa) {
+          cnpjAssociadoDadosEmpresa = atual;
+          return;
+        }
+        if (cnpjAssociadoDadosEmpresa !== atual) {
+          limparDadosEmpresaParaNovoCnpj_(atual);
+        }
       }
 
       function fillFromCnpj(result) {
         let count = 0;
 
-        if (setFieldIfBlank('nomeFantasia', result.nomeFantasia)) count += 1;
-        if (setFieldIfBlank('razaoSocial', result.razaoSocial)) count += 1;
-        if (setFieldIfBlank('endereco', result.endereco)) count += 1;
-        if (setFieldIfBlank('numero', result.numero)) count += 1;
-        if (setFieldIfBlank('complemento', result.complemento)) count += 1;
-        if (setFieldIfBlank('bairro', result.bairro)) count += 1;
+        // Nome Fantasia e Razão Social identificam a empresa e, por isso,
+        // o retorno do CNPJ prevalece sobre resíduos de rascunho/autopreenchimento.
+        if (setFieldFromCnpj_('nomeFantasia', result.nomeFantasia, true)) count += 1;
+        if (setFieldFromCnpj_('razaoSocial', result.razaoSocial, true)) count += 1;
+
+        // Endereço pode corresponder ao local efetivamente vistoriado e não
+        // necessariamente ao endereço cadastral do CNPJ. Após limpar um CNPJ
+        // anterior, preenche somente se o usuário ainda não informou o local.
+        if (setFieldFromCnpj_('endereco', result.endereco)) count += 1;
+        if (setFieldFromCnpj_('numero', result.numero)) count += 1;
+        if (setFieldFromCnpj_('complemento', result.complemento)) count += 1;
+        if (setFieldFromCnpj_('bairro', result.bairro)) count += 1;
         // Telefone e e-mail pertencem ao responsável e não são preenchidos pela consulta do CNPJ.
 
         if (document.getElementById('mesmoEnderecoResponsavel').checked) {
@@ -1846,27 +1902,45 @@
           if (!automatico) showCnpjStatus('Sem internet. Preencha os dados manualmente; a consulta automática ficará disponível quando a conexão voltar.', 'info');
           return;
         }
+
         const cnpj = digits(value('cnpj'));
+        prepararNovoCnpj_(cnpj);
         if (automatico && cnpj === ultimoCnpjConsultado) return;
+
+        const sequencia = ++cnpjConsultaSequencia;
         showCnpjStatus('CNPJ identificado. Consultando dados cadastrais...', 'info');
+
         try {
           const result = await apiRequest('cnpj', { cnpj }, 30000);
+
+          // Proteção contra resposta atrasada: só aplica a resposta se o usuário
+          // ainda estiver com o mesmo CNPJ que originou esta consulta.
+          if (sequencia !== cnpjConsultaSequencia || digits(value('cnpj')) !== cnpj) return;
+
           ultimoCnpjConsultado = cnpj;
-          const preenchidos = fillFromCnpj(result || {});
+          cnpjAssociadoDadosEmpresa = cnpj;
+          const alterados = fillFromCnpj(result || {});
+
+          // Confere novamente antes de abrir a confirmação de cidade.
+          if (digits(value('cnpj')) !== cnpj) return;
           const conferenciaCidade = await confirmarCidadeRetornadaCnpj_(result?.cidade);
+          if (digits(value('cnpj')) !== cnpj) return;
+
           const complementoCidade = conferenciaCidade.divergencia
             ? (conferenciaCidade.alterada
                 ? ` Cidade alterada para ${String(result?.cidade || '').trim()}.`
                 : ` Cidade atual mantida em ${cityValue()}.`)
             : '';
+
           showCnpjStatus(
-            preenchidos
-              ? `Consulta concluída. ${preenchidos} campo(s) vazio(s) foram preenchidos automaticamente.${complementoCidade} Confira os dados antes de registrar.`
-              : `Consulta concluída. Os campos retornados já estavam preenchidos; nenhum valor foi sobrescrito.${complementoCidade}`,
+            alterados
+              ? `Consulta concluída. ${alterados} campo(s) cadastral(is) foram atualizados para este CNPJ.${complementoCidade} Confira os dados antes de registrar.`
+              : `Consulta concluída. Os dados cadastrais já correspondem a este CNPJ.${complementoCidade}`,
             'success'
           );
           setTimeout(() => document.getElementById('responsavelSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 900);
         } catch (error) {
+          if (sequencia !== cnpjConsultaSequencia || digits(value('cnpj')) !== cnpj) return;
           showCnpjStatus(error?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');
         }
       }
@@ -1900,6 +1974,7 @@
       function applyIdentificadorMask(event) {
         const raw = digits(event.target.value).slice(0, 14);
         clearTimeout(cnpjTimer);
+        cnpjConsultaSequencia += 1;
 
         if (raw.length <= 10) {
           event.target.value = raw;
@@ -1910,6 +1985,9 @@
         }
 
         if (raw.length === 11) {
+          if (cnpjAssociadoDadosEmpresa) {
+            limparDadosEmpresaParaNovoCnpj_('');
+          }
           event.target.value = formatarCpfTela_(raw);
           ultimoCnpjConsultado = '';
           atualizarInterfaceIdentificador_('cpf');
@@ -1927,6 +2005,7 @@
         atualizarInterfaceIdentificador_(raw.length === 14 ? 'cnpj' : '');
         clearCnpjStatus();
         if (raw.length === 14) {
+          prepararNovoCnpj_(raw);
           cnpjTimer = setTimeout(() => consultarCnpj(true), 700);
         } else {
           ultimoCnpjConsultado = '';
@@ -1942,6 +2021,195 @@
         if (cpfCopiadoDoIdentificador && digits(v) !== cpfCopiadoDoIdentificador) cpfCopiadoDoIdentificador = '';
       }
 
+
+      function showResponsavelLookupStatus_(message, type = 'info') {
+        if (!responsavelLookupStatus) return;
+        responsavelLookupStatus.className = 'lookup-status show ' + type;
+        responsavelLookupStatus.textContent = message;
+      }
+
+      function clearResponsavelLookupStatus_() {
+        if (!responsavelLookupStatus) return;
+        responsavelLookupStatus.className = 'lookup-status';
+        responsavelLookupStatus.textContent = '';
+      }
+
+      function esconderResponsavelLookupResultados_() {
+        responsaveisLookupAtual = [];
+        if (!responsavelLookupResultados) return;
+        responsavelLookupResultados.innerHTML = '';
+        responsavelLookupResultados.classList.remove('show');
+      }
+
+      function formatarTelefoneTela_(valor) {
+        const d = digits(valor).slice(-11);
+        if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+        if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+        return String(valor || '');
+      }
+
+      function normalizarDataResponsavelParaInput_(valor) {
+        const texto = String(valor || '').trim();
+        if (!texto) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
+        const m = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+        return '';
+      }
+
+      function setResponsibleField_(id, valor, formatter = null) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        let texto = String(valor == null ? '' : valor).trim();
+        if (formatter) texto = formatter(texto);
+        el.value = texto;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      function limparDadosResponsavelExcetoTelefone_() {
+        const campos = [
+          'responsavel', 'nomeResponsavel', 'rg', 'cpf', 'mae', 'nascimento',
+          'profissao', 'estadoCivil', 'escolaridade', 'email', 'enderecoResponsavel'
+        ];
+        preenchendoResponsavelLookup = true;
+        try {
+          campos.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = '';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          if (cpfInput) {
+            cpfCopiadoDoIdentificador = '';
+            cpfInput.readOnly = false;
+            cpfInput.classList.remove('cpf-synced-from-identifier');
+          }
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+      }
+
+      function aplicarResponsavelEncontrado_(item) {
+        if (!item) return;
+        preenchendoResponsavelLookup = true;
+        try {
+          setResponsibleField_('telefone', item.telefone, formatarTelefoneTela_);
+          setResponsibleField_('responsavel', item.responsavel);
+          setResponsibleField_('nomeResponsavel', item.nomeResponsavel);
+          setResponsibleField_('rg', item.rg);
+          setResponsibleField_('cpf', item.cpf, formatarCpfTela_);
+          setResponsibleField_('mae', item.mae);
+          setResponsibleField_('nascimento', item.nascimento, normalizarDataResponsavelParaInput_);
+          setResponsibleField_('profissao', item.profissao);
+          setResponsibleField_('estadoCivil', item.estadoCivil);
+          setResponsibleField_('escolaridade', item.escolaridade);
+          setResponsibleField_('email', item.email);
+          if (!document.getElementById('mesmoEnderecoResponsavel')?.checked) {
+            setResponsibleField_('enderecoResponsavel', item.enderecoResponsavel);
+          } else {
+            syncResponsibleAddress();
+          }
+          telefoneResponsavelAssociado = digits(item.telefone);
+          esconderResponsavelLookupResultados_();
+          showResponsavelLookupStatus_(`Dados recuperados da planilha para ${item.nomeResponsavel || 'o responsável selecionado'}. Confira antes de registrar.`, 'success');
+          scheduleDraftSave();
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+      }
+
+      function renderizarResponsaveisEncontrados_(itens) {
+        if (!responsavelLookupResultados) return;
+        responsaveisLookupAtual = Array.isArray(itens) ? itens : [];
+        responsavelLookupResultados.innerHTML = '';
+
+        responsaveisLookupAtual.forEach((item, index) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'responsavel-lookup-option';
+          btn.dataset.responsavelIndex = String(index);
+
+          const info = document.createElement('span');
+          const nome = document.createElement('strong');
+          nome.textContent = item.nomeResponsavel || 'Responsável sem nome';
+          const detalhes = document.createElement('small');
+          detalhes.textContent = [item.cpf ? `CPF ${formatarCpfTela_(item.cpf)}` : '', item.responsavel || ''].filter(Boolean).join(' • ') || 'Dados existentes na planilha';
+          info.append(nome, detalhes);
+
+          const acao = document.createElement('span');
+          acao.className = 'lookup-select-label';
+          acao.textContent = 'Selecionar';
+
+          btn.append(info, acao);
+          responsavelLookupResultados.appendChild(btn);
+        });
+
+        responsavelLookupResultados.classList.toggle('show', responsaveisLookupAtual.length > 0);
+      }
+
+      async function consultarResponsavelPorTelefone_() {
+        if (!telefoneInput || preenchendoResponsavelLookup) return;
+        const telefone = digits(telefoneInput.value);
+        if (![10, 11].includes(telefone.length)) {
+          esconderResponsavelLookupResultados_();
+          clearResponsavelLookupStatus_();
+          return;
+        }
+
+        if (!navigator.onLine) {
+          esconderResponsavelLookupResultados_();
+          showResponsavelLookupStatus_('Sem internet. A busca de responsável/RT na planilha fica disponível quando a conexão voltar.', 'info');
+          return;
+        }
+
+        const sequencia = ++responsavelLookupSequencia;
+        esconderResponsavelLookupResultados_();
+        showResponsavelLookupStatus_('Procurando este telefone nos responsáveis/RTs já registrados...', 'info');
+
+        try {
+          const result = await apiRequest('config', { consulta: 'responsavel_telefone', telefone }, 30000);
+          if (sequencia !== responsavelLookupSequencia || digits(telefoneInput.value) !== telefone) return;
+
+          const itens = Array.isArray(result?.itens) ? result.itens : [];
+          if (!itens.length) {
+            telefoneResponsavelAssociado = telefone;
+            showResponsavelLookupStatus_('Telefone não encontrado na planilha. Continue preenchendo os dados do novo responsável/RT.', 'info');
+            return;
+          }
+
+          if (itens.length === 1) {
+            aplicarResponsavelEncontrado_(itens[0]);
+            return;
+          }
+
+          renderizarResponsaveisEncontrados_(itens);
+          showResponsavelLookupStatus_(`Foram encontrados ${itens.length} responsáveis/RTs com este telefone. Escolha a pessoa correta.`, 'info');
+        } catch (error) {
+          if (sequencia !== responsavelLookupSequencia || digits(telefoneInput.value) !== telefone) return;
+          showResponsavelLookupStatus_(error?.message || 'Não foi possível consultar os responsáveis agora. Continue o preenchimento manualmente.', 'error');
+        }
+      }
+
+      function agendarConsultaResponsavelPorTelefone_() {
+        if (preenchendoResponsavelLookup) return;
+        clearTimeout(responsavelLookupTimer);
+        responsavelLookupSequencia += 1;
+        const telefone = digits(telefoneInput?.value || '');
+
+        if (![10, 11].includes(telefone.length)) {
+          esconderResponsavelLookupResultados_();
+          clearResponsavelLookupStatus_();
+          return;
+        }
+
+        if (telefoneResponsavelAssociado && telefoneResponsavelAssociado !== telefone) {
+          limparDadosResponsavelExcetoTelefone_();
+          telefoneResponsavelAssociado = '';
+        }
+
+        responsavelLookupTimer = setTimeout(consultarResponsavelPorTelefone_, 550);
+      }
+
       function applyPhoneMask(event) {
         let v = digits(event.target.value).slice(0, 11);
         if (v.length <= 10) {
@@ -1950,6 +2218,7 @@
           v = v.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
         }
         event.target.value = v;
+        agendarConsultaResponsavelPorTelefone_();
       }
 
       function scheduleDraftSave() {
@@ -2008,6 +2277,8 @@
           const tipoId = tipoIdentificador_(value('cnpj'));
           atualizarInterfaceIdentificador_(tipoId);
           if (tipoId === 'cpf') sincronizarIdentificadorComCpf_(value('cnpj'));
+          if (tipoId === 'cnpj') cnpjAssociadoDadosEmpresa = digits(value('cnpj'));
+          telefoneResponsavelAssociado = digits(value('telefone'));
           syncNotificado();
           appStatus.textContent = 'Rascunho anterior recuperado.';
         } catch (e) {}
@@ -2031,6 +2302,13 @@
         hideError();
         clearCnpjStatus();
         ultimoCnpjConsultado = '';
+        cnpjConsultaSequencia += 1;
+        cnpjAssociadoDadosEmpresa = '';
+        clearTimeout(responsavelLookupTimer);
+        responsavelLookupSequencia += 1;
+        telefoneResponsavelAssociado = '';
+        esconderResponsavelLookupResultados_();
+        clearResponsavelLookupStatus_();
         cpfCopiadoDoIdentificador = '';
         atualizarInterfaceIdentificador_('');
         ocupacaoSelecionada = null;
@@ -2511,6 +2789,13 @@
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
       document.getElementById('telefone').addEventListener('input', applyPhoneMask);
+      responsavelLookupResultados?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-responsavel-index]');
+        if (!botao) return;
+        const indice = Number(botao.dataset.responsavelIndex);
+        if (!Number.isInteger(indice) || !responsaveisLookupAtual[indice]) return;
+        aplicarResponsavelEncontrado_(responsaveisLookupAtual[indice]);
+      });
       ocupacaoInput.addEventListener('focus', () => pesquisarOcupacoes(ocupacaoInput.value));
       ocupacaoInput.addEventListener('input', () => {
         ocupacaoSelecionada = localizarOcupacaoPorValor(ocupacaoInput.value);

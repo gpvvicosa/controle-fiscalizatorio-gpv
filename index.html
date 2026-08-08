@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:rgba(255,255,255,.96)}
     .loading-box{max-width:90vw;padding:16px 20px;border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.12);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=20.0">
+  <link rel="stylesheet" href="styles.css?v=21.0">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -56,7 +56,7 @@
   <div class="auth-gate" id="authGate" aria-hidden="false">
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-logo-wrap" aria-hidden="true">
-        <img src="assets/logo-gpv.png?v=20.0" width="512" height="512" alt="">
+        <img src="assets/logo-gpv.png?v=21.0" width="512" height="512" alt="">
       </div>
       <span class="auth-kicker">Acesso institucional</span>
       <h1 id="authTitle">Controle Fiscalizatório</h1>
@@ -105,7 +105,7 @@
 
       <div class="dashboard-header-actions" aria-label="Ações do painel">
         <div class="dashboard-gpv-mark" aria-hidden="true">
-          <img src="assets/logo-gpv.png?v=20.0" width="512" height="512" alt="">
+          <img src="assets/logo-gpv.png?v=21.0" width="512" height="512" alt="">
         </div>
         <a class="dashboard-header-action dashboard-sheet-header-link" id="dashboardSheetHeaderLink" href="#" target="_blank" rel="noopener" hidden>
           <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
@@ -473,27 +473,27 @@
             </div>
             <div class="field half">
               <label for="nomeFantasia">Nome Fantasia</label>
-              <input id="nomeFantasia" name="nomeFantasia" placeholder="Nome conhecido do estabelecimento">
+              <input id="nomeFantasia" name="nomeFantasia" autocomplete="off" placeholder="Nome conhecido do estabelecimento">
             </div>
             <div class="field half">
               <label for="razaoSocial">Razão Social</label>
-              <input id="razaoSocial" name="razaoSocial" placeholder="Razão Social">
+              <input id="razaoSocial" name="razaoSocial" autocomplete="off" placeholder="Razão Social">
             </div>
             <div class="field wide">
               <label class="required" for="endereco">Endereço / logradouro</label>
-              <input id="endereco" name="endereco" autocomplete="street-address" placeholder="Ex.: Rua dos Passos">
+              <input id="endereco" name="endereco" autocomplete="off" placeholder="Ex.: Rua dos Passos">
             </div>
             <div class="field quarter mobile-half">
               <label for="numero">Nº</label>
-              <input id="numero" name="numero" inputmode="text" placeholder="Ex.: 120 ou S/N">
+              <input id="numero" name="numero" inputmode="text" autocomplete="off" placeholder="Ex.: 120 ou S/N">
             </div>
             <div class="field quarter mobile-half">
               <label for="complemento">Complemento</label>
-              <input id="complemento" name="complemento" placeholder="Sala, bloco, referência...">
+              <input id="complemento" name="complemento" autocomplete="off" placeholder="Sala, bloco, referência...">
             </div>
             <div class="field half">
               <label for="bairro">Bairro</label>
-              <input id="bairro" name="bairro" autocomplete="address-level3" placeholder="Bairro">
+              <input id="bairro" name="bairro" autocomplete="off" placeholder="Bairro">
             </div>
             <div class="field wide">
               <label for="enderecoCorrespondencia">Endereço para correspondência</label>
@@ -514,6 +514,13 @@
         </div>
         <div class="section-body">
           <div class="grid">
+            <div class="field wide responsible-phone-first">
+              <label for="telefone">Telefone do responsável / RT</label>
+              <input id="telefone" name="telefone" inputmode="tel" autocomplete="tel" placeholder="(31) 99999-9999">
+              <div class="hint">Digite primeiro o telefone. Se ele já existir na planilha, o app pode recuperar automaticamente os dados do responsável/RT.</div>
+              <div class="lookup-status" id="responsavelLookupStatus" role="status" aria-live="polite"></div>
+              <div class="responsavel-lookup-results" id="responsavelLookupResultados" role="listbox" aria-label="Responsáveis encontrados pelo telefone"></div>
+            </div>
             <div class="field">
               <label for="responsavel">Responsável / vínculo</label>
               <input id="responsavel" name="responsavel" list="dlResponsavel" placeholder="Selecione ou digite">
@@ -553,10 +560,6 @@
               <label for="escolaridade">Escolaridade</label>
               <input id="escolaridade" name="escolaridade" list="dlEscolaridade" placeholder="Selecione ou digite">
               <datalist id="dlEscolaridade"></datalist>
-            </div>
-            <div class="field half">
-              <label for="telefone">Telefone</label>
-              <input id="telefone" name="telefone" inputmode="tel" autocomplete="tel" placeholder="(31) 99999-9999">
             </div>
             <div class="field half">
               <label for="email">E-mail</label>
@@ -791,8 +794,8 @@
   <div class="loading show" id="loadingOverlay">
     <div class="loading-box"><span class="spinner"></span><span id="loadingText">Carregando aplicativo...</span></div>
   </div>
-  <script src="config.js?v=20.0"></script>
-  <script src="ocupacoes.js?v=20.0"></script>
-  <script src="app.js?v=20.0"></script>
+  <script src="config.js?v=21.0"></script>
+  <script src="ocupacoes.js?v=21.0"></script>
+  <script src="app.js?v=21.0"></script>
 </body>
 </html>

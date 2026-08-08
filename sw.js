@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v20-estavel';
-const VERSION = '20.0';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v21-cnpj-rt';
+const VERSION = '21.0';
 const APP_SHELL = [
   './',
   './index.html',
