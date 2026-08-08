@@ -44,7 +44,7 @@
     <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splashTitle">
       <img class="splash-image" src="assets/abertura.webp" alt="Abertura do app Controle Fiscalizatório GPV Viçosa">
       <div class="splash-content">
-        <div class="splash-badge">📱 Abertura do aplicativo</div>
+        <div class="splash-badge">Aplicativo institucional</div>
         <h2 id="splashTitle">Controle Fiscalizatório GPV Viçosa</h2>
         <p>Use o app para registrar as vistorias com mais rapidez. Se estiver com pressa, comece por cidade, CNPJ, endereço e dados do responsável.</p>
         <div class="splash-actions">
@@ -56,6 +56,23 @@
     </div>
   </div>
 
+
+  <header class="topbar app-header">
+    <div class="topbar-inner">
+      <div class="brand-mark" aria-hidden="true">
+        <img src="assets/icon-192.png" alt="">
+      </div>
+      <div class="brand">
+        <strong>Controle Fiscalizatório</strong>
+        <span>GPV · 3º Pelotão · Viçosa</span>
+      </div>
+      <div class="topbar-unit" aria-label="Aplicativo institucional">
+        <span class="unit-dot"></span>
+        <span>GPV</span>
+      </div>
+    </div>
+  </header>
+
   <main class="page">
     <section class="hero" aria-label="Controle Fiscalizatório GPV Viçosa">
       <img class="hero-banner" src="assets/cabecalho.webp" alt="Controle Fiscalizatório GPV Viçosa">
@@ -63,11 +80,11 @@
 
     <nav class="app-view-nav" aria-label="Áreas do aplicativo">
       <button class="app-view-btn active" id="formTabBtn" type="button" aria-pressed="true">
-        <span aria-hidden="true">📝</span>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.75h8.5L19 7.25V20.25H7z"/><path d="M15.5 3.75v3.5H19M10 11h6M10 14.5h6M10 18h4"/></svg>
         <span>Vistoria</span>
       </button>
       <button class="app-view-btn" id="recordsTabBtn" type="button" aria-pressed="false">
-        <span aria-hidden="true">📊</span>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
         <span>Planilha</span>
       </button>
     </nav>
@@ -82,7 +99,7 @@
 
     <div class="install-panel" id="installPanel" hidden>
       <div class="install-copy">
-        <strong>📲 Instalar no celular</strong>
+        <strong>Instalar no celular</strong>
         <span id="installText">Instale o Controle Fiscalizatório para abrir como aplicativo e manter a interface disponível offline.</span>
       </div>
       <button class="pending-send-btn" id="installBtn" type="button">Instalar app</button>
@@ -102,7 +119,7 @@
     <section class="records-panel" id="recordsPanel" hidden aria-labelledby="recordsTitle">
       <div class="records-header">
         <div class="records-header-copy">
-          <div class="records-readonly-badge">🔒 Somente leitura</div>
+          <div class="records-readonly-badge"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Somente leitura</span></div>
           <h2 id="recordsTitle">Processo Fiscalizatório</h2>
           <p>Visualização otimizada para celular. Consulte registros sem risco de alterar a planilha.</p>
         </div>
@@ -141,7 +158,7 @@
 
         <div class="records-toolbar-actions">
           <button class="btn btn-secondary" id="recordsClearFiltersBtn" type="button">Limpar filtros</button>
-          <button class="btn btn-primary records-refresh-btn" id="recordsRefreshBtn" type="button">↻ Atualizar</button>
+          <button class="btn btn-primary records-refresh-btn" id="recordsRefreshBtn" type="button"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7v5h-5M5 17v-5h5"/><path d="M7.4 8.2A6.5 6.5 0 0 1 18.5 12M5.5 12a6.5 6.5 0 0 0 11.1 3.8"/></svg><span>Atualizar</span></button>
         </div>
       </div>
 
@@ -157,7 +174,7 @@
     <form id="vistoriaForm" novalidate>
       <section class="section essential" id="cidadeSecao">
         <div class="section-head">
-          <div class="section-icon">📍</div>
+          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg></div>
           <div class="head-text">
             <h2>1. Cidade</h2>
             <p>Comece selecionando o município onde a vistoria está sendo realizada.</p>
@@ -181,7 +198,7 @@
 
       <section class="section" id="estabelecimento">
         <div class="section-head">
-          <div class="section-icon">🏢</div>
+          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5L12 3v18M12 8h8v13M7.5 8h1M7.5 11.5h1M7.5 15h1M15.5 11h1M15.5 14.5h1M15.5 18h1M2.5 21h19"/></svg></div>
           <div class="head-text">
             <h2>2. CNPJ e dados da empresa</h2>
             <p>Consulte o CNPJ e confira os dados preenchidos automaticamente.</p>
@@ -193,7 +210,7 @@
               <label for="cnpj">CNPJ</label>
               <div class="input-action">
                 <input id="cnpj" name="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18">
-                <button class="lookup-btn" id="consultarCnpjBtn" type="button">🔎 Consultar CNPJ</button>
+                <button class="lookup-btn" id="consultarCnpjBtn" type="button"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5"/></svg><span>Consultar CNPJ</span></button>
               </div>
               <div class="lookup-status" id="cnpjStatus"></div>
               <a class="official-link" id="receitaCnpjLink" href="#" target="_blank" rel="noopener">Conferir na Receita Federal</a>
@@ -233,7 +250,7 @@
 
       <section class="section essential" id="responsavelSecao">
         <div class="section-head">
-          <div class="section-icon">👤</div>
+          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.8-4 3-6 6.5-6s5.7 2 6.5 6"/></svg></div>
           <div class="head-text">
             <h2>3. Responsável</h2>
             <p>Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.</p>
@@ -305,7 +322,7 @@
 
       <section class="section" id="processo">
         <div class="section-head">
-          <div class="section-icon">📋</div>
+          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3.5h6V5M8.5 10h7M8.5 14h7M8.5 18h4"/></svg></div>
           <div class="head-text">
             <h2>4. Processo e vistoria</h2>
             <p>Dados administrativos e operacionais da vistoria.</p>
@@ -358,7 +375,7 @@
 
       <section class="section" id="edificacao">
         <div class="section-head">
-          <div class="section-icon">🏗️</div>
+          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V6l8-3v18M12 9h8v12M7.5 9h1M7.5 13h1M7.5 17h1M15 13l1.5 1.5L20 11"/></svg></div>
           <div class="head-text">
             <h2>5. Características da edificação</h2>
             <p>Área, pavimentos, altura e ocupação(ões) visíveis diretamente na página.</p>
@@ -403,7 +420,7 @@
 
   <div class="bottom-bar">
     <div class="bottom-inner">
-      <div class="draft" id="draftStatus">💾 Rascunho automático</div>
+      <div class="draft" id="draftStatus">Rascunho automático</div>
       <button class="btn btn-secondary" type="button" id="clearBtn">Limpar</button>
       <button class="btn btn-primary" type="button" id="submitBtn">Registrar vistoria</button>
     </div>
@@ -425,7 +442,7 @@
           <span class="whatsapp-btn-label">Enviar orientações pelo WhatsApp</span>
         </button>
         <button class="btn btn-planilha" id="recordsSuccessBtn" type="button">
-          <span aria-hidden="true">📊</span>
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
           <span class="records-success-label">Ver registro na planilha</span>
         </button>
         <button class="btn btn-primary" id="newRecordBtn" type="button">Nova vistoria</button>
@@ -444,7 +461,7 @@
         </a>
       </div>
       <div class="record-detail-heading">
-        <div class="records-readonly-badge">🔒 Consulta</div>
+        <div class="records-readonly-badge"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Consulta</span></div>
         <h2 id="recordDetailTitle">Ficha do registro</h2>
         <p id="recordDetailSubtitle"></p>
         <div class="record-detail-line" id="recordDetailLine"></div>

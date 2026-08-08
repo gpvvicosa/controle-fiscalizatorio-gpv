@@ -1099,3 +1099,438 @@ body.records-mode .page { padding-bottom: 24px; }
   .record-detail-fields { grid-template-columns: 1fr; }
   .record-detail-field:nth-child(odd) { border-right: 0; }
 }
+
+/* =============================================================================
+   VISUAL PROFISSIONAL V2 — GPV VIÇOSA
+   Alteração exclusivamente visual. Não altera envio, campos, API ou regras.
+   ============================================================================= */
+:root {
+  --primary: #a7191f;
+  --primary-dark: #7f1116;
+  --primary-soft: #fff5f5;
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --text: #202938;
+  --muted: #667085;
+  --line: #e3e7ed;
+  --success: #18864b;
+  --success-bg: #edf9f1;
+  --shadow: 0 5px 18px rgba(16,24,40,.055);
+  --radius: 16px;
+}
+
+body {
+  background:
+    linear-gradient(180deg, #f7f8fa 0, #f4f6f8 220px, #f4f6f8 100%);
+  letter-spacing: -.005em;
+}
+
+.ui-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+.ui-icon-sm { width: 16px; height: 16px; }
+
+.app-header {
+  box-shadow: 0 1px 8px rgba(16,24,40,.05);
+}
+.app-header .topbar-inner {
+  min-height: 62px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.app-header .brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  box-shadow: none;
+  border: 1px solid #e7e9ee;
+}
+.app-header .brand strong {
+  font-size: 14px;
+  font-weight: 850;
+  color: #1f2937;
+}
+.app-header .brand span {
+  margin-top: 1px;
+  font-size: 11px;
+}
+.topbar-unit {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid #e4e7ec;
+  border-radius: 999px;
+  background: #fff;
+  color: #475467;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .04em;
+}
+.unit-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.page {
+  padding-top: 10px;
+}
+
+.hero {
+  box-shadow: none;
+  border-color: #e6e8ec;
+  margin-bottom: 10px;
+}
+
+.app-view-nav {
+  top: 63px;
+  z-index: 36;
+  gap: 5px;
+  padding: 5px;
+  background: rgba(247,248,250,.97);
+  border-color: #e4e7ec;
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(16,24,40,.04);
+}
+.app-view-btn {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #596273;
+  font-size: 12.5px;
+  font-weight: 800;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.app-view-btn.active {
+  background: #fff;
+  color: var(--primary);
+  border: 1px solid #ead3d5;
+  box-shadow: 0 3px 10px rgba(16,24,40,.06);
+}
+.app-view-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 26px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+.app-view-btn { position: relative; }
+
+.connection-banner {
+  min-height: 40px;
+  gap: 9px;
+  padding: 8px 11px;
+  margin-bottom: 10px;
+  border-radius: 11px;
+  border: 1px solid #ccebd7;
+  background: #f2fbf5;
+  box-shadow: none;
+}
+.connection-banner.offline {
+  border-color: #fed7aa;
+  background: #fff8ed;
+}
+.connection-dot {
+  width: 8px;
+  height: 8px;
+}
+.connection-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.connection-copy strong {
+  font-size: 11.5px;
+  color: var(--success);
+}
+.connection-banner.offline .connection-copy strong { color: #b54708; }
+.connection-copy span {
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: #667085;
+}
+.connection-copy strong::after {
+  content: "·";
+  margin-left: 6px;
+  color: #98a2b3;
+  font-weight: 400;
+}
+
+.section,
+.records-panel {
+  border-color: #e4e7ec;
+  box-shadow: var(--shadow);
+  border-radius: 16px;
+}
+.section {
+  margin-bottom: 11px;
+}
+.essential {
+  border-color: #e4e7ec;
+  box-shadow: var(--shadow);
+  border-left: 3px solid #d9a1a4;
+}
+.essential .section-head {
+  background: #fff;
+}
+.section-head {
+  padding: 14px 15px 11px;
+  gap: 11px;
+  border-bottom-color: #f1f3f5;
+}
+.section-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #f8eeee;
+  color: var(--primary);
+}
+.section-head h2 {
+  margin-bottom: 1px;
+  font-size: 15.5px;
+  font-weight: 850;
+  letter-spacing: -.015em;
+}
+.section-head p {
+  max-width: 720px;
+  font-size: 11.25px;
+  line-height: 1.35;
+}
+.section-body {
+  padding: 14px 15px 17px;
+}
+.grid { gap: 12px; }
+
+label {
+  margin-bottom: 5px;
+  font-size: 11.5px;
+  font-weight: 780;
+  color: #3b4658;
+}
+input, select, textarea {
+  min-height: 46px;
+  padding: 9px 11px;
+  border-color: #d5dae1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: inset 0 1px 1px rgba(16,24,40,.015);
+}
+input::placeholder, textarea::placeholder { color: #98a2b3; }
+input:focus, select:focus, textarea:focus {
+  border-color: #bd5559;
+  box-shadow: 0 0 0 3px rgba(167,25,31,.09);
+}
+.sequence-note {
+  padding: 9px 10px;
+  border-radius: 10px;
+  border-color: #e8ebef;
+  background: #f8f9fb;
+  font-size: 11px;
+}
+.lookup-btn {
+  min-height: 44px;
+  border-radius: 10px;
+  gap: 7px;
+  background: #fff7f7;
+  border-color: #edc9cb;
+  color: var(--primary);
+}
+.official-link {
+  font-size: 10.5px;
+  font-weight: 750;
+}
+.hint { font-size: 10.5px; line-height: 1.4; }
+
+.install-panel,
+.pending-panel {
+  border-radius: 12px;
+  box-shadow: none;
+}
+.utility-row {
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.bottom-bar {
+  background: rgba(255,255,255,.985);
+  border-top-color: #e2e6eb;
+  box-shadow: 0 -5px 18px rgba(16,24,40,.07);
+}
+.bottom-inner { gap: 8px; }
+.bottom-bar .btn {
+  border-radius: 10px;
+  min-height: 46px;
+}
+.bottom-bar .btn-primary {
+  background: linear-gradient(180deg, #ad1b22, #99161c);
+  box-shadow: 0 5px 12px rgba(153,22,28,.18);
+}
+.bottom-bar .btn-secondary {
+  background: #f1f3f6;
+  color: #3b4658;
+}
+
+.records-header {
+  background: #fff;
+  padding: 16px;
+}
+.records-header h2 {
+  font-size: 20px;
+  font-weight: 850;
+}
+.records-readonly-badge {
+  gap: 5px;
+  background: #f5f6f8;
+  border-color: #e4e7ec;
+  color: #596273;
+}
+.records-toolbar { background: #fbfcfd; }
+.records-search-field input,
+.records-filter-grid select {
+  box-shadow: none;
+}
+.records-card {
+  border-radius: 13px;
+  box-shadow: 0 2px 8px rgba(16,24,40,.035);
+}
+.records-card-cta { color: var(--primary); }
+.btn-planilha {
+  background: #344054;
+}
+.btn-planilha:hover { background: #283343; }
+
+.success-card {
+  border: 1px solid #e4e7ec;
+  box-shadow: 0 24px 60px rgba(16,24,40,.20);
+}
+.success-icon {
+  background: #edf9f1;
+  color: #18864b;
+  box-shadow: inset 0 0 0 1px #ccebd7;
+}
+
+@media (max-width: 760px) {
+  body {
+    background: #f4f6f8;
+  }
+
+  .app-header .topbar-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .app-header .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .app-header .brand strong { font-size: 13.5px; }
+  .app-header .brand span { font-size: 10px; }
+  .topbar-unit {
+    min-height: 27px;
+    padding: 4px 7px;
+    font-size: 9px;
+  }
+
+  .page {
+    padding: 7px 7px 110px;
+  }
+
+  /* No celular, a identidade fica no cabeçalho compacto. */
+  .hero {
+    display: none;
+  }
+
+  .app-view-nav {
+    top: 55px;
+    margin-bottom: 7px;
+  }
+
+  .connection-banner {
+    margin-bottom: 8px;
+  }
+  .connection-copy {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .connection-copy span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .section {
+    border-radius: 14px;
+    margin-bottom: 9px;
+  }
+  .section-head {
+    padding: 12px 12px 9px;
+  }
+  .section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+  .section-icon .ui-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .section-head h2 { font-size: 15px; }
+  .section-head p { font-size: 10.5px; }
+  .section-body { padding: 12px 12px 14px; }
+  .grid { gap: 10px; }
+
+  input, select, textarea {
+    min-height: 45px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+  .lookup-btn { min-height: 44px; }
+
+  .bottom-bar {
+    padding-top: 8px;
+  }
+  .bottom-inner .btn {
+    min-height: 46px;
+  }
+  .bottom-inner .btn-secondary {
+    flex: 0 0 92px;
+  }
+
+  .records-panel { border-radius: 14px; }
+  .records-header { padding: 13px; }
+  .records-header h2 { font-size: 18px; }
+  .records-toolbar { padding: 10px; }
+  .records-list { padding: 10px; }
+
+  .success-card {
+    border-radius: 18px;
+  }
+}
+
+@media (min-width: 761px) {
+  .hero {
+    max-height: 190px;
+  }
+  .hero-banner {
+    max-height: 190px;
+    object-fit: cover;
+    object-position: center;
+  }
+}

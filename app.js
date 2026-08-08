@@ -312,7 +312,7 @@
       function atualizarStatusConexao() {
         const online = navigator.onLine;
         connectionBanner.classList.toggle('offline', !online);
-        connectionTitle.textContent = online ? '🟢 Online' : '🔴 Offline';
+        connectionTitle.textContent = online ? 'Online' : 'Offline';
         connectionText.textContent = online
           ? 'Preenchimento salvo automaticamente neste aparelho.'
           : 'Continue preenchendo; o envio ficará pendente até a conexão voltar.';
@@ -1355,7 +1355,7 @@
         try {
           localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), recordId: currentRecordId, payload: buildPayload() }));
           draftStatus.textContent = '✓ Rascunho salvo';
-          setTimeout(() => { draftStatus.textContent = '💾 Rascunho automático'; }, 1600);
+          setTimeout(() => { draftStatus.textContent = 'Rascunho automático'; }, 1600);
         } catch (e) {}
       }
 
