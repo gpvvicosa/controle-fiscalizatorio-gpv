@@ -3470,3 +3470,131 @@ body.tutorial-open { overflow: hidden; }
   color: #166534;
   -webkit-text-fill-color: #166534;
 }
+
+/* =============================================================================
+   V18.2 — AJUSTES VISUAIS: CONEXÃO, MENU MAIS E NAVEGAÇÃO (08/08/2026)
+   ============================================================================= */
+
+/* Movimento online mais lento e suave. */
+.connection-banner.connection-online::before {
+  animation: gpvConnectionKnob 6.8s cubic-bezier(.45, 0, .55, 1) infinite alternate !important;
+}
+.connection-banner.connection-online::after {
+  animation: gpvConnectionGlow 3.6s ease-in-out infinite !important;
+}
+
+/* Menu Mais: tipografia maior e área de toque mais confortável. */
+.app-more-menu {
+  width: min(350px, calc(100vw - 24px));
+}
+.app-more-menu-head {
+  padding: 15px 16px 12px;
+}
+.app-more-menu-head strong {
+  font-size: 14.5px;
+}
+.app-more-menu-head span {
+  margin-top: 2px;
+  font-size: 11.5px;
+}
+.app-more-menu-item {
+  gap: 13px;
+  min-height: 64px;
+  padding: 13px 16px;
+}
+.app-more-menu-item .ui-icon {
+  width: 23px;
+  height: 23px;
+  flex: 0 0 23px;
+  stroke-width: 1.8;
+}
+.app-more-menu-item strong {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 850;
+}
+.app-more-menu-item small {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+/* Ícones abaixo do banner: linguagem visual moderna, consistente e mais nítida. */
+.app-view-btn {
+  gap: 8px;
+}
+.app-view-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #ffffff, #f4f6f8);
+  color: #596273;
+  box-shadow: 0 2px 7px rgba(16,24,40,.07), inset 0 1px 0 rgba(255,255,255,.85);
+  transition: transform .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.app-view-icon .ui-icon {
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.85;
+}
+.app-view-btn:hover .app-view-icon {
+  transform: translateY(-1px);
+  border-color: #d5d9df;
+  box-shadow: 0 4px 10px rgba(16,24,40,.09), inset 0 1px 0 rgba(255,255,255,.9);
+}
+.app-view-btn.active .app-view-icon {
+  color: #fff;
+  border-color: #a7191f;
+  background: linear-gradient(145deg, #c72128, #941319);
+  box-shadow: 0 4px 11px rgba(167,25,31,.25), inset 0 1px 0 rgba(255,255,255,.18);
+}
+#navMoreMenuBtn[aria-expanded="true"] .app-view-icon {
+  color: #fff;
+  border-color: #344054;
+  background: linear-gradient(145deg, #526071, #344054);
+  box-shadow: 0 4px 11px rgba(52,64,84,.22);
+}
+
+@media (max-width: 767px) {
+  .app-view-btn {
+    min-height: 54px;
+    padding: 7px 4px;
+    gap: 5px;
+  }
+  .app-view-icon {
+    width: 29px;
+    height: 29px;
+    flex-basis: 29px;
+    border-radius: 10px;
+  }
+  .app-view-icon .ui-icon,
+  .app-view-btn .app-view-icon .ui-icon {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+  }
+  .app-more-menu {
+    width: min(340px, calc(100vw - 20px));
+  }
+  .app-more-menu-item {
+    min-height: 66px;
+    padding: 14px 15px;
+  }
+  .app-more-menu-item strong { font-size: 14.5px; }
+  .app-more-menu-item small { font-size: 11.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-banner.connection-online::before,
+  .connection-banner.connection-online::after,
+  .app-view-icon {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

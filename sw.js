@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v18-cnpj-cpf-conexao';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v18-2-menu-icones-conexao';
 const APP_SHELL = [
   './', './index.html', './styles.css', './config.js', './ocupacoes.js', './app.js', './manifest.webmanifest',
   './offline.html', './assets/cabecalho.webp', './assets/logo-cbmmg.png', './assets/logo-gpv.png',
