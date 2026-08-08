@@ -1431,34 +1431,35 @@ input:focus, select:focus, textarea:focus {
     background: #f4f6f8;
   }
 
-  .app-header .topbar-inner {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-  .app-header .brand-mark {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-  }
-  .app-header .brand strong { font-size: 13.5px; }
-  .app-header .brand span { font-size: 10px; }
-  .topbar-unit {
-    min-height: 27px;
-    padding: 4px 7px;
-    font-size: 9px;
+  /* Mobile: o banner horizontal substitui o cabeçalho com logo quadrada. */
+  .app-header {
+    display: none;
   }
 
   .page {
     padding: 7px 7px 110px;
   }
 
-  /* No celular, a identidade fica no cabeçalho compacto. */
   .hero {
-    display: none;
+    display: block;
+    margin: 0 0 7px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #7f1d1d;
+    border: 1px solid rgba(127,29,29,.12);
+  }
+  .hero-banner {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    display: block;
+    object-fit: contain;
+    object-position: center;
+    background: #7f1d1d;
   }
 
   .app-view-nav {
-    top: 55px;
+    top: 0;
     margin-bottom: 7px;
   }
 
