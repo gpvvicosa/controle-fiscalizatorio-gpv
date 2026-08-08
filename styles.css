@@ -2102,3 +2102,126 @@ body.detail-open { overflow: hidden; }
   .dashboard-filter-grid { grid-template-columns: 1fr; }
   .dashboard-filter-grid label:last-child { grid-column: auto; }
 }
+
+
+/* =============================================================================
+   V13 — PRIORIDADE POR DISPOSITIVO
+   Desktop/notebook: Painel como entrada principal.
+   Tablet retrato: Vistoria. Tablet paisagem: Painel.
+   Celular: Vistoria e ações somente no fim do formulário.
+   ============================================================================= */
+
+/* Ordem visual no desktop e em tablet paisagem: Painel primeiro. */
+@media (min-width: 1181px),
+       (min-width: 768px) and (max-width: 1180px) and (orientation: landscape) {
+  #recordsTabBtn { order: 1; }
+  #formTabBtn { order: 2; }
+}
+
+/* Tablet em retrato: fluxo de campo priorizado, mas com mais respiro que no celular. */
+@media (min-width: 768px) and (max-width: 1180px) and (orientation: portrait) {
+  #formTabBtn { order: 1; }
+  #recordsTabBtn { order: 2; }
+
+  .page {
+    max-width: 980px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .section-body { padding: 16px 16px 18px; }
+  .section-head { padding-left: 16px; padding-right: 16px; }
+
+  .records-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .records-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tablet em paisagem: dashboard compacto com densidade de desktop. */
+@media (min-width: 768px) and (max-width: 1180px) and (orientation: landscape) {
+  .page {
+    max-width: 1180px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .records-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .records-filter-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .records-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Celular: a barra deixa de ser fixa. O usuário chega às ações ao terminar o formulário. */
+@media (max-width: 767px) {
+  #formTabBtn { order: 1; }
+  #recordsTabBtn { order: 2; }
+
+  .page {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-bar {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    width: 100%;
+    margin: 8px 0 10px;
+    padding: 12px 0 0;
+    background: transparent;
+    border-top: 1px solid #e4e7ec;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .bottom-inner {
+    max-width: none;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .bottom-bar .draft {
+    display: block;
+    min-width: 0;
+    margin: 0 0 2px;
+    text-align: center;
+    font-size: 10.5px;
+  }
+
+  .bottom-bar #submitBtn {
+    order: 1;
+    width: 100%;
+    min-height: 54px;
+    font-size: 14px;
+  }
+
+  .bottom-bar #clearBtn {
+    order: 2;
+    width: 100%;
+    min-height: 42px;
+    background: transparent;
+    border: 1px solid #e4e7ec;
+    color: #667085;
+    box-shadow: none;
+  }
+
+  .app-credit {
+    margin-top: 8px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+}

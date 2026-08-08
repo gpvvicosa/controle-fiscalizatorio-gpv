@@ -536,7 +536,7 @@
         try {
           const url = new URL(window.location.href);
           if (modo === 'records') url.searchParams.set('view', 'painel');
-          else url.searchParams.delete('view');
+          else url.searchParams.set('view', 'vistoria');
           window.history.replaceState({}, '', url.pathname + url.search + url.hash);
         } catch (e) {}
       }
@@ -544,10 +544,32 @@
       function vistaInicialDaUrl_() {
         try {
           const valor = String(new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
-          return ['painel', 'panel', 'records', 'planilha'].includes(valor) ? 'records' : 'form';
+          if (['painel', 'panel', 'records', 'planilha'].includes(valor)) return 'records';
+          if (['vistoria', 'form', 'formulario', 'nova-vistoria'].includes(valor)) return 'form';
+          return '';
         } catch (e) {
-          return 'form';
+          return '';
         }
+      }
+
+      function vistaInicialPorDispositivo_() {
+        const largura = Math.max(
+          Number(window.innerWidth || 0),
+          Number(document.documentElement?.clientWidth || 0)
+        );
+        const altura = Math.max(
+          Number(window.innerHeight || 0),
+          Number(document.documentElement?.clientHeight || 0)
+        );
+
+        // Celular: prioridade absoluta para a vistoria em campo.
+        if (largura <= 767) return 'form';
+
+        // Tablet: retrato abre a vistoria; paisagem aproveita a largura para o painel.
+        if (largura <= 1180) return largura > altura ? 'records' : 'form';
+
+        // Notebook/desktop: painel como página inicial de uso diário.
+        return 'records';
       }
 
       function mostrarVistaFormulario_() {
@@ -1620,8 +1642,15 @@
           if (obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
         }
 
-        if (vistaInicialDaUrl_() === 'records') {
-          mostrarVistaPlanilha_();
+        const vistaForcada = vistaInicialDaUrl_();
+        const vistaInicial = vistaForcada || vistaInicialPorDispositivo_();
+
+        if (vistaInicial === 'records') {
+          if (vistaForcada) mostrarVistaPlanilha_();
+          else {
+            marcarAbaApp_('records');
+            carregarRegistros_(true);
+          }
         } else {
           marcarAbaApp_('form');
         }
