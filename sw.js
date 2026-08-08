@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v14-1-logos-oficiais';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v15-usabilidade-tutorial';
 const APP_SHELL = [
   './', './index.html', './styles.css', './config.js', './ocupacoes.js', './app.js', './manifest.webmanifest',
   './offline.html', './assets/cabecalho.webp', './assets/logo-cbmmg.png', './assets/logo-gpv.png',

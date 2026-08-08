@@ -155,12 +155,21 @@
       const installBtn = document.getElementById('installBtn');
       const installText = document.getElementById('installText');
       const appMoreMenu = document.getElementById('appMoreMenu');
-      const desktopMoreMenuBtn = document.getElementById('desktopMoreMenuBtn');
-      const mobileMoreMenuBtn = document.getElementById('mobileMoreMenuBtn');
+      const navMoreMenuBtn = document.getElementById('navMoreMenuBtn');
+      const dashboardMoreMenuBtn = document.getElementById('dashboardMoreMenuBtn');
+      const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
       const contingenciaLinkMenu = document.getElementById('contingenciaLinkMenu');
+      const tutorialMenuBtn = document.getElementById('tutorialMenuBtn');
       const updateAppBtn = document.getElementById('updateAppBtn');
       const adminSheetMenuLink = document.getElementById('adminSheetMenuLink');
-      const moreMenuTriggers = [desktopMoreMenuBtn, mobileMoreMenuBtn].filter(Boolean);
+      const moreMenuTriggers = [navMoreMenuBtn, dashboardMoreMenuBtn].filter(Boolean);
+      const tutorialModal = document.getElementById('tutorialModal');
+      const tutorialCloseBtn = document.getElementById('tutorialCloseBtn');
+      const tutorialPrevBtn = document.getElementById('tutorialPrevBtn');
+      const tutorialNextBtn = document.getElementById('tutorialNextBtn');
+      const tutorialStepCounter = document.getElementById('tutorialStepCounter');
+      const tutorialProgressBar = document.getElementById('tutorialProgressBar');
+      const tutorialStepEls = Array.from(document.querySelectorAll('[data-tutorial-step]'));
       const citySelect = document.getElementById('cidadeSelect');
       const otherCityWrap = document.getElementById('outraCidadeWrap');
       const otherCity = document.getElementById('outraCidade');
@@ -201,6 +210,7 @@
       let sendingQueue = false;
       let pendingCache = [];
       let deferredInstallPrompt = null;
+      let tutorialStepIndex = 0;
 
       function value(id) {
         const el = document.getElementById(id);
@@ -504,7 +514,7 @@
         if (destino) recordsState.planilhaUrl = destino;
         const finalUrl = recordsState.planilhaUrl || String(appConfig?.planilhaUrl || '').trim();
 
-        [recordsOpenSheetLink, recordDetailSheetLink, adminSheetMenuLink].forEach(link => {
+        [recordsOpenSheetLink, recordDetailSheetLink, adminSheetMenuLink, dashboardSheetHeaderLink].forEach(link => {
           if (!link) return;
           if (finalUrl) {
             link.href = finalUrl;
@@ -1713,11 +1723,55 @@
         moreMenuTriggers.forEach(btn => btn.setAttribute('aria-expanded', 'false'));
       }
 
-      function alternarMenuMais_() {
+      function posicionarMenuMais_(gatilho) {
+        if (!appMoreMenu || !gatilho) return;
+        const margem = 10;
+        const rect = gatilho.getBoundingClientRect();
+        const largura = Math.min(330, Math.max(240, window.innerWidth - (margem * 2)));
+        appMoreMenu.style.width = `${largura}px`;
+        appMoreMenu.style.right = 'auto';
+        appMoreMenu.style.left = `${Math.min(Math.max(margem, rect.right - largura), window.innerWidth - largura - margem)}px`;
+
+        const altura = appMoreMenu.getBoundingClientRect().height || 280;
+        let topo = rect.bottom + 8;
+        if (topo + altura > window.innerHeight - margem) topo = Math.max(margem, rect.top - altura - 8);
+        appMoreMenu.style.top = `${topo}px`;
+      }
+
+      function alternarMenuMais_(gatilho) {
         if (!appMoreMenu) return;
         const vaiAbrir = appMoreMenu.hidden;
-        appMoreMenu.hidden = !vaiAbrir;
-        moreMenuTriggers.forEach(btn => btn.setAttribute('aria-expanded', vaiAbrir ? 'true' : 'false'));
+        if (!vaiAbrir) {
+          fecharMenuMais_();
+          return;
+        }
+        appMoreMenu.hidden = false;
+        moreMenuTriggers.forEach(btn => btn.setAttribute('aria-expanded', btn === gatilho ? 'true' : 'false'));
+        posicionarMenuMais_(gatilho || navMoreMenuBtn || dashboardMoreMenuBtn);
+      }
+
+      function renderizarTutorial_() {
+        const total = tutorialStepEls.length || 1;
+        tutorialStepIndex = Math.min(Math.max(0, tutorialStepIndex), total - 1);
+        tutorialStepEls.forEach((el, i) => el.classList.toggle('active', i === tutorialStepIndex));
+        if (tutorialStepCounter) tutorialStepCounter.textContent = `Etapa ${tutorialStepIndex + 1} de ${total}`;
+        if (tutorialProgressBar) tutorialProgressBar.style.width = `${((tutorialStepIndex + 1) / total) * 100}%`;
+        if (tutorialPrevBtn) tutorialPrevBtn.disabled = tutorialStepIndex === 0;
+        if (tutorialNextBtn) tutorialNextBtn.textContent = tutorialStepIndex === total - 1 ? 'Começar a usar' : 'Próximo';
+      }
+
+      function abrirTutorial_() {
+        fecharMenuMais_();
+        tutorialStepIndex = 0;
+        renderizarTutorial_();
+        if (tutorialModal) tutorialModal.hidden = false;
+        document.body.classList.add('tutorial-open');
+        setTimeout(() => tutorialCloseBtn?.focus(), 0);
+      }
+
+      function fecharTutorial_() {
+        if (tutorialModal) tutorialModal.hidden = true;
+        document.body.classList.remove('tutorial-open');
       }
 
       async function atualizarAplicativo_() {
@@ -1893,15 +1947,25 @@
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
       moreMenuTriggers.forEach(btn => btn.addEventListener('click', event => {
         event.stopPropagation();
-        alternarMenuMais_();
+        alternarMenuMais_(btn);
       }));
       appMoreMenu?.addEventListener('click', event => event.stopPropagation());
       contingenciaLinkMenu?.addEventListener('click', fecharMenuMais_);
+      tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
+      tutorialCloseBtn?.addEventListener('click', fecharTutorial_);
+      tutorialModal?.addEventListener('click', event => { if (event.target === tutorialModal) fecharTutorial_(); });
+      tutorialPrevBtn?.addEventListener('click', () => { tutorialStepIndex -= 1; renderizarTutorial_(); });
+      tutorialNextBtn?.addEventListener('click', () => {
+        if (tutorialStepIndex >= tutorialStepEls.length - 1) { fecharTutorial_(); return; }
+        tutorialStepIndex += 1;
+        renderizarTutorial_();
+      });
       updateAppBtn?.addEventListener('click', atualizarAplicativo_);
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharMenuMais_(); fecharDetalheRegistro_(); }
+        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); }
       });
+      window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
       window.addEventListener('offline', atualizarStatusConexao);
       window.addEventListener('online', () => {

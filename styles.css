@@ -2977,3 +2977,257 @@ body.detail-open { overflow: hidden; }
     mix-blend-mode: normal;
   }
 }
+
+
+/* =============================================================================
+   V15 — AJUSTES DE USABILIDADE, NAVEGAÇÃO E TUTORIAL (08/08/2026)
+   ============================================================================= */
+
+/* O cabeçalho pequeno do formulário foi removido. O cabeçalho institucional
+   permanece somente no Painel desktop, no padrão visual aprovado. */
+.app-header { display: none; }
+.app-view-nav {
+  top: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+#navMoreMenuBtn { order: 3; }
+
+/* Banner completo em notebook/PC: sem corte vertical ou horizontal. */
+@media (min-width: 761px) {
+  body:not(.records-mode) .hero {
+    max-height: none;
+  }
+  body:not(.records-mode) .hero-banner {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    object-fit: contain;
+    object-position: center;
+  }
+}
+
+/* Painel desktop continua com o cabeçalho institucional do mockup. */
+@media (min-width: 1181px) {
+  body.records-mode .app-header { display: block; }
+  body.records-mode .dashboard-header-actions { gap: 10px; }
+  body.records-mode .dashboard-sheet-header-link[hidden] { display: none !important; }
+  body.records-mode .dashboard-header-action { text-decoration: none; }
+}
+
+/* O menu Mais agora nasce da barra de navegação (ou do cabeçalho do Painel),
+   sem ficar sobre o banner. A posição final é calculada pelo JavaScript. */
+.desktop-more-trigger,
+.mobile-more-trigger { display: none !important; }
+.app-more-menu {
+  top: 72px;
+  right: auto;
+  left: auto;
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+}
+
+/* Títulos/rótulos dos campos mais legíveis durante a vistoria no celular. */
+@media (max-width: 767px) {
+  #vistoriaForm .field > label {
+    margin-bottom: 7px;
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: #273244;
+  }
+  #vistoriaForm .hint {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .section-head h2 { font-size: 16px; }
+  .section-head p { font-size: 12px; line-height: 1.4; }
+  .app-view-btn {
+    min-height: 48px;
+    padding: 8px 6px;
+    font-size: 12.5px;
+    gap: 5px;
+  }
+  .app-view-btn .ui-icon { width: 18px; height: 18px; }
+}
+
+/* Tutorial do aplicativo. */
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(16, 24, 40, .56);
+  backdrop-filter: blur(5px);
+}
+.tutorial-overlay[hidden] { display: none !important; }
+.tutorial-card {
+  width: min(720px, 100%);
+  max-height: min(760px, calc(100vh - 36px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e4e7ec;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 26px 70px rgba(16, 24, 40, .28);
+}
+.tutorial-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 20px 22px 14px;
+  background: linear-gradient(110deg, #92080d, #b00d13);
+  color: #fff;
+}
+.tutorial-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: #ffd447;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.tutorial-header h2 {
+  margin: 0;
+  font-size: 23px;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+.tutorial-close {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border: 1px solid rgba(255,255,255,.32);
+  border-radius: 11px;
+  background: rgba(255,255,255,.10);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+}
+.tutorial-progress {
+  padding: 12px 22px 0;
+  color: #667085;
+  font-size: 11px;
+  font-weight: 800;
+}
+.tutorial-progress-track {
+  height: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef0f3;
+}
+.tutorial-progress-track span {
+  display: block;
+  width: 12.5%;
+  height: 100%;
+  border-radius: inherit;
+  background: #a7191f;
+  transition: width .18s ease;
+}
+.tutorial-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 22px 22px;
+}
+.tutorial-step { display: none; }
+.tutorial-step.active { display: block; }
+.tutorial-step-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: #fff1f2;
+  font-size: 25px;
+}
+.tutorial-step h3 {
+  margin: 0 0 9px;
+  color: #202938;
+  font-size: 20px;
+  line-height: 1.2;
+}
+.tutorial-step p,
+.tutorial-step li {
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.tutorial-step p { margin: 0 0 10px; }
+.tutorial-step ul { margin: 8px 0 0; padding-left: 22px; }
+.tutorial-step li + li { margin-top: 7px; }
+.tutorial-note {
+  padding: 11px 12px;
+  border: 1px solid #f0d5d7;
+  border-radius: 11px;
+  background: #fff8f8;
+  color: #6f2529 !important;
+}
+.tutorial-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid #eef0f3;
+  background: #fff;
+}
+.tutorial-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 11px;
+  font-weight: 850;
+}
+.tutorial-btn.secondary {
+  border: 1px solid #d9dde3;
+  background: #fff;
+  color: #475467;
+}
+.tutorial-btn.primary {
+  margin-left: auto;
+  border: 1px solid #991b1b;
+  background: #991b1b;
+  color: #fff;
+}
+.tutorial-btn:disabled { opacity: .4; cursor: default; }
+
+@media (max-width: 767px) {
+  .tutorial-overlay {
+    align-items: stretch;
+    padding: 0;
+    background: #fff;
+  }
+  .tutorial-card {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .tutorial-header {
+    padding: calc(16px + env(safe-area-inset-top)) 17px 14px;
+  }
+  .tutorial-header h2 { font-size: 20px; }
+  .tutorial-progress { padding: 12px 17px 0; font-size: 12px; }
+  .tutorial-body { padding: 20px 17px; }
+  .tutorial-step-icon { width: 52px; height: 52px; font-size: 27px; }
+  .tutorial-step h3 { font-size: 21px; }
+  .tutorial-step p,
+  .tutorial-step li { font-size: 16px; line-height: 1.55; }
+  .tutorial-actions {
+    padding: 12px 17px calc(14px + env(safe-area-inset-bottom));
+  }
+  .tutorial-btn { min-height: 50px; font-size: 14px; }
+}
+
+/* Ordem visual única da navegação: Painel | Vistoria | Mais.
+   A prioridade de abertura no celular continua sendo Vistoria. */
+#recordsTabBtn { order: 1; }
+#formTabBtn { order: 2; }
+#navMoreMenuBtn { order: 3; }
+body.tutorial-open { overflow: hidden; }
