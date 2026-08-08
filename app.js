@@ -10,6 +10,7 @@
       const API_URL = String(window.GPV_PUBLIC_CONFIG?.apiUrl || '').trim();
       const AUTH_USER_STORAGE = 'gpvVistoriasUsuarioBmV1';
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
+      const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -40,6 +41,53 @@
         return authState;
       }
 
+      function carregarPerfisConhecidosBm_() {
+        let lista = [];
+        try {
+          const bruto = JSON.parse(localStorage.getItem(AUTH_PROFILES_STORAGE) || '[]');
+          if (Array.isArray(bruto)) lista = bruto;
+        } catch (e) {}
+
+        lista = lista
+          .filter(item => item && item.usuario && item.usuario.id && item.sessionToken)
+          .map(item => ({
+            usuario: item.usuario,
+            sessionToken: String(item.sessionToken || ''),
+            lastUsedAt: Number(item.lastUsedAt || 0)
+          }));
+
+        // Migração transparente da V19: o usuário que já estava gravado no aparelho
+        // passa a compor a lista de perfis conhecidos sem exigir novo login.
+        const atual = carregarSessaoLocalBm_();
+        if (atual.usuario && atual.sessionToken && !lista.some(item => String(item.usuario.id) === String(atual.usuario.id))) {
+          lista.push({ usuario: atual.usuario, sessionToken: atual.sessionToken, lastUsedAt: Date.now() });
+          salvarPerfisConhecidosBm_(lista);
+        }
+
+        return lista.sort((a, b) => Number(b.lastUsedAt || 0) - Number(a.lastUsedAt || 0));
+      }
+
+      function salvarPerfisConhecidosBm_(lista) {
+        try {
+          const normalizados = (Array.isArray(lista) ? lista : [])
+            .filter(item => item && item.usuario && item.usuario.id && item.sessionToken)
+            .slice(0, 12);
+          localStorage.setItem(AUTH_PROFILES_STORAGE, JSON.stringify(normalizados));
+        } catch (e) {}
+      }
+
+      function registrarPerfilConhecidoBm_(usuario, sessionToken) {
+        if (!usuario?.id || !sessionToken) return;
+        const lista = carregarPerfisConhecidosBm_().filter(item => String(item.usuario.id) !== String(usuario.id));
+        lista.unshift({ usuario, sessionToken: String(sessionToken), lastUsedAt: Date.now() });
+        salvarPerfisConhecidosBm_(lista);
+      }
+
+      function removerPerfilConhecidoBm_(userId) {
+        if (!userId) return;
+        salvarPerfisConhecidosBm_(carregarPerfisConhecidosBm_().filter(item => String(item.usuario.id) !== String(userId)));
+      }
+
       function salvarSessaoLocalBm_(usuario, sessionToken) {
         authState = { usuario: usuario || null, sessionToken: String(sessionToken || '') };
         try {
@@ -47,14 +95,22 @@
           else localStorage.removeItem(AUTH_USER_STORAGE);
           if (sessionToken) localStorage.setItem(AUTH_SESSION_STORAGE, String(sessionToken));
           else localStorage.removeItem(AUTH_SESSION_STORAGE);
-          // Remove o código antigo do aparelho; V19 usa exclusivamente Nº BM.
+          // Remove o código antigo do aparelho; V19+ usa exclusivamente Nº BM.
           localStorage.removeItem('gpvVistoriasAccessKeyV1');
         } catch (e) {}
+        if (usuario && sessionToken) registrarPerfilConhecidoBm_(usuario, sessionToken);
         atualizarUsuarioLogadoUi_();
       }
 
       function limparSessaoLocalBm_() {
+        // Limpa apenas o usuário ativo. A lista de perfis conhecidos permanece para
+        // permitir a escolha rápida em tablets compartilhados.
         salvarSessaoLocalBm_(null, '');
+      }
+
+      function draftKeyAtual_() {
+        const id = String(authState.usuario?.id || 'sem-usuario').replace(/[^A-Za-z0-9_-]/g, '');
+        return `${DRAFT_KEY}:${id || 'sem-usuario'}`;
       }
 
       async function gatewayRequest_(action, data = {}, timeoutMs = 30000) {
@@ -135,6 +191,12 @@
       const authProfileChoice = document.getElementById('authProfileChoice');
       const authProfileList = document.getElementById('authProfileList');
       const authOfflineNote = document.getElementById('authOfflineNote');
+      const authSubtitle = document.getElementById('authSubtitle');
+      const authManualLogin = document.getElementById('authManualLogin');
+      const authDeviceChoice = document.getElementById('authDeviceChoice');
+      const authDeviceProfileList = document.getElementById('authDeviceProfileList');
+      const authUseOtherBmBtn = document.getElementById('authUseOtherBmBtn');
+      const loggedUserBadge = document.getElementById('loggedUserBadge');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
       const logoutUserBtn = document.getElementById('logoutUserBtn');
       const loggedUserMenuText = document.getElementById('loggedUserMenuText');
@@ -1119,7 +1181,7 @@
         ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
         enfileirarRegistro(payload);
-        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(draftKeyAtual_());
         resetForm();
         mostrarSucesso(
           'Vistoria salva no aparelho',
@@ -1506,6 +1568,9 @@
       function buildPayload() {
         return {
           _appRegistroId: currentRecordId,
+          _appUsuarioId: String(authState.usuario?.id || ''),
+          _appUsuarioNome: String(authState.usuario?.nome || ''),
+          _appUsuarioSessao: String(authState.sessionToken || ''),
           cidade: cityValue() || 'Viçosa',
           nomeFantasia: value('nomeFantasia'),
           razaoSocial: value('razaoSocial'),
@@ -1894,7 +1959,7 @@
 
       function saveDraft() {
         try {
-          localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), recordId: currentRecordId, payload: buildPayload() }));
+          localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt: Date.now(), recordId: currentRecordId, payload: buildPayload() }));
           draftStatus.textContent = '✓ Rascunho salvo';
           setTimeout(() => { draftStatus.textContent = 'Rascunho automático'; }, 1600);
         } catch (e) {}
@@ -1902,12 +1967,22 @@
 
       function restoreDraft() {
         try {
-          const raw = localStorage.getItem(DRAFT_KEY);
+          const chaveAtual = draftKeyAtual_();
+          let raw = localStorage.getItem(chaveAtual);
+          // Migra um eventual rascunho da V19 para o usuário atualmente identificado.
+          if (!raw && authState.usuario?.id) {
+            const legado = localStorage.getItem(DRAFT_KEY);
+            if (legado) {
+              raw = legado;
+              localStorage.setItem(chaveAtual, legado);
+              localStorage.removeItem(DRAFT_KEY);
+            }
+          }
           if (!raw) return;
           const draft = JSON.parse(raw);
           if (!draft?.payload) return;
           if (Date.now() - Number(draft.savedAt || 0) > 1000 * 60 * 60 * 24 * 3) {
-            localStorage.removeItem(DRAFT_KEY);
+            localStorage.removeItem(draftKeyAtual_());
             return;
           }
           const p = draft.payload;
@@ -1940,7 +2015,7 @@
 
       function resetForm() {
         form.reset();
-        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(draftKeyAtual_());
         currentRecordId = criarIdRegistro();
         citySelect.value = appConfig?.padroes?.cidade || 'Viçosa';
         otherCity.value = '';
@@ -1980,7 +2055,7 @@
         // entra na fila do aparelho. Isso torna o botão praticamente imediato e
         // evita perda de dados caso a conexão oscile durante o envio.
         enfileirarRegistro(payload);
-        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(draftKeyAtual_());
         resetForm();
 
         if (!navigator.onLine) {
@@ -2040,6 +2115,10 @@
             ? `${usuario.nome} · Nº BM ${usuario.bm}`
             : 'Encerrar o acesso neste aparelho';
         }
+        if (loggedUserBadge) {
+          loggedUserBadge.textContent = usuario ? String(usuario.nome || '') : '';
+          loggedUserBadge.hidden = !usuario?.nome;
+        }
       }
 
       function mostrarTelaLoginBm_(mensagem = '') {
@@ -2047,12 +2126,37 @@
         authGate.classList.add('show');
         authGate.setAttribute('aria-hidden', 'false');
         document.body.classList.add('auth-locked');
+        if (authManualLogin) authManualLogin.hidden = false;
+        if (authDeviceChoice) authDeviceChoice.hidden = true;
+        if (authSubtitle) authSubtitle.innerHTML = 'Informe seu <strong>Nº BM</strong> para acessar o aplicativo.';
         if (authMessage) authMessage.textContent = mensagem;
         if (authProfileChoice) authProfileChoice.hidden = true;
         if (authProfileList) authProfileList.innerHTML = '';
         if (authOfflineNote) authOfflineNote.hidden = navigator.onLine;
         if (authEnterBtn) authEnterBtn.disabled = !navigator.onLine;
         setTimeout(() => authBmInput?.focus(), 30);
+      }
+
+      function mostrarEscolhaUsuariosDispositivo_(mensagem = '') {
+        const perfis = carregarPerfisConhecidosBm_();
+        if (!perfis.length) {
+          mostrarTelaLoginBm_(mensagem);
+          return;
+        }
+        if (!authGate) return;
+        authGate.classList.add('show');
+        authGate.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('auth-locked');
+        if (authManualLogin) authManualLogin.hidden = true;
+        if (authDeviceChoice) authDeviceChoice.hidden = false;
+        if (authSubtitle) authSubtitle.textContent = mensagem || 'Escolha quem está utilizando este aparelho.';
+        if (authDeviceProfileList) {
+          authDeviceProfileList.innerHTML = perfis.map(item => `
+            <button type="button" class="auth-device-profile-btn" data-device-user-id="${escapeHtml(item.usuario.id)}">
+              ${escapeHtml(item.usuario.nome)}
+            </button>
+          `).join('');
+        }
       }
 
       function ocultarTelaLoginBm_() {
@@ -2062,6 +2166,8 @@
         document.body.classList.remove('auth-locked');
         if (authMessage) authMessage.textContent = '';
         if (authProfileChoice) authProfileChoice.hidden = true;
+        if (authDeviceChoice) authDeviceChoice.hidden = true;
+        if (authManualLogin) authManualLogin.hidden = false;
       }
 
       function normalizarBmCliente_(valor) {
@@ -2109,25 +2215,68 @@
         }
       }
 
+      async function selecionarPerfilConhecidoBm_(userId) {
+        const perfis = carregarPerfisConhecidosBm_();
+        const perfil = perfis.find(item => String(item.usuario.id) === String(userId || ''));
+        if (!perfil) {
+          mostrarEscolhaUsuariosDispositivo_('O usuário salvo neste aparelho não foi localizado.');
+          return false;
+        }
+
+        // Offline: um perfil já validado neste aparelho pode ser selecionado sem rede.
+        if (!navigator.onLine) {
+          salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
+          ocultarTelaLoginBm_();
+          return true;
+        }
+
+        try {
+          const result = await authRequest_({ sessionToken: perfil.sessionToken }, 20000);
+          if (!result?.autenticado || !result?.usuario) throw new Error('Não foi possível confirmar este usuário.');
+          salvarSessaoLocalBm_(result.usuario, result.sessionToken || perfil.sessionToken);
+          ocultarTelaLoginBm_();
+          return true;
+        } catch (error) {
+          if (error?.code === 'AUTH_REQUIRED' || error?.status === 401) {
+            removerPerfilConhecidoBm_(perfil.usuario.id);
+            limparSessaoLocalBm_();
+            const restantes = carregarPerfisConhecidosBm_();
+            if (restantes.length) mostrarEscolhaUsuariosDispositivo_('Esse acesso precisa ser validado novamente. Escolha outro usuário ou entre com o Nº BM.');
+            else mostrarTelaLoginBm_('Esse acesso precisa ser validado novamente. Informe o Nº BM.');
+            return false;
+          }
+          // Se a internet estiver instável, mantém o perfil já validado no aparelho.
+          salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
+          ocultarTelaLoginBm_();
+          return true;
+        }
+      }
+
       async function inicializarAutenticacaoBm_() {
         carregarSessaoLocalBm_();
+        const perfis = carregarPerfisConhecidosBm_();
         atualizarUsuarioLogadoUi_();
-        if (authState.usuario && authState.sessionToken) {
-          if (!navigator.onLine) {
-            ocultarTelaLoginBm_();
-            return loadInitialData();
-          }
-          try {
-            const result = await authRequest_({ sessionToken: authState.sessionToken }, 20000);
-            if (result?.autenticado && result?.usuario) {
-              salvarSessaoLocalBm_(result.usuario, result.sessionToken || authState.sessionToken);
-              ocultarTelaLoginBm_();
-              return loadInitialData();
-            }
-          } catch (error) {
-            limparSessaoLocalBm_();
-          }
+
+        // Tablet compartilhado: mais de um perfil conhecido sempre exige escolha
+        // na abertura, evitando atribuir a vistoria ao último usuário por engano.
+        if (perfis.length > 1) {
+          loadingOverlay.classList.remove('show');
+          mostrarEscolhaUsuariosDispositivo_();
+          return;
         }
+
+        if (perfis.length === 1) {
+          const entrou = await selecionarPerfilConhecidoBm_(perfis[0].usuario.id);
+          if (entrou) return loadInitialData();
+          loadingOverlay.classList.remove('show');
+          return;
+        }
+
+        if (authState.usuario && authState.sessionToken) {
+          const entrou = await selecionarPerfilConhecidoBm_(authState.usuario.id);
+          if (entrou) return loadInitialData();
+        }
+
         loadingOverlay.classList.remove('show');
         mostrarTelaLoginBm_();
       }
@@ -2230,9 +2379,23 @@
 
       function sairUsuarioBm_() {
         fecharMenuMais_();
-        if (!confirm('Sair deste usuário e voltar para a tela de Nº BM?')) return;
+        if (!confirm('Trocar o usuário que está usando este aparelho?')) return;
+
+        // Em tablet compartilhado, preserva o rascunho do usuário atual e limpa
+        // somente a tela antes de entregar o aparelho ao próximo usuário.
+        let rascunhoAtual = '';
+        const chaveRascunho = draftKeyAtual_();
+        try {
+          saveDraft();
+          rascunhoAtual = String(localStorage.getItem(chaveRascunho) || '');
+        } catch (e) {}
+        resetForm();
+        try { if (rascunhoAtual) localStorage.setItem(chaveRascunho, rascunhoAtual); } catch (e) {}
+
         limparSessaoLocalBm_();
-        mostrarTelaLoginBm_();
+        const perfis = carregarPerfisConhecidosBm_();
+        if (perfis.length) mostrarEscolhaUsuariosDispositivo_('Escolha seu usuário.');
+        else mostrarTelaLoginBm_();
       }
 
       function renderizarTutorial_() {
@@ -2456,6 +2619,13 @@
         const entrou = await concluirLoginBm_(authBmInput?.value || '', btn.dataset.authUserId || '');
         if (entrou) await loadInitialData();
       });
+      authDeviceProfileList?.addEventListener('click', async event => {
+        const btn = event.target.closest('[data-device-user-id]');
+        if (!btn) return;
+        const entrou = await selecionarPerfilConhecidoBm_(btn.dataset.deviceUserId || '');
+        if (entrou) await loadInitialData();
+      });
+      authUseOtherBmBtn?.addEventListener('click', () => mostrarTelaLoginBm_('Informe seu Nº BM para adicionar ou trocar o usuário deste aparelho.'));
       userManagerCloseBtn?.addEventListener('click', fecharGerenciadorUsuarios_);
       userManagerModal?.addEventListener('click', event => { if (event.target === userManagerModal) fecharGerenciadorUsuarios_(); });
       userManagerBm?.addEventListener('input', () => { userManagerBm.value = normalizarBmCliente_(userManagerBm.value); });
@@ -2519,7 +2689,12 @@
       if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) installPanel.hidden = true;
 
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+        window.addEventListener('load', async () => {
+          try {
+            const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+            await reg.update();
+          } catch (e) {}
+        });
       }
 
       atualizarStatusConexao();

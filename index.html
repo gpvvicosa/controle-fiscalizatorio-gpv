@@ -35,7 +35,20 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="styles.css">
+  <style id="gpv-critical-boot">
+    html,body{margin:0;min-height:100%;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif}
+    *,*::before,*::after{box-sizing:border-box}
+    img{max-width:100%;height:auto}
+    .hero-banner{display:block;width:100%;height:auto}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:#7f1116}
+    .auth-gate.show{display:flex}
+    .auth-card{width:min(430px,100%);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;padding:24px 20px;text-align:center}
+    .auth-logo-wrap{width:112px;height:112px;margin:0 auto 12px}
+    .auth-logo-wrap img{display:block;width:112px;height:112px;object-fit:contain}
+    .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:rgba(255,255,255,.96)}
+    .loading-box{max-width:90vw;padding:16px 20px;border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.12);font-weight:700;color:#6f161a}
+  </style>
+  <link rel="stylesheet" href="styles.css?v=20.0">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -43,23 +56,33 @@
   <div class="auth-gate" id="authGate" aria-hidden="false">
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-logo-wrap" aria-hidden="true">
-        <img src="assets/logo-gpv.png" alt="">
+        <img src="assets/logo-gpv.png?v=20.0" width="512" height="512" alt="">
       </div>
       <span class="auth-kicker">Acesso institucional</span>
       <h1 id="authTitle">Controle Fiscalizatório</h1>
-      <p class="auth-subtitle">Informe seu <strong>Nº BM</strong> para acessar o aplicativo.</p>
-      <form id="authForm" autocomplete="off">
-        <label class="auth-label" for="authBmInput">Nº BM</label>
-        <input class="auth-input" id="authBmInput" type="text" inputmode="numeric" maxlength="7" placeholder="0000000" autocomplete="off">
-        <button class="auth-enter-btn" id="authEnterBtn" type="submit">Entrar</button>
-      </form>
-      <div class="auth-message" id="authMessage" role="status" aria-live="polite"></div>
-      <div class="auth-profile-choice" id="authProfileChoice" hidden>
-        <strong>Este Nº BM está temporariamente associado a mais de um usuário.</strong>
-        <span>Escolha seu nome para continuar e depois atualize o Nº BM em Mais → Gerenciar usuários.</span>
-        <div class="auth-profile-list" id="authProfileList"></div>
+      <p class="auth-subtitle" id="authSubtitle">Informe seu <strong>Nº BM</strong> para acessar o aplicativo.</p>
+
+      <div class="auth-device-choice" id="authDeviceChoice" hidden>
+        <strong>Escolha seu usuário</strong>
+        <span>Este aparelho já foi utilizado por mais de um usuário.</span>
+        <div class="auth-device-profile-list" id="authDeviceProfileList"></div>
+        <button class="auth-other-bm-btn" id="authUseOtherBmBtn" type="button">Entrar com outro Nº BM</button>
       </div>
-      <p class="auth-offline-note" id="authOfflineNote" hidden>Primeiro acesso neste aparelho exige conexão com a internet.</p>
+
+      <div class="auth-manual-login" id="authManualLogin">
+        <form id="authForm" autocomplete="off">
+          <label class="auth-label" for="authBmInput">Nº BM</label>
+          <input class="auth-input" id="authBmInput" type="text" inputmode="numeric" maxlength="7" placeholder="0000000" autocomplete="off">
+          <button class="auth-enter-btn" id="authEnterBtn" type="submit">Entrar</button>
+        </form>
+        <div class="auth-message" id="authMessage" role="status" aria-live="polite"></div>
+        <div class="auth-profile-choice" id="authProfileChoice" hidden>
+          <strong>Este Nº BM está temporariamente associado a mais de um usuário.</strong>
+          <span>Escolha seu nome para continuar e depois atualize o Nº BM em Mais → Gerenciar usuários.</span>
+          <div class="auth-profile-list" id="authProfileList"></div>
+        </div>
+        <p class="auth-offline-note" id="authOfflineNote" hidden>Primeiro acesso neste aparelho exige conexão com a internet.</p>
+      </div>
     </section>
   </div>
 
@@ -82,7 +105,7 @@
 
       <div class="dashboard-header-actions" aria-label="Ações do painel">
         <div class="dashboard-gpv-mark" aria-hidden="true">
-          <img src="assets/logo-gpv.png" alt="">
+          <img src="assets/logo-gpv.png?v=20.0" width="512" height="512" alt="">
         </div>
         <a class="dashboard-header-action dashboard-sheet-header-link" id="dashboardSheetHeaderLink" href="#" target="_blank" rel="noopener" hidden>
           <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
@@ -213,10 +236,12 @@
 
   <main class="page">
     <section class="hero" aria-label="Controle Fiscalizatório GPV Viçosa">
-      <img class="hero-banner" src="assets/cabecalho.webp" alt="Controle Fiscalizatório GPV Viçosa">
+      <img class="hero-banner" src="assets/cabecalho.webp" width="2048" height="682" alt="Controle Fiscalizatório GPV Viçosa">
     </section>
 
     <nav class="app-view-nav" aria-label="Áreas do aplicativo">
+      <div class="logged-user-badge" id="loggedUserBadge" hidden aria-live="polite"></div>
+      <div class="app-view-nav-actions">
       <button class="app-view-btn active" id="formTabBtn" type="button" aria-pressed="true">
         <span class="app-view-icon" aria-hidden="true">
           <svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="4.5" width="12" height="16" rx="2.5"/><path d="M9 4.5V3h6v1.5M9.5 10.5l1.6 1.6 3.4-3.4M9.5 16h5"/></svg>
@@ -235,6 +260,7 @@
         </span>
         <span>Mais</span>
       </button>
+      </div>
     </nav>
 
 <div class="connection-banner connection-online" id="connectionBanner" role="status" aria-live="polite" aria-label="Online — conexão disponível">
@@ -765,8 +791,8 @@
   <div class="loading show" id="loadingOverlay">
     <div class="loading-box"><span class="spinner"></span><span id="loadingText">Carregando aplicativo...</span></div>
   </div>
-  <script src="config.js"></script>
-  <script src="ocupacoes.js"></script>
-  <script src="app.js?v=19.0"></script>
+  <script src="config.js?v=20.0"></script>
+  <script src="ocupacoes.js?v=20.0"></script>
+  <script src="app.js?v=20.0"></script>
 </body>
 </html>

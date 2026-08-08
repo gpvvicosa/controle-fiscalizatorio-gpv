@@ -3706,3 +3706,175 @@ body.user-manager-open { overflow: hidden; }
   .user-manager-actions { flex-direction: column-reverse; }
   .user-manager-actions .btn { width: 100%; }
 }
+
+/* =============================================================================
+   V20 — USUÁRIO LOGADO, TABLET COMPARTILHADO, LOGO GPV E BOOT ESTÁVEL
+   ============================================================================= */
+
+/* A faixa de navegação passa a ter uma linha discreta para o usuário logado. */
+.app-view-nav {
+  display: block !important;
+  grid-template-columns: none !important;
+  padding: 7px 8px 8px !important;
+}
+.app-view-nav-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.logged-user-badge {
+  width: fit-content;
+  max-width: calc(100% - 20px);
+  margin: 0 auto 5px;
+  padding: 3px 11px 4px;
+  border: 1px solid rgba(153, 27, 27, .12);
+  border-radius: 999px;
+  background: rgba(255,255,255,.82);
+  color: #7f1d1d;
+  box-shadow: 0 2px 8px rgba(16,24,40,.05);
+  font-size: 12.5px;
+  line-height: 1.25;
+  font-weight: 850;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.logged-user-badge[hidden] { display: none !important; }
+
+/* Mantém a ordem Painel | Vistoria | Mais dentro da nova grade interna. */
+.app-view-nav-actions #recordsTabBtn { order: 1 !important; grid-column: 1 !important; grid-row: 1 !important; }
+.app-view-nav-actions #formTabBtn { order: 2 !important; grid-column: 2 !important; grid-row: 1 !important; }
+.app-view-nav-actions #navMoreMenuBtn { order: 3 !important; grid-column: 3 !important; grid-row: 1 !important; }
+
+/* Logo do GPV fora da moldura, maior e com seus detalhes preservados. */
+.auth-logo-wrap {
+  width: 112px !important;
+  height: 112px !important;
+  margin: -4px auto 12px !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+.auth-logo-wrap img {
+  width: 112px !important;
+  height: 112px !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 8px 14px rgba(83, 18, 18, .16));
+}
+@media (min-width: 1181px) {
+  body.records-mode .dashboard-gpv-mark {
+    width: 76px !important;
+    height: 82px !important;
+    overflow: visible !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  body.records-mode .dashboard-gpv-mark img {
+    width: 72px !important;
+    height: 82px !important;
+    object-fit: contain !important;
+  }
+}
+
+/* Escolha de usuário em aparelhos compartilhados. */
+.auth-device-choice {
+  margin-top: 4px;
+  padding: 14px;
+  border: 1px solid #ead8d8;
+  border-radius: 16px;
+  background: #fffafa;
+  text-align: left;
+}
+.auth-device-choice[hidden],
+.auth-manual-login[hidden] { display: none !important; }
+.auth-device-choice > strong {
+  display: block;
+  color: #611316;
+  font-size: 16px;
+  font-weight: 900;
+  text-align: center;
+}
+.auth-device-choice > span {
+  display: block;
+  margin-top: 4px;
+  color: #766161;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: center;
+}
+.auth-device-profile-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 13px;
+}
+.auth-device-profile-btn {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 13px;
+  border: 1px solid #dfd2d2;
+  border-radius: 13px;
+  background: #fff;
+  color: #352626;
+  box-shadow: 0 2px 7px rgba(16,24,40,.05);
+  font-size: 15px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.auth-device-profile-btn:hover {
+  transform: translateY(-1px);
+  border-color: #caa9aa;
+  box-shadow: 0 4px 10px rgba(16,24,40,.08);
+}
+.auth-other-bm-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 11px;
+  border: 1px solid #d8cccc;
+  border-radius: 12px;
+  background: #fff;
+  color: #7f1d1d;
+  font-size: 13.5px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+/* Evita salto visual caso HTML novo seja carregado antes do CSS completo. */
+.hero-banner,
+.auth-logo-wrap img,
+.dashboard-gpv-mark img,
+.brand-mark img {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 767px) {
+  .app-view-nav {
+    width: 100% !important;
+    padding: 6px 6px 7px !important;
+  }
+  .app-view-nav-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px;
+  }
+  .logged-user-badge {
+    margin-bottom: 4px;
+    padding: 3px 9px;
+    font-size: 12px;
+  }
+  .auth-logo-wrap,
+  .auth-logo-wrap img {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  .auth-device-choice { padding: 12px; }
+  .auth-device-profile-btn { min-height: 50px; font-size: 14.5px; }
+}
