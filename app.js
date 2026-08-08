@@ -1938,7 +1938,7 @@
               : `Consulta concluída. Os dados cadastrais já correspondem a este CNPJ.${complementoCidade}`,
             'success'
           );
-          setTimeout(() => document.getElementById('responsavelSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 900);
+          // Mantém a posição atual após validar o CNPJ. O usuário segue o formulário manualmente.
         } catch (error) {
           if (sequencia !== cnpjConsultaSequencia || digits(value('cnpj')) !== cnpj) return;
           showCnpjStatus(error?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v21-cnpj-rt';
-const VERSION = '21.0';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v21-1-fluxo-cnpj';
+const VERSION = '21.1';
 const APP_SHELL = [
   './',
   './index.html',
