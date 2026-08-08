@@ -145,8 +145,7 @@
       const recordHistoryCount = document.getElementById('recordHistoryCount');
       const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
       const connectionBanner = document.getElementById('connectionBanner');
-      const connectionTitle = document.getElementById('connectionTitle');
-      const connectionText = document.getElementById('connectionText');
+      const connectionStateText = document.getElementById('connectionStateText');
       const pendingPanel = document.getElementById('pendingPanel');
       const pendingTitle = document.getElementById('pendingTitle');
       const pendingText = document.getElementById('pendingText');
@@ -158,7 +157,6 @@
       const navMoreMenuBtn = document.getElementById('navMoreMenuBtn');
       const dashboardMoreMenuBtn = document.getElementById('dashboardMoreMenuBtn');
       const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
-      const contingenciaLinkMenu = document.getElementById('contingenciaLinkMenu');
       const tutorialMenuBtn = document.getElementById('tutorialMenuBtn');
       const updateAppBtn = document.getElementById('updateAppBtn');
       const adminSheetMenuLink = document.getElementById('adminSheetMenuLink');
@@ -354,10 +352,11 @@
       function atualizarStatusConexao() {
         const online = navigator.onLine;
         connectionBanner.classList.toggle('offline', !online);
-        connectionTitle.textContent = online ? 'Online' : 'Offline';
-        connectionText.textContent = online
-          ? 'Preenchimento salvo automaticamente neste aparelho.'
-          : 'Continue preenchendo; o envio ficará pendente até a conexão voltar.';
+        connectionBanner.classList.toggle('connection-online', online);
+        connectionBanner.setAttribute('aria-label', online
+          ? 'Online — conexão disponível'
+          : 'Offline — dados preservados neste aparelho');
+        if (connectionStateText) connectionStateText.textContent = online ? 'Online' : 'Offline';
         submitBtn.textContent = online ? 'Registrar vistoria' : 'Salvar no aparelho';
         if (!online) {
           appStatus.textContent = 'Sem internet — preenchimento salvo neste aparelho.';
@@ -1809,9 +1808,6 @@
       function aplicarConfig(data) {
         appConfig = data || DEFAULT_CONFIG;
         populateOptions(appConfig.opcoes || {});
-        if (contingenciaLinkMenu) {
-          contingenciaLinkMenu.href = appConfig.formularioContingenciaUrl || DEFAULT_CONFIG.formularioContingenciaUrl;
-        }
         document.getElementById('receitaCnpjLink').href = appConfig.receitaCnpjUrl || DEFAULT_CONFIG.receitaCnpjUrl;
         atualizarLinkPlanilha_(appConfig?.planilhaUrl || '');
         if (!value('enderecoCorrespondencia')) document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
@@ -1950,7 +1946,6 @@
         alternarMenuMais_(btn);
       }));
       appMoreMenu?.addEventListener('click', event => event.stopPropagation());
-      contingenciaLinkMenu?.addEventListener('click', fecharMenuMais_);
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
       tutorialCloseBtn?.addEventListener('click', fecharTutorial_);
       tutorialModal?.addEventListener('click', event => { if (event.target === tutorialModal) fecharTutorial_(); });

@@ -3231,3 +3231,97 @@ body.detail-open { overflow: hidden; }
 #formTabBtn { order: 2; }
 #navMoreMenuBtn { order: 3; }
 body.tutorial-open { overflow: hidden; }
+
+
+/* =============================================================================
+   V16 — NAVEGAÇÃO MOBILE, CONECTIVIDADE COMPACTA E AJUSTES FINAIS (08/08/2026)
+   ============================================================================= */
+
+/* Celular: Painel | Vistoria | Mais sempre na mesma linha. */
+@media (max-width: 767px) {
+  .app-view-nav {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    gap: 4px;
+    padding: 5px;
+  }
+  .app-view-btn {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 46px;
+    padding: 7px 3px;
+    gap: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .app-view-btn .ui-icon {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+  }
+  #recordsTabBtn { order: 1 !important; grid-column: 1 !important; grid-row: 1 !important; }
+  #formTabBtn { order: 2 !important; grid-column: 2 !important; grid-row: 1 !important; }
+  #navMoreMenuBtn { order: 3 !important; grid-column: 3 !important; grid-row: 1 !important; }
+}
+
+/* Indicador moderno de conectividade: somente ícone, sem legenda visual. */
+.connection-banner {
+  width: 42px;
+  min-width: 42px;
+  height: 38px;
+  min-height: 38px;
+  margin: 0 0 10px auto;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  gap: 0;
+  border-radius: 999px;
+  border: 1px solid #b7e4c7;
+  background: #effaf3;
+  box-shadow: 0 3px 12px rgba(16,24,40,.05);
+}
+.connection-banner.offline {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+.connection-dot,
+.connection-copy { display: none !important; }
+.connection-icon {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.connection-icon-online { color: #16864b; }
+.connection-icon-offline { display: none; color: #d97706; }
+.connection-banner.offline .connection-icon-online { display: none; }
+.connection-banner.offline .connection-icon-offline { display: block; }
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .connection-banner {
+    width: 40px;
+    min-width: 40px;
+    height: 36px;
+    min-height: 36px;
+    margin-bottom: 7px;
+  }
+  .connection-icon { width: 22px; height: 22px; }
+}
