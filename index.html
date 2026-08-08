@@ -128,20 +128,21 @@
         </article>
         <article class="tutorial-step" data-tutorial-step="2">
           <div class="tutorial-step-icon">🏢</div>
-          <h3>2. CNPJ e dados da empresa</h3>
-          <p>Na Vistoria, informe o <strong>CNPJ</strong>. Assim que os 14 dígitos forem preenchidos e houver internet, o sistema faz a consulta automaticamente e completa os dados disponíveis da empresa, incluindo <strong>Razão Social</strong> e <strong>endereço</strong>.</p>
-          <p class="tutorial-note">Depois, confira os dados encontrados e informe o <strong>Nome Fantasia</strong> quando necessário. Complete normalmente os demais dados específicos da vistoria.</p>
+          <h3>2. CNPJ ou CPF e dados do estabelecimento</h3>
+          <p>No campo <strong>CNPJ ou CPF</strong>, digite somente os números. O aplicativo identifica automaticamente o documento: <strong>14 dígitos = CNPJ</strong> e <strong>11 dígitos = CPF</strong>.</p>
+          <p>Quando for CNPJ e houver internet, o sistema consulta os dados disponíveis e pode preencher automaticamente <strong>Razão Social</strong> e <strong>endereço</strong>. Quando for CPF, ele é levado automaticamente para o campo <strong>CPF do responsável</strong>.</p>
+          <p class="tutorial-note">Depois, confira os dados encontrados e informe o <strong>Nome Fantasia</strong> quando necessário. CNPJ e CPF são armazenados em suas colunas próprias na planilha.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="3">
           <div class="tutorial-step-icon">📶</div>
           <h3>3. Online e offline</h3>
-          <p>A <strong>barra verde animada</strong>, logo abaixo da navegação, indica que o aparelho está conectado à internet. Quando a conexão cair, ela muda para uma <strong>barra vermelha pulsante</strong>.</p>
+          <p>A faixa estreita de conexão ocupa a largura da página: <strong>verde forte com indicador em movimento</strong> significa conexão disponível; <strong>vermelha forte pulsante</strong> significa que o aparelho está sem internet.</p>
           <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho. Se você registrar uma vistoria sem sinal, ela permanece segura na fila offline e será enviada quando a conexão voltar.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="4">
           <div class="tutorial-step-icon">🖥️</div>
           <h3>4. Consultar o Painel</h3>
-          <p>Use <strong>Painel</strong> para pesquisar estabelecimento, CNPJ, Nº do PSCIP ou endereço. Os filtros ajudam a localizar registros por cidade, demanda, situação, tipo de vistoria e período.</p>
+          <p>Use <strong>Painel</strong> para pesquisar estabelecimento, CNPJ, CPF, Nº do PSCIP ou endereço. Os filtros ajudam a localizar registros por cidade, demanda, situação, tipo de vistoria e período.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="5">
           <div class="tutorial-step-icon">📋</div>
@@ -274,7 +275,7 @@
         <div class="dashboard-filters">
           <label class="dashboard-search" for="recordsSearch">
             <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
-            <input id="recordsSearch" type="search" autocomplete="off" placeholder="Pesquisar estabelecimento, CNPJ, Nº PSCIP ou endereço">
+            <input id="recordsSearch" type="search" autocomplete="off" placeholder="Pesquisar estabelecimento, CNPJ, CPF, Nº PSCIP ou endereço">
           </label>
 
           <div class="dashboard-filter-grid">
@@ -322,7 +323,7 @@
             <table class="records-table">
               <thead>
                 <tr>
-                  <th>Data</th><th>Estabelecimento</th><th>Cidade</th><th>CNPJ</th><th>Demanda</th><th>Situação</th><th>Nº PSCIP</th><th>Tipo</th>
+                  <th>Data</th><th>Estabelecimento</th><th>Cidade</th><th>CNPJ / CPF</th><th>Demanda</th><th>Situação</th><th>Nº PSCIP</th><th>Tipo</th>
                 </tr>
               </thead>
               <tbody id="recordsTableBody"></tbody>
@@ -394,20 +395,20 @@
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5L12 3v18M12 8h8v13M7.5 8h1M7.5 11.5h1M7.5 15h1M15.5 11h1M15.5 14.5h1M15.5 18h1M2.5 21h19"/></svg></div>
           <div class="head-text">
-            <h2>2. CNPJ e dados da empresa</h2>
-            <p>Consulte o CNPJ e confira os dados preenchidos automaticamente.</p>
+            <h2>2. Identificação e dados do estabelecimento</h2>
+            <p>Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente.</p>
           </div>
         </div>
         <div class="section-body">
           <div class="grid">
             <div class="field wide">
-              <label for="cnpj">CNPJ</label>
+              <label class="required" for="cnpj" id="identificadorLabel">CNPJ ou CPF</label>
               <div class="input-action">
-                <input id="cnpj" name="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18">
-                <button class="lookup-btn" id="consultarCnpjBtn" type="button"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5"/></svg><span>Consultar CNPJ</span></button>
+                <input id="cnpj" name="cnpj" inputmode="numeric" autocomplete="off" placeholder="Digite somente os números" maxlength="18" aria-describedby="cnpjStatus">
+                <button class="lookup-btn" id="consultarCnpjBtn" type="button" hidden><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5"/></svg><span>Consultar CNPJ</span></button>
               </div>
               <div class="lookup-status" id="cnpjStatus"></div>
-              <a class="official-link" id="receitaCnpjLink" href="#" target="_blank" rel="noopener">Conferir na Receita Federal</a>
+              <a class="official-link" id="receitaCnpjLink" href="#" target="_blank" rel="noopener" hidden>Conferir CNPJ na Receita Federal</a>
             </div>
             <div class="field half">
               <label for="nomeFantasia">Nome Fantasia</label>
@@ -466,7 +467,7 @@
               <input id="rg" name="rg" placeholder="RG">
             </div>
             <div class="field">
-              <label for="cpf">CPF</label>
+              <label for="cpf">CPF do responsável</label>
               <input id="cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00" maxlength="14">
             </div>
             <div class="field">

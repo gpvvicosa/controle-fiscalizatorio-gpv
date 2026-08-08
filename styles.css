@@ -3382,3 +3382,91 @@ body.tutorial-open { overflow: hidden; }
     font-size: 12px;
   }
 }
+
+
+/* =============================================================================
+   V18 — BARRA DE CONEXÃO EM TRILHO + IDENTIFICADOR CNPJ/CPF
+   ============================================================================= */
+.connection-banner {
+  position: relative !important;
+  width: 100% !important;
+  height: 9px !important;
+  min-height: 9px !important;
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #00b84f !important;
+  box-shadow: 0 0 0 1px rgba(0, 184, 79, .16), 0 2px 8px rgba(0, 184, 79, .28) !important;
+  animation: none !important;
+}
+.connection-banner::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border: 3px solid rgba(255,255,255,.95);
+  border-radius: 50%;
+  background: #00a844;
+  box-shadow: 0 1px 5px rgba(0,0,0,.18);
+  transform: translate(0, -50%);
+  animation: gpvConnectionKnob 2.4s ease-in-out infinite alternate;
+}
+.connection-banner::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: auto !important;
+  border-radius: inherit !important;
+  background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.32), rgba(255,255,255,.04)) !important;
+  transform: none !important;
+  animation: gpvConnectionGlow 1.8s ease-in-out infinite !important;
+  pointer-events: none;
+}
+.connection-banner.offline {
+  background: #e00000 !important;
+  box-shadow: 0 0 0 1px rgba(224, 0, 0, .18), 0 2px 10px rgba(224, 0, 0, .38) !important;
+  animation: gpvOfflinePulse .95s ease-in-out infinite !important;
+}
+.connection-banner.offline::before {
+  background: #c90000;
+  animation: none !important;
+  left: calc(100% - 17px);
+}
+.connection-banner.offline::after { display: none !important; }
+@keyframes gpvConnectionKnob {
+  from { left: 2px; }
+  to { left: calc(100% - 17px); }
+}
+@keyframes gpvConnectionGlow {
+  0%,100% { opacity: .35; }
+  50% { opacity: .9; }
+}
+@keyframes gpvOfflinePulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+#identificadorLabel { transition: color .18s ease; }
+#consultarCnpjBtn[hidden], #receitaCnpjLink[hidden] { display: none !important; }
+@media (max-width: 767px) {
+  .connection-banner { height: 8px !important; min-height: 8px !important; margin-bottom: 8px !important; }
+  .connection-banner::before { width: 14px; height: 14px; }
+  @keyframes gpvConnectionKnob {
+    from { left: 2px; }
+    to { left: calc(100% - 16px); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .connection-banner::before, .connection-banner::after, .connection-banner.offline { animation: none !important; }
+  .connection-banner.connection-online::before { left: calc(100% - 17px); }
+}
+
+#cpf.cpf-synced-from-identifier {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+  -webkit-text-fill-color: #166534;
+}

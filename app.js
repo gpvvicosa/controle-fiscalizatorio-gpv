@@ -178,6 +178,10 @@
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
       const consultarCnpjBtn = document.getElementById('consultarCnpjBtn');
       const cnpjStatus = document.getElementById('cnpjStatus');
+      const identificadorInput = document.getElementById('cnpj');
+      const identificadorLabel = document.getElementById('identificadorLabel');
+      const cpfInput = document.getElementById('cpf');
+      const receitaCnpjLink = document.getElementById('receitaCnpjLink');
       const ocupacaoInput = document.getElementById('ocupacao');
       const ocupacaoResultados = document.getElementById('ocupacaoResultados');
       const ocupacaoMeta = document.getElementById('ocupacaoMeta');
@@ -216,10 +220,42 @@
       let tutorialStepIndex = 0;
       let sancaoDefinidaAutomaticamente = false;
       let sancaoAntesDoAutomatico = '';
+      let cpfCopiadoDoIdentificador = '';
 
       function value(id) {
         const el = document.getElementById(id);
         return el ? String(el.value || '').trim() : '';
+      }
+
+      function tipoIdentificador_(valor) {
+        const d = digits(valor);
+        if (d.length === 14) return 'cnpj';
+        if (d.length === 11) return 'cpf';
+        return '';
+      }
+
+      function formatarCpfTela_(valor) {
+        const d = digits(valor).slice(0, 11);
+        if (d.length !== 11) return d;
+        return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9,11)}`;
+      }
+
+      function formatarCnpjTela_(valor) {
+        let d = digits(valor).slice(0, 14);
+        if (d.length <= 2) return d;
+        let v = d.replace(/^(\d{2})(\d)/, '$1.$2')
+          .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+          .replace(/\.(\d{3})(\d)/, '.$1/$2')
+          .replace(/(\d{4})(\d)/, '$1-$2');
+        return v;
+      }
+
+      function identificadorPainel_(item) {
+        const cnpj = String(item?.cnpj || '').trim();
+        const cpf = String(item?.cpf || '').trim();
+        if (cnpj) return { rotulo: 'CNPJ', valor: cnpj };
+        if (cpf) return { rotulo: 'CPF', valor: formatarCpfTela_(cpf) };
+        return { rotulo: 'CNPJ / CPF', valor: '—' };
       }
 
       function cityValue() {
@@ -716,7 +752,7 @@
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
             <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? `<small>${escapeHtml(item.razaoSocial)}</small>` : ''}</td>
             <td>${escapeHtml(item.cidade || '—')}</td>
-            <td class="records-mono">${escapeHtml(item.cnpj || '—')}</td>
+            <td class="records-mono">${escapeHtml(identificadorPainel_(item).valor)}</td>
             <td>${escapeHtml(item.demanda || '—')}</td>
             <td>${statusBadgeHtml_(item.sancao)}</td>
             <td class="records-mono">${escapeHtml(item.projeto || '—')}</td>
@@ -734,7 +770,7 @@
             <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span>${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
             <div class="records-card-meta">
               <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(item.cidade || '—')}</strong></div>
-              <div class="records-meta-item"><span>CNPJ</span><strong>${escapeHtml(item.cnpj || '—')}</strong></div>
+              <div class="records-meta-item"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${escapeHtml(identificadorPainel_(item).valor)}</strong></div>
               <div class="records-meta-item"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto || '—')}</strong></div>
               <div class="records-meta-item"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
             </div>
@@ -933,6 +969,9 @@
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
         const cnpj = valorCampoFicha_(registro, 'CNPJ');
+        const cpfRegistro = valorCampoFicha_(registro, 'CPF');
+        const identificadorRegistro = cnpj || (cpfRegistro ? formatarCpfTela_(cpfRegistro) : '');
+        const rotuloIdentificador = cnpj ? 'CNPJ' : (cpfRegistro ? 'CPF' : 'CNPJ / CPF');
         const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
         const processo = [
           ['Nº PSCIP', valorCampoFicha_(registro, 'Nº do PSCIP / Projeto')],
@@ -946,7 +985,7 @@
           ['Estabelecimento', estabelecimento],
           ['Razão Social', razaoSocial && normalize(razaoSocial) !== normalize(estabelecimento) ? razaoSocial : ''],
           ['Endereço', enderecoFicha_(registro)],
-          ['CNPJ', cnpj]
+          [rotuloIdentificador, identificadorRegistro]
         ];
         const responsavel = [
           ['Responsável', valorCampoFicha_(registro, 'Responsável')],
@@ -963,7 +1002,7 @@
 
         recordDetailTitle.textContent = 'Ficha do Processo';
         recordDetailSubtitle.textContent = descricaoSituacaoPainel_(situacao);
-        recordDetailLine.textContent = [estabelecimento, cnpj].filter(Boolean).join(' • ');
+        recordDetailLine.textContent = [estabelecimento, identificadorRegistro].filter(Boolean).join(' • ');
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
@@ -1413,6 +1452,7 @@
           nomeFantasia: value('nomeFantasia'),
           razaoSocial: value('razaoSocial'),
           cnpj: value('cnpj'),
+          _appIdentificadorTipo: tipoIdentificador_(value('cnpj')),
           _appLicenciamento: value('licenciamento'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           sancao: value('sancao'),
@@ -1436,7 +1476,7 @@
           responsavel: value('responsavel'),
           nomeResponsavel: value('nomeResponsavel'),
           rg: value('rg'),
-          cpf: value('cpf'),
+          cpf: value('cpf') || (tipoIdentificador_(value('cnpj')) === 'cpf' ? value('cnpj') : ''),
           mae: value('mae'),
           nascimento: value('nascimento'),
           profissao: value('profissao'),
@@ -1458,6 +1498,7 @@
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const checks = [
           ['licenciamento', 'Situação do licenciamento'],
+          ['cnpj', 'CNPJ ou CPF'],
           ['endereco', 'Endereço'],
           ['nomeResponsavel', 'Nome do responsável'],
           ['mae', 'Mãe']
@@ -1476,6 +1517,15 @@
           missing.push('Outra cidade');
           otherCity.classList.add('invalid');
           if (!first) first = otherCity;
+        }
+        const identificador = digits(value('cnpj'));
+        if (identificador && ![11, 14].includes(identificador.length)) {
+          const el = document.getElementById('cnpj');
+          el.classList.add('invalid');
+          if (showMessage) showError('Informe um CNPJ com 14 dígitos ou um CPF com 11 dígitos.');
+          openParentDetails(el);
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return false;
         }
         if (missing.length) {
           if (showMessage) showError('Preencha os campos obrigatórios: ' + missing.join(', ') + '.');
@@ -1604,18 +1654,18 @@
       }
 
       async function consultarCnpj(automatico = false) {
+        if (tipoIdentificador_(value('cnpj')) !== 'cnpj') {
+          if (!automatico) showCnpjStatus('A consulta automática é usada somente para CNPJ com 14 dígitos.', 'info');
+          return;
+        }
         if (!navigator.onLine) {
           if (!automatico) showCnpjStatus('Sem internet. Preencha os dados manualmente; a consulta automática ficará disponível quando a conexão voltar.', 'info');
           return;
         }
         const cnpj = digits(value('cnpj'));
-        if (cnpj.length !== 14) {
-          if (!automatico) showCnpjStatus('Informe os 14 dígitos do CNPJ.', 'error');
-          return;
-        }
         if (automatico && cnpj === ultimoCnpjConsultado) return;
         consultarCnpjBtn.disabled = true;
-        showCnpjStatus('Consultando dados cadastrais...', 'info');
+        showCnpjStatus('CNPJ identificado. Consultando dados cadastrais...', 'info');
         try {
           const result = await apiRequest('cnpj', { cnpj }, 30000);
           consultarCnpjBtn.disabled = false;
@@ -1634,20 +1684,67 @@
         }
       }
 
-      function applyCnpjMask(event) {
-        let v = digits(event.target.value).slice(0, 14);
-        v = v.replace(/^(\d{2})(\d)/, '$1.$2')
-             .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-             .replace(/\.(\d{3})(\d)/, '.$1/$2')
-             .replace(/(\d{4})(\d)/, '$1-$2');
-        event.target.value = v;
+      function sincronizarIdentificadorComCpf_(cpf) {
+        const d = digits(cpf);
+        if (d.length !== 11 || !cpfInput) return;
+        cpfInput.value = formatarCpfTela_(d);
+        cpfCopiadoDoIdentificador = d;
+        cpfInput.readOnly = true;
+        cpfInput.classList.add('cpf-synced-from-identifier');
+        cpfInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
 
+      function limparCpfCopiadoSeVirouCnpj_() {
+        if (!cpfInput) return;
+        if (cpfCopiadoDoIdentificador && digits(cpfInput.value) === cpfCopiadoDoIdentificador) cpfInput.value = '';
+        cpfCopiadoDoIdentificador = '';
+        cpfInput.readOnly = false;
+        cpfInput.classList.remove('cpf-synced-from-identifier');
+      }
+
+      function atualizarInterfaceIdentificador_(tipo) {
+        if (identificadorLabel) identificadorLabel.textContent = tipo === 'cnpj' ? 'CNPJ' : tipo === 'cpf' ? 'CPF' : 'CNPJ ou CPF';
+        if (consultarCnpjBtn) consultarCnpjBtn.hidden = tipo !== 'cnpj';
+        if (receitaCnpjLink) receitaCnpjLink.hidden = tipo !== 'cnpj';
+        if (cpfInput && tipo !== 'cpf' && !cpfCopiadoDoIdentificador) {
+          cpfInput.readOnly = false;
+          cpfInput.classList.remove('cpf-synced-from-identifier');
+        }
+      }
+
+      function applyIdentificadorMask(event) {
+        const raw = digits(event.target.value).slice(0, 14);
         clearTimeout(cnpjTimer);
-        if (digits(v).length === 14) {
+
+        if (raw.length <= 10) {
+          event.target.value = raw;
+          ultimoCnpjConsultado = '';
+          atualizarInterfaceIdentificador_('');
+          clearCnpjStatus();
+          return;
+        }
+
+        if (raw.length === 11) {
+          event.target.value = formatarCpfTela_(raw);
+          ultimoCnpjConsultado = '';
+          atualizarInterfaceIdentificador_('cpf');
+          cnpjTimer = setTimeout(() => {
+            if (tipoIdentificador_(value('cnpj')) !== 'cpf') return;
+            sincronizarIdentificadorComCpf_(raw);
+            showCnpjStatus('CPF identificado. O número foi levado para o CPF do responsável.', 'success');
+            scheduleDraftSave();
+          }, 650);
+          return;
+        }
+
+        limparCpfCopiadoSeVirouCnpj_();
+        event.target.value = formatarCnpjTela_(raw);
+        atualizarInterfaceIdentificador_(raw.length === 14 ? 'cnpj' : '');
+        clearCnpjStatus();
+        if (raw.length === 14) {
           cnpjTimer = setTimeout(() => consultarCnpj(true), 700);
         } else {
           ultimoCnpjConsultado = '';
-          clearCnpjStatus();
         }
       }
 
@@ -1657,6 +1754,7 @@
              .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
              .replace(/\.(\d{3})(\d)/, '.$1-$2');
         event.target.value = v;
+        if (cpfCopiadoDoIdentificador && digits(v) !== cpfCopiadoDoIdentificador) cpfCopiadoDoIdentificador = '';
       }
 
       function applyPhoneMask(event) {
@@ -1712,6 +1810,9 @@
           restaurarOcupacoesSelecionadas(p.ocupacao);
           syncOtherCity();
           syncLicenciamento();
+          const tipoId = tipoIdentificador_(value('cnpj'));
+          atualizarInterfaceIdentificador_(tipoId);
+          if (tipoId === 'cpf') sincronizarIdentificadorComCpf_(value('cnpj'));
           syncNotificado();
           appStatus.textContent = 'Rascunho anterior recuperado.';
         } catch (e) {}
@@ -1735,6 +1836,8 @@
         hideError();
         clearCnpjStatus();
         ultimoCnpjConsultado = '';
+        cpfCopiadoDoIdentificador = '';
+        atualizarInterfaceIdentificador_('');
         ocupacaoSelecionada = null;
         ocupacoesSelecionadas = [];
         ocupacaoInput.value = '';
@@ -1921,7 +2024,7 @@
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); scheduleDraftSave(); });
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
-      document.getElementById('cnpj').addEventListener('input', applyCnpjMask);
+      document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       consultarCnpjBtn.addEventListener('click', () => consultarCnpj(false));
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
       document.getElementById('telefone').addEventListener('input', applyPhoneMask);
