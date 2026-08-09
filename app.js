@@ -1697,7 +1697,7 @@
           _appPossuiPscip: value('possuiPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           sancao: value('sancao'),
-          pscip: value('pscip'),
+          pscip: value('possuiPscip') === 'sim' ? normalizarPscipExibicao_(value('pscip'), true) : '',
           pf: value('pf'),
           tipoVistoria: value('tipoVistoria'),
           reds: value('reds'),
@@ -1747,7 +1747,7 @@
         ];
         const missing = [];
         let first = null;
-        if (value('possuiPscip') === 'sim' && !value('pscip')) {
+        if (value('possuiPscip') === 'sim' && normalizarPscipTela_(value('pscip')).length <= 3) {
           const elPscip = document.getElementById('pscip');
           if (elPscip) elPscip.classList.add('invalid');
           missing.push('Nº do PSCIP');
@@ -1840,6 +1840,10 @@
             pscipInput.value = '';
             esconderHistoricoPscip_();
             clearPscipLookupStatus_();
+          } else if (!String(pscipInput.value || '').trim()) {
+            pscipInput.value = 'PRJ';
+          } else {
+            normalizarPscipInput_(false);
           }
         }
         agendarConsultaEncerramentoFiscal_();
@@ -2463,6 +2467,22 @@
         responsavelLookupTimer = setTimeout(consultarResponsavelPorTelefone_, 550);
       }
 
+
+      function normalizarPscipExibicao_(valor, garantirPrefixo = false) {
+        let texto = String(valor == null ? '' : valor).trim();
+        if (!texto) return garantirPrefixo ? 'PRJ' : '';
+        texto = texto.replace(/^prj/i, 'PRJ');
+        if (garantirPrefixo && !/^PRJ/i.test(texto)) texto = `PRJ${texto}`;
+        return texto.replace(/^prj/i, 'PRJ');
+      }
+
+      function normalizarPscipInput_(garantirPrefixo = false) {
+        if (!pscipInput) return '';
+        const antes = String(pscipInput.value || '');
+        const depois = normalizarPscipExibicao_(antes, garantirPrefixo);
+        if (depois !== antes) pscipInput.value = depois;
+        return depois;
+      }
 
       function normalizarPscipTela_(valor) {
         return String(valor == null ? '' : valor).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -3429,7 +3449,18 @@
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
       possuiPscipSelect?.addEventListener('change', () => { syncPscip_(); scheduleDraftSave(); });
       possuiPscipSelect?.addEventListener('input', () => { syncPscip_(); scheduleDraftSave(); });
-      pscipInput?.addEventListener('input', () => { agendarConsultaPscip_(); scheduleDraftSave(); });
+      pscipInput?.addEventListener('input', () => {
+        const atual = String(pscipInput.value || '');
+        const corrigido = atual.replace(/^prj/i, 'PRJ');
+        if (corrigido !== atual) pscipInput.value = corrigido;
+        agendarConsultaPscip_();
+        scheduleDraftSave();
+      });
+      pscipInput?.addEventListener('blur', () => {
+        if (value('possuiPscip') === 'sim') normalizarPscipInput_(true);
+        agendarConsultaPscip_();
+        scheduleDraftSave();
+      });
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
