@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v23-pscip-encerramento';
-const VERSION = '23.0';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v23-1-inicio-animado';
+const VERSION = '23.1';
 const APP_SHELL = [
   './',
   './index.html',
