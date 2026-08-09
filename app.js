@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '22.0';
+      const APP_VERSION = '23.0';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -303,8 +303,12 @@
       const cityCheckChangeBtn = document.getElementById('cityCheckChangeBtn');
       const cityCheckKeepBtn = document.getElementById('cityCheckKeepBtn');
       const licenciamentoSelect = document.getElementById('licenciamento');
+      const possuiPscipSelect = document.getElementById('possuiPscip');
       const pscipLicenciamentoWrap = document.getElementById('pscipLicenciamentoWrap');
       const pscipInput = document.getElementById('pscip');
+      const pscipLookupStatus = document.getElementById('pscipLookupStatus');
+      const pscipHistoryPanel = document.getElementById('pscipHistoryPanel');
+      const pscipHistoryResults = document.getElementById('pscipHistoryResults');
       const sancaoSelect = document.getElementById('sancao');
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
       const cnpjStatus = document.getElementById('cnpjStatus');
@@ -324,6 +328,8 @@
       const reviewModal = document.getElementById('reviewModal');
       const reviewList = document.getElementById('reviewList');
       const reviewDuplicateNotice = document.getElementById('reviewDuplicateNotice');
+      const reviewClosureNotice = document.getElementById('reviewClosureNotice');
+      const processClosureNotice = document.getElementById('processClosureNotice');
       const reviewCancelBtn = document.getElementById('reviewCancelBtn');
       const reviewCancelTopBtn = document.getElementById('reviewCancelTopBtn');
       const reviewConfirmBtn = document.getElementById('reviewConfirmBtn');
@@ -375,6 +381,12 @@
       let estabelecimentoLookupTimer = null;
       let estabelecimentoLookupSequencia = 0;
       let historicoEstabelecimentoAtual = [];
+      let pscipLookupTimer = null;
+      let pscipLookupSequencia = 0;
+      let historicoPscipAtual = [];
+      let encerramentoFiscalTimer = null;
+      let encerramentoFiscalSequencia = 0;
+      let encerramentoFiscalAtual = null;
 
       function value(id) {
         const el = document.getElementById(id);
@@ -1682,6 +1694,7 @@
           cnpj: value('cnpj'),
           _appIdentificadorTipo: tipoIdentificador_(value('cnpj')),
           _appLicenciamento: value('licenciamento'),
+          _appPossuiPscip: value('possuiPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           sancao: value('sancao'),
           pscip: value('pscip'),
@@ -1726,6 +1739,7 @@
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const checks = [
           ['licenciamento', 'Situação do licenciamento'],
+          ['possuiPscip', 'Possui PSCIP?'],
           ['cnpj', 'CNPJ ou CPF'],
           ['endereco', 'Endereço'],
           ['nomeResponsavel', 'Nome do responsável'],
@@ -1733,6 +1747,12 @@
         ];
         const missing = [];
         let first = null;
+        if (value('possuiPscip') === 'sim' && !value('pscip')) {
+          const elPscip = document.getElementById('pscip');
+          if (elPscip) elPscip.classList.add('invalid');
+          missing.push('Nº do PSCIP');
+          first = first || elPscip;
+        }
         checks.forEach(([id, label]) => {
           const el = document.getElementById(id);
           if (!String(el.value || '').trim()) {
@@ -1779,21 +1799,7 @@
 
       function syncLicenciamento() {
         const situacao = value('licenciamento');
-        const possui = situacao === 'possui';
         const naoPossui = situacao === 'nao_possui';
-
-        if (pscipLicenciamentoWrap) {
-          pscipLicenciamentoWrap.hidden = !possui;
-          pscipLicenciamentoWrap.classList.toggle('is-visible', possui);
-          pscipLicenciamentoWrap.setAttribute('aria-hidden', possui ? 'false' : 'true');
-          // Redundância proposital: garante a exibição mesmo se uma versão antiga
-          // do CSS/HTML ainda estiver temporariamente em cache no PWA.
-          pscipLicenciamentoWrap.style.display = possui ? 'block' : 'none';
-        }
-        if (pscipInput) {
-          pscipInput.disabled = !possui;
-          if (!possui) pscipInput.value = '';
-        }
 
         if (naoPossui) {
           if (!sancaoDefinidaAutomaticamente) {
@@ -1817,6 +1823,26 @@
         }
 
         syncNotificado();
+        agendarConsultaEncerramentoFiscal_();
+      }
+
+      function syncPscip_() {
+        const possui = value('possuiPscip') === 'sim';
+        if (pscipLicenciamentoWrap) {
+          pscipLicenciamentoWrap.hidden = !possui;
+          pscipLicenciamentoWrap.classList.toggle('is-visible', possui);
+          pscipLicenciamentoWrap.setAttribute('aria-hidden', possui ? 'false' : 'true');
+          pscipLicenciamentoWrap.style.display = possui ? 'block' : 'none';
+        }
+        if (pscipInput) {
+          pscipInput.disabled = !possui;
+          if (!possui) {
+            pscipInput.value = '';
+            esconderHistoricoPscip_();
+            clearPscipLookupStatus_();
+          }
+        }
+        agendarConsultaEncerramentoFiscal_();
       }
 
       function syncNotificado() {
@@ -2437,6 +2463,193 @@
         responsavelLookupTimer = setTimeout(consultarResponsavelPorTelefone_, 550);
       }
 
+
+      function normalizarPscipTela_(valor) {
+        return String(valor == null ? '' : valor).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      }
+
+      function showPscipLookupStatus_(texto, tipo = 'info') {
+        if (!pscipLookupStatus) return;
+        pscipLookupStatus.textContent = String(texto || '');
+        pscipLookupStatus.className = `lookup-status ${texto ? 'show ' + tipo : ''}`.trim();
+      }
+
+      function clearPscipLookupStatus_() {
+        if (!pscipLookupStatus) return;
+        pscipLookupStatus.textContent = '';
+        pscipLookupStatus.className = 'lookup-status';
+      }
+
+      function esconderHistoricoPscip_() {
+        historicoPscipAtual = [];
+        if (pscipHistoryResults) pscipHistoryResults.innerHTML = '';
+        if (pscipHistoryPanel) pscipHistoryPanel.hidden = true;
+      }
+
+      function renderizarHistoricoPscip_(itens) {
+        historicoPscipAtual = Array.isArray(itens) ? itens : [];
+        if (!pscipHistoryPanel || !pscipHistoryResults) return;
+        if (!historicoPscipAtual.length) {
+          esconderHistoricoPscip_();
+          return;
+        }
+        pscipHistoryResults.innerHTML = historicoPscipAtual.map((item, index) => {
+          const identificador = item.cnpj
+            ? formatarCnpjTela_(item.cnpj)
+            : (item.cpfEstabelecimento ? formatarCpfTela_(item.cpfEstabelecimento) : '');
+          const refs = [
+            item.carimbo || '',
+            item.sancao ? `Situação: ${item.sancao}` : '',
+            item.pf ? `PF: ${item.pf}` : '',
+            identificador
+          ].filter(Boolean).join(' • ');
+          const endereco = [item.endereco, item.numero, item.bairro, item.cidade].filter(Boolean).join(', ');
+          return `<div class="establishment-history-item">
+            <div class="establishment-history-copy">
+              <strong>${escapeHtml(item.nomeFantasia || item.razaoSocial || 'Registro do PSCIP')}</strong>
+              <span>${escapeHtml(refs || 'Registro localizado')}</span>
+              <span>${escapeHtml(endereco || '')}</span>
+            </div>
+            <button class="establishment-history-use" type="button" data-history-pscip-index="${index}">Usar dados</button>
+          </div>`;
+        }).join('');
+        pscipHistoryPanel.hidden = false;
+      }
+
+      function preencherSeVazio_(id, valor) {
+        const el = document.getElementById(id);
+        if (!el || !String(valor || '').trim() || String(el.value || '').trim()) return;
+        el.value = String(valor || '').trim();
+      }
+
+      function aplicarHistoricoPscip_(item) {
+        if (!item) return;
+        preencherSeVazio_('nomeFantasia', item.nomeFantasia);
+        preencherSeVazio_('razaoSocial', item.razaoSocial);
+        preencherSeVazio_('endereco', item.endereco);
+        preencherSeVazio_('numero', item.numero);
+        preencherSeVazio_('complemento', item.complemento);
+        preencherSeVazio_('bairro', item.bairro);
+        preencherSeVazio_('pf', item.pf);
+        preencherSeVazio_('responsavel', item.responsavel);
+        preencherSeVazio_('nomeResponsavel', item.nomeResponsavel);
+        preencherSeVazio_('telefone', item.telefone);
+        preencherSeVazio_('email', item.email);
+
+        if (!value('cnpj')) {
+          const identificador = item.cnpj || item.cpfEstabelecimento || '';
+          if (identificador) {
+            identificadorInput.value = identificador;
+            const tipo = tipoIdentificador_(identificador);
+            atualizarInterfaceIdentificador_(tipo);
+            if (tipo === 'cpf') sincronizarIdentificadorComCpf_(identificador);
+          }
+        }
+
+        showPscipLookupStatus_('Dados históricos aplicados somente nos campos que estavam vazios. Confira antes de continuar.', 'success');
+        scheduleDraftSave();
+        agendarConsultaEncerramentoFiscal_();
+      }
+
+      async function consultarHistoricoPscip_() {
+        const pscip = value('pscip');
+        const chave = normalizarPscipTela_(pscip);
+        if (value('possuiPscip') !== 'sim' || chave.length < 4 || !navigator.onLine) {
+          esconderHistoricoPscip_();
+          if (!navigator.onLine && chave.length >= 4) showPscipLookupStatus_('Sem internet: a consulta histórica do PSCIP ficará disponível quando a conexão voltar.', 'info');
+          else clearPscipLookupStatus_();
+          return;
+        }
+        const sequencia = ++pscipLookupSequencia;
+        showPscipLookupStatus_('Consultando Nº do PSCIP na planilha...', 'info');
+        try {
+          const resposta = await apiRequest('config', { consulta: 'pscip', pscip }, 7000);
+          if (sequencia !== pscipLookupSequencia || normalizarPscipTela_(value('pscip')) !== chave) return;
+          const resultados = Array.isArray(resposta?.resultados) ? resposta.resultados : [];
+          renderizarHistoricoPscip_(resultados);
+          if (!resultados.length) showPscipLookupStatus_('Nenhum registro anterior com este Nº do PSCIP foi localizado.', 'info');
+          else showPscipLookupStatus_(`${resultados.length} registro${resultados.length === 1 ? '' : 's'} localizado${resultados.length === 1 ? '' : 's'} com este PSCIP.`, 'success');
+        } catch (erro) {
+          if (sequencia !== pscipLookupSequencia) return;
+          esconderHistoricoPscip_();
+          showPscipLookupStatus_(erro?.message || 'Não foi possível consultar o PSCIP agora.', 'error');
+        }
+      }
+
+      function agendarConsultaPscip_() {
+        clearTimeout(pscipLookupTimer);
+        pscipLookupSequencia += 1;
+        const chave = normalizarPscipTela_(value('pscip'));
+        if (value('possuiPscip') !== 'sim' || chave.length < 4) {
+          esconderHistoricoPscip_();
+          clearPscipLookupStatus_();
+          return;
+        }
+        pscipLookupTimer = setTimeout(consultarHistoricoPscip_, 600);
+        agendarConsultaEncerramentoFiscal_();
+      }
+
+      function situacaoAtualPodeEncerrarFiscalizacao_() {
+        const n = normalize(value('sancao'));
+        return n === normalize('Regularizado') || n === normalize('Liberado');
+      }
+
+      function esconderAvisoEncerramentoFiscal_() {
+        encerramentoFiscalAtual = null;
+        if (processClosureNotice) {
+          processClosureNotice.hidden = true;
+          processClosureNotice.innerHTML = '';
+        }
+      }
+
+      function renderizarAvisoEncerramentoFiscal_(resposta) {
+        const candidatos = Array.isArray(resposta?.candidatos) ? resposta.candidatos : [];
+        encerramentoFiscalAtual = candidatos.length ? resposta : null;
+        if (!processClosureNotice) return;
+        if (!candidatos.length) {
+          esconderAvisoEncerramentoFiscal_();
+          return;
+        }
+        const principal = candidatos[0];
+        const ref = principal.pf ? `PF nº ${principal.pf}` : (principal.pscip ? `PSCIP ${principal.pscip}` : `registro de ${principal.carimbo || 'data anterior'}`);
+        const outros = candidatos.length > 1 ? ` Há ${candidatos.length} processos em aberto compatíveis; confira antes de encerrar.` : '';
+        processClosureNotice.innerHTML = `<strong>Possível processo fiscalizatório anterior em aberto</strong>
+          <span>${escapeHtml(ref)} • ${escapeHtml(principal.sancao || 'situação anterior')} • ${escapeHtml(principal.carimbo || '')}</span>
+          <p>A vistoria atual está marcada como ${escapeHtml(value('sancao') || 'regular')}. Verifique se o processo anterior deve ser encerrado.${escapeHtml(outros)}</p>`;
+        processClosureNotice.hidden = false;
+      }
+
+      async function consultarEncerramentoFiscal_(payload = null) {
+        const dados = payload || buildPayload();
+        const n = normalize(String(dados?.sancao || value('sancao')));
+        const pode = n === normalize('Regularizado') || n === normalize('Liberado');
+        if (!navigator.onLine || !pode) {
+          esconderAvisoEncerramentoFiscal_();
+          return null;
+        }
+        const sequencia = ++encerramentoFiscalSequencia;
+        try {
+          const resposta = await apiRequest('config', { consulta: 'encerramento_fiscal', payload: dados }, 7000);
+          if (sequencia !== encerramentoFiscalSequencia) return null;
+          renderizarAvisoEncerramentoFiscal_(resposta);
+          return resposta;
+        } catch (erro) {
+          if (sequencia !== encerramentoFiscalSequencia) return null;
+          esconderAvisoEncerramentoFiscal_();
+          return null;
+        }
+      }
+
+      function agendarConsultaEncerramentoFiscal_() {
+        clearTimeout(encerramentoFiscalTimer);
+        encerramentoFiscalSequencia += 1;
+        if (!situacaoAtualPodeEncerrarFiscalizacao_()) {
+          esconderAvisoEncerramentoFiscal_();
+          return;
+        }
+        encerramentoFiscalTimer = setTimeout(() => consultarEncerramentoFiscal_(), 650);
+      }
+
       function applyPhoneMask(event) {
         let v = digits(event.target.value).slice(0, 11);
         if (v.length <= 10) {
@@ -2485,6 +2698,7 @@
           currentRecordId = String(draft.recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
           sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
           if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
+          if (possuiPscipSelect) possuiPscipSelect.value = String(p._appPossuiPscip || (p.pscip ? 'sim' : ''));
           sancaoDefinidaAutomaticamente = String(p._appLicenciamento || '') === 'nao_possui';
           const cityOptions = Array.from(citySelect.options).map(o => o.value);
           if (cityOptions.includes(p.cidade)) {
@@ -2501,6 +2715,7 @@
           restaurarOcupacoesSelecionadas(p.ocupacao);
           syncOtherCity();
           syncLicenciamento();
+          syncPscip_();
           const tipoId = tipoIdentificador_(value('cnpj'));
           atualizarInterfaceIdentificador_(tipoId);
           if (tipoId === 'cpf') sincronizarIdentificadorComCpf_(value('cnpj'));
@@ -2520,8 +2735,10 @@
         sancaoDefinidaAutomaticamente = false;
         sancaoAntesDoAutomatico = '';
         if (licenciamentoSelect) licenciamentoSelect.value = '';
+        if (possuiPscipSelect) possuiPscipSelect.value = '';
         syncOtherCity();
         syncLicenciamento();
+        syncPscip_();
         document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
         document.getElementById('enderecoResponsavel').readOnly = false;
         document.getElementById('enderecoResponsavel').style.background = '';
@@ -2538,6 +2755,13 @@
         clearTimeout(estabelecimentoLookupTimer);
         estabelecimentoLookupSequencia += 1;
         esconderHistoricoEstabelecimento_();
+        clearTimeout(pscipLookupTimer);
+        pscipLookupSequencia += 1;
+        esconderHistoricoPscip_();
+        clearPscipLookupStatus_();
+        clearTimeout(encerramentoFiscalTimer);
+        encerramentoFiscalSequencia += 1;
+        esconderAvisoEncerramentoFiscal_();
         clearResponsavelLookupStatus_();
         cpfCopiadoDoIdentificador = '';
         atualizarInterfaceIdentificador_('');
@@ -2568,7 +2792,7 @@
         return valor || '—';
       }
 
-      function mostrarRevisaoAntesEnvio_(payload, duplicidade) {
+      function mostrarRevisaoAntesEnvio_(payload, duplicidade, encerramentoFiscal) {
         const identificador = digits(payload?.cnpj);
         const idFormatado = identificador.length === 14
           ? formatarCnpjTela_(identificador)
@@ -2581,9 +2805,11 @@
           ['Responsável / RT', payload?.nomeResponsavel || '—'],
           ['Telefone', payload?.telefone || '—'],
           ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
+          ['Possui PSCIP?', payload?._appPossuiPscip === 'sim' ? 'Sim' : (payload?._appPossuiPscip === 'nao' ? 'Não' : '—')],
+          ['Nº PSCIP', payload?.pscip || '—'],
           ['Demanda', [payload?.demandaPrincipal, payload?.categoriaMeta].filter(Boolean).join(' | ') || '—'],
           ['Sanção', payload?.sancao || '—'],
-          ['Nº PSCIP', payload?.pscip || '—'],
+          ['Nº PF', payload?.pf || '—'],
           ['Enviado por', authState.usuario?.nome || '—']
         ];
 
@@ -2594,7 +2820,8 @@
 
         if (!reviewModal || !reviewList || !reviewConfirmBtn || !reviewCancelBtn) {
           const texto = itens.map(([r, v]) => `${r}: ${v}`).join('\n');
-          return Promise.resolve(window.confirm(`${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}\n\nConfirmar e registrar?`));
+          const confirmou = window.confirm(`${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}\n\nConfirmar e registrar?`);
+          return Promise.resolve({ confirmado: confirmou, encerrarProcesso: false, chaveProcesso: '' });
         }
 
         reviewList.innerHTML = itens.map(([rotulo, valor]) =>
@@ -2604,6 +2831,28 @@
           reviewDuplicateNotice.hidden = !avisoDuplicidade;
           reviewDuplicateNotice.textContent = avisoDuplicidade;
         }
+
+        const candidatosEncerramento = Array.isArray(encerramentoFiscal?.candidatos) ? encerramentoFiscal.candidatos : [];
+        if (reviewClosureNotice) {
+          if (!candidatosEncerramento.length) {
+            reviewClosureNotice.hidden = true;
+            reviewClosureNotice.innerHTML = '';
+          } else {
+            const principal = candidatosEncerramento[0];
+            const refPrincipal = principal.pf ? `PF nº ${principal.pf}` : (principal.pscip ? `PSCIP ${principal.pscip}` : `registro de ${principal.carimbo || 'data anterior'}`);
+            const listaOutros = candidatosEncerramento.slice(1).map(item => {
+              const ref = item.pf ? `PF ${item.pf}` : (item.pscip ? `PSCIP ${item.pscip}` : item.carimbo || 'registro');
+              return `<li>${escapeHtml(ref)} — ${escapeHtml(item.sancao || '')}</li>`;
+            }).join('');
+            const podeConfirmar = candidatosEncerramento.length === 1;
+            reviewClosureNotice.innerHTML = `<strong>Processo fiscalizatório anterior localizado</strong>
+              <p>${escapeHtml(refPrincipal)} está em <b>${escapeHtml(principal.sancao || 'situação em aberto')}</b>. A vistoria atual está como <b>${escapeHtml(payload?.sancao || '')}</b>.</p>
+              ${podeConfirmar
+                ? `<label class="review-closure-check"><input type="checkbox" id="reviewClosureConfirm"> <span>Confirmar o encerramento deste processo anterior como <strong>Regularizado</strong> ao registrar a vistoria atual.</span></label>`
+                : `<p><strong>Atenção:</strong> foram encontrados ${candidatosEncerramento.length} processos compatíveis. Nenhum será encerrado automaticamente; confira qual PF corresponde ao processo.</p><ul>${listaOutros}</ul>`}`;
+            reviewClosureNotice.hidden = false;
+          }
+        }
         reviewModal.hidden = false;
         document.body.classList.add('review-open');
 
@@ -2612,13 +2861,17 @@
           const finalizar = confirmado => {
             if (encerrado) return;
             encerrado = true;
+            const candidatos = Array.isArray(encerramentoFiscal?.candidatos) ? encerramentoFiscal.candidatos : [];
+            const principal = candidatos[0] || null;
+            const encerrarProcesso = Boolean(confirmado && candidatos.length === 1 && document.getElementById('reviewClosureConfirm')?.checked);
+            const chaveProcesso = encerrarProcesso ? String(principal?.chave || '') : '';
             reviewModal.hidden = true;
             document.body.classList.remove('review-open');
             reviewConfirmBtn.removeEventListener('click', onConfirmar);
             reviewCancelBtn.removeEventListener('click', onCancelar);
             reviewCancelTopBtn?.removeEventListener('click', onCancelar);
             document.removeEventListener('keydown', onKeydown);
-            resolve(confirmado);
+            resolve({ confirmado, encerrarProcesso, chaveProcesso });
           };
           const onConfirmar = () => finalizar(true);
           const onCancelar = () => finalizar(false);
@@ -2639,12 +2892,19 @@
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
         saveDraft();
 
-        if (navigator.onLine) appStatus.textContent = 'Conferindo possível duplicidade antes do envio...';
-        const duplicidade = await consultarDuplicidadeAntesEnvio_(payload);
-        const confirmado = await mostrarRevisaoAntesEnvio_(payload, duplicidade);
-        if (!confirmado) {
+        if (navigator.onLine) appStatus.textContent = 'Conferindo duplicidade e processos anteriores antes do envio...';
+        const [duplicidade, encerramentoFiscal] = await Promise.all([
+          consultarDuplicidadeAntesEnvio_(payload),
+          consultarEncerramentoFiscal_(payload)
+        ]);
+        const revisao = await mostrarRevisaoAntesEnvio_(payload, duplicidade, encerramentoFiscal);
+        if (!revisao?.confirmado) {
           appStatus.textContent = 'Revise os campos e confirme novamente quando estiver pronto.';
           return;
+        }
+        if (revisao.encerrarProcesso && revisao.chaveProcesso) {
+          payload._appEncerrarProcesso = 'sim';
+          payload._appEncerrarProcessoChave = revisao.chaveProcesso;
         }
 
         ultimoRegistroConsultaChave = '';
@@ -3167,11 +3427,25 @@
       citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
-      sancaoSelect?.addEventListener('change', () => { syncNotificado(); scheduleDraftSave(); });
+      possuiPscipSelect?.addEventListener('change', () => { syncPscip_(); scheduleDraftSave(); });
+      possuiPscipSelect?.addEventListener('input', () => { syncPscip_(); scheduleDraftSave(); });
+      pscipInput?.addEventListener('input', () => { agendarConsultaPscip_(); scheduleDraftSave(); });
+      sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
       document.getElementById('telefone').addEventListener('input', applyPhoneMask);
+      ['cnpj','endereco','numero','pf','demandaPrincipal'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', agendarConsultaEncerramentoFiscal_);
+      });
+      citySelect?.addEventListener('change', agendarConsultaEncerramentoFiscal_);
+      pscipHistoryResults?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-history-pscip-index]');
+        if (!botao) return;
+        const indice = Number(botao.dataset.historyPscipIndex);
+        if (!Number.isInteger(indice) || !historicoPscipAtual[indice]) return;
+        aplicarHistoricoPscip_(historicoPscipAtual[indice]);
+      });
       document.getElementById('nomeFantasia')?.addEventListener('input', () => {
         if (!tipoIdentificador_(value('cnpj'))) agendarHistoricoEstabelecimento_(700);
       });

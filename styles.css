@@ -4132,3 +4132,45 @@ body.review-open,body.about-open{overflow:hidden}
   .review-actions{display:grid;grid-template-columns:1fr 1fr}
   .about-grid{grid-template-columns:1fr}
 }
+
+
+/* V23 — PSCIP independente e sugestão de encerramento fiscal */
+.pscip-history-panel{margin-top:10px}
+.process-closure-notice{
+  padding:12px 14px;
+  border:1px solid #f1c36a;
+  border-radius:14px;
+  background:#fff8e8;
+  color:#704500;
+}
+.process-closure-notice[hidden]{display:none!important}
+.process-closure-notice strong{display:block;font-size:13px;color:#6b4200}
+.process-closure-notice span{display:block;margin-top:4px;font-size:12px;font-weight:700}
+.process-closure-notice p{margin:6px 0 0;font-size:12px;line-height:1.45}
+.review-closure{
+  margin:0 18px 14px;
+  padding:12px 13px;
+  border:1px solid #f1c36a;
+  border-radius:12px;
+  background:#fff8e8;
+  color:#694100;
+  font-size:12px;
+  line-height:1.45;
+}
+.review-closure[hidden]{display:none!important}
+.review-closure>strong{display:block;margin-bottom:5px;color:#5f3a00}
+.review-closure p{margin:5px 0}
+.review-closure ul{margin:6px 0 0;padding-left:18px}
+.review-closure-check{
+  display:flex;
+  gap:9px;
+  align-items:flex-start;
+  margin-top:9px;
+  padding:10px;
+  border-radius:10px;
+  background:#fff;
+  border:1px solid rgba(112,69,0,.18);
+  cursor:pointer;
+}
+.review-closure-check input{margin-top:2px;flex:0 0 auto}
+.review-closure-check span{display:block}

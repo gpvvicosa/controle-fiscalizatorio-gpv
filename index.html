@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:rgba(255,255,255,.96)}
     .loading-box{max-width:90vw;padding:16px 20px;border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.12);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=22.0">
+  <link rel="stylesheet" href="styles.css?v=23.0">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -56,7 +56,7 @@
   <div class="auth-gate" id="authGate" aria-hidden="false">
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-logo-wrap" aria-hidden="true">
-        <img src="assets/logo-gpv.png?v=22.0" width="512" height="512" alt="">
+        <img src="assets/logo-gpv.png?v=23.0" width="512" height="512" alt="">
       </div>
       <span class="auth-kicker">Acesso institucional</span>
       <h1 id="authTitle">Controle Fiscalizatório</h1>
@@ -105,7 +105,7 @@
 
       <div class="dashboard-header-actions" aria-label="Ações do painel">
         <div class="dashboard-gpv-mark" aria-hidden="true">
-          <img src="assets/logo-gpv.png?v=22.0" width="512" height="512" alt="">
+          <img src="assets/logo-gpv.png?v=23.0" width="512" height="512" alt="">
         </div>
         <a class="dashboard-header-action dashboard-sheet-header-link" id="dashboardSheetHeaderLink" href="#" target="_blank" rel="noopener" hidden>
           <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
@@ -180,13 +180,15 @@
         <article class="tutorial-step" data-tutorial-step="1">
           <div class="tutorial-step-icon">🛡️</div>
           <h3>1. Situação do licenciamento</h3>
-          <p>Depois de escolher a cidade, informe se o local <strong>possui AVCB ou CLCB</strong>, <strong>não possui</strong> ou está <strong>dispensado de licenciamento</strong>.</p>
+          <p>Depois de escolher a cidade, informe separadamente a <strong>situação do AVCB/CLCB</strong> e se o local <strong>possui PSCIP</strong>.</p>
           <ul>
-            <li><strong>Não possui:</strong> o sistema define <strong>Autuado</strong> automaticamente.</li>
-            <li><strong>Possui AVCB ou CLCB:</strong> aparece o campo <strong>Nº do PSCIP</strong> e a decisão de autuar ou não permanece com o vistoriador.</li>
+            <li><strong>Não possui AVCB/CLCB:</strong> o sistema define <strong>Autuado</strong> automaticamente, mesmo que já exista PSCIP.</li>
+            <li><strong>Possui AVCB ou CLCB:</strong> a decisão de sanção permanece com o vistoriador.</li>
+            <li><strong>Possui PSCIP:</strong> ao marcar Sim, aparece o campo <strong>Nº do PSCIP</strong>; o número pode consultar dados históricos da planilha.</li>
             <li><strong>Dispensado de licenciamento:</strong> não há autuação automática; qualquer sanção depende da avaliação do vistoriador.</li>
           </ul>
           <p class="tutorial-note"><strong>Advertência não é escolhida manualmente no app.</strong> Ela é uma progressão automática do sistema a partir de Autuado, conforme as regras de prazo.</p>
+          <p class="tutorial-note"><strong>Encerramento de fiscalização:</strong> quando uma vistoria atual for registrada como Regularizado ou Liberado e houver processo fiscalizatório anterior ainda em Autuado/Advertência no mesmo estabelecimento, o app pode indicar o Nº do PF e sugerir a conferência/encerramento. A baixa somente é aplicada quando o vistoriador confirma.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="2">
           <div class="tutorial-step-icon">🏢</div>
@@ -452,12 +454,29 @@
                 <option value="nao_possui">Não possui</option>
                 <option value="dispensado">Dispensado de licenciamento</option>
               </select>
-              <div class="hint">A resposta define o comportamento inicial da sanção e do Nº do PSCIP.</div>
+              <div class="hint">A situação do AVCB/CLCB é independente da existência de PSCIP. Se não possuir AVCB/CLCB, a sanção continua sendo Autuado, mesmo quando houver PSCIP.</div>
             </div>
-            <div class="field half licensing-pscip-field" id="pscipLicenciamentoWrap" hidden aria-hidden="true">
-              <label for="pscip">Nº do PSCIP</label>
-              <input id="pscip" name="pscip" placeholder="Informe o Nº do PSCIP">
-              <div class="hint">Com AVCB ou CLCB, a decisão de autuar ou não continua sendo do vistoriador.</div>
+            <div class="field half">
+              <label class="required" for="possuiPscip">Possui PSCIP?</label>
+              <select id="possuiPscip" name="possuiPscip">
+                <option value="">Selecione</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+              <div class="hint">Informe separadamente se já existe Processo de Segurança Contra Incêndio e Pânico.</div>
+            </div>
+            <div class="field wide licensing-pscip-field" id="pscipLicenciamentoWrap" hidden aria-hidden="true">
+              <label class="required" for="pscip">Nº do PSCIP</label>
+              <input id="pscip" name="pscip" autocomplete="off" placeholder="Informe o Nº do PSCIP">
+              <div class="hint">Ao informar o número, o aplicativo consulta registros anteriores da planilha e pode oferecer dados já existentes para conferência.</div>
+              <div class="lookup-status" id="pscipLookupStatus" role="status" aria-live="polite"></div>
+              <div class="establishment-history-panel pscip-history-panel" id="pscipHistoryPanel" hidden>
+                <div class="establishment-history-head">
+                  <strong>PSCIP localizado na planilha</strong>
+                  <span>Confira antes de aproveitar dados históricos</span>
+                </div>
+                <div id="pscipHistoryResults"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -614,6 +633,7 @@
               <label for="pf">Nº do PF</label>
               <input id="pf" name="pf" placeholder="Nº do PF">
             </div>
+            <div class="field wide process-closure-notice" id="processClosureNotice" hidden aria-live="polite"></div>
             <div class="field">
               <label for="tipoVistoria">Tipo de vistoria</label>
               <input id="tipoVistoria" name="tipoVistoria" list="dlTipoVistoria" placeholder="Selecione ou digite">
@@ -807,6 +827,7 @@
       </header>
       <div class="review-list" id="reviewList"></div>
       <div class="review-warning" id="reviewDuplicateNotice" hidden></div>
+      <div class="review-closure" id="reviewClosureNotice" hidden></div>
       <div class="review-actions">
         <button class="btn btn-secondary" id="reviewCancelBtn" type="button">Voltar e corrigir</button>
         <button class="btn btn-primary" id="reviewConfirmBtn" type="button">Confirmar e registrar</button>
@@ -847,8 +868,8 @@
   <div class="loading show" id="loadingOverlay">
     <div class="loading-box"><span class="spinner"></span><span id="loadingText">Carregando aplicativo...</span></div>
   </div>
-  <script src="config.js?v=22.0"></script>
-  <script src="ocupacoes.js?v=22.0"></script>
-  <script src="app.js?v=22.0"></script>
+  <script src="config.js?v=23.0"></script>
+  <script src="ocupacoes.js?v=23.0"></script>
+  <script src="app.js?v=23.0"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v22-confiabilidade-auditoria';
-const VERSION = '22.0';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v23-pscip-encerramento';
+const VERSION = '23.0';
 const APP_SHELL = [
   './',
   './index.html',
