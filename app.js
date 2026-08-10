@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.2';
+      const APP_VERSION = '23.9.3';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -3707,6 +3707,7 @@
         fecharMenuMais_();
         if (!prepareInspectionModal) return;
         if (prepareInspectionError) prepareInspectionError.hidden = true;
+        clearPrepareCnpjStatus_();
         if (prepareData && !prepareData.value) prepareData.value = dataHojeIso_();
         if (prepareVistoriador && !prepareVistoriador.value && authState.usuario?.nome) prepareVistoriador.value = authState.usuario.nome;
         atualizarCamposPreparacaoPorTipo_();
@@ -3747,22 +3748,86 @@
       }
 
 
+      let cnpjPreparacaoConsultaSequencia = 0;
+
+      function showPrepareCnpjStatus_(message, type = 'info') {
+        const el = document.getElementById('prepareCnpjStatus');
+        if (!el) return;
+        el.className = 'lookup-status show ' + type;
+        el.textContent = message;
+      }
+
+      function clearPrepareCnpjStatus_() {
+        const el = document.getElementById('prepareCnpjStatus');
+        if (!el) return;
+        el.className = 'lookup-status';
+        el.textContent = '';
+      }
+
+      function preencherDadosCnpjPreparacao_(resultado) {
+        const dados = resultado?.dados || resultado?.data || resultado?.resultado || resultado || {};
+        const primeiro = (...valores) => {
+          for (const valor of valores) {
+            const texto = String(valor ?? '').trim();
+            if (texto) return texto;
+          }
+          return '';
+        };
+        const mapa = {
+          prepareRazaoSocial: primeiro(dados.razaoSocial, dados.razao_social, dados.nome, dados.nomeEmpresarial),
+          prepareNomeFantasia: primeiro(dados.nomeFantasia, dados.nome_fantasia, dados.fantasia, dados.nome_fantasia_estabelecimento),
+          prepareEndereco: primeiro(dados.endereco, dados.logradouro, dados.descricao_tipo_de_logradouro && dados.logradouro ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}` : ''),
+          prepareNumero: primeiro(dados.numero, dados.numeroEndereco),
+          prepareBairro: primeiro(dados.bairro, dados.nome_bairro),
+          prepareCidade: primeiro(dados.cidade, dados.municipio, dados.nome_municipio)
+        };
+        let alterados = 0;
+        Object.entries(mapa).forEach(([id, valor]) => {
+          const el = document.getElementById(id);
+          if (!el || !valor) return;
+          // Na preparação, os dados oficiais do CNPJ devem prevalecer sobre
+          // valores residuais/autopreenchimento do navegador.
+          if (String(el.value || '').trim() !== valor) {
+            el.value = valor;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            alterados += 1;
+          }
+        });
+        return alterados;
+      }
+
       async function consultarCnpjPreparacao_() {
         const input = document.getElementById('prepareCnpj');
         const cnpj = digits(input?.value || '');
-        if (cnpj.length !== 14 || !navigator.onLine) return;
+        if (cnpj.length !== 14) {
+          clearPrepareCnpjStatus_();
+          return false;
+        }
+        if (!navigator.onLine) {
+          showPrepareCnpjStatus_('Sem internet. Preencha os dados manualmente e tente novamente quando a conexão voltar.', 'info');
+          return false;
+        }
+
+        const sequencia = ++cnpjPreparacaoConsultaSequencia;
+        showPrepareCnpjStatus_('Consultando CNPJ...', 'info');
         try {
-          const r = await apiRequest('cnpj', { cnpj }, 12000);
-          const dados = r?.dados || r || {};
-          const preencher = (id, valor) => { const el=document.getElementById(id); if (el && !String(el.value||'').trim() && String(valor||'').trim()) el.value=String(valor).trim(); };
-          preencher('prepareRazaoSocial', dados.razaoSocial || dados.razao_social || dados.nome);
-          preencher('prepareNomeFantasia', dados.nomeFantasia || dados.nome_fantasia || dados.fantasia);
-          preencher('prepareEndereco', dados.logradouro || dados.endereco);
-          preencher('prepareNumero', dados.numero);
-          preencher('prepareBairro', dados.bairro);
-          preencher('prepareCidade', dados.municipio || dados.cidade);
+          const resultado = await apiRequest('cnpj', { cnpj }, 30000);
+          if (sequencia !== cnpjPreparacaoConsultaSequencia || digits(input?.value || '') !== cnpj) return false;
+
+          const alterados = preencherDadosCnpjPreparacao_(resultado);
+          if (digits(input?.value || '') !== cnpj) return false;
+
+          showPrepareCnpjStatus_(
+            alterados > 0
+              ? `CNPJ localizado. ${alterados} dado(s) cadastral(is) preenchido(s) automaticamente.`
+              : 'CNPJ localizado. Confira os dados cadastrais antes de salvar.',
+            'success'
+          );
+          return true;
         } catch (erro) {
-          // A preparação continua manualmente se a consulta não estiver disponível.
+          if (sequencia !== cnpjPreparacaoConsultaSequencia || digits(input?.value || '') !== cnpj) return false;
+          showPrepareCnpjStatus_(erro?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');
+          return false;
         }
       }
 
@@ -3791,6 +3856,7 @@
           await apiRequest('save', { payload: p }, 30000);
           fecharModalPreparacao_();
           ultimoCnpjPreparacaoConsultado = '';
+          clearPrepareCnpjStatus_();
           ['prepareCnpj','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
           const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value='PRJ';
           await carregarPreparacoesVistoria_();
@@ -4004,24 +4070,27 @@
         });
       };
       prepareCnpjInput?.addEventListener('input', () => {
-        const numero = digits(prepareCnpjInput.value || '');
+        const numero = digits(prepareCnpjInput.value || '').slice(0, 14);
+        prepareCnpjInput.value = numero.length > 11 ? formatarCnpjTela_(numero) : numero;
         if (timerConsultaCnpjPreparacao) window.clearTimeout(timerConsultaCnpjPreparacao);
+        cnpjPreparacaoConsultaSequencia += 1;
+        clearPrepareCnpjStatus_();
         if (ultimoCnpjPreparacaoConsultado && numero !== ultimoCnpjPreparacaoConsultado) {
           limparDadosEmpresaPreparacao_();
           ultimoCnpjPreparacaoConsultado = '';
         }
         if (numero.length === 14) {
           timerConsultaCnpjPreparacao = window.setTimeout(async () => {
-            await consultarCnpjPreparacao_();
-            ultimoCnpjPreparacaoConsultado = digits(prepareCnpjInput.value || '');
-          }, 320);
+            const ok = await consultarCnpjPreparacao_();
+            if (ok && digits(prepareCnpjInput.value || '') === numero) ultimoCnpjPreparacaoConsultado = numero;
+          }, 500);
         }
       });
       prepareCnpjInput?.addEventListener('blur', async () => {
         const numero = digits(prepareCnpjInput.value || '');
         if (numero.length === 14 && numero !== ultimoCnpjPreparacaoConsultado) {
-          await consultarCnpjPreparacao_();
-          ultimoCnpjPreparacaoConsultado = digits(prepareCnpjInput.value || '');
+          const ok = await consultarCnpjPreparacao_();
+          if (ok && digits(prepareCnpjInput.value || '') === numero) ultimoCnpjPreparacaoConsultado = numero;
         }
       });
       document.querySelectorAll('[data-prepared-filter]').forEach(btn => btn.addEventListener('click', () => {
@@ -4295,7 +4364,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.2', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.3', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
