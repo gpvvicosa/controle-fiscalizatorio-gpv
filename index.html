@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.12">
+  <link rel="stylesheet" href="styles.css?v=23.9.13">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -695,6 +695,15 @@
               <select id="sancao" name="sancao"><option value="">Selecione</option></select>
               <div class="hint licensing-auto-note" id="sancaoAutomaticaHint" hidden>Autuado definido automaticamente porque foi informado que o local não possui AVCB ou CLCB.</div>
             </div>
+            <div class="field release-document-pending-field" id="pendenciaDocumentalWrap" hidden>
+              <label class="required" for="pendenciaDocumental">Há pendência documental?</label>
+              <select id="pendenciaDocumental" name="pendenciaDocumental">
+                <option value="">Selecione</option>
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+              <div class="hint">Quando o resultado for Liberado, esta informação define o relatório padrão para o REDS.</div>
+            </div>
             <div class="field">
               <label for="pf">Nº do PF</label>
               <input id="pf" name="pf" placeholder="Nº do PF">
@@ -844,6 +853,17 @@
       <div class="record-detail-loading" id="recordDetailLoading">Selecione um processo na tabela para abrir a ficha.</div>
       <div class="record-detail-content">
         <div class="record-detail-groups" id="recordDetailGroups"></div>
+        <section class="record-reds-report" id="recordRedsReportPanel" hidden>
+          <div class="record-reds-report-head">
+            <div>
+              <h3>Relatório para REDS</h3>
+              <span id="recordRedsReportModel">Modelo automático conforme o resultado da vistoria de liberação.</span>
+            </div>
+            <button class="record-reds-copy-btn" id="recordRedsCopyBtn" type="button">Copiar relatório</button>
+          </div>
+          <textarea id="recordRedsReportText" class="record-reds-report-text" readonly aria-label="Relatório para copiar no REDS"></textarea>
+          <div class="record-reds-copy-status" id="recordRedsCopyStatus" role="status" aria-live="polite"></div>
+        </section>
         <section class="record-history-panel" id="recordHistoryPanel" hidden>
           <div class="record-history-head"><h3>Histórico</h3><span id="recordHistoryCount"></span></div>
           <div class="record-history-timeline" id="recordHistoryTimeline"></div>
@@ -1052,8 +1072,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.12"></script>
-  <script src="ocupacoes.js?v=23.9.12"></script>
-  <script src="app.js?v=23.9.12"></script>
+  <script src="config.js?v=23.9.13"></script>
+  <script src="ocupacoes.js?v=23.9.13"></script>
+  <script src="app.js?v=23.9.13"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.12';
+      const APP_VERSION = '23.9.13';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -270,6 +270,11 @@
       const recordHistoryCount = document.getElementById('recordHistoryCount');
       const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
       const recordAuditPanel = document.getElementById('recordAuditPanel');
+      const recordRedsReportPanel = document.getElementById('recordRedsReportPanel');
+      const recordRedsReportModel = document.getElementById('recordRedsReportModel');
+      const recordRedsReportText = document.getElementById('recordRedsReportText');
+      const recordRedsCopyBtn = document.getElementById('recordRedsCopyBtn');
+      const recordRedsCopyStatus = document.getElementById('recordRedsCopyStatus');
       const recordAuditCount = document.getElementById('recordAuditCount');
       const recordAuditList = document.getElementById('recordAuditList');
       const connectionBanner = document.getElementById('connectionBanner');
@@ -319,6 +324,8 @@
       const pscipHistoryResults = document.getElementById('pscipHistoryResults');
       const sancaoSelect = document.getElementById('sancao');
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
+      const pendenciaDocumentalWrap = document.getElementById('pendenciaDocumentalWrap');
+      const pendenciaDocumentalSelect = document.getElementById('pendenciaDocumental');
       const tipoVistoriaInput = document.getElementById('tipoVistoria');
       const vistoriadorResponsavelSelect = document.getElementById('vistoriadorResponsavel');
       const licenciamentoFieldWrap = document.getElementById('licenciamentoFieldWrap');
@@ -1230,6 +1237,8 @@
         recordHistoryTimeline.innerHTML = '';
         recordHistoryPanel.hidden = true;
         recordDetailLoading.hidden = false;
+        if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
+        if (recordRedsReportText) recordRedsReportText.value = '';
       }
 
       function descricaoSituacaoPainel_(situacao) {
@@ -1332,6 +1341,88 @@
         }).join('');
       }
 
+      const RELATORIOS_REDS_LIBERACAO = Object.freeze({
+        liberado: {
+          titulo: 'Liberação de AVCB — sem pendência',
+          texto: `COM BASE NA LEI ESTADUAL Nº 14.130/2001 E NO DECRETO ESTADUAL Nº 47.998/2020, FOI REALIZADA VISTORIA PARA LIBERAÇÃO DO AVCB DA EDIFICAÇÃO REGISTRADA NESTE REDS, CONFORME PSCIP Nº {{PSCIP}}.
+
+DURANTE A VISTORIA, A GUARNIÇÃO BM CONSTATOU QUE AS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO ESTAVAM INSTALADAS EM CONFORMIDADE COM O PROJETO APROVADO, NÃO SENDO VERIFICADAS IRREGULARIDADES.
+
+DIANTE DISSO, A EDIFICAÇÃO FOI APROVADA EM VISTORIA FINAL, SENDO LIBERADA A EMISSÃO DO AVCB.
+
+O RESPONSÁVEL FOI ORIENTADO A MANTER AS MEDIDAS DE SEGURANÇA EM CONDIÇÕES DE USO E A COMUNICAR AO CBMMG QUALQUER ALTERAÇÃO NO LAYOUT, USO OU OCUPAÇÃO DA EDIFICAÇÃO, MEDIANTE ATUALIZAÇÃO DO PSCIP, SOB PENA DAS SANÇÕES PREVISTAS NA LEI Nº 14.130/2001.`
+        },
+        liberadoPendencia: {
+          titulo: 'Liberação de AVCB — com pendência documental',
+          texto: `COM BASE NA LEI Nº 14.130/2001, E RESPALDADO NO DECRETO Nº 47.998, DE 1º DE JULHO DE 2020, E NO PSCIP (PROJETO DE PREVENÇÃO CONTRA INCÊNDIO E PÂNICO) Nº {{PSCIP}}, FOI PROCEDIDA A VISTORIA DE LIBERAÇÃO E EMISSÃO DE AVCB DA EDIFICAÇÃO EM APREÇO, REGISTRADA NESTE REDS.
+
+NO MOMENTO DA VISTORIA, A GUARNIÇÃO BM CONSTATOU QUE O SISTEMA PREVENTIVO DE COMBATE A INCÊNDIO E PÂNICO ENCONTRAVA-SE INSTALADO EM CONFORMIDADE COM O SEU REFERIDO PROCESSO. COMO RESULTADO, HOUVE APROVAÇÃO NA VISTORIA FINAL.
+
+FOI REITERADO AO RESPONSÁVEL PELO USO QUE QUALQUER ALTERAÇÃO NO LAYOUT DA EDIFICAÇÃO, OU NO USO E OCUPAÇÃO, QUE COMPROMETA AS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO PREVISTAS PARA A EDIFICAÇÃO, DEVERÁ SER ACOMPANHADA DA DEVIDA ATUALIZAÇÃO DO PSCIP JUNTO AO CBMMG.
+
+O RESPONSÁVEL FOI ORIENTADO A MANTER, EM CONDIÇÕES PERMANENTES DE USO, O SISTEMA PREVENTIVO DE COMBATE A INCÊNDIO E PÂNICO DA EDIFICAÇÃO E DA ÁREA DE RISCO. CASO DEIXE DE FAZÊ-LO, INCORRERÁ NAS SANÇÕES PREVISTAS NA LEI ESTADUAL Nº 14.130/2001.
+
+OBS.: DURANTE A VISTORIA FORAM IDENTIFICADAS PENDÊNCIAS DOCUMENTAIS, DEVIDAMENTE REGISTRADAS NO SISTEMA INFOSCIP. A EMISSÃO DO AVCB ESTÁ CONDICIONADA À REGULARIZAÇÃO DESSAS PENDÊNCIAS.`
+        },
+        notificado: {
+          titulo: 'Notificado em vistoria de liberação',
+          texto: `EM ATENDIMENTO À SOLICITAÇÃO DE VISTORIA FINAL PARA EMISSÃO DO AUTO DE VISTORIA DO CORPO DE BOMBEIROS (AVCB), DESLOCAMOS ATÉ O ENDEREÇO INFORMADO NESTE REDS. NO LOCAL TRATA-SE DE EDIFICAÇÃO VINCULADA AO PSCIP Nº {{PSCIP}}.
+
+DURANTE A VISTORIA, FORAM CONSTATADAS IRREGULARIDADES NA EXECUÇÃO DAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO, EM DESACORDO COM O PROJETO APROVADO. AS NÃO CONFORMIDADES IDENTIFICADAS FORAM LANÇADAS NO SISTEMA INFOSCIP. EM RAZÃO DAS IRREGULARIDADES VERIFICADAS, NÃO FOI POSSÍVEL EMITIR O AVCB.
+
+O RESPONSÁVEL PODERÁ SANAR AS IRREGULARIDADES E SOLICITAR NOVA VISTORIA, BEM COMO APRESENTAR PEDIDO DE RECONSIDERAÇÃO DE ATO, NOS TERMOS DO ART. 16 DO DECRETO ESTADUAL Nº 47.998/2020, CABENDO RECURSO CONFORME ART. 17 DO MESMO DECRETO.
+
+PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº 38, VILA GIANNETTI – UFV – CENTRO, VIÇOSA/MG. TEL.: (31) 3612-3894. E-MAIL: VICOSA.GPV@BOMBEIROS.MG.GOV.BR.`
+        }
+      });
+
+      function modeloRelatorioRedsLiberacao_(registro, situacao) {
+        const n = normalize(situacao);
+        if (n === normalize('Notificado')) return RELATORIOS_REDS_LIBERACAO.notificado;
+        if (n !== normalize('Liberado')) return null;
+        const pendencia = normalize(valorCampoFicha_(registro, 'Pendência documental'));
+        return pendencia === normalize('Sim') ? RELATORIOS_REDS_LIBERACAO.liberadoPendencia : RELATORIOS_REDS_LIBERACAO.liberado;
+      }
+
+      function renderizarRelatorioReds_(registro, situacao) {
+        if (!recordRedsReportPanel || !recordRedsReportText || !recordRedsReportModel) return;
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const ehLiberacao = tipo.includes('liberacao') || demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao));
+        const modelo = ehLiberacao ? modeloRelatorioRedsLiberacao_(registro, situacao) : null;
+        const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        if (!modelo || !pscip) {
+          recordRedsReportPanel.hidden = true;
+          recordRedsReportText.value = '';
+          return;
+        }
+        recordRedsReportModel.textContent = modelo.titulo;
+        recordRedsReportText.value = modelo.texto.replaceAll('{{PSCIP}}', pscip);
+        recordRedsReportPanel.hidden = false;
+        if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = '';
+      }
+
+      async function copiarRelatorioReds_() {
+        const texto = String(recordRedsReportText?.value || '');
+        if (!texto) return;
+        try {
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
+          else {
+            recordRedsReportText.focus();
+            recordRedsReportText.select();
+            document.execCommand('copy');
+          }
+          if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = 'Relatório copiado. Pronto para colar no REDS.';
+          if (recordRedsCopyBtn) {
+            const original = recordRedsCopyBtn.textContent;
+            recordRedsCopyBtn.textContent = 'Copiado ✓';
+            setTimeout(() => { recordRedsCopyBtn.textContent = original; }, 1800);
+          }
+        } catch (erro) {
+          if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = 'Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.';
+        }
+      }
+
       function renderizarFichaRegistro_(registro) {
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
@@ -1347,7 +1438,8 @@
           ['Tipo de vistoria', valorCampoFicha_(registro, 'Tipo de vistoria')],
           ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
           ['REDS', valorCampoFicha_(registro, 'REDS')],
-          ['Enviado por', valorCampoFicha_(registro, 'Enviado por')]
+          ['Enviado por', valorCampoFicha_(registro, 'Enviado por')],
+          ['Pendência documental', valorCampoFicha_(registro, 'Pendência documental')]
         ];
         const local = [
           ['Estabelecimento', estabelecimento],
@@ -1374,6 +1466,7 @@
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
+        renderizarRelatorioReds_(registro, situacao);
         renderizarHistorico_(registro?.historico || []);
         renderizarAuditoriaRegistro_(registro?.auditoria || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
@@ -1388,6 +1481,8 @@
         document.body.classList.add('detail-open');
         recordDetailLoading.hidden = false;
         recordDetailLoading.textContent = 'Carregando ficha do processo...';
+        if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
+        if (recordRedsReportText) recordRedsReportText.value = '';
         recordDetailGroups.innerHTML = '';
         recordHistoryTimeline.innerHTML = '';
         recordHistoryPanel.hidden = true;
@@ -1934,6 +2029,7 @@
           _appPossuiPscip: value('possuiPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           sancao: value('sancao'),
+          pendenciaDocumental: value('pendenciaDocumental'),
           pscip: value('possuiPscip') === 'sim' ? normalizarPscipExibicao_(value('pscip'), true) : '',
           pf: value('pf'),
           tipoVistoria: value('tipoVistoria'),
@@ -1985,6 +2081,11 @@
         ];
         const missing = [];
         let first = null;
+        if (ehFluxoLiberacao_() && normalize(value('sancao')) === normalize('Liberado') && !value('pendenciaDocumental')) {
+          if (pendenciaDocumentalSelect) pendenciaDocumentalSelect.classList.add('invalid');
+          missing.push('Pendência documental');
+          first = first || pendenciaDocumentalSelect;
+        }
         if (value('possuiPscip') === 'sim' && normalizarPscipTela_(value('pscip')).length <= 3) {
           const elPscip = document.getElementById('pscip');
           if (elPscip) elPscip.classList.add('invalid');
@@ -2093,7 +2194,17 @@
         agendarConsultaEncerramentoFiscal_();
       }
 
+      function syncPendenciaDocumental_() {
+        const mostrar = ehFluxoLiberacao_() && normalize(value('sancao')) === normalize('Liberado');
+        if (pendenciaDocumentalWrap) pendenciaDocumentalWrap.hidden = !mostrar;
+        if (pendenciaDocumentalSelect) {
+          pendenciaDocumentalSelect.required = mostrar;
+          if (!mostrar) pendenciaDocumentalSelect.value = '';
+        }
+      }
+
       function syncNotificado() {
+        syncPendenciaDocumental_();
         const isNotificado = normalize(value('sancao')) === normalize('Notificado');
         document.getElementById('noticeNotificado').classList.toggle('show', isNotificado);
         if ((isNotificado || ehFluxoLiberacao_()) && !value('demandaPrincipal')) document.getElementById('demandaPrincipal').value = 'Liberação';
@@ -3007,6 +3118,8 @@
         if (licenciamentoSelect) licenciamentoSelect.value = '';
         if (possuiPscipSelect) possuiPscipSelect.value = '';
         aplicarFluxoVistoria_('', { silencioso: true });
+        if (pendenciaDocumentalSelect) pendenciaDocumentalSelect.value = '';
+        syncPendenciaDocumental_();
         syncOtherCity();
         syncLicenciamento();
         syncPscip_();
@@ -4310,6 +4423,8 @@
         scheduleDraftSave();
       });
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
+      pendenciaDocumentalSelect?.addEventListener('change', scheduleDraftSave);
+      recordRedsCopyBtn?.addEventListener('click', copiarRelatorioReds_);
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
@@ -4532,7 +4647,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.12', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.13', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

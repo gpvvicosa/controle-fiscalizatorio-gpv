@@ -4993,3 +4993,67 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
   body.records-mode .records-table { width: 100% !important; }
   body.records-mode .records-table { table-layout: auto !important; }
 }
+
+
+/* ==========================================================================
+   V23.9.13 — Relatório REDS da vistoria de liberação
+   ========================================================================== */
+.release-document-pending-field[hidden],
+.record-reds-report[hidden] { display: none !important; }
+
+.record-reds-report {
+  margin: 0 24px 18px;
+  border: 1px solid #cfe5d2;
+  border-radius: 16px;
+  background: #f7fcf8;
+  overflow: hidden;
+}
+.record-reds-report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #dbeadf;
+  background: #eef8f0;
+}
+.record-reds-report-head h3 { margin: 0 0 3px; color: #176b2c; font-size: 1rem; }
+.record-reds-report-head span { color: #52665a; font-size: .82rem; }
+.record-reds-copy-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #1f8a3b;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.record-reds-copy-btn:hover { filter: brightness(.96); }
+.record-reds-report-text {
+  display: block;
+  width: calc(100% - 32px);
+  min-height: 250px;
+  margin: 16px;
+  padding: 14px;
+  resize: vertical;
+  border: 1px solid #d8e2da;
+  border-radius: 12px;
+  background: #fff;
+  color: #17221a;
+  font: 600 .86rem/1.55 Arial, sans-serif;
+  box-sizing: border-box;
+}
+.record-reds-copy-status {
+  min-height: 18px;
+  margin: -8px 16px 14px;
+  color: #176b2c;
+  font-size: .78rem;
+  font-weight: 700;
+}
+@media (max-width: 720px) {
+  .record-reds-report { margin: 0 12px 14px; }
+  .record-reds-report-head { align-items: stretch; flex-direction: column; }
+  .record-reds-copy-btn { width: 100%; }
+  .record-reds-report-text { min-height: 330px; }
+}

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-12-ficha-sob-demanda-hotfix';
-const VERSION = '23.9.12';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-13-relatorio-reds-liberacao';
+const VERSION = '23.9.13';
 
 const CORE_SHELL = [
   './',
