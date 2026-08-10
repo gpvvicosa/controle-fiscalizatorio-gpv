@@ -4266,7 +4266,7 @@ body.useful-links-open{overflow:hidden}
 .prepared-group{display:grid;gap:10px;margin-top:12px}.prepared-group>h3{margin:4px 0 0;padding-bottom:6px;border-bottom:1px solid var(--line,#e3dfd6);font-size:1rem}
 
 
-/* V23.9.1 — limpeza da tela de vistoria, modal mobile, alertas e carregamento do painel. */
+/* V23.9.2 — vistorias programadas, alertas de prazo e tela de vistoria simplificada. */
 .inspection-flow-section > .section-body { padding-top: 14px; }
 .prepared-inspections-head > div { min-width: 0; }
 .prepared-for-user {
@@ -4430,3 +4430,44 @@ body.records-mode .records-status.loading { display: block; margin: 10px 0 0; pa
 @media (prefers-reduced-motion: reduce) {
   .panel-loading-pen, .panel-loading-dots i { animation: none !important; }
 }
+
+
+/* V23.9.2 — Vistorias Programadas */
+.programmed-inspections-box { margin-top: 0; margin-bottom: 16px; }
+.inspection-flow-grid-after-programmed { margin-top: 14px; }
+.inspection-flow-card .inspection-flow-copy { justify-content: center; }
+.inspection-flow-card .inspection-flow-copy strong { line-height: 1.25; }
+.program-deadline-notice {
+  margin: 11px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid #e9d9ad;
+  border-radius: 12px;
+  background: #fff9e8;
+  color: #684d00;
+  font-size: .84rem;
+  line-height: 1.35;
+}
+.program-deadline-notice.is-critical { border-color: #efb7b7; background: #fff0f0; color: #8f1d1d; }
+.program-deadline-notice[hidden] { display: none !important; }
+.programmed-card { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+.programmed-card:hover { transform: translateY(-1px); box-shadow: 0 7px 18px rgba(18, 25, 38, .07); }
+.programmed-card:focus-visible { outline: 3px solid rgba(112, 18, 22, .18); outline-offset: 2px; }
+.programmed-card.atrasada { border-color: #e9a2a2; box-shadow: inset 4px 0 0 #b42318; }
+.programmed-card.hoje { border-color: #e8c677; box-shadow: inset 4px 0 0 #d08a00; }
+.programmed-card.amanha { border-color: #cdd8e7; box-shadow: inset 4px 0 0 #52749c; }
+.programmed-card.is-release.atrasada,
+.programmed-card.is-release.hoje { background: #fffafa; }
+.program-deadline-badge { display:inline-flex; align-items:center; min-height:24px; padding:3px 8px; border-radius:999px; font-size:.72rem; font-weight:800; background:#f2f4f7; color:#475467; }
+.program-deadline-badge.atrasada { background:#fee4e2; color:#b42318; }
+.program-deadline-badge.hoje { background:#fff0c2; color:#8a5200; }
+.program-deadline-badge.amanha { background:#eaf1f9; color:#365a7d; }
+.program-deadline-badge.proxima { background:#eef5ee; color:#35603b; }
+#prepareInspectionBtn.app-more-menu-item { width: 100%; }
+@media (max-width:680px) {
+  .programmed-inspections-box { margin-bottom: 13px; }
+  .inspection-flow-grid-after-programmed { margin-top: 12px; }
+  .program-deadline-notice { font-size: .8rem; }
+}
+
+.logged-user-badge.has-critical-program { box-shadow: 0 0 0 2px rgba(180,35,24,.18); }
+.logged-user-badge.has-critical-program .prepared-alert-badge { background:#b42318; color:#fff; }

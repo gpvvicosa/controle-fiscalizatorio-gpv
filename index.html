@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.1">
+  <link rel="stylesheet" href="styles.css?v=23.9.2">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -139,6 +139,10 @@
     <button class="app-more-menu-item" id="updateAppBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7.2 7.2 0 1 0 1 7"/><path d="M19 4.5V8h-3.5"/></svg>
       <span><strong>Atualizar app</strong><small>Buscar a versão mais recente</small></span>
+    </button>
+    <button class="app-more-menu-item" id="prepareInspectionBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
+      <span><strong>Preparar vistoria</strong><small>Cadastrar uma vistoria antes do deslocamento</small></span>
     </button>
     <button class="app-more-menu-item" id="usefulLinksBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5l3-3M8.2 15.8l-1.3 1.3a3.5 3.5 0 0 1-5-5l3.2-3.2a3.5 3.5 0 0 1 5 0M15.8 8.2l1.3-1.3a3.5 3.5 0 1 1 5 5l-3.2 3.2a3.5 3.5 0 0 1-5 0"/></svg>
@@ -452,21 +456,11 @@
     <form id="vistoriaForm" novalidate>
       <section class="section essential inspection-flow-section" id="tipoVistoriaSecao">
         <div class="section-body">
-          <div class="inspection-flow-grid" role="group" aria-label="Tipo de vistoria">
-            <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
-              <span class="inspection-flow-icon" aria-hidden="true">⚠️</span>
-              <span class="inspection-flow-copy"><strong>Vistoria de Fiscalização</strong><small>Fluxo fiscalizatório. Autuado e Regularizado.</small></span>
-            </button>
-            <button type="button" class="inspection-flow-card" id="fluxoLiberacaoBtn" data-fluxo-vistoria="liberacao">
-              <span class="inspection-flow-icon" aria-hidden="true">✅</span>
-              <span class="inspection-flow-copy"><strong>Vistoria de Liberação</strong><small>Resultado somente Liberado ou Notificado.</small></span>
-            </button>
-          </div>
-          <div class="prepared-inspections-box">
+          <div class="prepared-inspections-box programmed-inspections-box">
             <div class="prepared-inspections-head">
-              <div><strong>Vistorias preparadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
-              <button class="btn btn-secondary" type="button" id="prepareInspectionBtn">+ Preparar vistoria</button>
+              <div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
             </div>
+            <div id="programDeadlineNotice" class="program-deadline-notice" hidden></div>
             <div class="prepared-inspections-filters">
               <button type="button" class="prepared-filter is-active" data-prepared-filter="todas">Todas</button>
               <button type="button" class="prepared-filter" data-prepared-filter="fiscalizacao">Fiscalização</button>
@@ -474,6 +468,16 @@
             </div>
             <div id="preparedInspectionsStatus" class="hint">Carregando programações...</div>
             <div id="preparedInspectionsList" class="prepared-inspections-list"></div>
+          </div>
+          <div class="inspection-flow-grid inspection-flow-grid-after-programmed" role="group" aria-label="Tipo de vistoria">
+            <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
+              <span class="inspection-flow-icon" aria-hidden="true">⚠️</span>
+              <span class="inspection-flow-copy"><strong>Vistoria de Fiscalização</strong></span>
+            </button>
+            <button type="button" class="inspection-flow-card" id="fluxoLiberacaoBtn" data-fluxo-vistoria="liberacao">
+              <span class="inspection-flow-icon" aria-hidden="true">✅</span>
+              <span class="inspection-flow-copy"><strong>Vistoria de Liberação</strong></span>
+            </button>
           </div>
         </div>
       </section>
@@ -876,7 +880,7 @@
   <div class="review-overlay" id="prepareInspectionModal" hidden>
     <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="prepareInspectionTitle">
       <div class="review-head">
-        <div><h2 id="prepareInspectionTitle">Preparar vistoria</h2><p>Dados prévios para consulta antes do deslocamento.</p></div>
+        <div><h2 id="prepareInspectionTitle">Preparar vistoria</h2><p>Cadastre os dados conhecidos antes do deslocamento.</p></div>
         <button class="icon-btn" type="button" id="prepareInspectionCloseBtn" aria-label="Fechar">×</button>
       </div>
       <div class="review-body">
@@ -897,7 +901,7 @@
         </div>
         <div class="error-box" id="prepareInspectionError" hidden></div>
       </div>
-      <div class="review-actions"><button class="btn btn-secondary" type="button" id="prepareInspectionCancelBtn">Cancelar</button><button class="btn btn-primary" type="button" id="prepareInspectionSaveBtn">Salvar preparação</button></div>
+      <div class="review-actions"><button class="btn btn-secondary" type="button" id="prepareInspectionCancelBtn">Cancelar</button><button class="btn btn-primary" type="button" id="prepareInspectionSaveBtn">Salvar programação</button></div>
     </div>
   </div>
 
@@ -1020,7 +1024,7 @@
     </div>
   </div>
   <script>
-    // V23.9.1 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.9.2 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -1038,8 +1042,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.1"></script>
-  <script src="ocupacoes.js?v=23.9.1"></script>
-  <script src="app.js?v=23.9.1"></script>
+  <script src="config.js?v=23.9.2"></script>
+  <script src="ocupacoes.js?v=23.9.2"></script>
+  <script src="app.js?v=23.9.2"></script>
 </body>
 </html>

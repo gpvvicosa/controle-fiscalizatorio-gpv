@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.1';
+      const APP_VERSION = '23.9.2';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -335,6 +335,7 @@
       const preparedInspectionsList = document.getElementById('preparedInspectionsList');
       const preparedInspectionsStatus = document.getElementById('preparedInspectionsStatus');
       const preparedForUserNotice = document.getElementById('preparedForUserNotice');
+      const programDeadlineNotice = document.getElementById('programDeadlineNotice');
       const prepareTipo = document.getElementById('prepareTipo');
       const prepareData = document.getElementById('prepareData');
       const prepareVistoriador = document.getElementById('prepareVistoriador');
@@ -3219,14 +3220,19 @@
         const nome = String(usuario?.nome || '').trim();
         const minhas = preparacoesDoUsuarioLogado_();
         const quantidade = minhas.length;
+        const criticas = minhas.filter(item => {
+          const dias = diasAteProgramacao_(item?.dataPrevista);
+          return dias != null && (dias < 0 || (dias === 0 && item?.tipoPreparacao === 'liberacao'));
+        }).length;
 
         if (loggedUserBadge) {
           loggedUserBadge.hidden = !nome;
           loggedUserBadge.classList.toggle('has-prepared-alert', quantidade > 0);
+          loggedUserBadge.classList.toggle('has-critical-program', criticas > 0);
           loggedUserBadge.setAttribute('role', quantidade > 0 ? 'button' : 'status');
           loggedUserBadge.setAttribute('tabindex', quantidade > 0 ? '0' : '-1');
           loggedUserBadge.setAttribute('aria-label', quantidade > 0
-            ? `${nome}. ${quantidade} vistoria${quantidade === 1 ? '' : 's'} preparada${quantidade === 1 ? '' : 's'} para você.`
+            ? `${nome}. ${quantidade} vistoria${quantidade === 1 ? '' : 's'} programada${quantidade === 1 ? '' : 's'} para você.`
             : nome);
           loggedUserBadge.innerHTML = nome
             ? `<span class="logged-user-name">${escapeHtml(nome)}</span>${quantidade > 0 ? `<span class="prepared-alert-badge" aria-hidden="true">${quantidade}</span>` : ''}`
@@ -3236,7 +3242,7 @@
         if (preparedForUserNotice) {
           preparedForUserNotice.hidden = quantidade <= 0;
           preparedForUserNotice.textContent = quantidade > 0
-            ? `${quantidade} vistoria${quantidade === 1 ? '' : 's'} preparada${quantidade === 1 ? '' : 's'} para você`
+            ? `${quantidade} vistoria${quantidade === 1 ? '' : 's'} programada${quantidade === 1 ? '' : 's'} para você${criticas > 0 ? ` • ${criticas} com atenção de prazo` : ''}`
             : '';
         }
       }
@@ -3698,6 +3704,7 @@
       }
 
       function abrirModalPreparacao_() {
+        fecharMenuMais_();
         if (!prepareInspectionModal) return;
         if (prepareInspectionError) prepareInspectionError.hidden = true;
         if (prepareData && !prepareData.value) prepareData.value = dataHojeIso_();
@@ -3787,7 +3794,7 @@
           ['prepareCnpj','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
           const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value='PRJ';
           await carregarPreparacoesVistoria_();
-          appStatus.textContent = 'Vistoria preparada e compartilhada com a equipe.';
+          appStatus.textContent = 'Vistoria programada e compartilhada com a equipe.';
         } catch (erro) {
           if (prepareInspectionError) {
             prepareInspectionError.hidden = false;
@@ -3798,8 +3805,49 @@
         }
       }
 
+      function diasAteProgramacao_(valor) {
+        const v = String(valor || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+        const [a, m, d] = v.split('-').map(Number);
+        const alvo = new Date(a, m - 1, d, 12, 0, 0, 0);
+        const hoje = new Date();
+        const base = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 12, 0, 0, 0);
+        return Math.round((alvo.getTime() - base.getTime()) / 86400000);
+      }
+
+      function classificarPrazoProgramacao_(item) {
+        const dias = diasAteProgramacao_(item?.dataPrevista);
+        if (dias == null) return { classe: 'sem-data', rotulo: 'Sem data', prioridade: 50, dias: null };
+        if (dias < 0) return { classe: 'atrasada', rotulo: `Atrasada ${Math.abs(dias)} dia${Math.abs(dias) === 1 ? '' : 's'}`, prioridade: 0, dias };
+        if (dias === 0) return { classe: 'hoje', rotulo: 'Hoje', prioridade: 1, dias };
+        if (dias === 1) return { classe: 'amanha', rotulo: 'Amanhã', prioridade: 2, dias };
+        return { classe: 'proxima', rotulo: dias <= 7 ? `Em ${dias} dias` : 'Próxima', prioridade: 10 + Math.min(dias, 30), dias };
+      }
+
+      function atualizarAlertaPrazosProgramados_() {
+        if (!programDeadlineNotice) return;
+        const pendentes = Array.isArray(preparacoesVistoria) ? preparacoesVistoria : [];
+        const atrasadas = pendentes.filter(i => (diasAteProgramacao_(i?.dataPrevista) ?? 9999) < 0);
+        const hoje = pendentes.filter(i => diasAteProgramacao_(i?.dataPrevista) === 0);
+        const amanha = pendentes.filter(i => diasAteProgramacao_(i?.dataPrevista) === 1);
+        const libAtrasadas = atrasadas.filter(i => i?.tipoPreparacao === 'liberacao');
+        const libHoje = hoje.filter(i => i?.tipoPreparacao === 'liberacao');
+        const partes = [];
+        if (libAtrasadas.length) partes.push(`${libAtrasadas.length} liberação${libAtrasadas.length === 1 ? '' : 'ões'} atrasada${libAtrasadas.length === 1 ? '' : 's'}`);
+        if (libHoje.length) partes.push(`${libHoje.length} liberação${libHoje.length === 1 ? '' : 'ões'} para hoje`);
+        const outrasAtrasadas = atrasadas.length - libAtrasadas.length;
+        if (outrasAtrasadas > 0) partes.push(`${outrasAtrasadas} fiscalização${outrasAtrasadas === 1 ? '' : 'ões'} atrasada${outrasAtrasadas === 1 ? '' : 's'}`);
+        const outrasHoje = hoje.length - libHoje.length;
+        if (outrasHoje > 0) partes.push(`${outrasHoje} fiscalização${outrasHoje === 1 ? '' : 'ões'} para hoje`);
+        if (!partes.length && amanha.length) partes.push(`${amanha.length} vistoria${amanha.length === 1 ? '' : 's'} para amanhã`);
+        programDeadlineNotice.hidden = partes.length === 0;
+        programDeadlineNotice.classList.toggle('is-critical', atrasadas.length > 0 || libHoje.length > 0);
+        programDeadlineNotice.innerHTML = partes.length ? `<strong>⚠ Atenção aos prazos:</strong> ${escapeHtml(partes.join(' • '))}` : '';
+      }
+
       function renderizarPreparacoesVistoria_() {
         atualizarIndicadorPreparacoesUsuario_();
+        atualizarAlertaPrazosProgramados_();
         if (!preparedInspectionsList) return;
         const meuNome = String(authState.usuario?.nome || '').trim();
         const lista = preparacoesVistoria
@@ -3809,19 +3857,26 @@
             const aMinha = meuNome && normalize(a?.vistoriadorResponsavel) === normalize(meuNome) ? 0 : 1;
             const bMinha = meuNome && normalize(b?.vistoriadorResponsavel) === normalize(meuNome) ? 0 : 1;
             if (aMinha !== bMinha) return aMinha - bMinha;
+            const pa = classificarPrazoProgramacao_(a);
+            const pb = classificarPrazoProgramacao_(b);
+            if (pa.prioridade !== pb.prioridade) return pa.prioridade - pb.prioridade;
+            const aLib = a?.tipoPreparacao === 'liberacao' ? 0 : 1;
+            const bLib = b?.tipoPreparacao === 'liberacao' ? 0 : 1;
+            if (aLib !== bLib) return aLib - bLib;
             return String(a?.dataPrevista || '9999-12-31').localeCompare(String(b?.dataPrevista || '9999-12-31'));
           });
         if (!lista.length) {
-          preparedInspectionsList.innerHTML = '<div class="prepared-empty">Nenhuma vistoria preparada neste filtro.</div>';
+          preparedInspectionsList.innerHTML = '<div class="prepared-empty">Nenhuma vistoria programada neste filtro.</div>';
           return;
         }
         const card = item => {
           const liberacao = item.tipoPreparacao === 'liberacao';
-          const titulo = item.nomeFantasia || item.razaoSocial || item.pscip || 'Vistoria preparada';
+          const titulo = item.nomeFantasia || item.razaoSocial || item.pscip || 'Vistoria programada';
           const endereco = [item.endereco, item.numero, item.bairro, item.cidade].filter(Boolean).join(', ');
-          return `<article class="prepared-card">
+          const prazo = classificarPrazoProgramacao_(item);
+          return `<article class="prepared-card programmed-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-preparacao-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="Abrir vistoria programada: ${escapeAttr(titulo)}">
             <div class="prepared-card-main">
-              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : 'Fiscalização'}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
+              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : 'Fiscalização'}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
               <h3>${escapeHtml(titulo)}</h3>
               <p>${escapeHtml(item.pscip || 'Sem PSCIP informado')}${item.area ? ` • ${escapeHtml(item.area)} m²` : ''}</p>
               <p>${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
@@ -3856,7 +3911,7 @@
           const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
           preparacoesVistoria = Array.isArray(r?.itens) ? r.itens : [];
           try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = `${preparacoesVistoria.length} vistoria(s) preparada(s) pendente(s).`;
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = `${preparacoesVistoria.length} vistoria(s) programada(s) pendente(s).`;
           renderizarPreparacoesVistoria_();
         } catch (erro) {
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível atualizar as programações agora.';
@@ -3886,7 +3941,7 @@
         applyIdentificadorMask();
         scheduleDraftSave();
         document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        appStatus.textContent = `Vistoria preparada carregada${item.vistoriadorResponsavel ? ` — responsável: ${item.vistoriadorResponsavel}` : ''}.`;
+        appStatus.textContent = `Vistoria programada carregada${item.vistoriadorResponsavel ? ` — responsável: ${item.vistoriadorResponsavel}` : ''}.`;
       }
 
       async function loadInitialData() {
@@ -3978,6 +4033,14 @@
         const btn = event.target.closest('[data-preparacao-id]');
         if (!btn) return;
         const item = preparacoesVistoria.find(p => String(p.id) === String(btn.dataset.preparacaoId));
+        aplicarPreparacaoAoFormulario_(item);
+      });
+      preparedInspectionsList?.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const alvo = event.target.closest('[data-preparacao-id]');
+        if (!alvo) return;
+        event.preventDefault();
+        const item = preparacoesVistoria.find(p => String(p.id) === String(alvo.dataset.preparacaoId));
         aplicarPreparacaoAoFormulario_(item);
       });
 
@@ -4232,7 +4295,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.1', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.2', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

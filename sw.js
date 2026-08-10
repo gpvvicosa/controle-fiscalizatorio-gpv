@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-1-visual-alertas-cnpj';
-const VERSION = '23.9.1';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-2-programadas-prazos';
+const VERSION = '23.9.2';
 
 const CORE_SHELL = [
   './',
