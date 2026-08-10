@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.19';
+      const APP_VERSION = '23.9.20';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -3345,6 +3345,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       function fecharMenuMais_() {
         if (!appMoreMenu) return;
         appMoreMenu.hidden = true;
+        document.body.classList.remove('more-menu-open');
         moreMenuTriggers.forEach(btn => btn.setAttribute('aria-expanded', 'false'));
       }
 
@@ -3352,6 +3353,18 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         if (!appMoreMenu || !gatilho) return;
         const margem = 10;
         const rect = gatilho.getBoundingClientRect();
+
+        if (window.innerWidth <= 900) {
+          const lateral = 12;
+          appMoreMenu.style.width = `${Math.max(260, window.innerWidth - (lateral * 2))}px`;
+          appMoreMenu.style.right = 'auto';
+          appMoreMenu.style.left = `${lateral}px`;
+          appMoreMenu.style.top = `${lateral}px`;
+          appMoreMenu.style.maxHeight = `${Math.max(280, window.innerHeight - (lateral * 2))}px`;
+          return;
+        }
+
+        appMoreMenu.style.maxHeight = '';
         const largura = Math.min(330, Math.max(240, window.innerWidth - (margem * 2)));
         appMoreMenu.style.width = `${largura}px`;
         appMoreMenu.style.right = 'auto';
@@ -3371,6 +3384,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           return;
         }
         appMoreMenu.hidden = false;
+        document.body.classList.add('more-menu-open');
         moreMenuTriggers.forEach(btn => btn.setAttribute('aria-expanded', btn === gatilho ? 'true' : 'false'));
         posicionarMenuMais_(gatilho || navMoreMenuBtn || dashboardMoreMenuBtn);
       }
@@ -4756,7 +4770,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.19', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.20', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
