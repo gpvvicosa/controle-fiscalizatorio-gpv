@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9';
+      const APP_VERSION = '23.9.1';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -334,6 +334,7 @@
       const prepareInspectionError = document.getElementById('prepareInspectionError');
       const preparedInspectionsList = document.getElementById('preparedInspectionsList');
       const preparedInspectionsStatus = document.getElementById('preparedInspectionsStatus');
+      const preparedForUserNotice = document.getElementById('preparedForUserNotice');
       const prepareTipo = document.getElementById('prepareTipo');
       const prepareData = document.getElementById('prepareData');
       const prepareVistoriador = document.getElementById('prepareVistoriador');
@@ -1123,7 +1124,16 @@
         if (recordsRefreshBtn) recordsRefreshBtn.disabled = true;
         atualizarPaginacao_();
         recordsStatus.className = 'records-status loading';
-        recordsStatus.textContent = 'Atualizando Painel Fiscalizatório...';
+        recordsStatus.innerHTML = `
+          <div class="panel-loading-visual" role="status" aria-live="polite">
+            <div class="panel-loading-icon" aria-hidden="true">
+              <span class="panel-loading-sheet"></span>
+              <span class="panel-loading-pen"></span>
+            </div>
+            <strong>Atualizando Painel Fiscalizatório...</strong>
+            <small>Carregando dados da planilha</small>
+            <span class="panel-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          </div>`;
 
         const offset = (recordsState.pagina - 1) * recordsState.limite;
         const limiteApi = Math.max(10, recordsState.limite);
@@ -3198,6 +3208,50 @@
         posicionarMenuMais_(gatilho || navMoreMenuBtn || dashboardMoreMenuBtn);
       }
 
+      function preparacoesDoUsuarioLogado_() {
+        const nome = String(authState.usuario?.nome || '').trim();
+        if (!nome) return [];
+        return preparacoesVistoria.filter(item => normalize(item?.vistoriadorResponsavel) === normalize(nome));
+      }
+
+      function atualizarIndicadorPreparacoesUsuario_() {
+        const usuario = authState.usuario;
+        const nome = String(usuario?.nome || '').trim();
+        const minhas = preparacoesDoUsuarioLogado_();
+        const quantidade = minhas.length;
+
+        if (loggedUserBadge) {
+          loggedUserBadge.hidden = !nome;
+          loggedUserBadge.classList.toggle('has-prepared-alert', quantidade > 0);
+          loggedUserBadge.setAttribute('role', quantidade > 0 ? 'button' : 'status');
+          loggedUserBadge.setAttribute('tabindex', quantidade > 0 ? '0' : '-1');
+          loggedUserBadge.setAttribute('aria-label', quantidade > 0
+            ? `${nome}. ${quantidade} vistoria${quantidade === 1 ? '' : 's'} preparada${quantidade === 1 ? '' : 's'} para você.`
+            : nome);
+          loggedUserBadge.innerHTML = nome
+            ? `<span class="logged-user-name">${escapeHtml(nome)}</span>${quantidade > 0 ? `<span class="prepared-alert-badge" aria-hidden="true">${quantidade}</span>` : ''}`
+            : '';
+        }
+
+        if (preparedForUserNotice) {
+          preparedForUserNotice.hidden = quantidade <= 0;
+          preparedForUserNotice.textContent = quantidade > 0
+            ? `${quantidade} vistoria${quantidade === 1 ? '' : 's'} preparada${quantidade === 1 ? '' : 's'} para você`
+            : '';
+        }
+      }
+
+      function abrirPreparacoesDoUsuario_() {
+        if (!preparacoesDoUsuarioLogado_().length) return;
+        mostrarVistaFormulario_();
+        filtroPreparacoes = 'todas';
+        document.querySelectorAll('[data-prepared-filter]').forEach(b => b.classList.toggle('is-active', b.dataset.preparedFilter === 'todas'));
+        renderizarPreparacoesVistoria_();
+        window.setTimeout(() => {
+          document.querySelector('.prepared-inspections-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      }
+
       function atualizarUsuarioLogadoUi_() {
         const usuario = authState.usuario;
         if (loggedUserMenuText) {
@@ -3205,10 +3259,7 @@
             ? `${usuario.nome} · Nº BM ${usuario.bm}`
             : 'Encerrar o acesso neste aparelho';
         }
-        if (loggedUserBadge) {
-          loggedUserBadge.textContent = usuario ? String(usuario.nome || '') : '';
-          loggedUserBadge.hidden = !usuario?.nome;
-        }
+        atualizarIndicadorPreparacoesUsuario_();
       }
 
       function mostrarTelaLoginBm_(mensagem = '') {
@@ -3732,6 +3783,7 @@
         try {
           await apiRequest('save', { payload: p }, 30000);
           fecharModalPreparacao_();
+          ultimoCnpjPreparacaoConsultado = '';
           ['prepareCnpj','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
           const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value='PRJ';
           await carregarPreparacoesVistoria_();
@@ -3747,8 +3799,18 @@
       }
 
       function renderizarPreparacoesVistoria_() {
+        atualizarIndicadorPreparacoesUsuario_();
         if (!preparedInspectionsList) return;
-        const lista = preparacoesVistoria.filter(item => filtroPreparacoes === 'todas' || item.tipoPreparacao === filtroPreparacoes);
+        const meuNome = String(authState.usuario?.nome || '').trim();
+        const lista = preparacoesVistoria
+          .filter(item => filtroPreparacoes === 'todas' || item.tipoPreparacao === filtroPreparacoes)
+          .slice()
+          .sort((a, b) => {
+            const aMinha = meuNome && normalize(a?.vistoriadorResponsavel) === normalize(meuNome) ? 0 : 1;
+            const bMinha = meuNome && normalize(b?.vistoriadorResponsavel) === normalize(meuNome) ? 0 : 1;
+            if (aMinha !== bMinha) return aMinha - bMinha;
+            return String(a?.dataPrevista || '9999-12-31').localeCompare(String(b?.dataPrevista || '9999-12-31'));
+          });
         if (!lista.length) {
           preparedInspectionsList.innerHTML = '<div class="prepared-empty">Nenhuma vistoria preparada neste filtro.</div>';
           return;
@@ -3867,13 +3929,46 @@
 
       fluxoFiscalizacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('fiscalizacao'));
       fluxoLiberacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('liberacao'));
+      loggedUserBadge?.addEventListener('click', abrirPreparacoesDoUsuario_);
+      loggedUserBadge?.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); abrirPreparacoesDoUsuario_(); }
+      });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
       prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
       prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
       document.getElementById('preparePscip')?.addEventListener('input', event => { event.target.value = String(event.target.value || '').replace(/^prj/i, 'PRJ'); });
-      document.getElementById('prepareCnpj')?.addEventListener('blur', consultarCnpjPreparacao_);
+      let timerConsultaCnpjPreparacao = null;
+      let ultimoCnpjPreparacaoConsultado = '';
+      const prepareCnpjInput = document.getElementById('prepareCnpj');
+      const limparDadosEmpresaPreparacao_ = () => {
+        ['prepareNomeFantasia','prepareRazaoSocial','prepareEndereco','prepareNumero','prepareBairro'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+      };
+      prepareCnpjInput?.addEventListener('input', () => {
+        const numero = digits(prepareCnpjInput.value || '');
+        if (timerConsultaCnpjPreparacao) window.clearTimeout(timerConsultaCnpjPreparacao);
+        if (ultimoCnpjPreparacaoConsultado && numero !== ultimoCnpjPreparacaoConsultado) {
+          limparDadosEmpresaPreparacao_();
+          ultimoCnpjPreparacaoConsultado = '';
+        }
+        if (numero.length === 14) {
+          timerConsultaCnpjPreparacao = window.setTimeout(async () => {
+            await consultarCnpjPreparacao_();
+            ultimoCnpjPreparacaoConsultado = digits(prepareCnpjInput.value || '');
+          }, 320);
+        }
+      });
+      prepareCnpjInput?.addEventListener('blur', async () => {
+        const numero = digits(prepareCnpjInput.value || '');
+        if (numero.length === 14 && numero !== ultimoCnpjPreparacaoConsultado) {
+          await consultarCnpjPreparacao_();
+          ultimoCnpjPreparacaoConsultado = digits(prepareCnpjInput.value || '');
+        }
+      });
       document.querySelectorAll('[data-prepared-filter]').forEach(btn => btn.addEventListener('click', () => {
         filtroPreparacoes = btn.dataset.preparedFilter || 'todas';
         document.querySelectorAll('[data-prepared-filter]').forEach(b => b.classList.toggle('is-active', b === btn));
@@ -4137,7 +4232,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.1', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

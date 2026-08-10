@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-preparacao-vistoriadores';
-const VERSION = '23.9';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-1-visual-alertas-cnpj';
+const VERSION = '23.9.1';
 
 const CORE_SHELL = [
   './',

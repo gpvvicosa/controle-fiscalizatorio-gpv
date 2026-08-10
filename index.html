@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9">
+  <link rel="stylesheet" href="styles.css?v=23.9.1">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -451,13 +451,6 @@
 
     <form id="vistoriaForm" novalidate>
       <section class="section essential inspection-flow-section" id="tipoVistoriaSecao">
-        <div class="section-head">
-          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M9 2h6v4H9zM8.5 10h7M8.5 14h7"/></svg></div>
-          <div class="head-text">
-            <h2>Escolha o tipo de vistoria</h2>
-            <p>Essa escolha define o fluxo e as situações disponíveis no registro.</p>
-          </div>
-        </div>
         <div class="section-body">
           <div class="inspection-flow-grid" role="group" aria-label="Tipo de vistoria">
             <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
@@ -469,10 +462,9 @@
               <span class="inspection-flow-copy"><strong>Vistoria de Liberação</strong><small>Resultado somente Liberado ou Notificado.</small></span>
             </button>
           </div>
-          <div class="inspection-flow-current" id="fluxoVistoriaAtualTexto" hidden></div>
           <div class="prepared-inspections-box">
             <div class="prepared-inspections-head">
-              <div><strong>Vistorias preparadas</strong><small>Cadastre previamente os dados conhecidos e abra a ficha no dia da vistoria.</small></div>
+              <div><strong>Vistorias preparadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
               <button class="btn btn-secondary" type="button" id="prepareInspectionBtn">+ Preparar vistoria</button>
             </div>
             <div class="prepared-inspections-filters">
@@ -889,12 +881,12 @@
       </div>
       <div class="review-body">
         <div class="grid prepare-grid">
+          <div class="field wide prepare-cnpj-first"><label for="prepareCnpj">CNPJ / CPF</label><input id="prepareCnpj" inputmode="numeric" autocomplete="off" placeholder="Digite o CNPJ para preencher os dados automaticamente"><div class="hint">Ao informar um CNPJ válido, os dados cadastrais disponíveis serão preenchidos automaticamente.</div></div>
           <div class="field"><label class="required" for="prepareTipo">Tipo</label><select id="prepareTipo"><option value="fiscalizacao">Vistoria de Fiscalização</option><option value="liberacao">Vistoria de Liberação</option></select></div>
           <div class="field"><label class="required" for="prepareData">Data prevista</label><input type="date" id="prepareData"></div>
           <div class="field"><label class="required" for="prepareVistoriador">Vistoriador responsável</label><select id="prepareVistoriador"><option value="">Selecione</option></select></div>
           <div class="field"><label for="prepareCidade">Cidade</label><input id="prepareCidade" value="Viçosa"></div>
           <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP</label><input id="preparePscip" value="PRJ" autocomplete="off"><div class="hint">Obrigatório para vistoria de liberação.</div></div>
-          <div class="field"><label for="prepareCnpj">CNPJ / CPF</label><input id="prepareCnpj" inputmode="numeric" autocomplete="off"></div>
           <div class="field"><label for="prepareNomeFantasia">Nome Fantasia</label><input id="prepareNomeFantasia"></div>
           <div class="field"><label for="prepareRazaoSocial">Razão Social</label><input id="prepareRazaoSocial"></div>
           <div class="field"><label for="prepareArea">Área (m²)</label><input id="prepareArea" inputmode="decimal"></div>
@@ -1028,7 +1020,7 @@
     </div>
   </div>
   <script>
-    // V23.9 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.9.1 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -1046,8 +1038,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9"></script>
-  <script src="ocupacoes.js?v=23.9"></script>
-  <script src="app.js?v=23.9"></script>
+  <script src="config.js?v=23.9.1"></script>
+  <script src="ocupacoes.js?v=23.9.1"></script>
+  <script src="app.js?v=23.9.1"></script>
 </body>
 </html>
