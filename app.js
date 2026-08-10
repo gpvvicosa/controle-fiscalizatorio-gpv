@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.7';
+      const APP_VERSION = '23.9.9';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -275,6 +275,8 @@
       const connectionBanner = document.getElementById('connectionBanner');
       const connectionStateText = document.getElementById('connectionStateText');
       const syncSummary = document.getElementById('syncSummary');
+      const dashboardSyncIndicator = document.getElementById('dashboardSyncIndicator');
+      const dashboardSyncCount = document.getElementById('dashboardSyncCount');
       const pendingPanel = document.getElementById('pendingPanel');
       const pendingTitle = document.getElementById('pendingTitle');
       const pendingText = document.getElementById('pendingText');
@@ -603,23 +605,44 @@
       }
 
       function atualizarResumoSincronizacao_() {
-        if (!syncSummary) return;
         const quantidade = obterPendentes().length;
-        syncSummary.classList.remove('is-ok', 'is-pending', 'is-offline');
+        if (syncSummary) {
+          syncSummary.classList.remove('is-ok', 'is-pending', 'is-offline');
+        }
+        if (dashboardSyncIndicator) {
+          dashboardSyncIndicator.classList.remove('is-checking', 'is-ok', 'is-pending', 'is-offline');
+        }
+
+        let estado = 'is-ok';
+        let texto = 'Tudo sincronizado';
         if (!navigator.onLine) {
-          syncSummary.classList.add('is-offline');
-          syncSummary.textContent = quantidade
+          estado = 'is-offline';
+          texto = quantidade
             ? `Offline • ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando envio`
             : 'Offline • nenhum envio pendente';
-          return;
+        } else if (quantidade) {
+          estado = 'is-pending';
+          texto = `${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
         }
-        if (quantidade) {
-          syncSummary.classList.add('is-pending');
-          syncSummary.textContent = `${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
-          return;
+
+        if (syncSummary) {
+          syncSummary.classList.add(estado);
+          syncSummary.textContent = texto;
         }
-        syncSummary.classList.add('is-ok');
-        syncSummary.textContent = 'Tudo sincronizado';
+        if (dashboardSyncIndicator) {
+          dashboardSyncIndicator.classList.add(estado);
+          dashboardSyncIndicator.setAttribute('aria-label', texto);
+          dashboardSyncIndicator.title = texto;
+        }
+        if (dashboardSyncCount) {
+          if (quantidade > 0) {
+            dashboardSyncCount.hidden = false;
+            dashboardSyncCount.textContent = quantidade > 99 ? '99+' : String(quantidade);
+          } else {
+            dashboardSyncCount.hidden = true;
+            dashboardSyncCount.textContent = '';
+          }
+        }
       }
 
       function atualizarPainelPendentes() {
@@ -1851,6 +1874,7 @@
         fluxoFiscalizacaoBtn?.classList.toggle('is-active', f === 'fiscalizacao');
         fluxoLiberacaoBtn?.classList.toggle('is-active', f === 'liberacao');
         document.body.classList.toggle('release-flow-active', f === 'liberacao');
+        document.body.classList.toggle('inspection-flow-active', f === 'fiscalizacao');
         fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', f === 'fiscalizacao' ? 'true' : 'false');
         fluxoLiberacaoBtn?.setAttribute('aria-pressed', f === 'liberacao' ? 'true' : 'false');
         vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
@@ -4510,7 +4534,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.7', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.9', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

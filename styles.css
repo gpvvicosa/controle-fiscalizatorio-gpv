@@ -4572,3 +4572,140 @@ body.release-flow-active:not(.records-mode) #submitBtn:hover {
 body.release-flow-active:not(.records-mode) .connection-banner.connection-online {
   box-shadow: inset 0 0 0 1px rgba(16,126,70,.10);
 }
+
+
+/* =============================================================================
+   V23.9.8 — Painel desktop mais limpo, ficha ampliada e status compacto
+   ============================================================================= */
+@media (min-width: 1181px) {
+  /* Remove as duas faixas redundantes abaixo do cabeçalho no Painel. */
+  body.records-mode #syncSummary { display: none !important; }
+  body.records-mode .dashboard-hero { display: none !important; }
+
+  /* O conteúdo passa a começar logo abaixo do cabeçalho principal. */
+  body.records-mode .dashboard-main-content {
+    width: calc(100% - 520px);
+    min-width: 700px;
+    padding-top: 18px;
+  }
+
+  /* Ficha lateral mais confortável para leitura no PC. */
+  body.records-mode .record-detail-screen {
+    inset: 114px 18px 58px auto;
+    width: 490px;
+  }
+
+  /* Mais no desktop: mantém o mesmo padrão translúcido do restante do cabeçalho. */
+  body.records-mode #dashboardMoreMenuBtn {
+    border-color: rgba(255,255,255,.30) !important;
+    background: rgba(116,0,4,.12) !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.035) !important;
+  }
+  body.records-mode #dashboardMoreMenuBtn:hover,
+  body.records-mode #dashboardMoreMenuBtn[aria-expanded="true"] {
+    background: rgba(255,255,255,.11) !important;
+    border-color: rgba(255,255,255,.55) !important;
+    color: #fff !important;
+  }
+
+  /* Indicador compacto de sincronização no cabeçalho. */
+  body.records-mode .dashboard-sync-indicator {
+    position: relative;
+    width: 31px;
+    height: 31px;
+    border-radius: 999px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid rgba(255,255,255,.34);
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.035);
+  }
+  body.records-mode .dashboard-sync-indicator .ui-icon {
+    width: 17px;
+    height: 17px;
+    stroke-width: 2.6;
+  }
+  body.records-mode .dashboard-sync-indicator.is-ok {
+    background: #16864d;
+    border-color: rgba(255,255,255,.55);
+  }
+  body.records-mode .dashboard-sync-indicator.is-pending {
+    background: #d79a00;
+    border-color: rgba(255,255,255,.60);
+  }
+  body.records-mode .dashboard-sync-indicator.is-offline {
+    background: #c53232;
+    border-color: rgba(255,255,255,.60);
+  }
+  body.records-mode .dashboard-sync-indicator.is-checking {
+    background: rgba(255,255,255,.16);
+  }
+  body.records-mode .dashboard-sync-count {
+    position: absolute;
+    right: -7px;
+    top: -8px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    color: #8f171c;
+    border: 2px solid #a60a10;
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 900;
+  }
+  body.records-mode .dashboard-sync-count[hidden] { display: none !important; }
+}
+
+
+/* =============================================================================
+   V23.9.9 — identidade visual do fluxo de Fiscalização em vermelho
+   ============================================================================= */
+body.inspection-flow-active:not(.records-mode) #fluxoFiscalizacaoBtn.is-active {
+  border-color: #b42318;
+  background: linear-gradient(180deg, #fff7f6 0%, #fff 100%);
+  box-shadow: 0 0 0 3px rgba(180,35,24,.08), 0 10px 24px rgba(145,18,13,.09);
+}
+body.inspection-flow-active:not(.records-mode) #fluxoFiscalizacaoBtn.is-active .inspection-flow-icon {
+  background: #fee4e2;
+  color: #b42318;
+  border-color: #fecdca;
+}
+body.inspection-flow-active:not(.records-mode) .vistoria-flow-section {
+  border-color: rgba(180,35,24,.18);
+}
+body.inspection-flow-active:not(.records-mode) .vistoria-flow-section > .section-head,
+body.inspection-flow-active:not(.records-mode) details.vistoria-flow-section > summary.section-head {
+  background: linear-gradient(90deg, #fff4f3 0%, #ffffff 78%);
+  border-bottom-color: #fecdca;
+}
+body.inspection-flow-active:not(.records-mode) .vistoria-flow-section .section-icon {
+  background: #fee4e2;
+  color: #b42318;
+  border-color: #fecdca;
+}
+body.inspection-flow-active:not(.records-mode) .vistoria-flow-section .section-head h2 {
+  color: #9f1f17;
+}
+body.inspection-flow-active:not(.records-mode) #vistoriaBottomBar {
+  border-top-color: #fecdca;
+  box-shadow: 0 -8px 24px rgba(180,35,24,.08);
+}
+body.inspection-flow-active:not(.records-mode) #vistoriaBottomBar .btn-primary,
+body.inspection-flow-active:not(.records-mode) #submitBtn {
+  background: linear-gradient(180deg, #c62828 0%, #a91f1f 100%);
+  border-color: #a91f1f;
+}
+body.inspection-flow-active:not(.records-mode) #vistoriaBottomBar .btn-primary:hover,
+body.inspection-flow-active:not(.records-mode) #submitBtn:hover {
+  background: linear-gradient(180deg, #b52121 0%, #951b1b 100%);
+}
+body.inspection-flow-active:not(.records-mode) .connection-banner.connection-online {
+  box-shadow: inset 0 0 0 1px rgba(180,35,24,.08);
+}

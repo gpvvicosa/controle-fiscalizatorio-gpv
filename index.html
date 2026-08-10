@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.7">
+  <link rel="stylesheet" href="styles.css?v=23.9.9">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -104,6 +104,10 @@
       </div>
 
       <div class="dashboard-header-actions" aria-label="Ações do painel">
+        <span class="dashboard-sync-indicator is-checking" id="dashboardSyncIndicator" role="status" aria-live="polite" aria-label="Verificando sincronização" title="Verificando sincronização">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5 10 17l8.5-10"/></svg>
+          <span class="dashboard-sync-count" id="dashboardSyncCount" hidden></span>
+        </span>
         <div class="dashboard-gpv-mark" aria-hidden="true">
           <img src="assets/logo-gpv.png?v=23.1" width="512" height="512" alt="">
         </div>
@@ -1030,7 +1034,7 @@
     </div>
   </div>
   <script>
-    // V23.9.7 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.9.9 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -1048,8 +1052,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.7"></script>
-  <script src="ocupacoes.js?v=23.9.7"></script>
-  <script src="app.js?v=23.9.7"></script>
+  <script src="config.js?v=23.9.9"></script>
+  <script src="ocupacoes.js?v=23.9.9"></script>
+  <script src="app.js?v=23.9.9"></script>
 </body>
 </html>
