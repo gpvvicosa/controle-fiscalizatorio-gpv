@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.9';
+      const APP_VERSION = '23.9.10';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -1065,7 +1065,7 @@
         const itens = recordsState.itens || [];
         if (!itens.length) {
           recordsList.innerHTML = '<div class="records-empty">Nenhum registro encontrado com os filtros informados.</div>';
-          recordsTableBody.innerHTML = '<tr><td colspan="8" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
+          recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
           return;
         }
 
@@ -1081,6 +1081,9 @@
             <td>${statusBadgeHtml_(item.sancao)}</td>
             <td class="records-mono">${escapeHtml(item.projeto || '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
+            <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" data-open-record-detail="${escapeAttr(item.chave || '')}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5"/></svg>
+            </button></td>
           </tr>`;
         }).join('');
 
@@ -4414,15 +4417,10 @@
         if (card) abrirDetalheRegistro_(card.dataset.recordKey || '');
       });
       recordsTableBody?.addEventListener('click', event => {
-        const row = event.target.closest('.records-table-row');
-        if (row) abrirDetalheRegistro_(row.dataset.recordKey || '');
-      });
-      recordsTableBody?.addEventListener('keydown', event => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        const row = event.target.closest('.records-table-row');
-        if (!row) return;
-        event.preventDefault();
-        abrirDetalheRegistro_(row.dataset.recordKey || '');
+        const botaoFicha = event.target.closest('[data-open-record-detail]');
+        if (!botaoFicha) return;
+        event.stopPropagation();
+        abrirDetalheRegistro_(botaoFicha.dataset.openRecordDetail || '');
       });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
@@ -4534,7 +4532,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.9', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.10', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

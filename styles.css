@@ -4709,3 +4709,122 @@ body.inspection-flow-active:not(.records-mode) #submitBtn:hover {
 body.inspection-flow-active:not(.records-mode) .connection-banner.connection-online {
   box-shadow: inset 0 0 0 1px rgba(180,35,24,.08);
 }
+
+
+/* =========================================================
+   V23.9.10 — Ficha do Processo flutuante e tabela mais ampla
+   ========================================================= */
+.records-ficha-head,
+.records-ficha-cell {
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+  text-align: center !important;
+}
+.records-ficha-btn {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  padding: 0;
+  border: 1px solid #e2e6eb;
+  border-radius: 9px;
+  background: #fff;
+  color: #9b1c22;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.records-ficha-btn .ui-icon { width: 17px; height: 17px; }
+.records-ficha-btn:hover {
+  background: #fff5f5;
+  border-color: #d8999d;
+  color: #b20b11;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 9px rgba(155,28,34,.10);
+}
+.records-ficha-btn:focus-visible { outline: 3px solid rgba(180,35,24,.16); outline-offset: 2px; }
+.records-table-row { cursor: default; }
+.records-table-row:focus { outline: none; }
+
+@media (min-width: 761px) {
+  .record-detail-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: none;
+    padding: clamp(20px, 3vh, 34px) clamp(24px, 4vw, 64px);
+    background: transparent;
+    overflow: hidden;
+  }
+  .record-detail-screen.show {
+    display: grid;
+    place-items: center;
+  }
+  .record-detail-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, .56);
+    backdrop-filter: blur(4px);
+  }
+  .record-detail-shell {
+    position: relative;
+    top: auto;
+    right: auto;
+    z-index: 1;
+    width: min(90vw, 1420px);
+    height: min(90vh, 930px);
+    max-height: 930px;
+    margin: 0;
+    border: 1px solid rgba(255,255,255,.62);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 28px 80px rgba(15,23,42,.34);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .record-detail-topbar {
+    min-height: 62px;
+    padding: 10px 20px;
+  }
+  .record-detail-back {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid #e4e7ec;
+    border-radius: 11px;
+    background: #fff;
+    color: #475467;
+    font-size: 24px;
+    line-height: 1;
+    display: inline-grid;
+    place-items: center;
+  }
+  .record-detail-heading { padding: 22px 28px 16px; }
+  .record-detail-heading h2 { font-size: 29px; }
+  .record-detail-content { padding: 18px 24px 34px; }
+  .record-detail-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .record-detail-group { border-radius: 15px; }
+  .record-detail-group h3 { padding: 12px 14px; font-size: 12px; }
+  .record-detail-field { padding: 11px 13px; }
+  .record-detail-field label { font-size: 9px; }
+  .record-detail-field div { font-size: 12px; }
+  .record-history-panel,
+  .record-audit-panel { margin-top: 14px; }
+}
+
+@media (min-width: 1181px) {
+  body.records-mode.detail-open { overflow: hidden; }
+  body.records-mode .dashboard-main-content {
+    width: 100%;
+    min-width: 0;
+    padding-right: 30px;
+  }
+  body.records-mode .dashboard-hero {
+    padding-right: 110px;
+  }
+  body.records-mode .dashboard-hero::before { right: 80px; }
+  body.records-mode .dashboard-hero-actions { right: 34px; }
+  body.records-mode .records-table-wrap { width: 100%; }
+  body.records-mode .records-table { width: 100%; table-layout: auto; }
+}

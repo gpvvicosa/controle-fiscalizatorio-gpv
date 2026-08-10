@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-9-fluxos-visuais';
-const VERSION = '23.9.9';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-10-ficha-flutuante';
+const VERSION = '23.9.10';
 
 const CORE_SHELL = [
   './',

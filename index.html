@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.9">
+  <link rel="stylesheet" href="styles.css?v=23.9.10">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -223,7 +223,7 @@
         <article class="tutorial-step" data-tutorial-step="5">
           <div class="tutorial-step-icon">📋</div>
           <h3>5. Abrir a Ficha do Processo</h3>
-          <p>No computador, clique em uma linha da tabela. No celular, toque no cartão do registro. A ficha mostra situação atual, dados do processo, local e histórico disponível.</p>
+          <p>No computador, clique no ícone de ficha ao final da linha. No celular, toque no cartão do registro. A ficha abre em uma janela ampla com situação atual, dados do processo, local e histórico disponível.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="6">
           <div class="tutorial-step-icon">🚦</div>
@@ -429,7 +429,7 @@
             <table class="records-table">
               <thead>
                 <tr>
-                  <th>Data</th><th>Estabelecimento</th><th>Cidade</th><th>CNPJ / CPF</th><th>Demanda</th><th>Situação</th><th>Nº PSCIP</th><th>Tipo</th>
+                  <th>Data</th><th>Estabelecimento</th><th>Cidade</th><th>CNPJ / CPF</th><th>Demanda</th><th>Situação</th><th>Nº PSCIP</th><th>Tipo</th><th class="records-ficha-head"><span class="sr-only">Ficha</span></th>
                 </tr>
               </thead>
               <tbody id="recordsTableBody"></tbody>
@@ -1034,7 +1034,7 @@
     </div>
   </div>
   <script>
-    // V23.9.9 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.9.10 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -1052,8 +1052,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.9"></script>
-  <script src="ocupacoes.js?v=23.9.9"></script>
-  <script src="app.js?v=23.9.9"></script>
+  <script src="config.js?v=23.9.10"></script>
+  <script src="ocupacoes.js?v=23.9.10"></script>
+  <script src="app.js?v=23.9.10"></script>
 </body>
 </html>
