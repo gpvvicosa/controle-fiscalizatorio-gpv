@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.11';
+      const APP_VERSION = '23.9.12';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -932,6 +932,8 @@
       }
 
       function mostrarVistaPlanilha_(opcoes = {}) {
+        // Sempre entrar no Painel com a ficha fechada.
+        fecharDetalheRegistro_();
         marcarAbaApp_('records');
         atualizarVistaNaUrl_('records');
         if (opcoes.busca != null && recordsSearch) recordsSearch.value = String(opcoes.busca || '');
@@ -1188,13 +1190,12 @@
           atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
           atualizarKpis_(resposta?.resumo || {});
           const chaveAindaVisivel = recordsState.itens.some(item => item.chave === recordsState.chaveSelecionada);
-          if (!chaveAindaVisivel) recordsState.chaveSelecionada = recordsState.itens[0]?.chave || '';
+          if (!chaveAindaVisivel) recordsState.chaveSelecionada = '';
           renderizarRegistros_();
           atualizarPaginacao_();
 
-          if (window.innerWidth >= 1181 && recordsState.chaveSelecionada) {
-            await abrirDetalheRegistro_(recordsState.chaveSelecionada);
-          }
+          // V23.9.12: carregar/atualizar o Painel nunca abre a Ficha do Processo sozinho.
+          // A ficha só é aberta por uma ação explícita do usuário (ícone da linha/cartão).
 
           recordsStatus.className = 'records-status';
           const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(Boolean);
@@ -4531,7 +4532,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.11', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.12', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
