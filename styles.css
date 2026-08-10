@@ -4471,3 +4471,104 @@ body.records-mode .records-status.loading { display: block; margin: 10px 0 0; pa
 
 .logged-user-badge.has-critical-program { box-shadow: 0 0 0 2px rgba(180,35,24,.18); }
 .logged-user-badge.has-critical-program .prepared-alert-badge { background:#b42318; color:#fff; }
+
+
+/* V23.9.5 — ações das vistorias programadas */
+.prepared-card-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.prepared-delete-btn{border-color:#d7b6b8;color:#8f1d24;background:#fff}
+.prepared-delete-btn:hover{background:#fff4f4;border-color:#c98f93}
+@media(max-width:680px){.prepared-card-actions{width:100%;display:grid;grid-template-columns:1fr 2fr}.prepared-card-actions .btn{width:100%}}
+
+
+/* =============================================================================
+   V23.9.7 — Desktop preparar vistoria, botão Mais e identidade da Liberação
+   ============================================================================= */
+.desktop-prepare-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 12px;
+}
+.desktop-prepare-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff 0%, #f9fafb 100%);
+  color: #7f151a;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(16,24,40,.07);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.desktop-prepare-btn:hover {
+  transform: translateY(-1px);
+  border-color: #a7191f;
+  box-shadow: 0 7px 18px rgba(112,18,22,.12);
+}
+.desktop-prepare-btn .ui-icon { width: 19px; height: 19px; }
+@media (max-width: 900px) { .desktop-prepare-row { display: none !important; } }
+
+/* Mais: ícone de grade e tratamento de botão mais nítido. */
+#navMoreMenuBtn .app-view-icon,
+#dashboardMoreMenuBtn .ui-icon {
+  transition: transform .16s ease, background .16s ease, color .16s ease;
+}
+#navMoreMenuBtn:hover .app-view-icon { transform: translateY(-1px); }
+#navMoreMenuBtn[aria-expanded="true"] .app-view-icon {
+  background: #fff0f1;
+  color: #8f171c;
+  box-shadow: 0 0 0 3px rgba(143,23,28,.08);
+}
+#dashboardMoreMenuBtn {
+  border-color: #e1e5ea;
+  background: linear-gradient(180deg,#fff,#fafafa);
+}
+
+/* Liberação: verde apenas como identidade de contexto, sem alterar regras do fluxo. */
+body.release-flow-active:not(.records-mode) #fluxoLiberacaoBtn.is-active {
+  border-color: #16814c;
+  background: #f0fbf5;
+  box-shadow: 0 0 0 3px rgba(22,129,76,.10), 0 10px 24px rgba(22,129,76,.10);
+}
+body.release-flow-active:not(.records-mode) #fluxoLiberacaoBtn.is-active .inspection-flow-icon {
+  background: #dff7e9;
+  color: #087443;
+}
+body.release-flow-active:not(.records-mode) .vistoria-flow-section {
+  border-color: #cfe9da;
+}
+body.release-flow-active:not(.records-mode) .vistoria-flow-section > .section-head,
+body.release-flow-active:not(.records-mode) details.vistoria-flow-section > summary.section-head {
+  background: linear-gradient(90deg, #f0fbf5 0%, #ffffff 78%);
+  border-bottom-color: #d9eee2;
+}
+body.release-flow-active:not(.records-mode) .vistoria-flow-section .section-icon {
+  background: #e4f7ec;
+  color: #087443;
+  border-color: #cbead8;
+}
+body.release-flow-active:not(.records-mode) .vistoria-flow-section .section-head h2 {
+  color: #11643d;
+}
+body.release-flow-active:not(.records-mode) #vistoriaBottomBar {
+  border-top-color: #c9e7d5;
+  box-shadow: 0 -8px 24px rgba(18,104,62,.08);
+}
+body.release-flow-active:not(.records-mode) #vistoriaBottomBar .btn-primary,
+body.release-flow-active:not(.records-mode) #submitBtn {
+  background: linear-gradient(180deg, #178a50 0%, #116e40 100%);
+  border-color: #116e40;
+}
+body.release-flow-active:not(.records-mode) #vistoriaBottomBar .btn-primary:hover,
+body.release-flow-active:not(.records-mode) #submitBtn:hover {
+  background: linear-gradient(180deg, #137b48 0%, #0e6038 100%);
+}
+body.release-flow-active:not(.records-mode) .connection-banner.connection-online {
+  box-shadow: inset 0 0 0 1px rgba(16,126,70,.10);
+}

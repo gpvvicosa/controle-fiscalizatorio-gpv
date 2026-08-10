@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.6">
+  <link rel="stylesheet" href="styles.css?v=23.9.7">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -116,7 +116,7 @@
           <span>Nova vistoria</span>
         </button>
         <button class="dashboard-header-action" id="dashboardMoreMenuBtn" type="button" aria-label="Abrir mais opções" aria-expanded="false" aria-controls="appMoreMenu">
-          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="6" height="6" rx="1.6"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.6"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.6"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.6"/></svg>
           <span>Mais</span>
         </button>
       </div>
@@ -274,7 +274,7 @@
       </button>
       <button class="app-view-btn" id="navMoreMenuBtn" type="button" aria-label="Abrir mais opções" aria-expanded="false" aria-controls="appMoreMenu">
         <span class="app-view-icon" aria-hidden="true">
-          <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>
+          <svg class="ui-icon" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6" height="6" rx="1.6"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.6"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.6"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.6"/></svg>
         </span>
         <span>Mais</span>
       </button>
@@ -456,6 +456,12 @@
     <form id="vistoriaForm" novalidate>
       <section class="section essential inspection-flow-section" id="tipoVistoriaSecao">
         <div class="section-body">
+          <div class="desktop-prepare-row">
+            <button class="desktop-prepare-btn" id="desktopPrepareInspectionBtn" type="button">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
+              <span>Preparar vistoria</span>
+            </button>
+          </div>
           <div class="prepared-inspections-box programmed-inspections-box">
             <div class="prepared-inspections-head">
               <div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
@@ -1024,7 +1030,7 @@
     </div>
   </div>
   <script>
-    // V23.9.6 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.9.7 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -1042,8 +1048,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.6"></script>
-  <script src="ocupacoes.js?v=23.9.6"></script>
-  <script src="app.js?v=23.9.6"></script>
+  <script src="config.js?v=23.9.7"></script>
+  <script src="ocupacoes.js?v=23.9.7"></script>
+  <script src="app.js?v=23.9.7"></script>
 </body>
 </html>

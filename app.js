@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.6';
+      const APP_VERSION = '23.9.7';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -327,6 +327,7 @@
       const vistoriaFlowSections = Array.from(document.querySelectorAll('.vistoria-flow-section'));
       const vistoriaBottomBar = document.getElementById('vistoriaBottomBar');
       const prepareInspectionBtn = document.getElementById('prepareInspectionBtn');
+      const desktopPrepareInspectionBtn = document.getElementById('desktopPrepareInspectionBtn');
       const prepareInspectionModal = document.getElementById('prepareInspectionModal');
       const prepareInspectionCloseBtn = document.getElementById('prepareInspectionCloseBtn');
       const prepareInspectionCancelBtn = document.getElementById('prepareInspectionCancelBtn');
@@ -1849,6 +1850,7 @@
         if (tipoVistoriaInput) tipoVistoriaInput.value = f === 'liberacao' ? 'Vistoria de Liberação' : (f === 'fiscalizacao' ? 'Vistoria de Fiscalização' : '');
         fluxoFiscalizacaoBtn?.classList.toggle('is-active', f === 'fiscalizacao');
         fluxoLiberacaoBtn?.classList.toggle('is-active', f === 'liberacao');
+        document.body.classList.toggle('release-flow-active', f === 'liberacao');
         fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', f === 'fiscalizacao' ? 'true' : 'false');
         fluxoLiberacaoBtn?.setAttribute('aria-pressed', f === 'liberacao' ? 'true' : 'false');
         vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
@@ -3930,7 +3932,13 @@
         prepareInspectionSaveBtn.disabled = true;
         try {
           const eraEdicao = Boolean(preparacaoEditandoId);
-          await apiRequest('save', { payload: p }, 30000);
+          if (eraEdicao) {
+            // V23.9.7: edição usa a rota de config já liberada no gateway,
+            // evitando o caminho de gravação de vistoria normal e garantindo JSON previsível.
+            await apiRequest('config', { consulta: 'programada_editar', payload: p }, 30000);
+          } else {
+            await apiRequest('save', { payload: p }, 30000);
+          }
           fecharModalPreparacao_();
           limparFormularioPreparacao_();
           await carregarPreparacoesVistoria_();
@@ -4155,6 +4163,7 @@
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); abrirPreparacoesDoUsuario_(); }
       });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
+      desktopPrepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
       prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
@@ -4501,7 +4510,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.6', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.7', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
