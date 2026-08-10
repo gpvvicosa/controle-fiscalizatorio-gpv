@@ -4828,3 +4828,168 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
   body.records-mode .records-table-wrap { width: 100%; }
   body.records-mode .records-table { width: 100%; table-layout: auto; }
 }
+
+
+/* =============================================================================
+   V23.9.11 HOTFIX — remove definitivamente a ficha lateral no desktop
+   e mantém a Ficha do Processo como modal flutuante sob demanda.
+   ============================================================================= */
+@media (min-width: 1181px) {
+  body.records-mode .record-detail-screen {
+    display: none !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    z-index: 160 !important;
+    padding: clamp(20px, 3vh, 34px) clamp(24px, 4vw, 64px) !important;
+    background: transparent !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+  }
+  body.records-mode .record-detail-screen.show {
+    display: grid !important;
+    place-items: center !important;
+    pointer-events: auto !important;
+  }
+  body.records-mode .record-detail-backdrop {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: rgba(15, 23, 42, .58) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    pointer-events: auto !important;
+  }
+  body.records-mode .record-detail-shell {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 1 !important;
+    width: min(92vw, 1500px) !important;
+    height: min(90vh, 940px) !important;
+    max-width: 1500px !important;
+    max-height: 940px !important;
+    margin: 0 !important;
+    border: 1px solid rgba(255,255,255,.68) !important;
+    border-radius: 20px !important;
+    background: #fff !important;
+    box-shadow: 0 30px 90px rgba(15,23,42,.38) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+  body.records-mode .record-detail-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 8 !important;
+    min-height: 64px !important;
+    height: auto !important;
+    padding: 10px 22px !important;
+    border-bottom: 1px solid #eaecf0 !important;
+    background: rgba(255,255,255,.97) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+  body.records-mode .record-detail-back {
+    display: inline-grid !important;
+    width: 40px !important;
+    height: 40px !important;
+    margin-left: 4px !important;
+    padding: 0 !important;
+    place-items: center !important;
+    border: 1px solid #e4e7ec !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    color: #475467 !important;
+    font-size: 25px !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+  }
+  body.records-mode .record-detail-back:hover {
+    border-color: #d0d5dd !important;
+    background: #f9fafb !important;
+    color: #b20b11 !important;
+  }
+  body.records-mode .record-detail-sheet-link {
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+  body.records-mode .record-detail-sheet-link[hidden] { display: none !important; }
+  body.records-mode .record-detail-heading {
+    padding: 20px 28px 16px !important;
+    border-bottom: 1px solid #eaecf0 !important;
+  }
+  body.records-mode .record-detail-section-label { font-size: 12px !important; }
+  body.records-mode .record-current-status { margin-top: 10px !important; }
+  body.records-mode .record-detail-content { padding: 18px 24px 34px !important; }
+  body.records-mode .record-detail-groups {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    padding: 0 !important;
+  }
+  body.records-mode .record-detail-group {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #eaecf0 !important;
+    border-radius: 15px !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+  body.records-mode .record-detail-group h3 {
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #eaecf0 !important;
+    background: #f9fafb !important;
+    font-size: 12px !important;
+  }
+  body.records-mode .record-detail-fields {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+  }
+  body.records-mode .record-detail-field,
+  body.records-mode .record-detail-field:nth-child(odd) {
+    display: block !important;
+    min-width: 0 !important;
+    padding: 11px 13px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #f2f4f7 !important;
+  }
+  body.records-mode .record-detail-field:nth-child(odd) {
+    border-right: 1px solid #f2f4f7 !important;
+  }
+  body.records-mode .record-detail-field label {
+    font-size: 9px !important;
+    font-weight: 850 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .035em !important;
+    color: #98a2b3 !important;
+  }
+  body.records-mode .record-detail-field div {
+    margin-top: 4px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    font-weight: 650 !important;
+    color: #344054 !important;
+  }
+  body.records-mode .record-history-panel,
+  body.records-mode .record-audit-panel {
+    margin: 14px 0 0 !important;
+    padding: 0 !important;
+    border: 1px solid #eaecf0 !important;
+    border-radius: 15px !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+
+  /* Sem ficha lateral, o painel usa toda a largura disponível. */
+  body.records-mode .dashboard-main-content {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-right: 24px !important;
+  }
+  body.records-mode .records-table-wrap,
+  body.records-mode .records-table { width: 100% !important; }
+  body.records-mode .records-table { table-layout: auto !important; }
+}

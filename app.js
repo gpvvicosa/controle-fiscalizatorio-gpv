@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.10';
+      const APP_VERSION = '23.9.11';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -1211,7 +1211,7 @@
           recordsStatus.textContent = erro?.message || 'Não foi possível carregar o Painel Fiscalizatório.';
           if (!recordsState.itens.length) {
             recordsList.innerHTML = '<div class="records-empty">O painel não pôde ser carregado agora.</div>';
-            recordsTableBody.innerHTML = '<tr><td colspan="8" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
+            recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
           }
         } finally {
           recordsState.carregando = false;
@@ -1222,7 +1222,6 @@
 
       function fecharDetalheRegistro_() {
         if (!recordDetailScreen) return;
-        if (document.body.classList.contains('records-mode') && window.innerWidth >= 1181) return;
         recordDetailScreen.classList.remove('show');
         recordDetailScreen.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('detail-open');
@@ -4532,7 +4531,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.10', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.11', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
