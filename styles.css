@@ -5346,7 +5346,7 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
 }
 
 /* =============================================================================
-   V23.9.18 — Visual operacional inspirado no conceito aprovado
+   V23.9.19 — Visual operacional inspirado no conceito aprovado
    ============================================================================= */
 @media (min-width: 901px) {
   .inspection-flow-section {
@@ -5661,4 +5661,209 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
   .programmed-title-icon { display: none; }
   .inspection-flow-copy small,
   .inspection-flow-arrow { display: none; }
+}
+
+
+/* =============================================================================
+   V23.9.19 — Mobile compacto, menu colorido e painel/tabela aprimorados
+   ============================================================================= */
+
+/* Menu Mais: mais moderno, com ícones por categoria. */
+.app-more-menu {
+  border: 1px solid rgba(214,220,230,.92);
+  box-shadow: 0 22px 60px rgba(15,23,42,.20);
+  overflow: hidden;
+}
+.app-more-menu-head {
+  background: linear-gradient(135deg,#fff 0%,#fff7f7 100%);
+  border-bottom: 1px solid #edf0f4;
+}
+.app-more-menu-item {
+  position: relative;
+  gap: 13px;
+  transition: background .15s ease, transform .15s ease;
+}
+.app-more-menu-item:hover { background: #f8fafc; }
+.app-more-menu-item > .ui-icon {
+  width: 38px;
+  height: 38px;
+  padding: 9px;
+  border-radius: 12px;
+  flex: 0 0 38px;
+  stroke-width: 1.9;
+  background: #f1f5f9;
+  color: #475569;
+}
+.app-more-menu-item[data-menu-tone="blue"] > .ui-icon { background:#eaf3ff; color:#2563eb; }
+.app-more-menu-item[data-menu-tone="green"] > .ui-icon { background:#e8f7ee; color:#168347; }
+.app-more-menu-item[data-menu-tone="amber"] > .ui-icon { background:#fff4d8; color:#b66b00; }
+.app-more-menu-item[data-menu-tone="red"] > .ui-icon { background:#fee9ea; color:#b91c1c; }
+.app-more-menu-item[data-menu-tone="crimson"] > .ui-icon { background:#fde7ea; color:#991b1b; }
+.app-more-menu-item[data-menu-tone="violet"] > .ui-icon { background:#f0eafe; color:#7047b5; }
+.app-more-menu-item[data-menu-tone="cyan"] > .ui-icon { background:#e7f7fb; color:#087990; }
+.app-more-menu-item[data-menu-tone="slate"] > .ui-icon { background:#eef2f6; color:#475569; }
+.app-more-menu-item[data-menu-tone="indigo"] > .ui-icon { background:#eceefe; color:#4f46e5; }
+.app-more-menu-item[data-menu-tone="rose"] > .ui-icon { background:#fff0f3; color:#be123c; }
+
+/* Painel desktop: cabeçalho principal e títulos da tabela permanecem visíveis. */
+@media (min-width: 901px) {
+  body.records-mode .app-header {
+    position: sticky !important;
+    top: 0;
+    z-index: 90;
+    box-shadow: 0 5px 18px rgba(51,0,4,.16);
+  }
+  body.records-mode .records-table-wrap {
+    overflow: visible;
+    border: 1px solid #dce2ea;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 26px rgba(15,23,42,.055);
+  }
+  body.records-mode .records-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  body.records-mode .records-table th {
+    position: sticky !important;
+    top: 98px;
+    z-index: 15;
+    height: 44px;
+    padding: 0 13px;
+    background: linear-gradient(180deg,#ffffff 0%,#f3f6f9 100%);
+    color: #243044;
+    border-top: 0;
+    border-bottom: 1px solid #dbe1e8;
+    box-shadow: 0 4px 9px rgba(15,23,42,.045);
+    font-size: 9.5px;
+    font-weight: 850;
+  }
+  body.records-mode .records-table th:first-child { border-top-left-radius: 13px; }
+  body.records-mode .records-table th:last-child { border-top-right-radius: 13px; }
+  body.records-mode .records-table td {
+    height: 42px;
+    padding: 6px 13px;
+    background: #fff;
+    border-bottom-color: #e8edf2;
+  }
+  body.records-mode .records-table tbody tr:nth-child(even) td { background: #fbfcfd; }
+  body.records-mode .records-table-row:hover td { background: #fff5f4; }
+  body.records-mode .records-table-row.selected td { background: #fff1ee; }
+  body.records-mode .records-table-row.selected { box-shadow: inset 4px 0 0 #c11117; }
+  body.records-mode .records-ficha-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    border: 1px solid #e2e7ee;
+    background: #fff;
+    color: #b1121a;
+    box-shadow: 0 3px 9px rgba(15,23,42,.06);
+  }
+  body.records-mode .records-ficha-btn:hover {
+    background:#fff1f1;
+    border-color:#efb7bb;
+    transform:translateY(-1px);
+  }
+  body.records-mode .dashboard-pagination {
+    margin-top: 12px;
+    border: 1px solid #e1e6ed;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 6px 20px rgba(15,23,42,.045);
+  }
+}
+
+/* Mobile: mais compacto e focado na operação. */
+@media (max-width: 900px) {
+  /* Preparar vistoria somente dentro do menu Mais. */
+  .desktop-prepare-btn { display: none !important; }
+
+  /* Vistorias Programadas somem da tela inicial quando não há nenhuma pendente. */
+  .programmed-inspections-box.mobile-hide-when-empty { display: none !important; }
+
+  .inspection-flow-section {
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(15,23,42,.055);
+  }
+  .inspection-flow-section > .section-body { padding: 12px !important; }
+  .inspection-overview-grid { gap: 10px; }
+
+  .ddu-summary-card {
+    min-height: 82px !important;
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+    gap: 12px !important;
+    background: linear-gradient(135deg,#fff 0%,#fff8f2 100%) !important;
+  }
+  .ddu-summary-icon {
+    width: 58px !important;
+    height: 58px !important;
+    border-radius: 16px !important;
+    font-size: 1.05rem !important;
+  }
+  .ddu-summary-copy { gap: 3px !important; }
+  .ddu-summary-copy strong { font-size: 1.05rem !important; }
+  .ddu-summary-copy small { font-size: .78rem !important; line-height: 1.28 !important; }
+  .ddu-summary-count {
+    min-width: 36px !important;
+    height: 36px !important;
+    padding: 0 10px !important;
+    font-size: .9rem !important;
+  }
+
+  .programmed-inspections-box {
+    padding: 13px !important;
+    margin: 0 !important;
+    border-radius: 17px !important;
+  }
+  .prepared-inspections-head strong { font-size: 1.05rem !important; }
+  .prepared-inspections-filters { margin: 10px 0 7px !important; gap: 6px !important; }
+  .prepared-filter { min-height: 36px !important; padding: 6px 12px !important; font-size: .83rem !important; }
+  #preparedInspectionsStatus { margin-top: 7px !important; font-size: .74rem !important; }
+  .prepared-empty { padding: 10px !important; font-size: .78rem !important; }
+
+  .inspection-flow-grid-after-programmed {
+    margin-top: 10px !important;
+    gap: 10px !important;
+  }
+  .inspection-flow-grid-after-programmed .inspection-flow-card {
+    min-height: 82px !important;
+    padding: 13px 15px !important;
+    border-radius: 17px !important;
+    gap: 12px !important;
+  }
+  .inspection-flow-grid-after-programmed .inspection-flow-icon {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1.25rem !important;
+  }
+  .inspection-flow-grid-after-programmed .inspection-flow-copy strong {
+    font-size: 1rem !important;
+  }
+
+  /* Sincronização compacta no celular. */
+  .sync-summary {
+    width: max-content;
+    max-width: calc(100% - 28px);
+    min-height: 25px;
+    margin: 5px auto 8px !important;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.8);
+    box-shadow: 0 2px 8px rgba(15,23,42,.05);
+    font-size: 10.5px !important;
+  }
+
+  /* Menu ocupa melhor a tela e mantém leitura confortável. */
+  .app-more-menu {
+    width: min(92vw, 480px) !important;
+    max-height: calc(100dvh - 88px);
+    border-radius: 22px;
+  }
+  .app-more-menu-head { padding: 17px 18px 14px; }
+  .app-more-menu-head strong { font-size: 20px; }
+  .app-more-menu-item { min-height: 70px; padding: 11px 16px; }
+  .app-more-menu-item > .ui-icon { width: 40px; height: 40px; flex-basis: 40px; }
+  .app-more-menu-item strong { font-size: 15px; }
+  .app-more-menu-item small { font-size: 11px; line-height: 1.3; }
 }
