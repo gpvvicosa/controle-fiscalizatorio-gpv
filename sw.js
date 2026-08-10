@@ -1,6 +1,7 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-6-link-curto-manual';
-const VERSION = '23.7';
-const APP_SHELL = [
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-7-1-hotfix';
+const VERSION = '23.7.1';
+
+const CORE_SHELL = [
   './',
   './index.html',
   `./styles.css?v=${VERSION}`,
@@ -8,7 +9,10 @@ const APP_SHELL = [
   `./ocupacoes.js?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
   './manifest.webmanifest',
-  './offline.html',
+  './offline.html'
+];
+
+const OPTIONAL_SHELL = [
   './assets/cabecalho.webp',
   './assets/logo-cbmmg.png',
   `./assets/logo-gpv.png?v=${VERSION}`,
@@ -20,19 +24,24 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    // Arquivos críticos: se algum falhar, não instala um shell incompleto.
+    await cache.addAll(CORE_SHELL);
+    // Arquivos auxiliares não podem impedir a atualização do aplicativo.
+    await Promise.allSettled(OPTIONAL_SHELL.map(url => cache.add(url)));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(key => key.startsWith('gpv-vistorias-pwa-') && key !== CACHE_NAME)
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('message', event => {
@@ -71,19 +80,30 @@ self.addEventListener('fetch', event => {
   }
 
   const destino = request.destination;
-  const arquivoCritico = destino === 'style' || destino === 'script' || /\/(?:styles\.css|app\.js|config\.js|ocupacoes\.js)$/.test(url.pathname);
+  const arquivoCritico = destino === 'style' || destino === 'script' ||
+    /\/(?:styles\.css|app\.js|config\.js|ocupacoes\.js)$/.test(url.pathname);
+
   if (arquivoCritico) {
     event.respondWith(networkFirst(request));
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    try {
+      const response = await fetch(request);
       if (response && response.ok && response.type === 'basic') {
         const copy = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
       }
       return response;
-    }))
-  );
+    } catch (error) {
+      if (request.destination === 'document') {
+        const offline = await caches.match('./offline.html');
+        if (offline) return offline;
+      }
+      throw error;
+    }
+  })());
 });

@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.7">
+  <link rel="stylesheet" href="styles.css?v=23.7.1">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -952,8 +952,27 @@
       </div>
     </div>
   </div>
-  <script src="config.js?v=23.1"></script>
-  <script src="ocupacoes.js?v=23.1"></script>
-  <script src="app.js?v=23.7"></script>
+  <script>
+    // V23.7.1 HOTFIX — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    window.__gpvBootWatchdog = setTimeout(function () {
+      var overlay = document.getElementById('loadingOverlay');
+      if (!overlay || !overlay.classList.contains('show')) return;
+      var text = document.getElementById('loadingText');
+      if (text) text.textContent = 'A atualização não concluiu. Toque abaixo para recarregar.';
+      var box = overlay.querySelector('.gpv-boot-copy');
+      if (box && !document.getElementById('gpvBootReloadBtn')) {
+        var btn = document.createElement('button');
+        btn.id = 'gpvBootReloadBtn';
+        btn.type = 'button';
+        btn.textContent = 'Recarregar aplicativo';
+        btn.style.cssText = 'margin-top:12px;padding:10px 14px;border:0;border-radius:12px;background:#991b1b;color:#fff;font-weight:800;cursor:pointer';
+        btn.onclick = function () { location.reload(); };
+        box.appendChild(btn);
+      }
+    }, 12000);
+  </script>
+  <script src="config.js?v=23.7.1"></script>
+  <script src="ocupacoes.js?v=23.7.1"></script>
+  <script src="app.js?v=23.7.1"></script>
 </body>
 </html>
