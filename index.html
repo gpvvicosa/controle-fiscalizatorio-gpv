@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.8">
+  <link rel="stylesheet" href="styles.css?v=23.9">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -397,6 +397,12 @@
             </label>
             <label>
               <span class="dashboard-filter-control">
+                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6 20c.6-4 2.7-6 6-6s5.4 2 6 6"/></svg>
+                <span class="dashboard-filter-text"><b>Vistoriador</b><select id="recordsInspectorFilter"><option value="">Todos</option></select></span>
+              </span>
+            </label>
+            <label>
+              <span class="dashboard-filter-control">
                 <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 3v5M16 3v5M4 10h16"/></svg>
                 <span class="dashboard-filter-text"><b>Período</b><select id="recordsPeriodFilter"><option value="">Todos</option><option value="30d">Últimos 30 dias</option><option value="90d">Últimos 90 dias</option><option value="365d">Últimos 12 meses</option></select></span>
               </span>
@@ -464,6 +470,19 @@
             </button>
           </div>
           <div class="inspection-flow-current" id="fluxoVistoriaAtualTexto" hidden></div>
+          <div class="prepared-inspections-box">
+            <div class="prepared-inspections-head">
+              <div><strong>Vistorias preparadas</strong><small>Cadastre previamente os dados conhecidos e abra a ficha no dia da vistoria.</small></div>
+              <button class="btn btn-secondary" type="button" id="prepareInspectionBtn">+ Preparar vistoria</button>
+            </div>
+            <div class="prepared-inspections-filters">
+              <button type="button" class="prepared-filter is-active" data-prepared-filter="todas">Todas</button>
+              <button type="button" class="prepared-filter" data-prepared-filter="fiscalizacao">Fiscalização</button>
+              <button type="button" class="prepared-filter" data-prepared-filter="liberacao">Liberação</button>
+            </div>
+            <div id="preparedInspectionsStatus" class="hint">Carregando programações...</div>
+            <div id="preparedInspectionsList" class="prepared-inspections-list"></div>
+          </div>
         </div>
       </section>
 
@@ -487,7 +506,7 @@
             <div class="field half">
               <div class="sequence-note"><strong>Próximo passo:</strong> informe a situação do licenciamento. A cidade escolhida aqui não será alterada pela consulta automática.</div>
             </div>
-            <div class="field half">
+            <div class="field half" id="licenciamentoFieldWrap">
               <label class="required" for="licenciamento">Situação do licenciamento</label>
               <select id="licenciamento" name="licenciamento">
                 <option value="">Selecione</option>
@@ -497,7 +516,7 @@
               </select>
               <div class="hint">A situação do AVCB/CLCB é independente da existência de PSCIP. Se não possuir AVCB/CLCB, a sanção continua sendo Autuado, mesmo quando houver PSCIP.</div>
             </div>
-            <div class="field half">
+            <div class="field half" id="possuiPscipFieldWrap">
               <label class="required" for="possuiPscip">Possui PSCIP?</label>
               <select id="possuiPscip" name="possuiPscip">
                 <option value="">Selecione</option>
@@ -681,6 +700,11 @@
               <div class="hint">Definido pela opção escolhida no início do formulário.</div>
             </div>
             <div class="field">
+              <label class="required" for="vistoriadorResponsavel">Vistoriador responsável</label>
+              <select id="vistoriadorResponsavel" name="vistoriadorResponsavel"><option value="">Selecione</option></select>
+              <div class="hint">Identifica quem ficou responsável pela vistoria. Não altera permissões do aplicativo.</div>
+            </div>
+            <div class="field">
               <label for="reds">REDS</label>
               <input id="reds" name="reds" placeholder="Livre: números, letras e hífens">
             </div>
@@ -857,6 +881,34 @@
   </div>
 
 
+  <div class="review-overlay" id="prepareInspectionModal" hidden>
+    <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="prepareInspectionTitle">
+      <div class="review-head">
+        <div><h2 id="prepareInspectionTitle">Preparar vistoria</h2><p>Dados prévios para consulta antes do deslocamento.</p></div>
+        <button class="icon-btn" type="button" id="prepareInspectionCloseBtn" aria-label="Fechar">×</button>
+      </div>
+      <div class="review-body">
+        <div class="grid prepare-grid">
+          <div class="field"><label class="required" for="prepareTipo">Tipo</label><select id="prepareTipo"><option value="fiscalizacao">Vistoria de Fiscalização</option><option value="liberacao">Vistoria de Liberação</option></select></div>
+          <div class="field"><label class="required" for="prepareData">Data prevista</label><input type="date" id="prepareData"></div>
+          <div class="field"><label class="required" for="prepareVistoriador">Vistoriador responsável</label><select id="prepareVistoriador"><option value="">Selecione</option></select></div>
+          <div class="field"><label for="prepareCidade">Cidade</label><input id="prepareCidade" value="Viçosa"></div>
+          <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP</label><input id="preparePscip" value="PRJ" autocomplete="off"><div class="hint">Obrigatório para vistoria de liberação.</div></div>
+          <div class="field"><label for="prepareCnpj">CNPJ / CPF</label><input id="prepareCnpj" inputmode="numeric" autocomplete="off"></div>
+          <div class="field"><label for="prepareNomeFantasia">Nome Fantasia</label><input id="prepareNomeFantasia"></div>
+          <div class="field"><label for="prepareRazaoSocial">Razão Social</label><input id="prepareRazaoSocial"></div>
+          <div class="field"><label for="prepareArea">Área (m²)</label><input id="prepareArea" inputmode="decimal"></div>
+          <div class="field wide"><label for="prepareEndereco">Endereço</label><input id="prepareEndereco"></div>
+          <div class="field"><label for="prepareNumero">Número</label><input id="prepareNumero"></div>
+          <div class="field"><label for="prepareBairro">Bairro</label><input id="prepareBairro"></div>
+          <div class="field wide"><label for="prepareObservacao">Observação prévia</label><textarea id="prepareObservacao" rows="3" placeholder="Informações úteis antes do deslocamento"></textarea></div>
+        </div>
+        <div class="error-box" id="prepareInspectionError" hidden></div>
+      </div>
+      <div class="review-actions"><button class="btn btn-secondary" type="button" id="prepareInspectionCancelBtn">Cancelar</button><button class="btn btn-primary" type="button" id="prepareInspectionSaveBtn">Salvar preparação</button></div>
+    </div>
+  </div>
+
   <div class="review-overlay" id="reviewModal" hidden>
     <section class="review-card" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
       <header class="review-header">
@@ -976,7 +1028,7 @@
     </div>
   </div>
   <script>
-    // V23.8 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.9 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -994,8 +1046,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.8"></script>
-  <script src="ocupacoes.js?v=23.8"></script>
-  <script src="app.js?v=23.8"></script>
+  <script src="config.js?v=23.9"></script>
+  <script src="ocupacoes.js?v=23.9"></script>
+  <script src="app.js?v=23.9"></script>
 </body>
 </html>

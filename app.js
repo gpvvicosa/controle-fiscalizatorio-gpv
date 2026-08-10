@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.8';
+      const APP_VERSION = '23.9';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -227,6 +227,7 @@
       const recordsDemandFilter = document.getElementById('recordsDemandFilter');
       const recordsSanctionFilter = document.getElementById('recordsSanctionFilter');
       const recordsTypeFilter = document.getElementById('recordsTypeFilter');
+      const recordsInspectorFilter = document.getElementById('recordsInspectorFilter');
       const recordsPeriodFilter = document.getElementById('recordsPeriodFilter');
       const recordsClearFiltersBtn = document.getElementById('recordsClearFiltersBtn');
       const recordsRefreshBtn = document.getElementById('recordsRefreshBtn');
@@ -317,11 +318,25 @@
       const sancaoSelect = document.getElementById('sancao');
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
       const tipoVistoriaInput = document.getElementById('tipoVistoria');
+      const vistoriadorResponsavelSelect = document.getElementById('vistoriadorResponsavel');
+      const licenciamentoFieldWrap = document.getElementById('licenciamentoFieldWrap');
+      const possuiPscipFieldWrap = document.getElementById('possuiPscipFieldWrap');
       const fluxoFiscalizacaoBtn = document.getElementById('fluxoFiscalizacaoBtn');
       const fluxoLiberacaoBtn = document.getElementById('fluxoLiberacaoBtn');
       const fluxoVistoriaAtualTexto = document.getElementById('fluxoVistoriaAtualTexto');
       const vistoriaFlowSections = Array.from(document.querySelectorAll('.vistoria-flow-section'));
       const vistoriaBottomBar = document.getElementById('vistoriaBottomBar');
+      const prepareInspectionBtn = document.getElementById('prepareInspectionBtn');
+      const prepareInspectionModal = document.getElementById('prepareInspectionModal');
+      const prepareInspectionCloseBtn = document.getElementById('prepareInspectionCloseBtn');
+      const prepareInspectionCancelBtn = document.getElementById('prepareInspectionCancelBtn');
+      const prepareInspectionSaveBtn = document.getElementById('prepareInspectionSaveBtn');
+      const prepareInspectionError = document.getElementById('prepareInspectionError');
+      const preparedInspectionsList = document.getElementById('preparedInspectionsList');
+      const preparedInspectionsStatus = document.getElementById('preparedInspectionsStatus');
+      const prepareTipo = document.getElementById('prepareTipo');
+      const prepareData = document.getElementById('prepareData');
+      const prepareVistoriador = document.getElementById('prepareVistoriador');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
       const establishmentHistoryResults = document.getElementById('establishmentHistoryResults');
@@ -356,6 +371,10 @@
 
       let appConfig = {};
       let sancoesConfiguradas = [];
+      let usuariosAtivosApp = [];
+      let preparacoesVistoria = [];
+      let filtroPreparacoes = 'todas';
+      let preparacaoEmUsoId = '';
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
       let ultimoRegistroConsultaChave = '';
@@ -469,6 +488,7 @@
           else localStorage.removeItem(DEVICE_NAME_STORAGE);
         } catch (e) {}
         atualizarNomeDispositivoUi_();
+        if (authState.usuario?.nome && !usuariosAtivosApp.length) { usuariosAtivosApp = [{ nome: authState.usuario.nome }]; preencherVistoriadores_(); }
         return limpo;
       }
 
@@ -925,6 +945,7 @@
           demanda: String(recordsDemandFilter?.value || '').trim(),
           sancao: String(recordsSanctionFilter?.value || '').trim(),
           tipo: String(recordsTypeFilter?.value || '').trim(),
+          vistoriador: String(recordsInspectorFilter?.value || '').trim(),
           periodo: String(recordsPeriodFilter?.value || '').trim(),
           prazoMulta: String(recordsState.prazoMulta || '').trim()
         };
@@ -945,6 +966,7 @@
         if (recordsDemandFilter) recordsDemandFilter.value = '';
         if (recordsSanctionFilter) recordsSanctionFilter.value = '';
         if (recordsTypeFilter) recordsTypeFilter.value = '';
+        if (recordsInspectorFilter) recordsInspectorFilter.value = '';
         if (recordsPeriodFilter) recordsPeriodFilter.value = '';
       }
 
@@ -1122,6 +1144,7 @@
           preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas');
           preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas');
           preencherSelectConsulta_(recordsTypeFilter, disponiveis.tipos, 'Todas');
+          preencherSelectConsulta_(recordsInspectorFilter, disponiveis.vistoriadores, 'Todos');
           preencherPeriodosConsulta_(disponiveis.anos);
           atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
           atualizarKpis_(resposta?.resumo || {});
@@ -1753,6 +1776,33 @@
         fillDatalist('dlEnderecoCorrespondencia', op.enderecoCorrespondencia);
       }
 
+
+      function preencherVistoriadores_(usuarios = usuariosAtivosApp) {
+        const nomes = Array.from(new Set((usuarios || []).map(u => String(u?.nome || u || '').trim()).filter(Boolean)));
+        const aplicar = select => {
+          if (!select) return;
+          const atual = String(select.value || '');
+          select.innerHTML = '<option value="">Selecione</option>' + nomes.map(nome => `<option value="${escapeAttr(nome)}">${escapeHtml(nome)}</option>`).join('');
+          if (atual && nomes.includes(atual)) select.value = atual;
+        };
+        aplicar(vistoriadorResponsavelSelect);
+        aplicar(prepareVistoriador);
+      }
+
+      async function carregarUsuariosVistoriadores_() {
+        if (!navigator.onLine) return;
+        try {
+          const resposta = await apiRequest('users', {}, 15000);
+          usuariosAtivosApp = Array.isArray(resposta?.usuarios) ? resposta.usuarios : [];
+          preencherVistoriadores_();
+        } catch (erro) {
+          if (authState.usuario?.nome) {
+            usuariosAtivosApp = [{ nome: authState.usuario.nome }];
+            preencherVistoriadores_();
+          }
+        }
+      }
+
       function fluxoVistoriaAtual_() {
         const atual = normalize(value('tipoVistoria'));
         if (atual.includes('liberacao')) return 'liberacao';
@@ -1798,10 +1848,16 @@
             : (f === 'fiscalizacao' ? 'Fluxo selecionado: Vistoria de Fiscalização.' : '');
         }
         atualizarOpcoesSancaoPorFluxo_();
-        syncLicenciamento();
+        if (licenciamentoFieldWrap) licenciamentoFieldWrap.hidden = f === 'liberacao';
+        if (possuiPscipFieldWrap) possuiPscipFieldWrap.hidden = f === 'liberacao';
         if (f === 'liberacao') {
+          if (licenciamentoSelect) licenciamentoSelect.value = '';
+          if (possuiPscipSelect) possuiPscipSelect.value = 'sim';
+          syncPscip_();
           const demanda = document.getElementById('demandaPrincipal');
           if (demanda && (!demanda.value || normalize(demanda.value) === normalize('Fiscalização'))) demanda.value = 'Liberação';
+        } else {
+          syncLicenciamento();
         }
         syncNotificado();
         if (!opcoes.silencioso && f) {
@@ -1826,6 +1882,8 @@
           _appUsuarioNome: String(authState.usuario?.nome || ''),
           _appUsuarioSessao: String(authState.sessionToken || ''),
           _appDispositivo: nomeDispositivo_(),
+          _appPreparacaoId: preparacaoEmUsoId,
+          vistoriadorResponsavel: value('vistoriadorResponsavel'),
           cidade: cityValue() || 'Viçosa',
           nomeFantasia: value('nomeFantasia'),
           razaoSocial: value('razaoSocial'),
@@ -1877,8 +1935,8 @@
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const checks = [
           ['tipoVistoria', 'Tipo de vistoria'],
-          ['licenciamento', 'Situação do licenciamento'],
-          ['possuiPscip', 'Possui PSCIP?'],
+          ...(ehFluxoLiberacao_() ? [] : [['licenciamento', 'Situação do licenciamento'], ['possuiPscip', 'Possui PSCIP?']]),
+          ['vistoriadorResponsavel', 'Vistoriador responsável'],
           ['cnpj', 'CNPJ ou CPF'],
           ['endereco', 'Endereço'],
           ['nomeResponsavel', 'Nome do responsável'],
@@ -2860,6 +2918,7 @@
             return;
           }
           const p = draft.payload;
+          preparacaoEmUsoId = String(p._appPreparacaoId || '');
           aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
           currentRecordId = String(draft.recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
           sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
@@ -2895,6 +2954,7 @@
       }
 
       function resetForm() {
+        preparacaoEmUsoId = '';
         form.reset();
         localStorage.removeItem(draftKeyAtual_());
         currentRecordId = criarIdRegistro();
@@ -2978,6 +3038,7 @@
           ['Nº PSCIP', payload?.pscip || '—'],
           ['Demanda', [payload?.demandaPrincipal, payload?.categoriaMeta].filter(Boolean).join(' | ') || '—'],
           ['Tipo de vistoria', payload?.tipoVistoria || '—'],
+          ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
           ['Sanção', payload?.sancao || '—'],
           ['Nº PF', payload?.pf || '—'],
           ['Enviado por', authState.usuario?.nome || '—']
@@ -3563,6 +3624,209 @@
         if (!value('enderecoCorrespondencia')) document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
       }
 
+
+      function dataHojeIso_() {
+        const d = new Date();
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 10);
+      }
+
+      function formatarDataPreparacao_(valor) {
+        const v = String(valor || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return v || 'Sem data';
+        const [a,m,d] = v.split('-');
+        return `${d}/${m}/${a}`;
+      }
+
+      function atualizarCamposPreparacaoPorTipo_() {
+        const liberacao = prepareTipo?.value === 'liberacao';
+        const wrap = document.getElementById('preparePscipWrap');
+        if (wrap) wrap.classList.toggle('is-required-prep', liberacao);
+        const input = document.getElementById('preparePscip');
+        if (liberacao && input && !String(input.value || '').trim()) input.value = 'PRJ';
+      }
+
+      function abrirModalPreparacao_() {
+        if (!prepareInspectionModal) return;
+        if (prepareInspectionError) prepareInspectionError.hidden = true;
+        if (prepareData && !prepareData.value) prepareData.value = dataHojeIso_();
+        if (prepareVistoriador && !prepareVistoriador.value && authState.usuario?.nome) prepareVistoriador.value = authState.usuario.nome;
+        atualizarCamposPreparacaoPorTipo_();
+        prepareInspectionModal.hidden = false;
+        document.body.classList.add('review-open');
+      }
+
+      function fecharModalPreparacao_() {
+        if (!prepareInspectionModal) return;
+        prepareInspectionModal.hidden = true;
+        document.body.classList.remove('review-open');
+      }
+
+      function dadosPreparacaoFormulario_() {
+        const g = id => String(document.getElementById(id)?.value || '').trim();
+        const tipo = g('prepareTipo') === 'liberacao' ? 'liberacao' : 'fiscalizacao';
+        return {
+          _appPreparacao: 'sim',
+          _appPreparacaoId: `prep_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+          tipoPreparacao: tipo,
+          tipoVistoria: tipo === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização',
+          dataPrevista: g('prepareData'),
+          vistoriadorResponsavel: g('prepareVistoriador'),
+          cidade: g('prepareCidade') || 'Viçosa',
+          _appPossuiPscip: tipo === 'liberacao' ? 'sim' : (normalizarPscipTela_(g('preparePscip')).length > 3 ? 'sim' : 'nao'),
+          pscip: normalizarPscipExibicao_(g('preparePscip'), tipo === 'liberacao'),
+          cnpj: g('prepareCnpj'),
+          nomeFantasia: g('prepareNomeFantasia'),
+          razaoSocial: g('prepareRazaoSocial'),
+          area: g('prepareArea'),
+          endereco: g('prepareEndereco'),
+          numero: g('prepareNumero'),
+          bairro: g('prepareBairro'),
+          observacaoPrevia: g('prepareObservacao'),
+          _appUsuarioNome: String(authState.usuario?.nome || ''),
+          _appDispositivo: nomeDispositivo_()
+        };
+      }
+
+
+      async function consultarCnpjPreparacao_() {
+        const input = document.getElementById('prepareCnpj');
+        const cnpj = digits(input?.value || '');
+        if (cnpj.length !== 14 || !navigator.onLine) return;
+        try {
+          const r = await apiRequest('cnpj', { cnpj }, 12000);
+          const dados = r?.dados || r || {};
+          const preencher = (id, valor) => { const el=document.getElementById(id); if (el && !String(el.value||'').trim() && String(valor||'').trim()) el.value=String(valor).trim(); };
+          preencher('prepareRazaoSocial', dados.razaoSocial || dados.razao_social || dados.nome);
+          preencher('prepareNomeFantasia', dados.nomeFantasia || dados.nome_fantasia || dados.fantasia);
+          preencher('prepareEndereco', dados.logradouro || dados.endereco);
+          preencher('prepareNumero', dados.numero);
+          preencher('prepareBairro', dados.bairro);
+          preencher('prepareCidade', dados.municipio || dados.cidade);
+        } catch (erro) {
+          // A preparação continua manualmente se a consulta não estiver disponível.
+        }
+      }
+
+      async function salvarPreparacaoVistoria_() {
+        const p = dadosPreparacaoFormulario_();
+        const faltantes = [];
+        if (!p.dataPrevista) faltantes.push('Data prevista');
+        if (!p.vistoriadorResponsavel) faltantes.push('Vistoriador responsável');
+        if (p.tipoPreparacao === 'liberacao' && normalizarPscipTela_(p.pscip).length <= 3) faltantes.push('Nº do PSCIP');
+        if (faltantes.length) {
+          if (prepareInspectionError) {
+            prepareInspectionError.hidden = false;
+            prepareInspectionError.textContent = `Preencha: ${faltantes.join(', ')}.`;
+          }
+          return;
+        }
+        if (!navigator.onLine) {
+          if (prepareInspectionError) {
+            prepareInspectionError.hidden = false;
+            prepareInspectionError.textContent = 'É necessário estar online para salvar uma preparação compartilhada.';
+          }
+          return;
+        }
+        prepareInspectionSaveBtn.disabled = true;
+        try {
+          await apiRequest('save', { payload: p }, 30000);
+          fecharModalPreparacao_();
+          ['prepareCnpj','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+          const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value='PRJ';
+          await carregarPreparacoesVistoria_();
+          appStatus.textContent = 'Vistoria preparada e compartilhada com a equipe.';
+        } catch (erro) {
+          if (prepareInspectionError) {
+            prepareInspectionError.hidden = false;
+            prepareInspectionError.textContent = erro?.message || 'Não foi possível salvar a preparação.';
+          }
+        } finally {
+          prepareInspectionSaveBtn.disabled = false;
+        }
+      }
+
+      function renderizarPreparacoesVistoria_() {
+        if (!preparedInspectionsList) return;
+        const lista = preparacoesVistoria.filter(item => filtroPreparacoes === 'todas' || item.tipoPreparacao === filtroPreparacoes);
+        if (!lista.length) {
+          preparedInspectionsList.innerHTML = '<div class="prepared-empty">Nenhuma vistoria preparada neste filtro.</div>';
+          return;
+        }
+        const card = item => {
+          const liberacao = item.tipoPreparacao === 'liberacao';
+          const titulo = item.nomeFantasia || item.razaoSocial || item.pscip || 'Vistoria preparada';
+          const endereco = [item.endereco, item.numero, item.bairro, item.cidade].filter(Boolean).join(', ');
+          return `<article class="prepared-card">
+            <div class="prepared-card-main">
+              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : 'Fiscalização'}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
+              <h3>${escapeHtml(titulo)}</h3>
+              <p>${escapeHtml(item.pscip || 'Sem PSCIP informado')}${item.area ? ` • ${escapeHtml(item.area)} m²` : ''}</p>
+              <p>${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
+              <p><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
+            </div>
+            <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">Abrir vistoria</button>
+          </article>`;
+        };
+        if (filtroPreparacoes === 'liberacao') {
+          const grupos = ['Sgt Galliano', 'Sgt Buonicontro'];
+          const blocos = grupos.map(nome => {
+            const itens = lista.filter(item => normalize(item.vistoriadorResponsavel) === normalize(nome));
+            return `<section class="prepared-group"><h3>${escapeHtml(nome)}</h3>${itens.length ? itens.map(card).join('') : '<div class="prepared-empty">Nenhuma liberação programada.</div>'}</section>`;
+          });
+          const outros = lista.filter(item => !grupos.some(nome => normalize(item.vistoriadorResponsavel) === normalize(nome)));
+          if (outros.length) blocos.push(`<section class="prepared-group"><h3>Outros responsáveis</h3>${outros.map(card).join('')}</section>`);
+          preparedInspectionsList.innerHTML = blocos.join('');
+        } else {
+          preparedInspectionsList.innerHTML = lista.map(card).join('');
+        }
+      }
+
+      async function carregarPreparacoesVistoria_() {
+        const cacheKey = 'gpv_preparacoes_cache_v1';
+        try { preparacoesVistoria = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { preparacoesVistoria = []; }
+        renderizarPreparacoesVistoria_();
+        if (!navigator.onLine) {
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — exibindo a última lista sincronizada.';
+          return;
+        }
+        try {
+          const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
+          preparacoesVistoria = Array.isArray(r?.itens) ? r.itens : [];
+          try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = `${preparacoesVistoria.length} vistoria(s) preparada(s) pendente(s).`;
+          renderizarPreparacoesVistoria_();
+        } catch (erro) {
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível atualizar as programações agora.';
+        }
+      }
+
+      function aplicarPreparacaoAoFormulario_(item) {
+        if (!item) return;
+        preparacaoEmUsoId = String(item.id || '');
+        aplicarFluxoVistoria_(item.tipoPreparacao === 'liberacao' ? 'liberacao' : 'fiscalizacao', { silencioso: true });
+        const set = (id, valor) => { const el = document.getElementById(id); if (el && valor != null && String(valor) !== '') el.value = String(valor); };
+        set('vistoriadorResponsavel', item.vistoriadorResponsavel);
+        set('nomeFantasia', item.nomeFantasia);
+        set('razaoSocial', item.razaoSocial);
+        set('cnpj', item.cnpj || item.cpf);
+        set('endereco', item.endereco);
+        set('numero', item.numero);
+        set('bairro', item.bairro);
+        set('area', item.area);
+        if (item.pscip) { if (possuiPscipSelect) possuiPscipSelect.value='sim'; set('pscip', item.pscip); syncPscip_(); }
+        if (item.cidade) {
+          const existe = Array.from(citySelect.options).some(o => normalize(o.value) === normalize(item.cidade));
+          if (existe) citySelect.value = Array.from(citySelect.options).find(o => normalize(o.value) === normalize(item.cidade)).value;
+          else { citySelect.value = 'Outro'; if (otherCity) otherCity.value = item.cidade; }
+          syncOtherCity();
+        }
+        applyIdentificadorMask();
+        scheduleDraftSave();
+        document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        appStatus.textContent = `Vistoria preparada carregada${item.vistoriadorResponsavel ? ` — responsável: ${item.vistoriadorResponsavel}` : ''}.`;
+      }
+
       async function loadInitialData() {
         let cached = null;
         try { cached = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || 'null'); } catch (e) {}
@@ -3584,6 +3848,7 @@
             if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
           }
           if (obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
+          await Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_()]);
         }
 
         const vistaForcada = vistaInicialDaUrl_();
@@ -3602,6 +3867,24 @@
 
       fluxoFiscalizacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('fiscalizacao'));
       fluxoLiberacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('liberacao'));
+      prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
+      prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
+      prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
+      prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
+      prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
+      document.getElementById('preparePscip')?.addEventListener('input', event => { event.target.value = String(event.target.value || '').replace(/^prj/i, 'PRJ'); });
+      document.getElementById('prepareCnpj')?.addEventListener('blur', consultarCnpjPreparacao_);
+      document.querySelectorAll('[data-prepared-filter]').forEach(btn => btn.addEventListener('click', () => {
+        filtroPreparacoes = btn.dataset.preparedFilter || 'todas';
+        document.querySelectorAll('[data-prepared-filter]').forEach(b => b.classList.toggle('is-active', b === btn));
+        renderizarPreparacoesVistoria_();
+      }));
+      preparedInspectionsList?.addEventListener('click', event => {
+        const btn = event.target.closest('[data-preparacao-id]');
+        if (!btn) return;
+        const item = preparacoesVistoria.find(p => String(p.id) === String(btn.dataset.preparacaoId));
+        aplicarPreparacaoAoFormulario_(item);
+      });
 
       form.addEventListener('input', event => {
         if (event.target.classList.contains('invalid') && String(event.target.value || '').trim()) event.target.classList.remove('invalid');
@@ -3708,7 +3991,7 @@
         atualizarEstadoCardsMulta_();
         recordsSearchTimer = setTimeout(() => carregarRegistros_(true), 420);
       });
-      [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter, recordsTypeFilter, recordsPeriodFilter].forEach(select => {
+      [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter, recordsTypeFilter, recordsInspectorFilter, recordsPeriodFilter].forEach(select => {
         select?.addEventListener('change', () => {
           recordsState.prazoMulta = '';
           atualizarEstadoCardsMulta_();
@@ -3854,7 +4137,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.8', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

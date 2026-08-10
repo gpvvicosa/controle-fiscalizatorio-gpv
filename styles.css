@@ -4255,3 +4255,12 @@ body.useful-links-open{overflow:hidden}
 .vistoria-flow-section[hidden]{display:none!important}
 #tipoVistoria[readonly]{background:#f8fafc;color:#344054;font-weight:700}
 @media(max-width:680px){.inspection-flow-grid{grid-template-columns:1fr}.inspection-flow-card{min-height:82px;padding:15px}.inspection-flow-icon{width:44px;height:44px}}
+
+/* V23.9 — preparação e organização de vistorias */
+.prepared-inspections-box{margin-top:18px;padding:16px;border:1px solid var(--line,#e3dfd6);border-radius:16px;background:rgba(255,255,255,.72)}
+.prepared-inspections-head{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.prepared-inspections-head>div{display:flex;flex-direction:column;gap:4px}.prepared-inspections-head small{color:var(--muted,#6b6b6b)}
+.prepared-inspections-filters{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 10px}.prepared-filter{border:1px solid var(--line,#ddd);background:#fff;border-radius:999px;padding:7px 12px;font:inherit;cursor:pointer}.prepared-filter.is-active{font-weight:700;border-color:#701216}
+.prepared-inspections-list{display:grid;gap:10px;margin-top:10px}.prepared-card{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px;border:1px solid var(--line,#e3dfd6);border-radius:14px;background:#fff}.prepared-card-main{min-width:0}.prepared-card h3{margin:5px 0 3px;font-size:1rem}.prepared-card p{margin:3px 0;color:var(--muted,#5f5f5f);font-size:.9rem}.prepared-card-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.prepared-kind{font-size:.75rem;font-weight:800;padding:4px 8px;border-radius:999px;background:#f2eee7}.prepared-kind.release{background:#e9f5ec}.prepared-kind.inspection{background:#fff2dd}.prepared-empty{padding:14px;border:1px dashed var(--line,#ddd);border-radius:12px;color:var(--muted,#6b6b6b);text-align:center}.prepare-modal-card{max-width:760px}.prepare-grid textarea{width:100%;resize:vertical}.is-required-prep label::after{content:' *';color:#a51d24}
+@media(max-width:680px){.prepared-card{align-items:stretch;flex-direction:column}.prepared-open-btn{width:100%}.prepared-inspections-head .btn{width:100%}}
+.prepared-group{display:grid;gap:10px;margin-top:12px}.prepared-group>h3{margin:4px 0 0;padding-bottom:6px;border-bottom:1px solid var(--line,#e3dfd6);font-size:1rem}
