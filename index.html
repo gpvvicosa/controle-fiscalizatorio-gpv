@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.7.2">
+  <link rel="stylesheet" href="styles.css?v=23.8">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -186,7 +186,7 @@
           <h3>1. Situação do licenciamento</h3>
           <p>Depois de escolher a cidade, informe separadamente a <strong>situação do AVCB/CLCB</strong> e se o local <strong>possui PSCIP</strong>.</p>
           <ul>
-            <li><strong>Não possui AVCB/CLCB:</strong> o sistema define <strong>Autuado</strong> automaticamente, mesmo que já exista PSCIP.</li>
+            <li><strong>Fiscalização + Não possui AVCB/CLCB:</strong> o sistema define <strong>Autuado</strong> automaticamente, mesmo que já exista PSCIP.</li>
             <li><strong>Possui AVCB ou CLCB:</strong> a decisão de sanção permanece com o vistoriador.</li>
             <li><strong>Possui PSCIP:</strong> ao marcar Sim, aparece o campo <strong>Nº do PSCIP</strong>; o número pode consultar dados históricos da planilha.</li>
             <li><strong>Dispensado de licenciamento:</strong> não há autuação automática; qualquer sanção depende da avaliação do vistoriador.</li>
@@ -223,7 +223,7 @@
           <ul>
             <li><strong>Autuado:</strong> fiscalização inicial com irregularidade.</li>
             <li><strong>Advertência:</strong> progressão automática do fluxo fiscalizatório após o prazo definido.</li>
-            <li><strong>Notificado:</strong> pendência técnica do fluxo de liberação, sem entrar no fluxo de multas.</li>
+            <li><strong>Vistoria de Liberação:</strong> o resultado final é somente <strong>Liberado</strong> ou <strong>Notificado</strong>. Notificado não entra no fluxo de multas.</li>
             <li><strong>Regularizado:</strong> pendência de fiscalização encerrada.</li>
             <li><strong>Liberado:</strong> fluxo de liberação concluído.</li>
           </ul>
@@ -444,7 +444,30 @@
     </section>
 
     <form id="vistoriaForm" novalidate>
-      <section class="section essential" id="cidadeSecao">
+      <section class="section essential inspection-flow-section" id="tipoVistoriaSecao">
+        <div class="section-head">
+          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M9 2h6v4H9zM8.5 10h7M8.5 14h7"/></svg></div>
+          <div class="head-text">
+            <h2>Escolha o tipo de vistoria</h2>
+            <p>Essa escolha define o fluxo e as situações disponíveis no registro.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="inspection-flow-grid" role="group" aria-label="Tipo de vistoria">
+            <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
+              <span class="inspection-flow-icon" aria-hidden="true">⚠️</span>
+              <span class="inspection-flow-copy"><strong>Vistoria de Fiscalização</strong><small>Fluxo fiscalizatório. Autuado e Regularizado.</small></span>
+            </button>
+            <button type="button" class="inspection-flow-card" id="fluxoLiberacaoBtn" data-fluxo-vistoria="liberacao">
+              <span class="inspection-flow-icon" aria-hidden="true">✅</span>
+              <span class="inspection-flow-copy"><strong>Vistoria de Liberação</strong><small>Resultado somente Liberado ou Notificado.</small></span>
+            </button>
+          </div>
+          <div class="inspection-flow-current" id="fluxoVistoriaAtualTexto" hidden></div>
+        </div>
+      </section>
+
+      <section class="section essential vistoria-flow-section" id="cidadeSecao" hidden>
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg></div>
           <div class="head-text">
@@ -500,7 +523,7 @@
         </div>
       </section>
 
-      <section class="section" id="estabelecimento">
+      <section class="section vistoria-flow-section" id="estabelecimento" hidden>
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5L12 3v18M12 8h8v13M7.5 8h1M7.5 11.5h1M7.5 15h1M15.5 11h1M15.5 14.5h1M15.5 18h1M2.5 21h19"/></svg></div>
           <div class="head-text">
@@ -557,7 +580,7 @@
         </div>
       </section>
 
-      <section class="section essential" id="responsavelSecao">
+      <section class="section essential vistoria-flow-section" id="responsavelSecao" hidden>
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.8-4 3-6 6.5-6s5.7 2 6.5 6"/></svg></div>
           <div class="head-text">
@@ -632,7 +655,7 @@
         </div>
       </section>
 
-      <section class="section" id="processo">
+      <section class="section vistoria-flow-section" id="processo" hidden>
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3.5h6V5M8.5 10h7M8.5 14h7M8.5 18h4"/></svg></div>
           <div class="head-text">
@@ -654,8 +677,8 @@
             <div class="field wide process-closure-notice" id="processClosureNotice" hidden aria-live="polite"></div>
             <div class="field">
               <label for="tipoVistoria">Tipo de vistoria</label>
-              <input id="tipoVistoria" name="tipoVistoria" list="dlTipoVistoria" placeholder="Selecione ou digite">
-              <datalist id="dlTipoVistoria"></datalist>
+              <input id="tipoVistoria" name="tipoVistoria" readonly placeholder="Definido no início da vistoria">
+              <div class="hint">Definido pela opção escolhida no início do formulário.</div>
             </div>
             <div class="field">
               <label for="reds">REDS</label>
@@ -683,7 +706,7 @@
         </div>
       </section>
 
-      <section class="section" id="edificacao">
+      <section class="section vistoria-flow-section" id="edificacao" hidden>
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V6l8-3v18M12 9h8v12M7.5 9h1M7.5 13h1M7.5 17h1M15 13l1.5 1.5L20 11"/></svg></div>
           <div class="head-text">
@@ -723,7 +746,7 @@
 
     </form>
 
-    <div class="bottom-bar" aria-label="Ações da vistoria">
+    <div class="bottom-bar" id="vistoriaBottomBar" aria-label="Ações da vistoria" hidden>
       <div class="bottom-inner">
         <div class="draft" id="draftStatus">Rascunho automático</div>
         <button class="btn btn-secondary" type="button" id="clearBtn">Limpar</button>
@@ -953,7 +976,7 @@
     </div>
   </div>
   <script>
-    // V23.7.2 HOTFIX — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.8 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -971,8 +994,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.7.2"></script>
-  <script src="ocupacoes.js?v=23.7.2"></script>
-  <script src="app.js?v=23.7.2"></script>
+  <script src="config.js?v=23.8"></script>
+  <script src="ocupacoes.js?v=23.8"></script>
+  <script src="app.js?v=23.8"></script>
 </body>
 </html>

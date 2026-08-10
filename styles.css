@@ -4238,3 +4238,20 @@ body.review-open,body.about-open{overflow:hidden}
 .useful-links-note{margin:6px 24px 22px;padding:12px 14px;border-radius:12px;background:#f8fafc;color:#64748b;font-size:12.5px;line-height:1.45}
 body.useful-links-open{overflow:hidden}
 @media(max-width:640px){.useful-links-overlay{align-items:flex-end;padding:0}.useful-links-card{width:100%;max-height:90vh;border-radius:22px 22px 0 0}.useful-links-header{padding:18px 18px 14px}.useful-links-header h2{font-size:21px}.useful-links-grid{grid-template-columns:1fr;padding:14px 16px 8px;gap:10px}.useful-link-card{min-height:76px}.useful-links-note{margin:6px 16px 18px}}
+
+
+/* V23.8 — escolha inicial do fluxo da vistoria */
+.inspection-flow-section{border:1px solid rgba(153,27,27,.18);background:linear-gradient(180deg,#fff,#fffafa)}
+.inspection-flow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.inspection-flow-card{appearance:none;border:1px solid #d9dee6;background:#fff;border-radius:18px;padding:18px;display:flex;align-items:center;gap:14px;text-align:left;cursor:pointer;min-height:92px;box-shadow:0 7px 20px rgba(15,23,42,.06);transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,background .16s ease;color:#263449}
+.inspection-flow-card:hover{transform:translateY(-1px);border-color:#c91d2e;box-shadow:0 10px 26px rgba(153,27,27,.10)}
+.inspection-flow-card.is-active{border-color:#b91c1c;background:#fff7f7;box-shadow:0 0 0 3px rgba(185,28,28,.08),0 10px 24px rgba(153,27,27,.09)}
+.inspection-flow-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#f4f6f8;font-size:24px;flex:0 0 auto}
+.inspection-flow-card.is-active .inspection-flow-icon{background:#fee2e2}
+.inspection-flow-copy{display:flex;flex-direction:column;gap:5px;line-height:1.25}
+.inspection-flow-copy strong{font-size:16px;color:#202b3b}
+.inspection-flow-copy small{font-size:12px;color:#667085;font-weight:500}
+.inspection-flow-current{margin-top:12px;border-radius:12px;padding:10px 12px;background:#f8fafc;color:#475467;font-size:13px;font-weight:700}
+.vistoria-flow-section[hidden]{display:none!important}
+#tipoVistoria[readonly]{background:#f8fafc;color:#344054;font-weight:700}
+@media(max-width:680px){.inspection-flow-grid{grid-template-columns:1fr}.inspection-flow-card{min-height:82px;padding:15px}.inspection-flow-icon{width:44px;height:44px}}

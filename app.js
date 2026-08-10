@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.7.2';
+      const APP_VERSION = '23.8';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -316,6 +316,12 @@
       const pscipHistoryResults = document.getElementById('pscipHistoryResults');
       const sancaoSelect = document.getElementById('sancao');
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
+      const tipoVistoriaInput = document.getElementById('tipoVistoria');
+      const fluxoFiscalizacaoBtn = document.getElementById('fluxoFiscalizacaoBtn');
+      const fluxoLiberacaoBtn = document.getElementById('fluxoLiberacaoBtn');
+      const fluxoVistoriaAtualTexto = document.getElementById('fluxoVistoriaAtualTexto');
+      const vistoriaFlowSections = Array.from(document.querySelectorAll('.vistoria-flow-section'));
+      const vistoriaBottomBar = document.getElementById('vistoriaBottomBar');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
       const establishmentHistoryResults = document.getElementById('establishmentHistoryResults');
@@ -349,6 +355,7 @@
       let ocupacaoArrastando = false;
 
       let appConfig = {};
+      let sancoesConfiguradas = [];
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
       let ultimoRegistroConsultaChave = '';
@@ -1729,9 +1736,8 @@
 
       function populateOptions(op) {
         fillCity(op.cidade);
-        const sancoesManuais = (op.sancao || []).filter(v => normalize(v) !== normalize('Advertência'));
-        fillSelect('sancao', sancoesManuais, 'Selecione');
-        fillDatalist('dlTipoVistoria', op.tipoVistoria);
+        sancoesConfiguradas = (op.sancao || []).filter(v => normalize(v) !== normalize('Advertência'));
+        atualizarOpcoesSancaoPorFluxo_();
         fillDatalist('dlNatureza', op.natureza);
         fillDatalist('dlDemanda', op.demandaPrincipal);
         fillSelect('categoriaMeta', (op.categoriaMeta || []).filter(Boolean), 'Nenhuma / não se aplica');
@@ -1745,6 +1751,72 @@
         fillDatalist('dlEstadoCivil', op.estadoCivil);
         fillDatalist('dlEscolaridade', op.escolaridade);
         fillDatalist('dlEnderecoCorrespondencia', op.enderecoCorrespondencia);
+      }
+
+      function fluxoVistoriaAtual_() {
+        const atual = normalize(value('tipoVistoria'));
+        if (atual.includes('liberacao')) return 'liberacao';
+        if (atual.includes('fiscalizacao')) return 'fiscalizacao';
+        return '';
+      }
+
+      function ehFluxoLiberacao_() { return fluxoVistoriaAtual_() === 'liberacao'; }
+
+      function atualizarOpcoesSancaoPorFluxo_() {
+        if (!sancaoSelect) return;
+        const fluxo = fluxoVistoriaAtual_();
+        const atual = String(sancaoSelect.value || '');
+        let opcoes = [];
+        if (fluxo === 'liberacao') {
+          opcoes = ['Liberado', 'Notificado'];
+        } else if (fluxo === 'fiscalizacao') {
+          opcoes = (sancoesConfiguradas || []).filter(v => {
+            const n = normalize(v);
+            return n !== normalize('Advertência') && n !== normalize('Notificado') && n !== normalize('Liberado');
+          });
+          if (!opcoes.length) opcoes = ['Autuado', 'Regularizado'];
+        } else {
+          opcoes = [];
+        }
+        fillSelect('sancao', opcoes, fluxo ? 'Selecione' : 'Escolha primeiro o tipo de vistoria');
+        if (atual && opcoes.some(v => normalize(v) === normalize(atual))) sancaoSelect.value = atual;
+      }
+
+      function aplicarFluxoVistoria_(fluxo, opcoes = {}) {
+        const f = fluxo === 'liberacao' ? 'liberacao' : (fluxo === 'fiscalizacao' ? 'fiscalizacao' : '');
+        if (tipoVistoriaInput) tipoVistoriaInput.value = f === 'liberacao' ? 'Vistoria de Liberação' : (f === 'fiscalizacao' ? 'Vistoria de Fiscalização' : '');
+        fluxoFiscalizacaoBtn?.classList.toggle('is-active', f === 'fiscalizacao');
+        fluxoLiberacaoBtn?.classList.toggle('is-active', f === 'liberacao');
+        fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', f === 'fiscalizacao' ? 'true' : 'false');
+        fluxoLiberacaoBtn?.setAttribute('aria-pressed', f === 'liberacao' ? 'true' : 'false');
+        vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
+        if (vistoriaBottomBar) vistoriaBottomBar.hidden = !f;
+        if (fluxoVistoriaAtualTexto) {
+          fluxoVistoriaAtualTexto.hidden = !f;
+          fluxoVistoriaAtualTexto.textContent = f === 'liberacao'
+            ? 'Fluxo selecionado: Vistoria de Liberação — situação final: Liberado ou Notificado.'
+            : (f === 'fiscalizacao' ? 'Fluxo selecionado: Vistoria de Fiscalização.' : '');
+        }
+        atualizarOpcoesSancaoPorFluxo_();
+        syncLicenciamento();
+        if (f === 'liberacao') {
+          const demanda = document.getElementById('demandaPrincipal');
+          if (demanda && (!demanda.value || normalize(demanda.value) === normalize('Fiscalização'))) demanda.value = 'Liberação';
+        }
+        syncNotificado();
+        if (!opcoes.silencioso && f) {
+          document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          scheduleDraftSave();
+        }
+      }
+
+      function inferirFluxoDoRascunho_(p = {}) {
+        const tipo = normalize(String(p.tipoVistoria || ''));
+        if (tipo.includes('liberacao')) return 'liberacao';
+        if (tipo.includes('fiscalizacao')) return 'fiscalizacao';
+        const sancao = normalize(String(p.sancao || ''));
+        if (sancao === normalize('Liberado') || sancao === normalize('Notificado')) return 'liberacao';
+        return p.tipoVistoria || p.sancao ? 'fiscalizacao' : '';
       }
 
       function buildPayload() {
@@ -1804,6 +1876,7 @@
       function validateRequired(showMessage = true) {
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const checks = [
+          ['tipoVistoria', 'Tipo de vistoria'],
           ['licenciamento', 'Situação do licenciamento'],
           ['possuiPscip', 'Possui PSCIP?'],
           ['cnpj', 'CNPJ ou CPF'],
@@ -1866,11 +1939,17 @@
       function syncLicenciamento() {
         const situacao = value('licenciamento');
         const naoPossui = situacao === 'nao_possui';
+        const liberacao = ehFluxoLiberacao_();
 
-        if (naoPossui) {
-          if (!sancaoDefinidaAutomaticamente) {
-            sancaoAntesDoAutomatico = value('sancao');
-          }
+        // Em vistoria de liberação, a constatação final é exclusivamente Liberado/Notificado.
+        // A regra de autuação automática por ausência de AVCB/CLCB pertence somente ao fluxo fiscalizatório.
+        if (liberacao) {
+          if (sancaoSelect) sancaoSelect.disabled = false;
+          sancaoDefinidaAutomaticamente = false;
+          sancaoAntesDoAutomatico = '';
+          if (sancaoAutomaticaHint) sancaoAutomaticaHint.hidden = true;
+        } else if (naoPossui) {
+          if (!sancaoDefinidaAutomaticamente) sancaoAntesDoAutomatico = value('sancao');
           sancaoDefinidaAutomaticamente = true;
           if (sancaoSelect) {
             sancaoSelect.value = 'Autuado';
@@ -1918,7 +1997,7 @@
       function syncNotificado() {
         const isNotificado = normalize(value('sancao')) === normalize('Notificado');
         document.getElementById('noticeNotificado').classList.toggle('show', isNotificado);
-        if (isNotificado && !value('demandaPrincipal')) document.getElementById('demandaPrincipal').value = 'Liberação';
+        if ((isNotificado || ehFluxoLiberacao_()) && !value('demandaPrincipal')) document.getElementById('demandaPrincipal').value = 'Liberação';
       }
 
       function syncResponsibleAddress() {
@@ -2781,6 +2860,7 @@
             return;
           }
           const p = draft.payload;
+          aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
           currentRecordId = String(draft.recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
           sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
           if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
@@ -2799,6 +2879,8 @@
             if (el) el.value = val == null ? '' : val;
           });
           restaurarOcupacoesSelecionadas(p.ocupacao);
+          aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
+          if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
           syncOtherCity();
           syncLicenciamento();
           syncPscip_();
@@ -2822,6 +2904,7 @@
         sancaoAntesDoAutomatico = '';
         if (licenciamentoSelect) licenciamentoSelect.value = '';
         if (possuiPscipSelect) possuiPscipSelect.value = '';
+        aplicarFluxoVistoria_('', { silencioso: true });
         syncOtherCity();
         syncLicenciamento();
         syncPscip_();
@@ -2894,6 +2977,7 @@
           ['Possui PSCIP?', payload?._appPossuiPscip === 'sim' ? 'Sim' : (payload?._appPossuiPscip === 'nao' ? 'Não' : '—')],
           ['Nº PSCIP', payload?.pscip || '—'],
           ['Demanda', [payload?.demandaPrincipal, payload?.categoriaMeta].filter(Boolean).join(' | ') || '—'],
+          ['Tipo de vistoria', payload?.tipoVistoria || '—'],
           ['Sanção', payload?.sancao || '—'],
           ['Nº PF', payload?.pf || '—'],
           ['Enviado por', authState.usuario?.nome || '—']
@@ -3516,6 +3600,9 @@
         }
       }
 
+      fluxoFiscalizacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('fiscalizacao'));
+      fluxoLiberacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('liberacao'));
+
       form.addEventListener('input', event => {
         if (event.target.classList.contains('invalid') && String(event.target.value || '').trim()) event.target.classList.remove('invalid');
         if (document.getElementById('mesmoEnderecoResponsavel').checked && ['endereco','numero','complemento','bairro'].includes(event.target.id)) syncResponsibleAddress();
@@ -3767,7 +3854,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.7.2', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.8', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
