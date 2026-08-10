@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.17">
+  <link rel="stylesheet" href="styles.css?v=23.9.18">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -472,7 +472,7 @@
             </button>
             <div class="prepared-inspections-box programmed-inspections-box">
               <div class="prepared-inspections-head">
-                <div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
+                <div class="programmed-title-wrap"><span class="programmed-title-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 10h6M9 14h6M9 18h4"/></svg></span><div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div></div>
                 <button class="desktop-prepare-btn" id="desktopPrepareInspectionBtn" type="button">
                   <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
                   <span>Preparar vistoria</span>
@@ -491,11 +491,11 @@
           <div class="inspection-flow-grid inspection-flow-grid-after-programmed" role="group" aria-label="Tipo de vistoria">
             <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
               <span class="inspection-flow-icon" aria-hidden="true">⚠️</span>
-              <span class="inspection-flow-copy"><strong>Vistoria de Fiscalização</strong></span>
+              <span class="inspection-flow-copy"><strong>Vistoria de Fiscalização</strong><small>Realize ou consulte vistorias relacionadas à fiscalização.</small></span><span class="inspection-flow-arrow" aria-hidden="true">›</span>
             </button>
             <button type="button" class="inspection-flow-card" id="fluxoLiberacaoBtn" data-fluxo-vistoria="liberacao">
               <span class="inspection-flow-icon" aria-hidden="true">✅</span>
-              <span class="inspection-flow-copy"><strong>Vistoria de Liberação</strong></span>
+              <span class="inspection-flow-copy"><strong>Vistoria de Liberação</strong><small>Realize ou consulte vistorias relacionadas à liberação.</small></span><span class="inspection-flow-arrow" aria-hidden="true">›</span>
             </button>
           </div>
         </div>
@@ -1112,8 +1112,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.17"></script>
-  <script src="ocupacoes.js?v=23.9.17"></script>
-  <script src="app.js?v=23.9.17"></script>
+  <script src="config.js?v=23.9.18"></script>
+  <script src="ocupacoes.js?v=23.9.18"></script>
+  <script src="app.js?v=23.9.18"></script>
 </body>
 </html>

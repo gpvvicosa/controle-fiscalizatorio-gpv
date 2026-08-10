@@ -5344,3 +5344,321 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
   .ddu-list-card .ddu-item-actions .btn,
   .ddu-list-card .ddu-item-actions a.btn { flex: 1 1 140px; text-align: center; }
 }
+
+/* =============================================================================
+   V23.9.18 — Visual operacional inspirado no conceito aprovado
+   ============================================================================= */
+@media (min-width: 901px) {
+  .inspection-flow-section {
+    border: 1px solid #e7e9ee;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 10px 34px rgba(15, 23, 42, .07);
+    overflow: hidden;
+  }
+
+  .inspection-flow-section > .section-body {
+    padding: 22px 24px 24px;
+  }
+
+  .inspection-overview-grid {
+    grid-template-columns: minmax(285px, .30fr) minmax(720px, 1fr);
+    gap: 22px;
+  }
+
+  .inspection-overview-grid .ddu-summary-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 232px;
+    padding: 28px 26px;
+    gap: 20px;
+    border: 1px solid #f2c98d;
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 88% 18%, rgba(255,255,255,.92) 0 15%, transparent 16%),
+      linear-gradient(160deg,#fffdfa 0%,#fffaf3 58%,#ffefd2 100%);
+    box-shadow: 0 8px 26px rgba(120, 74, 18, .08);
+  }
+
+  .inspection-overview-grid .ddu-summary-card::after {
+    content: "";
+    position: absolute;
+    left: -12%;
+    right: -4%;
+    bottom: -58px;
+    height: 145px;
+    border-radius: 48% 54% 0 0;
+    background: linear-gradient(180deg, rgba(255,211,148,.24), rgba(255,190,92,.38));
+    transform: rotate(-4deg);
+    pointer-events: none;
+  }
+
+  .inspection-overview-grid .ddu-summary-icon {
+    position: relative;
+    z-index: 1;
+    width: 86px;
+    height: 86px;
+    border-radius: 22px;
+    background: linear-gradient(145deg,#b71921 0%,#720b12 100%);
+    box-shadow: 0 10px 24px rgba(128, 12, 18, .22);
+    font-size: 1.55rem;
+    font-weight: 900;
+  }
+
+  .inspection-overview-grid .ddu-summary-copy {
+    position: relative;
+    z-index: 1;
+    gap: 8px;
+  }
+
+  .inspection-overview-grid .ddu-summary-copy strong {
+    color: #172033;
+    font-size: 1.42rem;
+    font-weight: 850;
+  }
+
+  .inspection-overview-grid .ddu-summary-copy small {
+    color: #667085;
+    font-size: .98rem;
+    line-height: 1.45;
+  }
+
+  .inspection-overview-grid .ddu-summary-count {
+    position: relative;
+    z-index: 1;
+    min-width: 48px;
+    height: 48px;
+    padding: 0 14px;
+    background: #fff0de;
+    color: #aa121a;
+    font-size: 1.04rem;
+    box-shadow: inset 0 0 0 1px rgba(255,190,115,.28);
+  }
+
+  .inspection-overview-grid .programmed-inspections-box {
+    position: relative;
+    overflow: hidden;
+    min-height: 232px;
+    padding: 22px 24px 20px;
+    border: 1px solid #efc9cd;
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 94% 6%, rgba(197,27,39,.07) 0 19%, transparent 20%),
+      linear-gradient(135deg,#fff 0%,#fffafa 56%,#fff3f4 100%);
+    box-shadow: 0 8px 26px rgba(153,27,27,.07);
+  }
+
+  .inspection-overview-grid .prepared-inspections-head {
+    min-height: 54px;
+    align-items: center;
+  }
+
+  .programmed-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+  }
+
+  .programmed-title-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    color: #be1e2d;
+    background: #fff0f1;
+    flex: 0 0 auto;
+  }
+
+  .programmed-title-icon .ui-icon { width: 22px; height: 22px; }
+
+  .inspection-overview-grid .prepared-inspections-head strong {
+    color: #172033;
+    font-size: 1.34rem;
+    font-weight: 850;
+  }
+
+  .inspection-overview-grid .desktop-prepare-btn {
+    min-height: 48px;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(145deg,#cb202b,#a50f18);
+    color: #fff;
+    font-size: .93rem;
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(169,15,24,.18);
+  }
+
+  .inspection-overview-grid .desktop-prepare-btn:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(145deg,#d52834,#ad101b);
+    box-shadow: 0 11px 22px rgba(169,15,24,.24);
+  }
+
+  .inspection-overview-grid .prepared-inspections-filters {
+    margin-top: 12px;
+    gap: 10px;
+  }
+
+  .inspection-overview-grid .prepared-filter {
+    min-height: 40px;
+    padding: 8px 20px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.78);
+    border-color: #d8dee8;
+    font-size: .94rem;
+  }
+
+  .inspection-overview-grid .prepared-filter.is-active {
+    border-color: #bd1b26;
+    background: linear-gradient(145deg,#c91d2e,#a70f1b);
+    color: #fff;
+    box-shadow: 0 5px 12px rgba(169,15,24,.16);
+  }
+
+  .inspection-overview-grid #preparedInspectionsStatus {
+    margin-top: 13px;
+    color: #667085;
+    font-size: .82rem;
+  }
+
+  .inspection-overview-grid .prepared-inspections-list:empty {
+    display: flex;
+    min-height: 74px;
+    margin-top: 10px;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px dashed #e4b7bb;
+    border-radius: 15px;
+    background: rgba(255,255,255,.55);
+  }
+
+  .inspection-overview-grid .prepared-inspections-list:empty::before {
+    content: "Nenhuma vistoria programada neste filtro.";
+    color: #667085;
+    font-size: .92rem;
+  }
+
+  .inspection-flow-grid-after-programmed {
+    margin-top: 22px;
+    gap: 22px;
+  }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 128px;
+    padding: 24px 26px;
+    gap: 18px;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15,23,42,.06);
+  }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-card::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    left: 32%;
+    right: -8%;
+    bottom: -52px;
+    height: 108px;
+    border-radius: 50% 45% 0 0;
+    transform: rotate(-5deg);
+    opacity: .7;
+    pointer-events: none;
+  }
+
+  #fluxoFiscalizacaoBtn {
+    border: 1px solid #f0b3b7;
+    border-left: 5px solid #c61d2a;
+  }
+
+  #fluxoFiscalizacaoBtn::after {
+    background: linear-gradient(180deg,rgba(244,73,82,.05),rgba(244,73,82,.22));
+  }
+
+  #fluxoLiberacaoBtn {
+    border: 1px solid #b8ddbf;
+    border-left: 5px solid #20a548;
+  }
+
+  #fluxoLiberacaoBtn::after {
+    background: linear-gradient(180deg,rgba(57,180,84,.05),rgba(57,180,84,.22));
+  }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-icon,
+  .inspection-flow-grid-after-programmed .inspection-flow-copy,
+  .inspection-flow-grid-after-programmed .inspection-flow-arrow {
+    position: relative;
+    z-index: 1;
+  }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    font-size: 1.7rem;
+    box-shadow: none;
+  }
+
+  #fluxoFiscalizacaoBtn .inspection-flow-icon { background: #fde8e9; }
+  #fluxoLiberacaoBtn .inspection-flow-icon { background: #e5f5e8; }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    flex: 1 1 auto;
+  }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-copy strong {
+    font-size: 1.14rem;
+    font-weight: 850;
+    color: #172033;
+  }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-copy small {
+    max-width: 340px;
+    color: #667085;
+    font-size: .86rem;
+    line-height: 1.38;
+    font-weight: 500;
+  }
+
+  .inspection-flow-arrow {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: 0 5px 14px rgba(15,23,42,.10);
+  }
+
+  #fluxoFiscalizacaoBtn .inspection-flow-arrow { color: #c51a27; }
+  #fluxoLiberacaoBtn .inspection-flow-arrow { color: #179642; }
+
+  #fluxoFiscalizacaoBtn:hover {
+    border-color: #dc666d;
+    box-shadow: 0 12px 28px rgba(185,28,28,.12);
+  }
+  #fluxoLiberacaoBtn:hover {
+    border-color: #74c486;
+    box-shadow: 0 12px 28px rgba(32,165,72,.12);
+  }
+}
+
+@media (max-width: 900px) {
+  .programmed-title-wrap { display: flex; align-items: center; gap: 8px; }
+  .programmed-title-icon { display: none; }
+  .inspection-flow-copy small,
+  .inspection-flow-arrow { display: none; }
+}
