@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.14';
+      const APP_VERSION = '23.9.17';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -3930,7 +3930,21 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
       async function carregarDdUs_(){
-        try{const r=await apiRequest('config',{consulta:'ddus'},20000); ddusAtivos=Array.isArray(r?.itens)?r.itens:[]; renderizarDdUs_(); if(dduListStatus)dduListStatus.textContent=`${ddusAtivos.length} registro(s) ativo(s).`;}catch(e){if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora.';}
+        if(dduSummaryText)dduSummaryText.textContent='Atualizando demandas...';
+        if(dduSummaryCount)dduSummaryCount.textContent='…';
+        try{
+          const r=await apiRequest('config',{consulta:'ddus'},20000);
+          ddusAtivos=Array.isArray(r?.itens)?r.itens:[];
+          renderizarDdUs_();
+          if(dduListStatus)dduListStatus.textContent=`${ddusAtivos.length} registro(s) ativo(s).`;
+        }catch(e){
+          console.error('Falha ao carregar DDU:',e);
+          ddusAtivos=[];
+          if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar • toque para tentar novamente';
+          if(dduSummaryCount)dduSummaryCount.textContent='!';
+          dduSummaryCard?.classList.remove('is-danger','is-warning');
+          if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
+        }
       }
       async function salvarDdu_(){
         if(!navigator.onLine){alert('É necessário estar online para cadastrar o DDU e enviar o PDF.');return;}
@@ -4733,7 +4747,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.14', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.17', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

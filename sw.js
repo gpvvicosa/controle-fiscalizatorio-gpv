@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-16-layout-desktop-ddu';
-const VERSION = '23.9.16';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-17-ddu-loader';
+const VERSION = '23.9.17';
 
 const CORE_SHELL = [
   './',
