@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-4-manual-autuado-whatsapp';
-const VERSION = '23.4';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-5-whatsapp-direto-manual';
+const VERSION = '23.5';
 const APP_SHELL = [
   './',
   './index.html',

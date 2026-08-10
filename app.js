@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.4';
+      const APP_VERSION = '23.5';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -216,6 +216,7 @@
       const userManagerCancelBtn = document.getElementById('userManagerCancelBtn');
       const successScreen = document.getElementById('successScreen');
       const whatsappOrientacoesBtn = document.getElementById('whatsappOrientacoesBtn');
+      const manualAutuadoBtn = document.getElementById('manualAutuadoBtn');
       const whatsappOrientacoesNote = document.getElementById('whatsappOrientacoesNote');
       const successTitle = document.getElementById('successTitle');
       const recordsSuccessBtn = document.getElementById('recordsSuccessBtn');
@@ -710,7 +711,7 @@
         linhas.push('');
         linhas.push('📘 *IMPORTANTE*');
         linhas.push('');
-        linhas.push('O Manual do Autuado segue anexado a esta mensagem, contendo orientações sobre o procedimento de fiscalização e as providências necessárias para regularização.');
+        linhas.push('Após esta mensagem, será encaminhado o Manual do Autuado em PDF, contendo orientações sobre o procedimento de fiscalização e as providências necessárias para regularização.');
         linhas.push('');
         linhas.push('👷‍♂️ *PRIMEIRO PASSO FUNDAMENTAL*');
         linhas.push('');
@@ -767,52 +768,46 @@
         return new File([blob], MANUAL_AUTUADO_NOME, { type: 'application/pdf' });
       }
 
-      async function compartilharOrientacoesComManual_() {
+      function abrirMensagemWhatsAppResponsavel_() {
         const payload = ultimoRegistroParaOrientacoes || {};
         const numero = telefoneWhatsApp_(payload.telefone);
         if (!numero) {
           alert('Telefone do responsável não informado ou inválido.');
           return;
         }
-
-        const mensagem = montarMensagemOrientacoes_(payload);
-
-        // A Web Share API é a única forma padronizada de um PWA entregar um arquivo
-        // PDF ao compartilhamento do sistema. Ela permite escolher WhatsApp e o
-        // contato desejado, mas navegadores não podem selecionar o destinatário em
-        // nome do usuário por motivos de segurança.
-        if (navigator.share) {
-          try {
-            const manual = await obterArquivoManualAutuado_();
-            const dados = {
-              title: 'Orientações do CBMMG — Manual do Autuado',
-              text: mensagem,
-              files: [manual]
-            };
-            if (!navigator.canShare || navigator.canShare({ files: [manual] })) {
-              await navigator.share(dados);
-              return;
-            }
-          } catch (erro) {
-            if (erro?.name === 'AbortError') return;
-            console.warn('Compartilhamento com PDF indisponível; usando contingência.', erro);
-          }
-        }
-
-        // Contingência para navegadores que não aceitam arquivo + texto no
-        // compartilhamento nativo. Abre a conversa do responsável com o texto pronto
-        // e oferece o PDF local em seguida para compartilhamento manual.
         if (!navigator.onLine) {
-          alert('Este aparelho não suporta anexar o PDF automaticamente e está sem internet. O Manual continua disponível no app para compartilhamento quando necessário.');
-          try { window.open(MANUAL_AUTUADO_URL, '_blank', 'noopener'); } catch (_) {}
+          alert('É necessário estar conectado à internet para abrir a conversa do responsável no WhatsApp.');
           return;
         }
 
+        const mensagem = montarMensagemOrientacoes_(payload);
         const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
         try {
           window.location.assign(url);
         } catch (erro) {
           window.location.href = url;
+        }
+      }
+
+      async function compartilharManualAutuado_() {
+        try {
+          const manual = await obterArquivoManualAutuado_();
+          if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [manual] }))) {
+            await navigator.share({
+              title: 'Manual do Autuado — CBMMG',
+              files: [manual]
+            });
+            return;
+          }
+        } catch (erro) {
+          if (erro?.name === 'AbortError') return;
+          console.warn('Compartilhamento do Manual indisponível; abrindo o PDF.', erro);
+        }
+
+        try {
+          window.open(MANUAL_AUTUADO_URL, '_blank', 'noopener');
+        } catch (erro) {
+          window.location.href = MANUAL_AUTUADO_URL;
         }
       }
 
@@ -822,16 +817,17 @@
         const label = whatsappOrientacoesBtn.querySelector('.whatsapp-btn-label');
         whatsappOrientacoesBtn.disabled = !numero;
         if (numero) {
-          if (label) label.textContent = 'Enviar orientações + Manual';
-          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'O app compartilhará a mensagem e o Manual do Autuado em PDF. Escolha o WhatsApp e o contato do responsável.';
+          if (label) label.textContent = 'Enviar mensagem ao responsável';
+          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = '1º envie a mensagem diretamente ao WhatsApp do responsável. Ao retornar ao app, toque em “Enviar Manual do Autuado”.';
         } else {
           if (label) label.textContent = 'WhatsApp — telefone não informado';
-          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para usar o envio de orientações pelo WhatsApp.';
+          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para abrir diretamente a conversa no WhatsApp.';
         }
+        if (manualAutuadoBtn) manualAutuadoBtn.disabled = false;
       }
 
-      async function abrirOrientacoesWhatsApp_() {
-        await compartilharOrientacoesComManual_();
+      function abrirOrientacoesWhatsApp_() {
+        abrirMensagemWhatsAppResponsavel_();
       }
 
       function mostrarSucesso(titulo, mensagem) {
@@ -3644,6 +3640,7 @@
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
       document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
+      manualAutuadoBtn?.addEventListener('click', compartilharManualAutuado_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
       dashboardNewInspectionBtn?.addEventListener('click', mostrarVistaFormulario_);
