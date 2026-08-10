@@ -4996,7 +4996,7 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
 
 
 /* ==========================================================================
-   V23.9.13 — Relatório REDS da vistoria de liberação
+   V23.9.14 — Relatório REDS da vistoria de liberação
    ========================================================================== */
 .release-document-pending-field[hidden],
 .record-reds-report[hidden] { display: none !important; }
@@ -5057,3 +5057,10 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
   .record-reds-copy-btn { width: 100%; }
   .record-reds-report-text { min-height: 330px; }
 }
+
+/* V23.9.14 — DDU e anexos temporários */
+.ddu-summary-card{width:100%;display:flex;align-items:center;gap:14px;border:1px solid #d9dde4;background:#fff;border-radius:16px;padding:14px 16px;margin:0 0 14px;cursor:pointer;text-align:left;box-shadow:0 4px 16px rgba(15,23,42,.05)}
+.ddu-summary-card:hover{border-color:#701216;box-shadow:0 8px 24px rgba(112,18,22,.10)}
+.ddu-summary-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#701216;color:#fff;font-weight:800;letter-spacing:.5px}.ddu-summary-copy{display:flex;flex-direction:column;gap:3px;flex:1}.ddu-summary-copy strong{font-size:1rem}.ddu-summary-copy small{color:#667085}.ddu-summary-count{min-width:34px;height:34px;padding:0 10px;border-radius:999px;display:grid;place-items:center;background:#f3f4f6;font-weight:800}.ddu-summary-card.is-warning .ddu-summary-count{background:#fff3cd;color:#8a5a00}.ddu-summary-card.is-danger .ddu-summary-count{background:#fee2e2;color:#991b1b}
+.ddu-list-card{width:min(980px,94vw);max-height:90vh}.ddu-list{display:grid;gap:12px;margin-top:12px}.ddu-item{border:1px solid #e4e7ec;border-radius:14px;padding:14px;background:#fff}.ddu-item.is-today{border-color:#d6a400;background:#fffdf4}.ddu-item.is-overdue{border-color:#b42318;background:#fff7f6}.ddu-item-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}.ddu-item h3{margin:0 0 5px;font-size:1rem}.ddu-item p{margin:3px 0;color:#475467}.ddu-deadline{font-weight:800;white-space:nowrap}.ddu-item-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ddu-item-actions a{text-decoration:none}.ddu-file-note{font-size:.82rem;color:#667085}.ddu-summary-card[hidden]{display:none!important}
+@media(max-width:700px){.ddu-summary-card{padding:12px}.ddu-summary-icon{width:42px;height:42px}.ddu-list-card{width:96vw}}

@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.13';
+      const APP_VERSION = '23.9.14';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -336,6 +336,23 @@
       const vistoriaFlowSections = Array.from(document.querySelectorAll('.vistoria-flow-section'));
       const vistoriaBottomBar = document.getElementById('vistoriaBottomBar');
       const prepareInspectionBtn = document.getElementById('prepareInspectionBtn');
+      const registerDduBtn = document.getElementById('registerDduBtn');
+      const dduSummaryCard = document.getElementById('dduSummaryCard');
+      const dduSummaryCount = document.getElementById('dduSummaryCount');
+      const dduSummaryText = document.getElementById('dduSummaryText');
+      const dduRegisterModal = document.getElementById('dduRegisterModal');
+      const dduRegisterCloseBtn = document.getElementById('dduRegisterCloseBtn');
+      const dduRegisterCancelBtn = document.getElementById('dduRegisterCancelBtn');
+      const dduRegisterSaveBtn = document.getElementById('dduRegisterSaveBtn');
+      const dduRegisterError = document.getElementById('dduRegisterError');
+      const dduListModal = document.getElementById('dduListModal');
+      const dduListCloseBtn = document.getElementById('dduListCloseBtn');
+      const dduList = document.getElementById('dduList');
+      const dduListStatus = document.getElementById('dduListStatus');
+      const prepareDwgWrap = document.getElementById('prepareDwgWrap');
+      const prepareDwgFile = document.getElementById('prepareDwgFile');
+      const prepareDwgStatus = document.getElementById('prepareDwgStatus');
+
       const desktopPrepareInspectionBtn = document.getElementById('desktopPrepareInspectionBtn');
       const prepareInspectionModal = document.getElementById('prepareInspectionModal');
       const prepareInspectionCloseBtn = document.getElementById('prepareInspectionCloseBtn');
@@ -387,6 +404,8 @@
       let preparacoesVistoria = [];
       let filtroPreparacoes = 'todas';
       let preparacaoEmUsoId = '';
+      let dduEmUsoId = '';
+      let ddusAtivos = [];
       let preparacaoEditandoId = '';
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
@@ -2019,6 +2038,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           _appUsuarioSessao: String(authState.sessionToken || ''),
           _appDispositivo: nomeDispositivo_(),
           _appPreparacaoId: preparacaoEmUsoId,
+          _appDduId: dduEmUsoId,
           vistoriadorResponsavel: value('vistoriadorResponsavel'),
           cidade: cityValue() || 'Viçosa',
           nomeFantasia: value('nomeFantasia'),
@@ -3108,6 +3128,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
 
       function resetForm() {
         preparacaoEmUsoId = '';
+        dduEmUsoId = '';
         form.reset();
         localStorage.removeItem(draftKeyAtual_());
         currentRecordId = criarIdRegistro();
@@ -3850,6 +3871,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         if (dataHint) dataHint.hidden = !liberacao;
         const input = document.getElementById('preparePscip');
         if (liberacao && input && !String(input.value || '').trim()) input.value = 'PRJ';
+        if (prepareDwgWrap) prepareDwgWrap.hidden = !liberacao;
       }
 
       function limparFormularioPreparacao_() {
@@ -3858,6 +3880,8 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
+        if (prepareDwgFile) prepareDwgFile.value = '';
+        if (prepareDwgStatus) prepareDwgStatus.textContent = '';
         if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
         const cidade = document.getElementById('prepareCidade'); if (cidade) cidade.value = 'Viçosa';
         const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value = 'PRJ';
@@ -3867,6 +3891,58 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         clearPrepareCnpjStatus_();
         atualizarCamposPreparacaoPorTipo_();
       }
+
+
+      function lerArquivoBase64_(file, maxBytes, extensao) {
+        return new Promise((resolve, reject) => {
+          if (!file) return resolve(null);
+          if (file.size > maxBytes) return reject(new Error(`O arquivo excede o limite de ${Math.round(maxBytes/1024/1024)} MB.`));
+          if (extensao && !String(file.name || '').toLowerCase().endsWith(extensao)) return reject(new Error(`Selecione um arquivo ${extensao}.`));
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error('Não foi possível ler o arquivo selecionado.'));
+          reader.onload = () => resolve({ nome:file.name, tipo:file.type || '', tamanho:file.size, base64:String(reader.result||'').split(',').pop() || '' });
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function preencherVistoriadoresDdu_() {
+        const el=document.getElementById('dduVistoriador'); if(!el) return;
+        const atual=el.value; const nomes=Array.from(new Set((usuariosAtivosApp||[]).map(u=>String(u?.nome||u||'').trim()).filter(Boolean)));
+        el.innerHTML='<option value="">Não definido</option>'+nomes.map(n=>`<option value="${escapeAttr(n)}">${escapeHtml(n)}</option>`).join(''); if(atual) el.value=atual;
+      }
+      function abrirCadastroDdu_(){
+        if(!dduRegisterModal) return; preencherVistoriadoresDdu_();
+        const hoje=new Date(); const iso=new Date(hoje.getTime()-hoje.getTimezoneOffset()*60000).toISOString().slice(0,10);
+        document.getElementById('dduRecebimento').value=iso; if(dduRegisterError){dduRegisterError.hidden=true;dduRegisterError.textContent='';}
+        dduRegisterModal.hidden=false;
+      }
+      function fecharCadastroDdu_(){ if(dduRegisterModal) dduRegisterModal.hidden=true; }
+      function classificarPrazoDdu_(d){ const hoje=new Date(); hoje.setHours(0,0,0,0); const dt=new Date(String(d||'')+'T00:00:00'); if(Number.isNaN(dt.getTime())) return {c:'',r:'Sem prazo'}; const dias=Math.round((dt-hoje)/86400000); if(dias<0)return{c:'is-overdue',r:`Atrasado ${Math.abs(dias)} dia(s)`}; if(dias===0)return{c:'is-today',r:'Vence hoje'}; if(dias<=2)return{c:'is-today',r:`Faltam ${dias} dia(s)`}; return{c:'',r:`Prazo ${dt.toLocaleDateString('pt-BR')}`}; }
+      function renderizarDdUs_(){
+        const todos=Array.isArray(ddusAtivos)?ddusAtivos:[];
+        const ativos=todos.filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado'));
+        const concluidos=todos.filter(x=>normalize(x.status)===normalize('Concluído') && !x.arquivoRemovidoEm);
+        let vencidos=0,criticos=0; ativos.forEach(x=>{const p=classificarPrazoDdu_(x.dataLimite); if(p.c==='is-overdue')vencidos++; else if(p.c==='is-today')criticos++;});
+        if(dduSummaryCount)dduSummaryCount.textContent=String(ativos.length); if(dduSummaryText)dduSummaryText.textContent=ativos.length?`${ativos.length} demanda(s) pendente(s)${vencidos?` • ${vencidos} atrasada(s)`:criticos?` • ${criticos} próxima(s) do prazo`:''}`:'Nenhuma demanda pendente';
+        dduSummaryCard?.classList.toggle('is-danger',vencidos>0); dduSummaryCard?.classList.toggle('is-warning',!vencidos&&criticos>0);
+        if(!dduList)return;
+        const card=(x,concluido=false)=>{const p=classificarPrazoDdu_(x.dataLimite); const end=[x.endereco,x.numero,x.bairro,x.cidade].filter(Boolean).join(', '); let ret=''; if(concluido&&x.excluirArquivoApos){const fim=new Date(x.excluirArquivoApos); if(!Number.isNaN(fim.getTime())){const h=Math.max(0,Math.ceil((fim-Date.now())/3600000));ret=`Concluído • PDF disponível por cerca de ${h} h`;}} return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3><p>${escapeHtml(end)}</p><p>${x.vistoriadorResponsavel?`<b>Vistoriador:</b> ${escapeHtml(x.vistoriadorResponsavel)}`:'Vistoriador não definido'}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O PDF será enviado automaticamente para a lixeira após 24 h.':'PDF disponível enquanto a demanda estiver aberta e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener">Ver PDF</a>`:''}${concluido?'':`<button class="btn btn-primary ddu-start-btn" type="button" data-ddu-start="${escapeAttr(x.id)}">Iniciar fiscalização</button>`}</div></article>`};
+        const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
+      }
+      async function carregarDdUs_(){
+        try{const r=await apiRequest('config',{consulta:'ddus'},20000); ddusAtivos=Array.isArray(r?.itens)?r.itens:[]; renderizarDdUs_(); if(dduListStatus)dduListStatus.textContent=`${ddusAtivos.length} registro(s) ativo(s).`;}catch(e){if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora.';}
+      }
+      async function salvarDdu_(){
+        if(!navigator.onLine){alert('É necessário estar online para cadastrar o DDU e enviar o PDF.');return;}
+        const prazo=document.getElementById('dduPrazo').value, endereco=document.getElementById('dduEndereco').value.trim(), cidade=document.getElementById('dduCidade').value.trim(); const file=document.getElementById('dduPdfFile').files?.[0];
+        if(!prazo||!endereco||!cidade||!file){if(dduRegisterError){dduRegisterError.textContent='Preencha data limite, cidade, endereço e selecione o PDF.';dduRegisterError.hidden=false;}return;}
+        try{dduRegisterSaveBtn.disabled=true;dduRegisterSaveBtn.textContent='Enviando PDF...'; const arq=await lerArquivoBase64_(file,8*1024*1024,'.pdf');
+          await apiRequest('config',{consulta:'ddu_salvar',payload:{numeroDdu:document.getElementById('dduNumero').value,dataRecebimento:document.getElementById('dduRecebimento').value,dataLimite:prazo,vistoriadorResponsavel:document.getElementById('dduVistoriador').value,cidade,endereco,numero:document.getElementById('dduEnderecoNumero').value,bairro:document.getElementById('dduBairro').value,complemento:document.getElementById('dduComplemento').value,observacao:document.getElementById('dduObservacao').value,arquivo:arq}},120000);
+          fecharCadastroDdu_(); await carregarDdUs_(); if(dduListModal)dduListModal.hidden=false;
+        }catch(e){if(dduRegisterError){dduRegisterError.textContent=e?.message||'Não foi possível cadastrar o DDU.';dduRegisterError.hidden=false;}}
+        finally{dduRegisterSaveBtn.disabled=false;dduRegisterSaveBtn.textContent='Salvar DDU';}
+      }
+      function iniciarDdu_(item){ if(!item)return; dduEmUsoId=String(item.id||''); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v}; set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} appStatus.textContent='DDU carregado. Complete os dados da fiscalização.'; }
 
       function abrirModalPreparacao_() {
         fecharMenuMais_();
@@ -3903,6 +3979,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           ultimoCnpjPreparacaoConsultado = numero.length === 14 ? numero : '';
         }
         const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Editar vistoria programada';
+        if (prepareDwgStatus) prepareDwgStatus.textContent = item.arquivoDwgNome ? `Arquivo atual: ${item.arquivoDwgNome}. Selecione outro DWG apenas para substituir.` : 'Nenhum DWG anexado.';
         if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Salvar alterações';
         if (prepareInspectionError) prepareInspectionError.hidden = true;
         atualizarCamposPreparacaoPorTipo_();
@@ -4071,6 +4148,9 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         }
         prepareInspectionSaveBtn.disabled = true;
         try {
+          if (p.tipoPreparacao === 'liberacao' && prepareDwgFile?.files?.[0]) {
+            p._appArquivoDwg = await lerArquivoBase64_(prepareDwgFile.files[0], 8 * 1024 * 1024, '.dwg');
+          }
           const eraEdicao = Boolean(preparacaoEditandoId);
           if (eraEdicao) {
             // V23.9.7: edição usa a rota de config já liberada no gateway,
@@ -4171,6 +4251,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
               <p><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
             </div>
             <div class="prepared-card-actions">
+              ${item.arquivoDwgUrl ? `<a class="btn btn-secondary" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir DWG</a>` : ''}
               <button type="button" class="btn btn-secondary prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
               <button type="button" class="btn btn-secondary prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
               <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">Abrir vistoria</button>
@@ -4279,7 +4360,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
             if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
           }
           if (obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
-          await Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_()]);
+          await Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_(), carregarDdUs_()]);
         }
 
         const vistaForcada = vistaInicialDaUrl_();
@@ -4302,6 +4383,11 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       loggedUserBadge?.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); abrirPreparacoesDoUsuario_(); }
       });
+      registerDduBtn?.addEventListener('click', () => { appMoreMenu.hidden = true; abrirCadastroDdu_(); });
+      dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
+      dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
+      dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
+      dduList?.addEventListener('click', e => { const b=e.target.closest('[data-ddu-start]'); if(!b)return; iniciarDdu_(ddusAtivos.find(x=>String(x.id)===String(b.dataset.dduStart))); });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
       desktopPrepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
       prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
@@ -4647,7 +4733,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.13', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.14', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.13">
+  <link rel="stylesheet" href="styles.css?v=23.9.14">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -147,6 +147,10 @@
     <button class="app-more-menu-item" id="prepareInspectionBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
       <span><strong>Preparar vistoria</strong><small>Cadastrar uma vistoria antes do deslocamento</small></span>
+    </button>
+    <button class="app-more-menu-item" id="registerDduBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5M8 12h8M8 16h6"/></svg>
+      <span><strong>Cadastrar DDU</strong><small>Disque Denúncia 181 • anexar PDF e definir prazo</small></span>
     </button>
     <button class="app-more-menu-item" id="usefulLinksBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5l3-3M8.2 15.8l-1.3 1.3a3.5 3.5 0 0 1-5-5l3.2-3.2a3.5 3.5 0 0 1 5 0M15.8 8.2l1.3-1.3a3.5 3.5 0 1 1 5 5l-3.2 3.2a3.5 3.5 0 0 1-5 0"/></svg>
@@ -466,6 +470,11 @@
               <span>Preparar vistoria</span>
             </button>
           </div>
+          <button type="button" class="ddu-summary-card" id="dduSummaryCard" aria-label="Abrir demandas DDU">
+            <span class="ddu-summary-icon">181</span>
+            <span class="ddu-summary-copy"><strong>DDU</strong><small id="dduSummaryText">Carregando demandas...</small></span>
+            <span class="ddu-summary-count" id="dduSummaryCount">—</span>
+          </button>
           <div class="prepared-inspections-box programmed-inspections-box">
             <div class="prepared-inspections-head">
               <div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
@@ -927,11 +936,39 @@
           <div class="field wide"><label for="prepareEndereco">Endereço</label><input id="prepareEndereco"></div>
           <div class="field"><label for="prepareNumero">Número</label><input id="prepareNumero"></div>
           <div class="field"><label for="prepareBairro">Bairro</label><input id="prepareBairro"></div>
+          <div class="field wide" id="prepareDwgWrap" hidden><label for="prepareDwgFile">Projeto DWG</label><input id="prepareDwgFile" type="file" accept=".dwg,application/acad,application/x-acad,application/autocad_dwg,image/vnd.dwg"><div class="hint" id="prepareDwgHint">Opcional. Somente arquivo .dwg, até 8 MB. O arquivo ficará disponível até 24 h após a conclusão da vistoria.</div><div class="lookup-status" id="prepareDwgStatus"></div></div>
           <div class="field wide"><label for="prepareObservacao">Observação prévia</label><textarea id="prepareObservacao" rows="3" placeholder="Informações úteis antes do deslocamento"></textarea></div>
         </div>
         <div class="error-box" id="prepareInspectionError" hidden></div>
       </div>
       <div class="review-actions"><button class="btn btn-secondary" type="button" id="prepareInspectionCancelBtn">Cancelar</button><button class="btn btn-primary" type="button" id="prepareInspectionSaveBtn">Salvar programação</button></div>
+    </div>
+  </div>
+
+  <div class="review-overlay" id="dduRegisterModal" hidden>
+    <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="dduRegisterTitle">
+      <div class="review-head"><div><h2 id="dduRegisterTitle">Cadastrar DDU</h2><p>Demanda recebida pelo Disque Denúncia 181.</p></div><button class="icon-btn" id="dduRegisterCloseBtn" type="button">×</button></div>
+      <div class="review-body"><div class="grid prepare-grid">
+        <div class="field"><label for="dduNumero">Nº / identificação do DDU</label><input id="dduNumero" autocomplete="off"></div>
+        <div class="field"><label for="dduRecebimento">Data de recebimento</label><input id="dduRecebimento" type="date"></div>
+        <div class="field"><label class="required" for="dduPrazo">Data limite da vistoria</label><input id="dduPrazo" type="date" required></div>
+        <div class="field"><label for="dduVistoriador">Vistoriador responsável</label><select id="dduVistoriador"><option value="">Não definido</option></select></div>
+        <div class="field"><label class="required" for="dduCidade">Cidade</label><input id="dduCidade" value="Viçosa"></div>
+        <div class="field wide"><label class="required" for="dduEndereco">Endereço</label><input id="dduEndereco" required></div>
+        <div class="field"><label for="dduEnderecoNumero">Número</label><input id="dduEnderecoNumero"></div>
+        <div class="field"><label for="dduBairro">Bairro</label><input id="dduBairro"></div>
+        <div class="field wide"><label for="dduComplemento">Complemento / referência</label><input id="dduComplemento"></div>
+        <div class="field wide"><label class="required" for="dduPdfFile">Arquivo PDF do DDU</label><input id="dduPdfFile" type="file" accept="application/pdf,.pdf" required><div class="hint">Somente PDF, até 8 MB. Após concluir a vistoria, o arquivo permanece disponível por 24 h.</div></div>
+        <div class="field wide"><label for="dduObservacao">Observações</label><textarea id="dduObservacao" rows="3"></textarea></div>
+      </div><div class="error-box" id="dduRegisterError" hidden></div></div>
+      <div class="review-actions"><button class="btn btn-secondary" id="dduRegisterCancelBtn" type="button">Cancelar</button><button class="btn btn-primary" id="dduRegisterSaveBtn" type="button">Salvar DDU</button></div>
+    </div>
+  </div>
+
+  <div class="review-overlay" id="dduListModal" hidden>
+    <div class="review-card ddu-list-card" role="dialog" aria-modal="true" aria-labelledby="dduListTitle">
+      <div class="review-head"><div><h2 id="dduListTitle">DDU</h2><p>Demandas do Disque Denúncia 181 ordenadas pelo prazo.</p></div><button class="icon-btn" id="dduListCloseBtn" type="button">×</button></div>
+      <div class="review-body"><div id="dduListStatus" class="hint"></div><div id="dduList" class="ddu-list"></div></div>
     </div>
   </div>
 
@@ -1072,8 +1109,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.13"></script>
-  <script src="ocupacoes.js?v=23.9.13"></script>
-  <script src="app.js?v=23.9.13"></script>
+  <script src="config.js?v=23.9.14"></script>
+  <script src="ocupacoes.js?v=23.9.14"></script>
+  <script src="app.js?v=23.9.14"></script>
 </body>
 </html>
