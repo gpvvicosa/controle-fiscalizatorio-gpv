@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-14-relatorio-reds-liberacao';
-const VERSION = '23.9.14';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-16-layout-desktop-ddu';
+const VERSION = '23.9.16';
 
 const CORE_SHELL = [
   './',

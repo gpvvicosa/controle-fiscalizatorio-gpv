@@ -5064,3 +5064,283 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
 .ddu-summary-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#701216;color:#fff;font-weight:800;letter-spacing:.5px}.ddu-summary-copy{display:flex;flex-direction:column;gap:3px;flex:1}.ddu-summary-copy strong{font-size:1rem}.ddu-summary-copy small{color:#667085}.ddu-summary-count{min-width:34px;height:34px;padding:0 10px;border-radius:999px;display:grid;place-items:center;background:#f3f4f6;font-weight:800}.ddu-summary-card.is-warning .ddu-summary-count{background:#fff3cd;color:#8a5a00}.ddu-summary-card.is-danger .ddu-summary-count{background:#fee2e2;color:#991b1b}
 .ddu-list-card{width:min(980px,94vw);max-height:90vh}.ddu-list{display:grid;gap:12px;margin-top:12px}.ddu-item{border:1px solid #e4e7ec;border-radius:14px;padding:14px;background:#fff}.ddu-item.is-today{border-color:#d6a400;background:#fffdf4}.ddu-item.is-overdue{border-color:#b42318;background:#fff7f6}.ddu-item-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}.ddu-item h3{margin:0 0 5px;font-size:1rem}.ddu-item p{margin:3px 0;color:#475467}.ddu-deadline{font-weight:800;white-space:nowrap}.ddu-item-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ddu-item-actions a{text-decoration:none}.ddu-file-note{font-size:.82rem;color:#667085}.ddu-summary-card[hidden]{display:none!important}
 @media(max-width:700px){.ddu-summary-card{padding:12px}.ddu-summary-icon{width:42px;height:42px}.ddu-list-card{width:96vw}}
+
+/* =============================================================================
+   V23.9.15 — Tela de Vistoria mais compacta no desktop
+   ============================================================================= */
+.inspection-overview-grid { min-width: 0; }
+
+@media (min-width: 901px) {
+  .inspection-flow-section > .section-body {
+    padding: 14px 16px 16px;
+  }
+
+  .inspection-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(250px, .34fr) minmax(540px, 1fr);
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .inspection-overview-grid .ddu-summary-card {
+    height: 100%;
+    min-height: 132px;
+    margin: 0;
+    padding: 18px;
+    align-items: center;
+  }
+
+  .inspection-overview-grid .ddu-summary-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    font-size: 1.05rem;
+    flex: 0 0 auto;
+  }
+
+  .inspection-overview-grid .ddu-summary-copy strong {
+    font-size: 1.08rem;
+  }
+
+  .inspection-overview-grid .ddu-summary-copy small {
+    margin-top: 2px;
+    line-height: 1.35;
+  }
+
+  .inspection-overview-grid .programmed-inspections-box {
+    min-width: 0;
+    min-height: 132px;
+    margin: 0;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .inspection-overview-grid .prepared-inspections-head {
+    min-height: 42px;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+
+  .inspection-overview-grid .prepared-inspections-head > div {
+    width: auto;
+    flex: 1 1 auto;
+  }
+
+  .inspection-overview-grid .desktop-prepare-btn {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+
+  .inspection-overview-grid .prepared-inspections-filters {
+    margin-top: 8px;
+  }
+
+  .inspection-overview-grid #preparedInspectionsStatus {
+    margin-top: 6px;
+    min-height: 18px;
+  }
+
+  .inspection-overview-grid .prepared-inspections-list:empty {
+    display: none;
+  }
+
+  .inspection-overview-grid .program-deadline-notice {
+    margin-top: 7px;
+  }
+
+  .inspection-flow-grid-after-programmed {
+    margin-top: 14px;
+    gap: 14px;
+  }
+
+  .inspection-flow-grid-after-programmed .inspection-flow-card {
+    min-height: 86px;
+    padding: 14px 18px;
+  }
+
+  .install-panel {
+    padding: 9px 12px;
+    min-height: 48px;
+  }
+
+  .install-copy strong { margin-bottom: 0; }
+  .install-copy span { line-height: 1.25; }
+}
+
+@media (min-width: 1200px) {
+  .inspection-overview-grid {
+    grid-template-columns: minmax(280px, .30fr) minmax(680px, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .inspection-overview-grid {
+    display: block;
+  }
+  .inspection-overview-grid .ddu-summary-card {
+    margin-bottom: 14px;
+  }
+}
+
+/* =============================================================================
+   V23.9.16 — Modal DDU mais compacto e organizado
+   ============================================================================= */
+.ddu-list-card {
+  width: min(1080px, 94vw);
+  max-height: min(88vh, 820px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .28);
+}
+
+.ddu-list-card .ddu-list-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex: 0 0 auto;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eaecf0;
+  background: #fff;
+}
+
+.ddu-list-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ddu-list-title-icon {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #8b1016;
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+  box-shadow: 0 5px 14px rgba(139,16,22,.18);
+}
+
+.ddu-list-card .ddu-list-head h2 {
+  margin: 0;
+  color: #1d2939;
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.ddu-list-card .ddu-list-head .icon-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e4e7ec;
+  border-radius: 50%;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ddu-list-card .ddu-list-head .icon-btn:hover { background: #f2f4f7; color: #101828; }
+
+.ddu-list-card .ddu-list-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 18px 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ddu-list-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border: 1px solid #e4e7ec;
+  border-radius: 999px;
+  background: #f9fafb;
+  color: #475467;
+  font-size: .78rem;
+  font-weight: 750;
+}
+.ddu-list-status:empty { display: none; }
+
+.ddu-list-card .ddu-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.ddu-list-card .prepared-group { margin: 0; }
+.ddu-list-card .prepared-group + .prepared-group { margin-top: 14px; }
+.ddu-list-card .prepared-group > h3 {
+  margin: 0 0 8px;
+  color: #344054;
+  font-size: .86rem;
+  font-weight: 850;
+}
+
+.ddu-list-card .ddu-item {
+  padding: 13px 14px;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15,23,42,.035);
+}
+.ddu-list-card .ddu-item-head { align-items: center; }
+.ddu-list-card .ddu-item h3 { font-size: .96rem; color: #1d2939; }
+.ddu-list-card .ddu-item p { font-size: .84rem; line-height: 1.35; }
+.ddu-list-card .ddu-deadline {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #344054;
+  font-size: .78rem;
+}
+.ddu-list-card .ddu-item.is-today .ddu-deadline,
+.ddu-list-card .ddu-item.is-warning .ddu-deadline {
+  background: #fff3cd;
+  color: #8a5a00;
+}
+.ddu-list-card .ddu-item.is-overdue .ddu-deadline {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.ddu-list-card .ddu-file-note { margin-top: 6px; font-size: .76rem; line-height: 1.35; }
+.ddu-list-card .ddu-item-actions { margin-top: 10px; }
+.ddu-list-card .ddu-item-actions .btn { min-height: 38px; padding: 8px 13px; }
+
+@media (min-width: 901px) {
+  .ddu-list-card .ddu-item-head > div { min-width: 0; }
+  .ddu-list-card .ddu-item p:first-of-type { font-size: .88rem; }
+}
+
+@media (max-width: 700px) {
+  .ddu-list-card {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 18px;
+  }
+  .ddu-list-card .ddu-list-head { padding: 14px; }
+  .ddu-list-title-icon { width: 42px; height: 42px; border-radius: 12px; }
+  .ddu-list-card .ddu-list-head h2 { font-size: 1.02rem; }
+  .ddu-list-card .ddu-list-body { padding: 12px 14px 16px; }
+  .ddu-list-card .ddu-item-head { align-items: flex-start; flex-direction: column; }
+  .ddu-list-card .ddu-deadline { align-self: flex-start; }
+  .ddu-list-card .ddu-item-actions .btn,
+  .ddu-list-card .ddu-item-actions a.btn { flex: 1 1 140px; text-align: center; }
+}

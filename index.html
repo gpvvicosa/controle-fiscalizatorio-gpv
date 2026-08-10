@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.14">
+  <link rel="stylesheet" href="styles.css?v=23.9.16">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -464,29 +464,29 @@
     <form id="vistoriaForm" novalidate>
       <section class="section essential inspection-flow-section" id="tipoVistoriaSecao">
         <div class="section-body">
-          <div class="desktop-prepare-row">
-            <button class="desktop-prepare-btn" id="desktopPrepareInspectionBtn" type="button">
-              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
-              <span>Preparar vistoria</span>
+          <div class="inspection-overview-grid">
+            <button type="button" class="ddu-summary-card" id="dduSummaryCard" aria-label="Abrir demandas DDU">
+              <span class="ddu-summary-icon">181</span>
+              <span class="ddu-summary-copy"><strong>DDU</strong><small id="dduSummaryText">Carregando demandas...</small></span>
+              <span class="ddu-summary-count" id="dduSummaryCount">—</span>
             </button>
-          </div>
-          <button type="button" class="ddu-summary-card" id="dduSummaryCard" aria-label="Abrir demandas DDU">
-            <span class="ddu-summary-icon">181</span>
-            <span class="ddu-summary-copy"><strong>DDU</strong><small id="dduSummaryText">Carregando demandas...</small></span>
-            <span class="ddu-summary-count" id="dduSummaryCount">—</span>
-          </button>
-          <div class="prepared-inspections-box programmed-inspections-box">
-            <div class="prepared-inspections-head">
-              <div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
+            <div class="prepared-inspections-box programmed-inspections-box">
+              <div class="prepared-inspections-head">
+                <div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div>
+                <button class="desktop-prepare-btn" id="desktopPrepareInspectionBtn" type="button">
+                  <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
+                  <span>Preparar vistoria</span>
+                </button>
+              </div>
+              <div id="programDeadlineNotice" class="program-deadline-notice" hidden></div>
+              <div class="prepared-inspections-filters">
+                <button type="button" class="prepared-filter is-active" data-prepared-filter="todas">Todas</button>
+                <button type="button" class="prepared-filter" data-prepared-filter="fiscalizacao">Fiscalização</button>
+                <button type="button" class="prepared-filter" data-prepared-filter="liberacao">Liberação</button>
+              </div>
+              <div id="preparedInspectionsStatus" class="hint">Carregando programações...</div>
+              <div id="preparedInspectionsList" class="prepared-inspections-list"></div>
             </div>
-            <div id="programDeadlineNotice" class="program-deadline-notice" hidden></div>
-            <div class="prepared-inspections-filters">
-              <button type="button" class="prepared-filter is-active" data-prepared-filter="todas">Todas</button>
-              <button type="button" class="prepared-filter" data-prepared-filter="fiscalizacao">Fiscalização</button>
-              <button type="button" class="prepared-filter" data-prepared-filter="liberacao">Liberação</button>
-            </div>
-            <div id="preparedInspectionsStatus" class="hint">Carregando programações...</div>
-            <div id="preparedInspectionsList" class="prepared-inspections-list"></div>
           </div>
           <div class="inspection-flow-grid inspection-flow-grid-after-programmed" role="group" aria-label="Tipo de vistoria">
             <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
@@ -967,8 +967,11 @@
 
   <div class="review-overlay" id="dduListModal" hidden>
     <div class="review-card ddu-list-card" role="dialog" aria-modal="true" aria-labelledby="dduListTitle">
-      <div class="review-head"><div><h2 id="dduListTitle">DDU</h2><p>Demandas do Disque Denúncia 181 ordenadas pelo prazo.</p></div><button class="icon-btn" id="dduListCloseBtn" type="button">×</button></div>
-      <div class="review-body"><div id="dduListStatus" class="hint"></div><div id="dduList" class="ddu-list"></div></div>
+      <div class="review-head ddu-list-head">
+        <div class="ddu-list-title-wrap"><span class="ddu-list-title-icon" aria-hidden="true">181</span><div><h2 id="dduListTitle">DDU — Disque Denúncia 181</h2></div></div>
+        <button class="icon-btn" id="dduListCloseBtn" type="button" aria-label="Fechar DDU">×</button>
+      </div>
+      <div class="review-body ddu-list-body"><div id="dduListStatus" class="ddu-list-status"></div><div id="dduList" class="ddu-list"></div></div>
     </div>
   </div>
 
@@ -1109,8 +1112,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.14"></script>
-  <script src="ocupacoes.js?v=23.9.14"></script>
-  <script src="app.js?v=23.9.14"></script>
+  <script src="config.js?v=23.9.16"></script>
+  <script src="ocupacoes.js?v=23.9.16"></script>
+  <script src="app.js?v=23.9.16"></script>
 </body>
 </html>
