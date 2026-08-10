@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-4-cnpj-popup';
-const VERSION = '23.9.4';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-6-edicao-programacoes';
+const VERSION = '23.9.6';
 
 const CORE_SHELL = [
   './',

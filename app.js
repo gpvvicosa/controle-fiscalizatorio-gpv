@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.4';
+      const APP_VERSION = '23.9.6';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -377,6 +377,7 @@
       let preparacoesVistoria = [];
       let filtroPreparacoes = 'todas';
       let preparacaoEmUsoId = '';
+      let preparacaoEditandoId = '';
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
       let ultimoRegistroConsultaChave = '';
@@ -3697,20 +3698,71 @@
       }
 
       function atualizarCamposPreparacaoPorTipo_() {
-        const liberacao = prepareTipo?.value === 'liberacao';
+        const tipoSelecionado = String(prepareTipo?.value || '');
+        const liberacao = tipoSelecionado === 'liberacao';
         const wrap = document.getElementById('preparePscipWrap');
         if (wrap) wrap.classList.toggle('is-required-prep', liberacao);
+        const dataLabel = document.getElementById('prepareDataLabel');
+        if (dataLabel) dataLabel.classList.toggle('required', liberacao);
+        const dataHint = document.getElementById('prepareDataHint');
+        if (dataHint) dataHint.hidden = !liberacao;
         const input = document.getElementById('preparePscip');
         if (liberacao && input && !String(input.value || '').trim()) input.value = 'PRJ';
+      }
+
+      function limparFormularioPreparacao_() {
+        preparacaoEditandoId = '';
+        ['prepareCnpj','prepareData','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = '';
+        });
+        if (prepareTipo) prepareTipo.value = '';
+        if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
+        const cidade = document.getElementById('prepareCidade'); if (cidade) cidade.value = 'Viçosa';
+        const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value = 'PRJ';
+        const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Preparar vistoria';
+        if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Salvar programação';
+        ultimoCnpjPreparacaoConsultado = '';
+        clearPrepareCnpjStatus_();
+        atualizarCamposPreparacaoPorTipo_();
       }
 
       function abrirModalPreparacao_() {
         fecharMenuMais_();
         if (!prepareInspectionModal) return;
+        limparFormularioPreparacao_();
         if (prepareInspectionError) prepareInspectionError.hidden = true;
-        clearPrepareCnpjStatus_();
-        if (prepareData && !prepareData.value) prepareData.value = dataHojeIso_();
-        if (prepareVistoriador && !prepareVistoriador.value && authState.usuario?.nome) prepareVistoriador.value = authState.usuario.nome;
+        prepareInspectionModal.hidden = false;
+        document.body.classList.add('review-open');
+      }
+
+      function abrirEdicaoPreparacao_(item) {
+        if (!item?.id || !prepareInspectionModal) return;
+        fecharMenuMais_();
+        limparFormularioPreparacao_();
+        preparacaoEditandoId = String(item.id);
+        const set = (id, valor) => { const el = document.getElementById(id); if (el) el.value = String(valor ?? ''); };
+        set('prepareCnpj', item.cnpj || item.cpf || '');
+        set('prepareTipo', item.tipoPreparacao || '');
+        set('prepareData', item.dataPrevista || '');
+        set('prepareVistoriador', item.vistoriadorResponsavel || '');
+        set('prepareCidade', item.cidade || 'Viçosa');
+        set('preparePscip', item.pscip || 'PRJ');
+        set('prepareNomeFantasia', item.nomeFantasia || '');
+        set('prepareRazaoSocial', item.razaoSocial || '');
+        set('prepareArea', item.area || '');
+        set('prepareEndereco', item.endereco || '');
+        set('prepareNumero', item.numero || '');
+        set('prepareBairro', item.bairro || '');
+        set('prepareObservacao', item.observacaoPrevia || '');
+        const cnpjInput = document.getElementById('prepareCnpj');
+        if (cnpjInput) {
+          const numero = digits(cnpjInput.value || '').slice(0,14);
+          cnpjInput.value = numero.length > 11 ? formatarCnpjTela_(numero) : numero;
+          ultimoCnpjPreparacaoConsultado = numero.length === 14 ? numero : '';
+        }
+        const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Editar vistoria programada';
+        if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Salvar alterações';
+        if (prepareInspectionError) prepareInspectionError.hidden = true;
         atualizarCamposPreparacaoPorTipo_();
         prepareInspectionModal.hidden = false;
         document.body.classList.add('review-open');
@@ -3724,12 +3776,13 @@
 
       function dadosPreparacaoFormulario_() {
         const g = id => String(document.getElementById(id)?.value || '').trim();
-        const tipo = g('prepareTipo') === 'liberacao' ? 'liberacao' : 'fiscalizacao';
+        const tipo = g('prepareTipo');
         return {
           _appPreparacao: 'sim',
-          _appPreparacaoId: `prep_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+          _appPreparacaoEdicao: preparacaoEditandoId ? 'sim' : 'nao',
+          _appPreparacaoId: preparacaoEditandoId || `prep_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
           tipoPreparacao: tipo,
-          tipoVistoria: tipo === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização',
+          tipoVistoria: tipo === 'liberacao' ? 'Vistoria de Liberação' : (tipo === 'fiscalizacao' ? 'Vistoria de Fiscalização' : ''),
           dataPrevista: g('prepareData'),
           vistoriadorResponsavel: g('prepareVistoriador'),
           cidade: g('prepareCidade') || 'Viçosa',
@@ -3856,7 +3909,8 @@
       async function salvarPreparacaoVistoria_() {
         const p = dadosPreparacaoFormulario_();
         const faltantes = [];
-        if (!p.dataPrevista) faltantes.push('Data prevista');
+        if (!['fiscalizacao','liberacao'].includes(p.tipoPreparacao)) faltantes.push('Tipo de vistoria');
+        if (p.tipoPreparacao === 'liberacao' && !p.dataPrevista) faltantes.push('Data prevista');
         if (!p.vistoriadorResponsavel) faltantes.push('Vistoriador responsável');
         if (p.tipoPreparacao === 'liberacao' && normalizarPscipTela_(p.pscip).length <= 3) faltantes.push('Nº do PSCIP');
         if (faltantes.length) {
@@ -3875,14 +3929,12 @@
         }
         prepareInspectionSaveBtn.disabled = true;
         try {
+          const eraEdicao = Boolean(preparacaoEditandoId);
           await apiRequest('save', { payload: p }, 30000);
           fecharModalPreparacao_();
-          ultimoCnpjPreparacaoConsultado = '';
-          clearPrepareCnpjStatus_();
-          ['prepareCnpj','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-          const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value='PRJ';
+          limparFormularioPreparacao_();
           await carregarPreparacoesVistoria_();
-          appStatus.textContent = 'Vistoria programada e compartilhada com a equipe.';
+          appStatus.textContent = eraEdicao ? 'Programação atualizada com sucesso.' : 'Vistoria programada e compartilhada com a equipe.';
         } catch (erro) {
           if (prepareInspectionError) {
             prepareInspectionError.hidden = false;
@@ -3970,7 +4022,11 @@
               <p>${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
               <p><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
             </div>
-            <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">Abrir vistoria</button>
+            <div class="prepared-card-actions">
+              <button type="button" class="btn btn-secondary prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
+              <button type="button" class="btn btn-secondary prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
+              <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">Abrir vistoria</button>
+            </div>
           </article>`;
         };
         if (filtroPreparacoes === 'liberacao') {
@@ -4003,6 +4059,28 @@
           renderizarPreparacoesVistoria_();
         } catch (erro) {
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível atualizar as programações agora.';
+        }
+      }
+
+      async function excluirPreparacaoVistoria_(item) {
+        if (!item?.id) return;
+        const titulo = item.nomeFantasia || item.razaoSocial || item.pscip || 'esta vistoria programada';
+        const confirmar = window.confirm(`Excluir a programação de "${titulo}"?\n\nEla sairá da lista de Vistorias Programadas. Nenhuma vistoria já concluída será apagada.`);
+        if (!confirmar) return;
+        if (!navigator.onLine) {
+          appStatus.textContent = 'É necessário estar online para excluir uma programação.';
+          return;
+        }
+        appStatus.textContent = 'Excluindo programação...';
+        try {
+          await apiRequest('config', { consulta: 'programada_excluir', id: String(item.id) }, 20000);
+          preparacoesVistoria = preparacoesVistoria.filter(p => String(p.id) !== String(item.id));
+          try { localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(preparacoesVistoria)); } catch (e) {}
+          renderizarPreparacoesVistoria_();
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = `${preparacoesVistoria.length} vistoria(s) programada(s) pendente(s).`;
+          appStatus.textContent = 'Programação excluída.';
+        } catch (erro) {
+          appStatus.textContent = erro?.message || 'Não foi possível excluir a programação.';
         }
       }
 
@@ -4142,6 +4220,22 @@
         renderizarPreparacoesVistoria_();
       }));
       preparedInspectionsList?.addEventListener('click', event => {
+        const editar = event.target.closest('[data-preparacao-edit-id]');
+        if (editar) {
+          event.preventDefault();
+          event.stopPropagation();
+          const item = preparacoesVistoria.find(p => String(p.id) === String(editar.dataset.preparacaoEditId));
+          abrirEdicaoPreparacao_(item);
+          return;
+        }
+        const excluir = event.target.closest('[data-preparacao-delete-id]');
+        if (excluir) {
+          event.preventDefault();
+          event.stopPropagation();
+          const item = preparacoesVistoria.find(p => String(p.id) === String(excluir.dataset.preparacaoDeleteId));
+          excluirPreparacaoVistoria_(item);
+          return;
+        }
         const btn = event.target.closest('[data-preparacao-id]');
         if (!btn) return;
         const item = preparacoesVistoria.find(p => String(p.id) === String(btn.dataset.preparacaoId));
@@ -4407,7 +4501,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.4', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.6', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

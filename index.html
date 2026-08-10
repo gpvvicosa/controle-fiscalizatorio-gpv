@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.4">
+  <link rel="stylesheet" href="styles.css?v=23.9.6">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -886,8 +886,8 @@
       <div class="review-body">
         <div class="grid prepare-grid">
           <div class="field wide prepare-cnpj-first"><label for="prepareCnpj">CNPJ / CPF</label><input id="prepareCnpj" inputmode="numeric" autocomplete="off" placeholder="Digite o CNPJ para preencher os dados automaticamente"><div class="hint">Ao informar um CNPJ válido, os dados cadastrais disponíveis serão preenchidos automaticamente.</div><div class="lookup-status" id="prepareCnpjStatus" role="status" aria-live="polite"></div></div>
-          <div class="field"><label class="required" for="prepareTipo">Tipo</label><select id="prepareTipo"><option value="fiscalizacao">Vistoria de Fiscalização</option><option value="liberacao">Vistoria de Liberação</option></select></div>
-          <div class="field"><label class="required" for="prepareData">Data prevista</label><input type="date" id="prepareData"></div>
+          <div class="field"><label class="required" for="prepareTipo">Tipo de vistoria</label><select id="prepareTipo" required><option value="">Selecione o tipo</option><option value="fiscalizacao">Vistoria de Fiscalização</option><option value="liberacao">Vistoria de Liberação</option></select></div>
+          <div class="field"><label id="prepareDataLabel" for="prepareData">Data prevista</label><input type="date" id="prepareData"><div class="hint" id="prepareDataHint">Obrigatória para vistoria de liberação.</div></div>
           <div class="field"><label class="required" for="prepareVistoriador">Vistoriador responsável</label><select id="prepareVistoriador"><option value="">Selecione</option></select></div>
           <div class="field"><label for="prepareCidade">Cidade</label><input id="prepareCidade" value="Viçosa"></div>
           <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP</label><input id="preparePscip" value="PRJ" autocomplete="off"><div class="hint">Obrigatório para vistoria de liberação.</div></div>
@@ -1024,7 +1024,7 @@
     </div>
   </div>
   <script>
-    // V23.9.4 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
+    // V23.9.6 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay || !overlay.classList.contains('show')) return;
@@ -1042,8 +1042,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.4"></script>
-  <script src="ocupacoes.js?v=23.9.4"></script>
-  <script src="app.js?v=23.9.4"></script>
+  <script src="config.js?v=23.9.6"></script>
+  <script src="ocupacoes.js?v=23.9.6"></script>
+  <script src="app.js?v=23.9.6"></script>
 </body>
 </html>
