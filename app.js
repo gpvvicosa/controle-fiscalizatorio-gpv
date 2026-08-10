@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.7.1';
+      const APP_VERSION = '23.7.2';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -3602,7 +3602,6 @@
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
       document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
-      manualAutuadoBtn?.addEventListener('click', compartilharManualAutuado_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
       dashboardNewInspectionBtn?.addEventListener('click', mostrarVistaFormulario_);
@@ -3768,7 +3767,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.7.1', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.7.2', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
