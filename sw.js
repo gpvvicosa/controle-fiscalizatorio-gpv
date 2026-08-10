@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-5-whatsapp-direto-manual';
-const VERSION = '23.5';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-6-link-curto-manual';
+const VERSION = '23.6';
 const APP_SHELL = [
   './',
   './index.html',
@@ -15,7 +15,8 @@ const APP_SHELL = [
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/icon-maskable-512.png',
-  './assets/manual-do-autuado-infoscip-fiscalizacao.pdf'
+  './assets/manual-do-autuado-infoscip-fiscalizacao.pdf',
+  './manual/'
 ];
 
 self.addEventListener('install', event => {

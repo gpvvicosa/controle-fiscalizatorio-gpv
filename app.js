@@ -216,7 +216,6 @@
       const userManagerCancelBtn = document.getElementById('userManagerCancelBtn');
       const successScreen = document.getElementById('successScreen');
       const whatsappOrientacoesBtn = document.getElementById('whatsappOrientacoesBtn');
-      const manualAutuadoBtn = document.getElementById('manualAutuadoBtn');
       const whatsappOrientacoesNote = document.getElementById('whatsappOrientacoesNote');
       const successTitle = document.getElementById('successTitle');
       const recordsSuccessBtn = document.getElementById('recordsSuccessBtn');
@@ -711,7 +710,9 @@
         linhas.push('');
         linhas.push('📘 *IMPORTANTE*');
         linhas.push('');
-        linhas.push('Após esta mensagem, será encaminhado o Manual do Autuado em PDF, contendo orientações sobre o procedimento de fiscalização e as providências necessárias para regularização.');
+        linhas.push('Consulte o *Manual do Autuado*, com orientações sobre o procedimento de fiscalização, prazos, defesa, regularização e acompanhamento no INFOSCIP:');
+        linhas.push('');
+        linhas.push('https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/manual');
         linhas.push('');
         linhas.push('👷‍♂️ *PRIMEIRO PASSO FUNDAMENTAL*');
         linhas.push('');
@@ -758,59 +759,6 @@
         return linhas.join('\n');
       }
 
-      const MANUAL_AUTUADO_URL = './assets/manual-do-autuado-infoscip-fiscalizacao.pdf';
-      const MANUAL_AUTUADO_NOME = 'Manual do Autuado - Infoscip Fiscalizacao.pdf';
-
-      async function obterArquivoManualAutuado_() {
-        const resposta = await fetch(MANUAL_AUTUADO_URL, { cache: 'force-cache' });
-        if (!resposta.ok) throw new Error('Não foi possível carregar o Manual do Autuado.');
-        const blob = await resposta.blob();
-        return new File([blob], MANUAL_AUTUADO_NOME, { type: 'application/pdf' });
-      }
-
-      function abrirMensagemWhatsAppResponsavel_() {
-        const payload = ultimoRegistroParaOrientacoes || {};
-        const numero = telefoneWhatsApp_(payload.telefone);
-        if (!numero) {
-          alert('Telefone do responsável não informado ou inválido.');
-          return;
-        }
-        if (!navigator.onLine) {
-          alert('É necessário estar conectado à internet para abrir a conversa do responsável no WhatsApp.');
-          return;
-        }
-
-        const mensagem = montarMensagemOrientacoes_(payload);
-        const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
-        try {
-          window.location.assign(url);
-        } catch (erro) {
-          window.location.href = url;
-        }
-      }
-
-      async function compartilharManualAutuado_() {
-        try {
-          const manual = await obterArquivoManualAutuado_();
-          if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [manual] }))) {
-            await navigator.share({
-              title: 'Manual do Autuado — CBMMG',
-              files: [manual]
-            });
-            return;
-          }
-        } catch (erro) {
-          if (erro?.name === 'AbortError') return;
-          console.warn('Compartilhamento do Manual indisponível; abrindo o PDF.', erro);
-        }
-
-        try {
-          window.open(MANUAL_AUTUADO_URL, '_blank', 'noopener');
-        } catch (erro) {
-          window.location.href = MANUAL_AUTUADO_URL;
-        }
-      }
-
       function atualizarBotaoOrientacoes_() {
         if (!whatsappOrientacoesBtn) return;
         const numero = telefoneWhatsApp_(ultimoRegistroParaOrientacoes?.telefone);
@@ -818,12 +766,11 @@
         whatsappOrientacoesBtn.disabled = !numero;
         if (numero) {
           if (label) label.textContent = 'Enviar mensagem ao responsável';
-          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = '1º envie a mensagem diretamente ao WhatsApp do responsável. Ao retornar ao app, toque em “Enviar Manual do Autuado”.';
+          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'A mensagem será aberta diretamente no WhatsApp do responsável e já inclui o acesso ao Manual do Autuado.';
         } else {
           if (label) label.textContent = 'WhatsApp — telefone não informado';
           if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para abrir diretamente a conversa no WhatsApp.';
         }
-        if (manualAutuadoBtn) manualAutuadoBtn.disabled = false;
       }
 
       function abrirOrientacoesWhatsApp_() {
