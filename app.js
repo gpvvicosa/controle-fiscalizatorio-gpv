@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.0';
+      const APP_VERSION = '23.4';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -694,25 +694,126 @@
         const linhas = [];
 
         linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
+        linhas.push(`Foi realizada uma vistoria pelo CBMMG${estabelecimento ? ` no estabelecimento ${estabelecimento}` : ''}${data ? ` em ${data}` : ''}.`);
         linhas.push('');
-        linhas.push(`Foi realizada uma vistoria pelo GPV Viçosa${estabelecimento ? ` no estabelecimento ${estabelecimento}` : ''}${data ? ` em ${data}` : ''}.`);
+        linhas.push('🚒 *FOI AUTUADO PELO CORPO DE BOMBEIROS?*');
+        linhas.push('📌 Veja abaixo as principais orientações.');
+        linhas.push('');
+        linhas.push('📬 *COMO VOCÊ SERÁ AVISADO*');
+        linhas.push('');
+        linhas.push('A autuação será encaminhada por correspondência, com Aviso de Recebimento (AR), para o endereço da edificação.');
+        linhas.push('');
+        linhas.push('⚠️ *Não recebeu a correspondência em até 15 dias?*');
+        linhas.push('');
+        linhas.push('Entre em contato com o GPV Viçosa pelo WhatsApp:');
+        linhas.push('📲 (31) 3612-3894');
+        linhas.push('');
+        linhas.push('📘 *IMPORTANTE*');
+        linhas.push('');
+        linhas.push('O Manual do Autuado segue anexado a esta mensagem, contendo orientações sobre o procedimento de fiscalização e as providências necessárias para regularização.');
+        linhas.push('');
+        linhas.push('👷‍♂️ *PRIMEIRO PASSO FUNDAMENTAL*');
+        linhas.push('');
+        linhas.push('O responsável pela edificação deverá procurar um profissional legalmente habilitado, quando necessário, para elaborar, regularizar e/ou protocolar o processo de segurança contra incêndio e pânico junto ao Corpo de Bombeiros Militar de Minas Gerais.');
+        linhas.push('');
+        linhas.push('Esse profissional poderá ser, conforme o serviço necessário:');
+        linhas.push('');
+        linhas.push('✔️ Engenheiro');
+        linhas.push('✔️ Arquiteto');
+        linhas.push('');
+        linhas.push('⚠️ O profissional deverá possuir habilitação compatível com o serviço a ser executado.');
+        linhas.push('');
+        linhas.push('✅ *PASSO A PASSO*');
+        linhas.push('');
+        linhas.push('*1️⃣ Leia atentamente a documentação recebida*');
+        linhas.push('Verifique as irregularidades apontadas, as orientações e os respectivos prazos.');
+        linhas.push('');
+        linhas.push('*2️⃣ Acesse o sistema INFOSCIP*');
+        linhas.push('🌐 fiscalizacaobombeiros.mg.gov.br');
+        linhas.push('🔑 Entre utilizando sua conta gov.br.');
+        linhas.push('');
+        linhas.push('*3️⃣ Acesse “Meus Processos”*');
+        linhas.push('📄 Utilize o código de acesso constante na documentação, quando solicitado.');
+        linhas.push('');
+        linhas.push('*4️⃣ Providencie a regularização dentro do prazo*');
+        linhas.push('');
+        linhas.push('Com o auxílio do profissional responsável, quando necessário:');
+        linhas.push('');
+        linhas.push('✔️ providencie o projeto/processo de segurança contra incêndio;');
+        linhas.push('✔️ protocole a documentação necessária no CBMMG;');
+        linhas.push('✔️ corrija as irregularidades identificadas;');
+        linhas.push('✔️ solicite prorrogação de prazo, quando cabível.');
+        linhas.push('');
+        linhas.push('*5️⃣ Acompanhe o andamento do processo*');
+        linhas.push('');
+        linhas.push('📧 Mantenha seus dados de contato e e-mail atualizados para acompanhar as comunicações e não perder os prazos.');
+        linhas.push('');
+        linhas.push('⚠️ *ATENÇÃO*');
+        linhas.push('');
+        linhas.push('O descumprimento das exigências e dos prazos poderá resultar na aplicação das medidas administrativas cabíveis, inclusive multa, embargo, interdição ou cancelamento do AVCB/CLCB, conforme o caso.');
+        linhas.push('');
+        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais*');
+        linhas.push('*GPV — 3º Pelotão Viçosa*');
+        return linhas.join('\n');
+      }
 
-        const referencias = [];
-        if (p?.pscip) referencias.push(`Nº do PSCIP: ${p.pscip}`);
-        if (p?.pf) referencias.push(`Nº do PF: ${p.pf}`);
-        if (p?.sancao) referencias.push(`Situação registrada: ${p.sancao}`);
-        if (referencias.length) {
-          linhas.push('');
-          linhas.push(referencias.join(' | '));
+      const MANUAL_AUTUADO_URL = './assets/manual-do-autuado-infoscip-fiscalizacao.pdf';
+      const MANUAL_AUTUADO_NOME = 'Manual do Autuado - Infoscip Fiscalizacao.pdf';
+
+      async function obterArquivoManualAutuado_() {
+        const resposta = await fetch(MANUAL_AUTUADO_URL, { cache: 'force-cache' });
+        if (!resposta.ok) throw new Error('Não foi possível carregar o Manual do Autuado.');
+        const blob = await resposta.blob();
+        return new File([blob], MANUAL_AUTUADO_NOME, { type: 'application/pdf' });
+      }
+
+      async function compartilharOrientacoesComManual_() {
+        const payload = ultimoRegistroParaOrientacoes || {};
+        const numero = telefoneWhatsApp_(payload.telefone);
+        if (!numero) {
+          alert('Telefone do responsável não informado ou inválido.');
+          return;
         }
 
-        linhas.push('');
-        linhas.push('Orientamos que acompanhe as providências e eventuais exigências referentes ao processo de segurança contra incêndio e pânico, observando os prazos e documentos informados durante a vistoria.');
-        linhas.push('');
-        linhas.push('Em caso de dúvidas, utilize os canais oficiais do Corpo de Bombeiros Militar de Minas Gerais.');
-        linhas.push('');
-        linhas.push('Esta mensagem tem caráter orientativo e não substitui notificações, autos ou demais documentos oficiais do processo.');
-        return linhas.join('\n');
+        const mensagem = montarMensagemOrientacoes_(payload);
+
+        // A Web Share API é a única forma padronizada de um PWA entregar um arquivo
+        // PDF ao compartilhamento do sistema. Ela permite escolher WhatsApp e o
+        // contato desejado, mas navegadores não podem selecionar o destinatário em
+        // nome do usuário por motivos de segurança.
+        if (navigator.share) {
+          try {
+            const manual = await obterArquivoManualAutuado_();
+            const dados = {
+              title: 'Orientações do CBMMG — Manual do Autuado',
+              text: mensagem,
+              files: [manual]
+            };
+            if (!navigator.canShare || navigator.canShare({ files: [manual] })) {
+              await navigator.share(dados);
+              return;
+            }
+          } catch (erro) {
+            if (erro?.name === 'AbortError') return;
+            console.warn('Compartilhamento com PDF indisponível; usando contingência.', erro);
+          }
+        }
+
+        // Contingência para navegadores que não aceitam arquivo + texto no
+        // compartilhamento nativo. Abre a conversa do responsável com o texto pronto
+        // e oferece o PDF local em seguida para compartilhamento manual.
+        if (!navigator.onLine) {
+          alert('Este aparelho não suporta anexar o PDF automaticamente e está sem internet. O Manual continua disponível no app para compartilhamento quando necessário.');
+          try { window.open(MANUAL_AUTUADO_URL, '_blank', 'noopener'); } catch (_) {}
+          return;
+        }
+
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+        try {
+          window.location.assign(url);
+        } catch (erro) {
+          window.location.href = url;
+        }
       }
 
       function atualizarBotaoOrientacoes_() {
@@ -721,37 +822,16 @@
         const label = whatsappOrientacoesBtn.querySelector('.whatsapp-btn-label');
         whatsappOrientacoesBtn.disabled = !numero;
         if (numero) {
-          if (label) label.textContent = 'Enviar orientações pelo WhatsApp';
-          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'O WhatsApp será aberto com a mensagem pronta para conferência e envio.';
+          if (label) label.textContent = 'Enviar orientações + Manual';
+          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'O app compartilhará a mensagem e o Manual do Autuado em PDF. Escolha o WhatsApp e o contato do responsável.';
         } else {
           if (label) label.textContent = 'WhatsApp — telefone não informado';
           if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para usar o envio de orientações pelo WhatsApp.';
         }
       }
 
-      function abrirOrientacoesWhatsApp_() {
-        if (!navigator.onLine) {
-          alert('Sem internet no momento. As orientações poderão ser abertas no WhatsApp quando a conexão voltar.');
-          return;
-        }
-        const payload = ultimoRegistroParaOrientacoes || {};
-        const numero = telefoneWhatsApp_(payload.telefone);
-        if (!numero) {
-          alert('Telefone do responsável não informado ou inválido.');
-          return;
-        }
-        const mensagem = montarMensagemOrientacoes_(payload);
-        const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
-
-        // Navegação direta, disparada pelo toque do vistoriador. Em PWA instalado no
-        // Android isso é mais confiável que window.open(), que pode ser bloqueado
-        // como pop-up. O sistema operacional encaminha o link para o WhatsApp quando
-        // o aplicativo está disponível.
-        try {
-          window.location.assign(url);
-        } catch (erro) {
-          window.location.href = url;
-        }
+      async function abrirOrientacoesWhatsApp_() {
+        await compartilharOrientacoesComManual_();
       }
 
       function mostrarSucesso(titulo, mensagem) {

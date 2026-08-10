@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-3-cards-multas';
-const VERSION = '23.3';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-4-manual-autuado-whatsapp';
+const VERSION = '23.4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,7 +14,8 @@ const APP_SHELL = [
   `./assets/logo-gpv.png?v=${VERSION}`,
   './assets/icon-192.png',
   './assets/icon-512.png',
-  './assets/icon-maskable-512.png'
+  './assets/icon-maskable-512.png',
+  './assets/manual-do-autuado-infoscip-fiscalizacao.pdf'
 ];
 
 self.addEventListener('install', event => {
