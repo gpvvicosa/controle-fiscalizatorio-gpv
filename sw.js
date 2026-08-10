@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-6-link-curto-manual';
-const VERSION = '23.6';
+const VERSION = '23.7';
 const APP_SHELL = [
   './',
   './index.html',

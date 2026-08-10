@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.5';
+      const APP_VERSION = '23.7';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -286,6 +286,7 @@
       const dashboardMoreMenuBtn = document.getElementById('dashboardMoreMenuBtn');
       const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
       const tutorialMenuBtn = document.getElementById('tutorialMenuBtn');
+      const usefulLinksBtn = document.getElementById('usefulLinksBtn');
       const updateAppBtn = document.getElementById('updateAppBtn');
       const aboutSystemBtn = document.getElementById('aboutSystemBtn');
       const deviceNameBtn = document.getElementById('deviceNameBtn');
@@ -337,6 +338,8 @@
       const reviewCancelBtn = document.getElementById('reviewCancelBtn');
       const reviewCancelTopBtn = document.getElementById('reviewCancelTopBtn');
       const reviewConfirmBtn = document.getElementById('reviewConfirmBtn');
+      const usefulLinksModal = document.getElementById('usefulLinksModal');
+      const usefulLinksCloseBtn = document.getElementById('usefulLinksCloseBtn');
       const aboutSystemModal = document.getElementById('aboutSystemModal');
       const aboutSystemCloseBtn = document.getElementById('aboutSystemCloseBtn');
       const aboutSystemGrid = document.getElementById('aboutSystemGrid');
@@ -3422,6 +3425,18 @@
         }
       }
 
+      function abrirLinksUteis_() {
+        fecharMenuMais_();
+        if (usefulLinksModal) usefulLinksModal.hidden = false;
+        document.body.classList.add('useful-links-open');
+        setTimeout(() => usefulLinksCloseBtn?.focus(), 0);
+      }
+
+      function fecharLinksUteis_() {
+        if (usefulLinksModal) usefulLinksModal.hidden = true;
+        document.body.classList.remove('useful-links-open');
+      }
+
       async function abrirSobreSistema_() {
         fecharMenuMais_();
         if (!aboutSystemModal) return;
@@ -3651,6 +3666,9 @@
       }));
       appMoreMenu?.addEventListener('click', event => event.stopPropagation());
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
+      usefulLinksBtn?.addEventListener('click', abrirLinksUteis_);
+      usefulLinksCloseBtn?.addEventListener('click', fecharLinksUteis_);
+      usefulLinksModal?.addEventListener('click', event => { if (event.target === usefulLinksModal) fecharLinksUteis_(); });
       tutorialCloseBtn?.addEventListener('click', fecharTutorial_);
       tutorialModal?.addEventListener('click', event => { if (event.target === tutorialModal) fecharTutorial_(); });
       tutorialPrevBtn?.addEventListener('click', () => { tutorialStepIndex -= 1; renderizarTutorial_(); });
@@ -3708,7 +3726,7 @@
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); }
+        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));

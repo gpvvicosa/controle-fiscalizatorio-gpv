@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.4">
+  <link rel="stylesheet" href="styles.css?v=23.7">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -139,6 +139,10 @@
     <button class="app-more-menu-item" id="updateAppBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7.2 7.2 0 1 0 1 7"/><path d="M19 4.5V8h-3.5"/></svg>
       <span><strong>Atualizar app</strong><small>Buscar a versão mais recente</small></span>
+    </button>
+    <button class="app-more-menu-item" id="usefulLinksBtn" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5l3-3M8.2 15.8l-1.3 1.3a3.5 3.5 0 0 1-5-5l3.2-3.2a3.5 3.5 0 0 1 5 0M15.8 8.2l1.3-1.3a3.5 3.5 0 1 1 5 5l-3.2 3.2a3.5 3.5 0 0 1-5 0"/></svg>
+      <span><strong>Links úteis</strong><small>INFOSCIP, DDU, REDS e projetos DWG</small></span>
     </button>
     <button class="app-more-menu-item" id="aboutSystemBtn" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v6M12 7.5h.01"/></svg>
@@ -849,6 +853,46 @@
     </section>
   </div>
 
+  <div class="useful-links-overlay" id="usefulLinksModal" hidden>
+    <section class="useful-links-card" role="dialog" aria-modal="true" aria-labelledby="usefulLinksTitle">
+      <header class="useful-links-header">
+        <div>
+          <span>Atalhos operacionais</span>
+          <h2 id="usefulLinksTitle">Links úteis</h2>
+        </div>
+        <button class="review-close" id="usefulLinksCloseBtn" type="button" aria-label="Fechar links úteis">×</button>
+      </header>
+      <div class="useful-links-grid">
+        <a class="useful-link-card" href="https://www.prevencaobombeiros.mg.gov.br/lops/login.do" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">🛡️</span>
+          <span><strong>INFOSCIP Liberação</strong><small>Licenciamento e liberação</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://www.fiscalizacaobombeiros.mg.gov.br/#/home" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">📋</span>
+          <span><strong>INFOSCIP Fiscalização</strong><small>Processos fiscalizatórios</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://web.sids.mg.gov.br/ddu/#/dashboard" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">📊</span>
+          <span><strong>DDU</strong><small>Painel e consultas operacionais</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://web.sids.mg.gov.br/reds/externo/inicio.do?operation=load" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">🚒</span>
+          <span><strong>REDS</strong><small>Registro de eventos de defesa social</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://drive.google.com/drive/folders/1PIUdvpri1dnd4WxRDSUbh5u9K42CFSD3?usp=drive_link" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">📁</span>
+          <span><strong>Google Drive — Projetos DWG</strong><small>Acessar arquivos de projetos</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+      </div>
+      <p class="useful-links-note">Os atalhos abrem os sistemas oficiais em uma nova aba. Alguns serviços podem exigir login institucional.</p>
+    </section>
+  </div>
+
   <div class="about-overlay" id="aboutSystemModal" hidden>
     <section class="about-card" role="dialog" aria-modal="true" aria-labelledby="aboutSystemTitle">
       <header class="about-header">
@@ -910,6 +954,6 @@
   </div>
   <script src="config.js?v=23.1"></script>
   <script src="ocupacoes.js?v=23.1"></script>
-  <script src="app.js?v=23.6"></script>
+  <script src="app.js?v=23.7"></script>
 </body>
 </html>
