@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260808-v23-2-prefixo-prj';
-const VERSION = '23.2';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-3-cards-multas';
+const VERSION = '23.3';
 const APP_SHELL = [
   './',
   './index.html',

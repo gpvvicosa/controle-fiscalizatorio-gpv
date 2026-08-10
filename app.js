@@ -249,6 +249,10 @@
       const kpiRegularizadoPercent = document.getElementById('kpiRegularizadoPercent');
       const kpiLiberadoPercent = document.getElementById('kpiLiberadoPercent');
       const kpiAdvertenciaPercent = document.getElementById('kpiAdvertenciaPercent');
+      const kpiMulta1 = document.getElementById('kpiMulta1');
+      const kpiMulta2 = document.getElementById('kpiMulta2');
+      const kpiMulta1Card = document.getElementById('kpiMulta1Card');
+      const kpiMulta2Card = document.getElementById('kpiMulta2Card');
       const recordsOpenSheetLink = document.getElementById('recordsOpenSheetLink');
       const recordDetailScreen = document.getElementById('recordDetailScreen');
       const recordDetailCloseBtn = document.getElementById('recordDetailCloseBtn');
@@ -355,7 +359,8 @@
         planilhaUrl: '',
         itens: [],
         resumo: null,
-        chaveSelecionada: ''
+        chaveSelecionada: '',
+        prazoMulta: ''
       };
       let saveTimer = null;
       let cnpjTimer = null;
@@ -887,8 +892,35 @@
           demanda: String(recordsDemandFilter?.value || '').trim(),
           sancao: String(recordsSanctionFilter?.value || '').trim(),
           tipo: String(recordsTypeFilter?.value || '').trim(),
-          periodo: String(recordsPeriodFilter?.value || '').trim()
+          periodo: String(recordsPeriodFilter?.value || '').trim(),
+          prazoMulta: String(recordsState.prazoMulta || '').trim()
         };
+      }
+
+      function atualizarEstadoCardsMulta_() {
+        const ativo1 = recordsState.prazoMulta === 'primeira';
+        const ativo2 = recordsState.prazoMulta === 'segunda';
+        kpiMulta1Card?.classList.toggle('active', ativo1);
+        kpiMulta2Card?.classList.toggle('active', ativo2);
+        kpiMulta1Card?.setAttribute('aria-pressed', ativo1 ? 'true' : 'false');
+        kpiMulta2Card?.setAttribute('aria-pressed', ativo2 ? 'true' : 'false');
+      }
+
+      function limparFiltrosVisiveisPainel_() {
+        if (recordsSearch) recordsSearch.value = '';
+        if (recordsCityFilter) recordsCityFilter.value = '';
+        if (recordsDemandFilter) recordsDemandFilter.value = '';
+        if (recordsSanctionFilter) recordsSanctionFilter.value = '';
+        if (recordsTypeFilter) recordsTypeFilter.value = '';
+        if (recordsPeriodFilter) recordsPeriodFilter.value = '';
+      }
+
+      function filtrarPorPrazoMulta_(tipo) {
+        const proximo = recordsState.prazoMulta === tipo ? '' : tipo;
+        limparFiltrosVisiveisPainel_();
+        recordsState.prazoMulta = proximo;
+        atualizarEstadoCardsMulta_();
+        carregarRegistros_(true);
       }
 
       function classeStatus_(valor) {
@@ -926,6 +958,9 @@
         if (kpiRegularizadoPercent) kpiRegularizadoPercent.textContent = percentualResumo_(r.regularizado, total);
         if (kpiLiberadoPercent) kpiLiberadoPercent.textContent = percentualResumo_(r.liberado, total);
         if (kpiAdvertenciaPercent) kpiAdvertenciaPercent.textContent = percentualResumo_(r.advertencia, total);
+        if (kpiMulta1) kpiMulta1.textContent = Number(r.primeiraMulta || 0).toLocaleString('pt-BR');
+        if (kpiMulta2) kpiMulta2.textContent = Number(r.segundaMulta || 0).toLocaleString('pt-BR');
+        atualizarEstadoCardsMulta_();
       }
 
       function formatarDataPainel_(valor) {
@@ -1068,9 +1103,14 @@
 
           recordsStatus.className = 'records-status';
           const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(Boolean);
-          recordsStatus.innerHTML = filtrosAtivos
-            ? `<strong>${recordsState.total}</strong> resultado${recordsState.total === 1 ? '' : 's'} com os filtros atuais. Os indicadores acima representam o total da base.`
-            : `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} na consulta. Mais recentes primeiro.`;
+          const rotuloMulta = recordsState.prazoMulta === 'primeira'
+            ? 'sujeito à 1ª multa'
+            : (recordsState.prazoMulta === 'segunda' ? 'sujeito à 2ª multa' : '');
+          recordsStatus.innerHTML = rotuloMulta
+            ? `<strong>${recordsState.total}</strong> ${recordsState.total === 1 ? 'edificação' : 'edificações'} ${rotuloMulta}${recordsState.total === 1 ? '' : 's'}. Clique novamente no card para remover o filtro.`
+            : (filtrosAtivos
+              ? `<strong>${recordsState.total}</strong> resultado${recordsState.total === 1 ? '' : 's'} com os filtros atuais. Os indicadores acima representam o total da base.`
+              : `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} na consulta. Mais recentes primeiro.`);
         } catch (erro) {
           recordsStatus.className = 'records-status error';
           recordsStatus.textContent = erro?.message || 'Não foi possível carregar o Painel Fiscalizatório.';
@@ -3530,20 +3570,25 @@
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false));
       recordsClearFiltersBtn?.addEventListener('click', () => {
-        recordsSearch.value = '';
-        recordsCityFilter.value = '';
-        recordsDemandFilter.value = '';
-        recordsSanctionFilter.value = '';
-        recordsTypeFilter.value = '';
-        recordsPeriodFilter.value = '';
+        limparFiltrosVisiveisPainel_();
+        recordsState.prazoMulta = '';
+        atualizarEstadoCardsMulta_();
         carregarRegistros_(true);
       });
+      kpiMulta1Card?.addEventListener('click', () => filtrarPorPrazoMulta_('primeira'));
+      kpiMulta2Card?.addEventListener('click', () => filtrarPorPrazoMulta_('segunda'));
       recordsSearch?.addEventListener('input', () => {
         clearTimeout(recordsSearchTimer);
+        recordsState.prazoMulta = '';
+        atualizarEstadoCardsMulta_();
         recordsSearchTimer = setTimeout(() => carregarRegistros_(true), 420);
       });
       [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter, recordsTypeFilter, recordsPeriodFilter].forEach(select => {
-        select?.addEventListener('change', () => carregarRegistros_(true));
+        select?.addEventListener('change', () => {
+          recordsState.prazoMulta = '';
+          atualizarEstadoCardsMulta_();
+          carregarRegistros_(true);
+        });
       });
       recordsPrevBtn?.addEventListener('click', () => { if (recordsState.pagina > 1) { recordsState.pagina -= 1; carregarRegistros_(false); } });
       recordsNextBtn?.addEventListener('click', () => { if (recordsState.pagina < recordsState.totalPaginas) { recordsState.pagina += 1; carregarRegistros_(false); } });

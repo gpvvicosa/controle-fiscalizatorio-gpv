@@ -1834,7 +1834,13 @@ body.records-mode .app-view-nav { max-width: 1120px; margin-left: auto; margin-r
   align-items: center;
   gap: 11px;
   box-shadow: 0 1px 2px rgba(16,24,40,.025);
+  font: inherit;
+  text-align: left;
 }
+.dashboard-kpi-action { cursor: pointer; transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
+.dashboard-kpi-action:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(16,24,40,.08); }
+.dashboard-kpi-action:focus-visible { outline: 3px solid rgba(185, 28, 28, .18); outline-offset: 2px; }
+.dashboard-kpi-action.active { border-color: #b42318; box-shadow: 0 0 0 2px rgba(180,35,24,.12), 0 5px 14px rgba(16,24,40,.08); }
 .dashboard-kpi-icon {
   width: 42px;
   height: 42px;
@@ -1852,6 +1858,8 @@ body.records-mode .app-view-nav { max-width: 1120px; margin-left: auto; margin-r
 .kpi-advertencia .dashboard-kpi-icon { color: #b54708; background: #fffaeb; }
 .kpi-notificado .dashboard-kpi-icon { color: #c2410c; background: #fff7ed; }
 .kpi-regularizado .dashboard-kpi-icon, .kpi-liberado .dashboard-kpi-icon { color: #067647; background: #ecfdf3; }
+.kpi-multa1 .dashboard-kpi-icon { color: #c2410c; background: #fff7ed; }
+.kpi-multa2 .dashboard-kpi-icon { color: #b42318; background: #fef3f2; }
 
 .dashboard-filters {
   padding: 15px;
@@ -2062,6 +2070,10 @@ body.detail-open { overflow: hidden; }
 .history-body time { display: block; color: #98a2b3; font-size: 8px; }
 .history-body strong { display: block; margin-top: 1px; color: #344054; font-size: 10px; }
 .history-body p { margin: 2px 0 10px; color: #667085; font-size: 9px; line-height: 1.35; }
+
+@media (min-width: 1181px) and (max-width: 1380px) {
+  body.records-mode .dashboard-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 @media (max-width: 1180px) {
   .dashboard-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -2563,7 +2575,7 @@ body.detail-open { overflow: hidden; }
   }
   body.records-mode .dashboard-kpis {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 18px;
     margin: 0;
     padding: 0;
@@ -2596,6 +2608,8 @@ body.detail-open { overflow: hidden; }
   body.records-mode .kpi-regularizado .dashboard-kpi-icon,
   body.records-mode .kpi-liberado .dashboard-kpi-icon { background: linear-gradient(145deg, #439a4a, #2f7f36); }
   body.records-mode .kpi-advertencia .dashboard-kpi-icon { background: linear-gradient(145deg, #ffbd09, #efa800); }
+  body.records-mode .kpi-multa1 .dashboard-kpi-icon { background: linear-gradient(145deg, #f97316, #c2410c); }
+  body.records-mode .kpi-multa2 .dashboard-kpi-icon { background: linear-gradient(145deg, #d92d20, #991b1b); }
   body.records-mode .dashboard-kpi span {
     display: block;
     color: #616a78;
@@ -2623,6 +2637,9 @@ body.detail-open { overflow: hidden; }
   body.records-mode .kpi-regularizado small,
   body.records-mode .kpi-liberado small { color: #149447; font-weight: 750; }
   body.records-mode .kpi-advertencia small { color: #d99200; font-weight: 750; }
+  body.records-mode .kpi-multa1 small { color: #c2410c; font-weight: 750; }
+  body.records-mode .kpi-multa2 small { color: #b42318; font-weight: 750; }
+  body.records-mode .dashboard-kpi-action.active { border-color: #b42318; box-shadow: 0 0 0 2px rgba(180,35,24,.14), 0 5px 15px rgba(16,24,40,.08); }
 
   body.records-mode .dashboard-filters {
     margin-top: 13px;
