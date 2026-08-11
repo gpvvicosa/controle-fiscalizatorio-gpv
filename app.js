@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.22';
+      const APP_VERSION = '23.9.23';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -1239,7 +1239,7 @@
 
         if (goalsModalTitle) goalsModalTitle.textContent = `Metas de ${titulo}`;
         if (goalsModalSubtitle) goalsModalSubtitle.textContent = `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa.`;
-        if (goalsModalSummary) goalsModalSummary.innerHTML = `<div><strong>${Math.round(percentual)}%</strong><span>progresso geral</span></div><div><strong>${realizadoTotal}/${metaTotal}</strong><span>realizado / meta</span></div>`;
+        if (goalsModalSummary) goalsModalSummary.innerHTML = `<div class="goals-modal-overall-card"><div class="goals-modal-overall-top"><div><span>Progresso geral</span><strong>${Math.round(percentual)}%</strong></div><div class="goals-modal-overall-count"><span>Realizado / meta</span><strong>${realizadoTotal}/${metaTotal}</strong></div></div><div class="goals-modal-overall-progress"><span style="width:${Math.max(0, Math.min(100, percentual))}%"></span></div><div class="goals-modal-overall-foot"><span>${realizadoTotal >= metaTotal ? 'Meta mensal atingida' : `Faltam ${Math.max(0, metaTotal-realizadoTotal)} para a meta mensal`}</span><span>Viçosa</span></div></div>`;
         if (goalsModalList) {
           goalsModalList.innerHTML = categorias.map(item => {
             const meta = Number(item?.meta || 0);
@@ -4889,7 +4889,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.22', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.23', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

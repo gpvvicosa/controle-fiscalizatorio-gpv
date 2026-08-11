@@ -6118,3 +6118,104 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
     color: #16843a;
   }
 }
+
+
+/* =============================================================================
+   V23.9.23 — Refinamento visual do modal Metas
+   ============================================================================= */
+.goals-modal-card{
+  width:min(920px,94vw)!important;
+  max-height:min(88vh,760px)!important;
+  overflow:hidden!important;
+  border:1px solid rgba(22,131,71,.14)!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  box-shadow:0 28px 70px rgba(15,23,42,.22)!important;
+}
+.goals-modal-head{
+  position:relative!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:18px!important;
+  padding:22px 24px 18px!important;
+  border-bottom:1px solid #e7eee9!important;
+  background:linear-gradient(135deg,#f3fbf6 0%,#fbfffc 58%,#fff 100%)!important;
+}
+.goals-modal-head>div{min-width:0;padding-right:54px!important}
+.goals-modal-head h2{margin:4px 0 0!important;color:#172033!important;font-size:26px!important;letter-spacing:-.025em!important}
+.goals-modal-head p{margin:7px 0 0!important;color:#667085!important;font-size:12px!important;line-height:1.45!important}
+.goals-modal-kicker{font-size:10px!important;color:#168347!important;letter-spacing:.11em!important}
+.goals-modal-head .icon-btn{
+  position:absolute!important;
+  top:16px!important;
+  right:18px!important;
+  width:40px!important;
+  height:40px!important;
+  display:grid!important;
+  place-items:center!important;
+  margin:0!important;
+  border:1px solid #dfe6e1!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#475467!important;
+  font-size:24px!important;
+  line-height:1!important;
+  box-shadow:0 4px 12px rgba(15,23,42,.06)!important;
+  cursor:pointer!important;
+}
+.goals-modal-head .icon-btn:hover{background:#fff1f2!important;color:#991b1b!important;border-color:#fecdd3!important}
+.goals-modal-body{
+  padding:18px 22px 22px!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  background:linear-gradient(180deg,#fff,#fbfcfb)!important;
+}
+.goals-modal-summary{display:block!important;margin:0 0 16px!important}
+.goals-modal-overall-card{
+  padding:17px 18px 15px!important;
+  border:1px solid #dcebe1!important;
+  border-radius:17px!important;
+  background:linear-gradient(135deg,#f7fcf9,#eef9f2)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85)!important;
+}
+.goals-modal-overall-top{display:flex;justify-content:space-between;align-items:flex-end;gap:20px!important}
+.goals-modal-overall-top>div{display:flex;flex-direction:column;gap:3px}
+.goals-modal-overall-top span{font-size:10px!important;color:#667085!important;text-transform:uppercase;letter-spacing:.055em;font-weight:800}
+.goals-modal-overall-top strong{font-size:27px!important;line-height:1;color:#157a3f!important}
+.goals-modal-overall-count{text-align:right}
+.goals-modal-overall-progress{height:9px;margin:14px 0 9px;border-radius:999px;background:#dfe8e2;overflow:hidden}
+.goals-modal-overall-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#169447,#45b766)}
+.goals-modal-overall-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#667085;font-size:10px}
+.goals-modal-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+.goals-modal-item{
+  position:relative;
+  overflow:hidden;
+  min-height:132px;
+  border:1px solid #e1e6ea!important;
+  border-radius:16px!important;
+  padding:15px 15px 13px!important;
+  background:#fff!important;
+  box-shadow:0 3px 12px rgba(15,23,42,.035)!important;
+}
+.goals-modal-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#cbd5e1}
+.goals-modal-item.is-done{border-color:#cfe8d6!important;background:linear-gradient(135deg,#fff,#f8fdf9)!important}.goals-modal-item.is-done::before{background:#22a653}
+.goals-modal-item.is-progress{border-color:#f0dfb2!important;background:linear-gradient(135deg,#fff,#fffcf4)!important}.goals-modal-item.is-progress::before{background:#e0a11a}
+.goals-modal-item.is-pending{border-color:#f1caca!important;background:linear-gradient(135deg,#fff,#fffafa)!important}.goals-modal-item.is-pending::before{background:#d65b5b}
+.goals-modal-item.is-info{border-color:#d7e4f2!important;background:linear-gradient(135deg,#fff,#f7fbff)!important}.goals-modal-item.is-info::before{background:#5b8fc9}
+.goals-modal-item-head strong{font-size:14px!important;color:#172033!important}.goals-modal-item-head span{font-size:9px!important;text-transform:uppercase;letter-spacing:.04em}.goals-modal-item-head b{font-size:20px!important;color:#172033!important}
+.goals-modal-progress{height:7px!important;margin:14px 0 10px!important;background:#e7ece9!important}
+.goals-modal-item.is-progress .goals-modal-progress span{background:linear-gradient(90deg,#d89713,#efbf43)!important}
+.goals-modal-item.is-pending .goals-modal-progress span{background:linear-gradient(90deg,#c94f4f,#e47474)!important}
+.goals-modal-item.is-info .goals-modal-progress span{background:linear-gradient(90deg,#4d7fb8,#79a5d4)!important}
+.goals-modal-meta{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:end;gap:8px 14px!important;font-size:9.5px!important}
+.goals-modal-meta span:last-child{text-align:right;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:900px){
+  .goals-modal-card{width:calc(100vw - 22px)!important;max-height:calc(100vh - 28px)!important;border-radius:20px!important}
+  .goals-modal-head{padding:18px 18px 14px!important}.goals-modal-head>div{padding-right:48px!important}.goals-modal-head h2{font-size:21px!important}.goals-modal-head p{font-size:11px!important}
+  .goals-modal-head .icon-btn{top:13px!important;right:14px!important;width:36px!important;height:36px!important;border-radius:11px!important}
+  .goals-modal-body{padding:14px!important}
+  .goals-modal-overall-card{padding:14px!important}.goals-modal-overall-top strong{font-size:23px!important}
+  .goals-modal-list{grid-template-columns:1fr!important;gap:10px!important}.goals-modal-item{min-height:0!important;padding:13px 13px 12px!important}
+  .goals-modal-meta{grid-template-columns:1fr!important}.goals-modal-meta span:last-child{text-align:left!important}
+}
