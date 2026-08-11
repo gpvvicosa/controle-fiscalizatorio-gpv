@@ -6697,3 +6697,73 @@ body.records-mode .records-status.loading .panel-loading-visual{
   body.records-mode .records-status.loading{top:70px!important;padding:16px!important}
   body.records-mode .records-status.loading .panel-loading-visual{width:min(360px,92vw)!important;min-height:190px!important}
 }
+
+/* ===== V23.9.36 — loaders DDU e Vistorias Programadas sempre perceptíveis ===== */
+#dduSummaryCard.is-loading{
+  cursor:wait!important;
+  border-color:#e7c78f!important;
+  box-shadow:0 8px 26px rgba(135,84,24,.10)!important;
+}
+#dduSummaryCard.is-loading .ddu-summary-copy strong{opacity:.72!important}
+#dduSummaryCard.is-loading .ddu-loading-label{
+  color:#6f604d!important;
+  font-weight:800!important;
+  letter-spacing:.01em!important;
+}
+#dduSummaryCard.is-loading .ddu-loading-label i{
+  width:10px!important;height:10px!important;
+  background:#a51d24!important;
+  animation:gpvDduLoadingDot .85s ease-in-out infinite!important;
+}
+.ddu-count-loading{
+  display:block!important;
+  width:22px!important;
+  height:22px!important;
+  margin:auto!important;
+  border-radius:50%!important;
+  border:3px solid rgba(159,29,32,.16)!important;
+  border-top-color:#9f1d20!important;
+  animation:gpvSpin .72s linear infinite!important;
+}
+.prepared-inspections-list.is-loading{
+  display:grid!important;
+  gap:12px!important;
+  min-height:250px!important;
+  overflow:hidden!important;
+}
+.prepared-inspections-list.is-loading::before{
+  content:"Atualizando…"!important;
+  top:8px!important;
+  right:10px!important;
+  color:#7a2930!important;
+  background:#fff8f8!important;
+  border-color:#f1d8da!important;
+}
+.prepared-skeleton{
+  position:relative!important;
+  overflow:hidden!important;
+  min-height:170px!important;
+  background:linear-gradient(180deg,#fff 0%,#fbfcfd 100%)!important;
+}
+.prepared-skeleton::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(105deg,transparent 25%,rgba(255,255,255,.85) 47%,transparent 68%);
+  transform:translateX(-120%);
+  animation:gpvSkeletonSweep 1.1s ease-in-out infinite;
+}
+.prepared-skeleton .sk{
+  background:#e9edf1!important;
+  animation:gpvSkeletonPulse 1.05s ease-in-out infinite!important;
+}
+@keyframes gpvDduLoadingDot{0%,100%{transform:scale(.82);opacity:.55}50%{transform:scale(1.25);opacity:1}}
+@keyframes gpvSpin{to{transform:rotate(360deg)}}
+@keyframes gpvSkeletonPulse{0%,100%{opacity:.52}50%{opacity:1}}
+@keyframes gpvSkeletonSweep{to{transform:translateX(120%)}}
+@media(max-width:680px){
+  .prepared-inspections-list.is-loading{min-height:330px!important}
+  .prepared-skeleton{min-height:150px!important}
+  #dduSummaryCard.is-loading .ddu-loading-label{font-size:.74rem!important}
+}

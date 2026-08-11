@@ -4366,25 +4366,28 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       }
       async function carregarDdUs_(){
         const inicioLoadingDdu = Date.now();
+        const tempoMinimoLoading = 850;
         dduSummaryCard?.classList.add('is-loading');
-        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label"><i></i>Atualizando demandas</span>';
-        if(dduSummaryCount)dduSummaryCount.textContent='';
+        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label"><i></i>Atualizando demandas...</span>';
+        if(dduSummaryCount)dduSummaryCount.innerHTML='<span class="ddu-count-loading" aria-hidden="true"></span>';
         try{
           const r=await apiRequest('config',{consulta:'ddus'},20000);
-          ddusAtivos=Array.isArray(r?.itens)?r.itens:[];
+          const novosDdUs=Array.isArray(r?.itens)?r.itens:[];
+          const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
+          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
+          ddusAtivos=novosDdUs;
+          dduSummaryCard?.classList.remove('is-loading');
           renderizarDdUs_();
           if(dduListStatus)dduListStatus.textContent=`${ddusAtivos.length} registro(s) ativo(s).`;
         }catch(e){
           console.error('Falha ao carregar DDU:',e);
-          ddusAtivos=[];
+          const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
+          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
+          dduSummaryCard?.classList.remove('is-loading');
           if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar • toque para tentar novamente';
           if(dduSummaryCount)dduSummaryCount.textContent='!';
           dduSummaryCard?.classList.remove('is-danger','is-warning');
           if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
-        }finally{
-          const espera = Math.max(0, 520 - (Date.now() - inicioLoadingDdu));
-          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
-          dduSummaryCard?.classList.remove('is-loading');
         }
       }
       async function salvarDdu_(){
@@ -4737,34 +4740,44 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
 
       async function carregarPreparacoesVistoria_() {
         const inicioLoadingProgramadas = Date.now();
+        const tempoMinimoLoading = 900;
         const cacheKey = 'gpv_preparacoes_cache_v1';
-        try { preparacoesVistoria = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { preparacoesVistoria = []; }
-        renderizarPreparacoesVistoria_();
+        let cachePreparacoes = [];
+        try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
+
         if (!navigator.onLine) {
+          preparacoesVistoria = cachePreparacoes;
+          renderizarPreparacoesVistoria_();
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — exibindo a última lista sincronizada.';
           return;
         }
 
         preparedInspectionsList?.classList.add('is-loading');
-        if (!preparacoesVistoria.length && preparedInspectionsList) {
+        if (preparedInspectionsList) {
           preparedInspectionsList.innerHTML = `
             <div class="prepared-skeleton" aria-hidden="true"><span class="sk sk-badge"></span><span class="sk sk-title"></span><span class="sk sk-line"></span><span class="sk sk-line short"></span><span class="sk sk-actions"></span></div>
             <div class="prepared-skeleton" aria-hidden="true"><span class="sk sk-badge"></span><span class="sk sk-title"></span><span class="sk sk-line"></span><span class="sk sk-line short"></span><span class="sk sk-actions"></span></div>`;
         }
-        if (preparedInspectionsStatus) preparedInspectionsStatus.innerHTML = '<span class="prepared-loading-label"><i></i>Atualizando vistorias programadas</span>';
+        if (preparedInspectionsStatus) preparedInspectionsStatus.innerHTML = '<span class="prepared-loading-label"><i></i>Atualizando vistorias programadas...</span>';
         try {
           const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
-          preparacoesVistoria = Array.isArray(r?.itens) ? r.itens : [];
+          const novasPreparacoes = Array.isArray(r?.itens) ? r.itens : [];
+          const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
+          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
+          preparacoesVistoria = novasPreparacoes;
           try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
+          preparedInspectionsList?.classList.remove('is-loading');
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = `${preparacoesVistoria.length} vistoria(s) programada(s) pendente(s).`;
           renderizarPreparacoesVistoria_();
         } catch (erro) {
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível atualizar as programações agora.';
-          renderizarPreparacoesVistoria_();
-        } finally {
-          const espera = Math.max(0, 620 - (Date.now() - inicioLoadingProgramadas));
+          const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
           if (espera) await new Promise(resolve => setTimeout(resolve, espera));
+          preparacoesVistoria = cachePreparacoes;
           preparedInspectionsList?.classList.remove('is-loading');
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = cachePreparacoes.length
+            ? 'Não foi possível atualizar agora — exibindo a última lista sincronizada.'
+            : 'Não foi possível atualizar as programações agora.';
+          renderizarPreparacoesVistoria_();
         }
       }
 
