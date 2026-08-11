@@ -12,7 +12,7 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.20';
+      const APP_VERSION = '23.9.21';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       const DEFAULT_CONFIG = Object.freeze({
@@ -290,6 +290,23 @@
       const installBtn = document.getElementById('installBtn');
       const installText = document.getElementById('installText');
       const appMoreMenu = document.getElementById('appMoreMenu');
+      const appMoreMenuCloseBtn = document.getElementById('appMoreMenuCloseBtn');
+      const goalsMenuBtn = document.getElementById('goalsMenuBtn');
+      const dashboardGoalsPanel = document.getElementById('dashboardGoalsPanel');
+      const dashboardGoalsTitle = document.getElementById('dashboardGoalsTitle');
+      const dashboardGoalsSubtitle = document.getElementById('dashboardGoalsSubtitle');
+      const dashboardGoalsOverallValue = document.getElementById('dashboardGoalsOverallValue');
+      const dashboardGoalsOverallLabel = document.getElementById('dashboardGoalsOverallLabel');
+      const dashboardGoalsProgressBar = document.getElementById('dashboardGoalsProgressBar');
+      const dashboardGoalsPercent = document.getElementById('dashboardGoalsPercent');
+      const dashboardGoalsGrid = document.getElementById('dashboardGoalsGrid');
+      const dashboardGoalsOpenBtn = document.getElementById('dashboardGoalsOpenBtn');
+      const goalsModal = document.getElementById('goalsModal');
+      const goalsModalCloseBtn = document.getElementById('goalsModalCloseBtn');
+      const goalsModalTitle = document.getElementById('goalsModalTitle');
+      const goalsModalSubtitle = document.getElementById('goalsModalSubtitle');
+      const goalsModalSummary = document.getElementById('goalsModalSummary');
+      const goalsModalList = document.getElementById('goalsModalList');
       const navMoreMenuBtn = document.getElementById('navMoreMenuBtn');
       const dashboardMoreMenuBtn = document.getElementById('dashboardMoreMenuBtn');
       const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
@@ -407,6 +424,8 @@
       let preparacaoEmUsoId = '';
       let dduEmUsoId = '';
       let ddusAtivos = [];
+      let metasMensaisAtual = null;
+      let metasCarregando = false;
       let preparacaoEditandoId = '';
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
@@ -1169,6 +1188,99 @@
         }
       }
 
+      function escaparHtmlMetas_(valor) {
+        return String(valor == null ? '' : valor)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      }
+
+      function classeMeta_(item) {
+        const situacao = normalize(item?.situacao || '');
+        if (situacao === 'atingida') return 'is-done';
+        if (situacao.includes('informativa')) return 'is-info';
+        if (Number(item?.realizado || 0) > 0) return 'is-progress';
+        return 'is-pending';
+      }
+
+      function renderizarMetas_(dados) {
+        metasMensaisAtual = dados || null;
+        const categorias = Array.isArray(dados?.categorias) ? dados.categorias : [];
+        const metaTotal = Number(dados?.metaTotal || 0);
+        const realizadoTotal = Number(dados?.realizadoTotal || 0);
+        const percentual = Math.max(0, Math.min(100, Number(dados?.percentual || 0)));
+        const titulo = String(dados?.titulo || 'Mês atual').trim();
+
+        if (dashboardGoalsTitle) dashboardGoalsTitle.textContent = `Metas de ${titulo} — Viçosa`;
+        if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = metaTotal > 0
+          ? `${realizadoTotal} de ${metaTotal} vistorias da meta contabilizadas.`
+          : 'Acompanhamento mensal das categorias de meta.';
+        if (dashboardGoalsOverallValue) dashboardGoalsOverallValue.textContent = `${realizadoTotal} / ${metaTotal}`;
+        if (dashboardGoalsOverallLabel) dashboardGoalsOverallLabel.textContent = percentual >= 100 ? 'Meta geral atingida' : `Faltam ${Math.max(0, metaTotal - realizadoTotal)}`;
+        if (dashboardGoalsPercent) dashboardGoalsPercent.textContent = `${Math.round(percentual)}%`;
+        if (dashboardGoalsProgressBar) dashboardGoalsProgressBar.style.width = `${percentual}%`;
+
+        if (dashboardGoalsGrid) {
+          dashboardGoalsGrid.innerHTML = categorias.map(item => {
+            const meta = Number(item?.meta || 0);
+            const realizado = Number(item?.realizado || 0);
+            const totalReal = Number(item?.totalReal || realizado);
+            const pct = meta > 0 ? Math.max(0, Math.min(100, Number(item?.percentual || 0))) : 100;
+            const valor = meta > 0 ? `${realizado}/${meta}` : `${totalReal}`;
+            const rodape = meta > 0
+              ? (realizado >= meta ? 'Meta atingida' : `Faltam ${Math.max(0, meta - realizado)}`)
+              : 'Realização informativa';
+            return `<article class="dashboard-goal-item ${classeMeta_(item)}">
+              <div class="dashboard-goal-item-top"><strong>${escaparHtmlMetas_(item?.nome || '')}</strong><b>${valor}</b></div>
+              <div class="dashboard-goal-mini-progress"><span style="width:${pct}%"></span></div>
+              <small>${escaparHtmlMetas_(rodape)}</small>
+            </article>`;
+          }).join('');
+        }
+
+        if (goalsModalTitle) goalsModalTitle.textContent = `Metas de ${titulo}`;
+        if (goalsModalSubtitle) goalsModalSubtitle.textContent = `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa.`;
+        if (goalsModalSummary) goalsModalSummary.innerHTML = `<div><strong>${Math.round(percentual)}%</strong><span>progresso geral</span></div><div><strong>${realizadoTotal}/${metaTotal}</strong><span>realizado / meta</span></div>`;
+        if (goalsModalList) {
+          goalsModalList.innerHTML = categorias.map(item => {
+            const meta = Number(item?.meta || 0);
+            const realizado = Number(item?.realizado || 0);
+            const totalReal = Number(item?.totalReal || realizado);
+            const pct = meta > 0 ? Math.max(0, Math.min(100, Number(item?.percentual || 0))) : 100;
+            const ultimo = String(item?.ultimoLocal || '').trim();
+            const data = String(item?.ultimaData || '').trim();
+            return `<article class="goals-modal-item ${classeMeta_(item)}">
+              <div class="goals-modal-item-head"><div><strong>${escaparHtmlMetas_(item?.nome || '')}</strong><span>${meta > 0 ? `Meta ${meta}` : 'Fora da meta'}</span></div><b>${meta > 0 ? `${realizado}/${meta}` : totalReal}</b></div>
+              <div class="goals-modal-progress"><span style="width:${pct}%"></span></div>
+              <div class="goals-modal-meta"><span>${meta > 0 ? (realizado >= meta ? 'Meta atingida' : `Faltam ${Math.max(0, meta-realizado)}`) : `${totalReal} realizada(s)`}</span>${ultimo ? `<span>Último: ${escaparHtmlMetas_(ultimo)}${data ? ` • ${escaparHtmlMetas_(data)}` : ''}</span>` : '<span>Nenhum registro no mês</span>'}</div>
+            </article>`;
+          }).join('');
+        }
+      }
+
+      async function carregarMetas_(forcar = false) {
+        if (metasCarregando) return;
+        if (metasMensaisAtual && !forcar) { renderizarMetas_(metasMensaisAtual); return; }
+        if (!navigator.onLine) {
+          if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Conecte-se à internet para atualizar as metas.';
+          return;
+        }
+        metasCarregando = true;
+        try {
+          const resposta = await apiRequest('config', { consulta: 'metas' }, 30000);
+          renderizarMetas_(resposta || {});
+        } catch (erro) {
+          if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora.';
+        } finally { metasCarregando = false; }
+      }
+
+      function abrirMetas_() {
+        fecharMenuMais_();
+        if (goalsModal) goalsModal.hidden = false;
+        void carregarMetas_(true);
+      }
+
+      function fecharMetas_() { if (goalsModal) goalsModal.hidden = true; }
+
       async function carregarRegistros_(reiniciar = true) {
         if (recordsState.carregando) return;
         if (!navigator.onLine) {
@@ -1216,6 +1328,7 @@
           preencherPeriodosConsulta_(disponiveis.anos);
           atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
           atualizarKpis_(resposta?.resumo || {});
+          void carregarMetas_(false);
           const chaveAindaVisivel = recordsState.itens.some(item => item.chave === recordsState.chaveSelecionada);
           if (!chaveAindaVisivel) recordsState.chaveSelecionada = '';
           renderizarRegistros_();
@@ -4420,7 +4533,13 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       loggedUserBadge?.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); abrirPreparacoesDoUsuario_(); }
       });
-      registerDduBtn?.addEventListener('click', () => { appMoreMenu.hidden = true; abrirCadastroDdu_(); });
+      appMoreMenuCloseBtn?.addEventListener('click', fecharMenuMais_);
+      goalsMenuBtn?.addEventListener('click', abrirMetas_);
+      dashboardGoalsOpenBtn?.addEventListener('click', abrirMetas_);
+      dashboardGoalsPanel?.addEventListener('dblclick', abrirMetas_);
+      goalsModalCloseBtn?.addEventListener('click', fecharMetas_);
+      goalsModal?.addEventListener('click', event => { if (event.target === goalsModal) fecharMetas_(); });
+      registerDduBtn?.addEventListener('click', () => { fecharMenuMais_(); abrirCadastroDdu_(); });
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
       dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
@@ -4647,7 +4766,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       });
       recordsPageSize?.addEventListener('change', () => {
         const limite = Number(recordsPageSize.value || 25);
-        recordsState.limite = [8, 15, 25].includes(limite) ? limite : 8;
+        recordsState.limite = [8, 15, 25].includes(limite) ? limite : 25;
         carregarRegistros_(true);
       });
       recordsList?.addEventListener('click', event => {
@@ -4770,7 +4889,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.20', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.21', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

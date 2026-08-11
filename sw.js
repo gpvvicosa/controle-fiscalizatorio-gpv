@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260810-v23-9-19-mobile-tabela';
-const VERSION = '23.9.20';
+const VERSION = '23.9.21';
 
 const CORE_SHELL = [
   './',
