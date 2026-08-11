@@ -4365,8 +4365,9 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
       async function carregarDdUs_(){
-        if(dduSummaryText)dduSummaryText.textContent='Atualizando demandas...';
-        if(dduSummaryCount)dduSummaryCount.textContent='…';
+        dduSummaryCard?.classList.add('is-loading');
+        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label"><i></i>Atualizando demandas</span>';
+        if(dduSummaryCount)dduSummaryCount.textContent='';
         try{
           const r=await apiRequest('config',{consulta:'ddus'},20000);
           ddusAtivos=Array.isArray(r?.itens)?r.itens:[];
@@ -4379,6 +4380,8 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           if(dduSummaryCount)dduSummaryCount.textContent='!';
           dduSummaryCard?.classList.remove('is-danger','is-warning');
           if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
+        }finally{
+          dduSummaryCard?.classList.remove('is-loading');
         }
       }
       async function salvarDdu_(){
@@ -4737,6 +4740,14 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — exibindo a última lista sincronizada.';
           return;
         }
+
+        preparedInspectionsList?.classList.add('is-loading');
+        if (!preparacoesVistoria.length && preparedInspectionsList) {
+          preparedInspectionsList.innerHTML = `
+            <div class="prepared-skeleton" aria-hidden="true"><span class="sk sk-badge"></span><span class="sk sk-title"></span><span class="sk sk-line"></span><span class="sk sk-line short"></span><span class="sk sk-actions"></span></div>
+            <div class="prepared-skeleton" aria-hidden="true"><span class="sk sk-badge"></span><span class="sk sk-title"></span><span class="sk sk-line"></span><span class="sk sk-line short"></span><span class="sk sk-actions"></span></div>`;
+        }
+        if (preparedInspectionsStatus) preparedInspectionsStatus.innerHTML = '<span class="prepared-loading-label"><i></i>Atualizando vistorias programadas</span>';
         try {
           const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
           preparacoesVistoria = Array.isArray(r?.itens) ? r.itens : [];
@@ -4745,6 +4756,9 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           renderizarPreparacoesVistoria_();
         } catch (erro) {
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível atualizar as programações agora.';
+          renderizarPreparacoesVistoria_();
+        } finally {
+          preparedInspectionsList?.classList.remove('is-loading');
         }
       }
 
@@ -4771,51 +4785,68 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       }
 
       function rolarParaFormularioProgramado_() {
-        // Em alguns navegadores/PWAs móveis o window.scrollTo pode ser ignorado
-        // logo após revelar seções que estavam com [hidden]. Para tornar o salto
-        // confiável, aguardamos o reflow, usamos scrollIntoView e fazemos uma
-        // segunda correção pelo scrollingElement caso o primeiro movimento não
-        // tenha levado o formulário à área visível.
-        const executarRolagem = (behavior = 'smooth') => {
-          const alvo = document.getElementById('cidadeSecao') || document.getElementById('vistoriaForm');
-          if (!alvo || alvo.hidden) return false;
+        const alvo = document.querySelector('#cidadeSecao .section-head') || document.getElementById('cidadeSecao');
+        if (!alvo) return;
 
-          const nav = document.querySelector('.app-view-nav');
-          const header = document.querySelector('.app-header, header');
-          const alturaNav = nav ? Math.max(0, nav.getBoundingClientRect().height) : 0;
-          const alturaHeader = header ? Math.max(0, header.getBoundingClientRect().height) : 0;
-          const offset = Math.min(190, alturaNav + alturaHeader) + (window.innerWidth <= 680 ? 14 : 20);
+        const encontrarScrollers = (el) => {
+          const lista = [];
+          let pai = el.parentElement;
+          while (pai && pai !== document.body && pai !== document.documentElement) {
+            const css = window.getComputedStyle(pai);
+            const oy = css.overflowY;
+            if ((oy === 'auto' || oy === 'scroll') && pai.scrollHeight > pai.clientHeight + 4) lista.push(pai);
+            pai = pai.parentElement;
+          }
+          return lista;
+        };
 
+        const executar = (behavior = 'smooth') => {
+          const secao = document.getElementById('cidadeSecao');
+          if (!secao || secao.hidden) return false;
+
+          // Primeiro traz o alvo para a janela. Depois corrigimos o offset e qualquer
+          // contêiner interno que esteja realmente recebendo a rolagem no PWA.
           try { alvo.scrollIntoView({ behavior, block: 'start', inline: 'nearest' }); } catch (e) {}
 
-          // Ajuste explícito no elemento que realmente rola a página.
-          const scroller = document.scrollingElement || document.documentElement || document.body;
-          const topoAbsoluto = scroller.scrollTop + alvo.getBoundingClientRect().top - offset;
-          if (Number.isFinite(topoAbsoluto)) {
-            try { scroller.scrollTo({ top: Math.max(0, topoAbsoluto), behavior }); }
-            catch (e) { scroller.scrollTop = Math.max(0, topoAbsoluto); }
-          }
+          const nav = document.querySelector('.app-view-nav');
+          const topbar = document.querySelector('.topbar');
+          const offset = Math.max(14,
+            (topbar?.getBoundingClientRect().height || 0) +
+            (nav && window.getComputedStyle(nav).position === 'sticky' ? nav.getBoundingClientRect().height : 0) + 10
+          );
 
-          alvo.classList.add('programmed-form-highlight');
-          window.setTimeout(() => alvo.classList.remove('programmed-form-highlight'), 1700);
+          encontrarScrollers(alvo).forEach(scroller => {
+            const alvoRect = alvo.getBoundingClientRect();
+            const scrollRect = scroller.getBoundingClientRect();
+            const destino = scroller.scrollTop + (alvoRect.top - scrollRect.top) - 12;
+            try { scroller.scrollTo({ top: Math.max(0, destino), behavior }); }
+            catch (e) { scroller.scrollTop = Math.max(0, destino); }
+          });
+
+          const rect = alvo.getBoundingClientRect();
+          const atual = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+          const destinoJanela = Math.max(0, atual + rect.top - offset);
+          try { window.scrollTo({ top: destinoJanela, behavior }); }
+          catch (e) { window.scrollTo(0, destinoJanela); }
+          document.documentElement.scrollTop = destinoJanela;
+          if (document.body) document.body.scrollTop = destinoJanela;
+
+          secao.classList.add('programmed-form-highlight');
+          window.setTimeout(() => secao.classList.remove('programmed-form-highlight'), 1800);
           return true;
         };
 
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          // Primeira tentativa logo após o fluxo ser exibido.
-          window.setTimeout(() => executarRolagem('smooth'), 40);
-
-          // Reconfere depois que selects, máscaras e demais campos terminarem de
-          // alterar o layout. Se o formulário ainda não estiver próximo do topo,
-          // aplica uma correção direta (sem animação) para garantir o resultado.
-          window.setTimeout(() => {
-            const alvo = document.getElementById('cidadeSecao') || document.getElementById('vistoriaForm');
-            if (!alvo || alvo.hidden) return;
-            const rect = alvo.getBoundingClientRect();
-            const limite = window.innerWidth <= 680 ? 190 : 220;
-            if (rect.top < 0 || rect.top > limite) executarRolagem('auto');
-          }, 650);
-        }));
+        // O formulário sofre reflow ao preencher cidade, PSCIP, máscaras e campos
+        // condicionais. Repetimos a correção em momentos distintos para Android PWA,
+        // iOS e desktop, sem depender de um único scrollIntoView.
+        requestAnimationFrame(() => requestAnimationFrame(() => executar('smooth')));
+        window.setTimeout(() => executar('smooth'), 180);
+        window.setTimeout(() => executar('auto'), 520);
+        window.setTimeout(() => {
+          const rect = alvo.getBoundingClientRect();
+          const limiteInferior = Math.min(window.innerHeight * .38, 300);
+          if (rect.top < 0 || rect.top > limiteInferior) executar('auto');
+        }, 950);
       }
 
       function aplicarPreparacaoAoFormulario_(item) {
