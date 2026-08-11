@@ -4703,9 +4703,9 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
             <div class="prepared-card-main">
               <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : 'Fiscalização'}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
               <h3>${escapeHtml(titulo)}</h3>
-              <p>${escapeHtml(item.pscip || 'Sem PSCIP informado')}${item.area ? ` • ${escapeHtml(item.area)} m²` : ''}</p>
-              <p>${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
-              <p><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
+              <p class="prepared-identifiers">${escapeHtml(item.pscip || 'Sem PSCIP informado')}${item.area ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
+              <p class="prepared-address">${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
+              <p class="prepared-inspector"><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
             </div>
             <div class="prepared-card-actions">
               ${item.arquivoDwgUrl ? `<a class="btn btn-secondary" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir DWG</a>` : ''}
@@ -4770,6 +4770,22 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         }
       }
 
+      function rolarParaFormularioProgramado_() {
+        // O fluxo altera a visibilidade de várias seções. Esperamos o navegador
+        // concluir o layout antes de calcular a posição real do primeiro bloco.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          const alvo = document.getElementById('cidadeSecao') || document.getElementById('vistoriaForm');
+          if (!alvo) return;
+          const cabecalho = document.querySelector('.app-nav-shell, .app-view-nav, header');
+          const alturaCabecalho = cabecalho ? Math.min(180, Math.max(0, cabecalho.getBoundingClientRect().height)) : 0;
+          const margem = window.innerWidth <= 680 ? 18 : 24;
+          const topo = Math.max(0, window.scrollY + alvo.getBoundingClientRect().top - alturaCabecalho - margem);
+          window.scrollTo({ top: topo, behavior: 'smooth' });
+          alvo.classList.add('programmed-form-highlight');
+          window.setTimeout(() => alvo.classList.remove('programmed-form-highlight'), 1500);
+        }));
+      }
+
       function aplicarPreparacaoAoFormulario_(item) {
         if (!item) return;
         preparacaoEmUsoId = String(item.id || '');
@@ -4792,7 +4808,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         }
         applyIdentificadorMask();
         scheduleDraftSave();
-        document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        rolarParaFormularioProgramado_();
         appStatus.textContent = `Vistoria programada carregada${item.vistoriadorResponsavel ? ` — responsável: ${item.vistoriadorResponsavel}` : ''}.`;
       }
 
