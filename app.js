@@ -4755,10 +4755,11 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         preparedInspectionsList?.classList.add('is-loading');
         if (preparedInspectionsList) {
           preparedInspectionsList.innerHTML = `
-            <div class="prepared-skeleton" aria-hidden="true"><span class="sk sk-badge"></span><span class="sk sk-title"></span><span class="sk sk-line"></span><span class="sk sk-line short"></span><span class="sk sk-actions"></span></div>
-            <div class="prepared-skeleton" aria-hidden="true"><span class="sk sk-badge"></span><span class="sk sk-title"></span><span class="sk sk-line"></span><span class="sk sk-line short"></span><span class="sk sk-actions"></span></div>`;
+            <div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Atualizando vistorias programadas">
+              <span class="prepared-loading-track-knob" aria-hidden="true"></span>
+            </div>`;
         }
-        if (preparedInspectionsStatus) preparedInspectionsStatus.innerHTML = '<span class="prepared-loading-label"><i></i>Atualizando vistorias programadas...</span>';
+        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Atualizando vistorias programadas...';
         try {
           const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
           const novasPreparacoes = Array.isArray(r?.itens) ? r.itens : [];
