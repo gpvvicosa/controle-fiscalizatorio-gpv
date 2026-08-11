@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-40-menu-mais-desktop';
-const VERSION = '23.9.40';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-41-login-animado-normalizacao';
+const VERSION = '23.9.41';
 
 const CORE_SHELL = [
   './',

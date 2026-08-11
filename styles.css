@@ -6903,3 +6903,82 @@ body.daily-motivational-open{overflow:hidden!important}
     border-radius: 999px;
   }
 }
+
+
+/* ========================================================================== 
+   V23.9.41 — FUNDO ANIMADO INSTITUCIONAL NA TELA DE LOGIN
+   ========================================================================== */
+.auth-gate{
+  isolation:isolate;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(239,68,68,.20), transparent 32%),
+    radial-gradient(circle at 78% 18%, rgba(251,191,36,.10), transparent 28%),
+    linear-gradient(135deg,#651012 0%,#991b1b 46%,#5a0c0e 100%)!important;
+  background-size:140% 140%,130% 130%,100% 100%!important;
+  animation:authInstitutionalGradient 18s ease-in-out infinite alternate;
+}
+.auth-gate::before,
+.auth-gate::after{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  pointer-events:none;
+  border-radius:50%;
+  filter:blur(8px);
+  opacity:.58;
+  will-change:transform;
+}
+.auth-gate::before{
+  width:min(58vw,820px);
+  aspect-ratio:1;
+  left:-16vw;
+  top:-24vh;
+  background:radial-gradient(circle at 45% 45%,rgba(255,255,255,.16) 0 8%,rgba(255,214,122,.10) 22%,rgba(255,255,255,0) 68%);
+  animation:authInstitutionalOrbA 15s ease-in-out infinite alternate;
+}
+.auth-gate::after{
+  width:min(54vw,760px);
+  aspect-ratio:1;
+  right:-14vw;
+  bottom:-30vh;
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.12) 0 8%,rgba(239,68,68,.18) 26%,rgba(255,255,255,0) 70%);
+  animation:authInstitutionalOrbB 18s ease-in-out infinite alternate;
+}
+.auth-gate.show .auth-card{
+  position:relative;
+  z-index:2;
+  border:1px solid rgba(255,255,255,.54);
+  box-shadow:0 30px 90px rgba(42,5,6,.40),0 0 0 1px rgba(123,17,20,.07)!important;
+  backdrop-filter:blur(14px) saturate(108%);
+  animation:authCardEnter .55s cubic-bezier(.22,.75,.25,1) both;
+}
+.auth-gate.show::marker{display:none}
+@keyframes authInstitutionalGradient{
+  0%{background-position:0% 20%,100% 0%,0 0}
+  50%{background-position:40% 60%,65% 35%,0 0}
+  100%{background-position:90% 35%,20% 75%,0 0}
+}
+@keyframes authInstitutionalOrbA{
+  0%{transform:translate3d(-3%,0,0) scale(.96)}
+  50%{transform:translate3d(18vw,10vh,0) scale(1.08)}
+  100%{transform:translate3d(34vw,26vh,0) scale(.98)}
+}
+@keyframes authInstitutionalOrbB{
+  0%{transform:translate3d(0,0,0) scale(1)}
+  50%{transform:translate3d(-18vw,-12vh,0) scale(1.10)}
+  100%{transform:translate3d(-34vw,-24vh,0) scale(.96)}
+}
+@keyframes authCardEnter{
+  from{opacity:0;transform:translateY(16px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media (max-width:640px){
+  .auth-gate::before{width:110vw;left:-58vw;top:-10vh}
+  .auth-gate::after{width:112vw;right:-62vw;bottom:-12vh}
+}
+@media (prefers-reduced-motion:reduce){
+  .auth-gate,.auth-gate::before,.auth-gate::after,.auth-gate.show .auth-card{
+    animation:none!important;
+  }
+}
