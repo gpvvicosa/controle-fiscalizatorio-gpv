@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.29';
+      const APP_VERSION = '23.9.30';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -3906,12 +3906,21 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       }
 
       async function inicializarAutenticacaoBm_() {
-        carregarSessaoLocalBm_();
+        const sessao = carregarSessaoLocalBm_();
         const perfis = carregarPerfisConhecidosBm_();
-        // Em aparelhos compartilhados, o perfil/Nº BM fica lembrado automaticamente.
-        // A senha só é reutilizada se o usuário tiver marcado "Salvar senha neste aparelho".
-        limparSessaoLocalBm_();
         loadingOverlay.classList.remove('show');
+
+        // V23.9.30: recarregar/atualizar o PWA não encerra mais uma sessão válida.
+        // A sessão só é limpa por Sair/Trocar usuário ou quando a API devolve 401.
+        if (sessao?.usuario?.id && String(sessao.sessionToken || '').trim()) {
+          ocultarTelaLoginBm_();
+          atualizarUsuarioLogadoUi_();
+          await loadInitialData();
+          return;
+        }
+
+        // Sem sessão ativa, mantém o comportamento de aparelho compartilhado:
+        // lembra os perfis/Nº BM e pede a senha conforme a configuração de cada usuário.
         if (perfis.length) mostrarEscolhaUsuariosDispositivo_();
         else mostrarTelaLoginBm_();
       }

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-29-cumulativa-login-metas';
-const VERSION = '23.9.27';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-30-hotfix-sessao';
+const VERSION = '23.9.30';
 
 const CORE_SHELL = [
   './',
