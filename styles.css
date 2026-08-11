@@ -6768,3 +6768,51 @@ body.records-mode .records-status.loading .panel-loading-visual{
   #dduSummaryCard.is-loading .ddu-loading-label{font-size:.74rem!important}
 }
 \n\n/* ===== V23.9.37 — carregamento em barra verde de ponta a ponta ===== */\n/* DDU: barra animada no rodapé do card, no mesmo padrão visual da conexão. */\n#dduSummaryCard.is-loading{\n  overflow:hidden!important;\n  cursor:wait!important;\n}\n#dduSummaryCard.is-loading::before{\n  content:""!important;\n  position:absolute!important;\n  z-index:20!important;\n  left:0!important;\n  right:0!important;\n  bottom:0!important;\n  top:auto!important;\n  width:100%!important;\n  height:8px!important;\n  border-radius:999px!important;\n  background:#00b84f!important;\n  box-shadow:0 0 0 1px rgba(0,184,79,.14),0 2px 8px rgba(0,184,79,.24)!important;\n  opacity:1!important;\n  animation:none!important;\n  transform:none!important;\n}\n#dduSummaryCard.is-loading::after{\n  content:""!important;\n  position:absolute!important;\n  z-index:21!important;\n  bottom:-3px!important;\n  top:auto!important;\n  left:2px!important;\n  width:14px!important;\n  height:14px!important;\n  inset:auto auto -3px 2px!important;\n  border:3px solid rgba(255,255,255,.96)!important;\n  border-radius:50%!important;\n  background:#00a844!important;\n  box-shadow:0 1px 5px rgba(0,0,0,.18)!important;\n  opacity:1!important;\n  transform:none!important;\n  animation:gpvSectionLoadingKnob 1.55s ease-in-out infinite alternate!important;\n}\n#dduSummaryCard.is-loading .ddu-summary-icon{animation:none!important}\n#dduSummaryCard.is-loading .ddu-summary-copy strong{opacity:1!important}\n#dduSummaryCard.is-loading .ddu-loading-label{\n  color:#586476!important;\n  font-weight:750!important;\n}\n#dduSummaryCard.is-loading .ddu-loading-label i{display:none!important}\n#dduSummaryCard.is-loading .ddu-count-loading{\n  width:9px!important;height:9px!important;border:0!important;background:#00a844!important;\n  border-radius:50%!important;animation:gpvSectionDot 1s ease-in-out infinite!important;\n}\n\n/* Vistorias programadas: somente uma barra limpa, horizontal e perceptível. */\n.prepared-inspections-list.is-loading{\n  position:relative!important;\n  display:block!important;\n  min-height:38px!important;\n  padding:14px 0 10px!important;\n  overflow:visible!important;\n  border-radius:0!important;\n}\n.prepared-inspections-list.is-loading::before,\n.prepared-inspections-list.is-loading::after{display:none!important;content:none!important}\n.prepared-loading-track{\n  position:relative!important;\n  display:block!important;\n  width:100%!important;\n  height:9px!important;\n  min-height:9px!important;\n  margin:0!important;\n  padding:0!important;\n  overflow:visible!important;\n  border-radius:999px!important;\n  background:#00b84f!important;\n  box-shadow:0 0 0 1px rgba(0,184,79,.16),0 2px 8px rgba(0,184,79,.28)!important;\n}\n.prepared-loading-track::after{\n  content:"";position:absolute;inset:0;border-radius:inherit;\n  background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.32),rgba(255,255,255,.04));\n  animation:gpvSectionLoadingGlow 1.25s ease-in-out infinite;pointer-events:none;\n}\n.prepared-loading-track-knob{\n  position:absolute!important;z-index:2!important;top:50%!important;left:2px!important;\n  width:15px!important;height:15px!important;border:3px solid rgba(255,255,255,.95)!important;\n  border-radius:50%!important;background:#00a844!important;box-shadow:0 1px 5px rgba(0,0,0,.18)!important;\n  transform:translateY(-50%)!important;animation:gpvPreparedLoadingKnob 1.55s ease-in-out infinite alternate!important;\n}\n.prepared-loading-label i{display:none!important}\n@keyframes gpvSectionLoadingKnob{from{left:2px}to{left:calc(100% - 18px)}}\n@keyframes gpvPreparedLoadingKnob{from{left:2px}to{left:calc(100% - 17px)}}\n@keyframes gpvSectionLoadingGlow{0%,100%{opacity:.32}50%{opacity:.92}}\n@keyframes gpvSectionDot{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}\n@media(max-width:680px){\n  #dduSummaryCard.is-loading::before{height:7px!important}\n  .prepared-inspections-list.is-loading{min-height:36px!important;padding:13px 0 9px!important}\n  .prepared-loading-track{height:8px!important;min-height:8px!important}\n  .prepared-loading-track-knob{width:14px!important;height:14px!important}\n}\n@media(prefers-reduced-motion:reduce){\n  #dduSummaryCard.is-loading::after,.prepared-loading-track-knob,.prepared-loading-track::after{animation:none!important}\n}\n
+
+/* ===== V23.9.38 — loaders realmente visíveis + Ficha do Processo ===== */
+#dduSummaryCard{position:relative!important}
+#dduSummaryCard .ddu-live-loading-bar{
+  position:absolute!important;z-index:80!important;left:0!important;right:0!important;bottom:0!important;
+  display:block!important;width:100%!important;height:8px!important;border-radius:0 0 18px 18px!important;
+  overflow:visible!important;background:#00b84f!important;box-shadow:0 -1px 8px rgba(0,184,79,.24)!important;
+  pointer-events:none!important;
+}
+#dduSummaryCard .ddu-live-loading-bar i{
+  position:absolute!important;left:3px!important;top:50%!important;width:16px!important;height:16px!important;
+  border:3px solid #fff!important;border-radius:50%!important;background:#00a844!important;
+  transform:translateY(-50%)!important;box-shadow:0 1px 5px rgba(0,0,0,.2)!important;
+  animation:gpvDduBarTravel 1.35s ease-in-out infinite alternate!important;
+}
+@keyframes gpvDduBarTravel{from{left:3px}to{left:calc(100% - 19px)}}
+#dduSummaryCard.is-loading::before,#dduSummaryCard.is-loading::after{display:none!important;content:none!important}
+
+/* A ficha fica em um estado único enquanto consulta, sem exibir campos vazios. */
+.record-detail-screen.is-detail-loading .record-detail-heading,
+.record-detail-screen.is-detail-loading .record-detail-content,
+.record-detail-screen.is-detail-error .record-detail-heading,
+.record-detail-screen.is-detail-error .record-detail-content{display:none!important}
+.record-detail-screen.is-detail-loading .record-detail-loading,
+.record-detail-screen.is-detail-error .record-detail-loading{
+  display:grid!important;place-items:center!important;min-height:380px!important;padding:28px!important;background:#fff!important;
+}
+.record-detail-loader-card,.record-detail-error-card{
+  width:min(520px,100%)!important;padding:24px!important;border:1px solid #e5e7eb!important;border-radius:20px!important;
+  background:#fff!important;box-shadow:0 16px 45px rgba(15,23,42,.08)!important;text-align:center!important;color:#344054!important;
+}
+.record-detail-loader-card strong,.record-detail-error-card strong{display:block!important;font-size:17px!important;color:#172033!important;margin-top:14px!important}
+.record-detail-loader-card small{display:block!important;margin-top:6px!important;font-size:13px!important;color:#667085!important}
+.record-detail-loader-bar{height:9px!important;border-radius:999px!important;background:#dcefe3!important;overflow:hidden!important}
+.record-detail-loader-bar span{display:block!important;width:38%!important;height:100%!important;border-radius:inherit!important;background:#16a34a!important;animation:gpvFichaLoader 1.15s ease-in-out infinite!important}
+@keyframes gpvFichaLoader{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
+.record-detail-error-card p{margin:9px 0 16px!important;color:#667085!important;font-size:13px!important;line-height:1.5!important}
+.record-detail-retry-btn{border:0!important;border-radius:12px!important;background:#a31218!important;color:#fff!important;font-weight:800!important;padding:11px 18px!important;cursor:pointer!important}
+.record-detail-access{white-space:nowrap!important}
+@media(max-width:680px){
+  #dduSummaryCard .ddu-live-loading-bar{height:7px!important;border-radius:0 0 16px 16px!important}
+  #dduSummaryCard .ddu-live-loading-bar i{width:15px!important;height:15px!important}
+  .record-detail-screen.is-detail-loading .record-detail-loading,.record-detail-screen.is-detail-error .record-detail-loading{min-height:calc(100dvh - 120px)!important;padding:18px!important}
+  .record-detail-loader-card,.record-detail-error-card{padding:20px 16px!important;border-radius:18px!important}
+  .record-detail-access{font-size:10px!important;letter-spacing:.03em!important}
+  .record-detail-sheet-link{padding:8px 9px!important;font-size:9px!important}
+}
+@media(prefers-reduced-motion:reduce){#dduSummaryCard .ddu-live-loading-bar i,.record-detail-loader-bar span{animation:none!important}}

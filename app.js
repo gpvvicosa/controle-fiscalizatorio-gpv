@@ -1769,15 +1769,49 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
       }
 
+      function estadoCarregandoFicha_(mensagem = 'Carregando ficha do processo...') {
+        recordDetailScreen?.classList.add('is-detail-loading');
+        recordDetailScreen?.classList.remove('is-detail-error');
+        recordDetailLoading.hidden = false;
+        recordDetailLoading.innerHTML = `<div class="record-detail-loader-card" role="status" aria-live="polite"><div class="record-detail-loader-bar"><span></span></div><strong>${escapeHtml(mensagem)}</strong><small>Consultando os dados do processo.</small></div>`;
+      }
+
+      function estadoErroFicha_(mensagem) {
+        recordDetailScreen?.classList.remove('is-detail-loading');
+        recordDetailScreen?.classList.add('is-detail-error');
+        recordDetailLoading.hidden = false;
+        recordDetailLoading.innerHTML = `<div class="record-detail-error-card"><strong>Não foi possível carregar a ficha.</strong><p>${escapeHtml(mensagem || 'A consulta demorou mais que o esperado.')}</p><button type="button" class="record-detail-retry-btn" data-retry-record-detail> Tentar novamente </button></div>`;
+      }
+
+      async function consultarRegistroComRetry_(chave) {
+        let ultimoErro = null;
+        for (let tentativa = 0; tentativa < 2; tentativa += 1) {
+          try {
+            if (tentativa > 0) {
+              estadoCarregandoFicha_('Tentando novamente...');
+              await new Promise(resolve => setTimeout(resolve, 450));
+            }
+            return await apiRequest('config', { consulta: 'registro', chave }, 50000);
+          } catch (erro) {
+            ultimoErro = erro;
+            if (!navigator.onLine) break;
+          }
+        }
+        throw ultimoErro || new Error('Não foi possível consultar o processo.');
+      }
+
       async function abrirDetalheRegistro_(chave) {
-        if (!chave || !navigator.onLine) return;
+        if (!chave) return;
+        if (!navigator.onLine) {
+          alert('A Ficha do Processo precisa de internet para consultar os dados atualizados.');
+          return;
+        }
         recordsState.chaveSelecionada = chave;
         marcarLinhaSelecionada_();
         recordDetailScreen.classList.add('show');
         recordDetailScreen.setAttribute('aria-hidden', 'false');
         document.body.classList.add('detail-open');
-        recordDetailLoading.hidden = false;
-        recordDetailLoading.textContent = 'Carregando ficha do processo...';
+        estadoCarregandoFicha_();
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
         recordDetailGroups.innerHTML = '';
@@ -1785,14 +1819,21 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         recordHistoryPanel.hidden = true;
         if (recordAuditList) recordAuditList.innerHTML = '';
         if (recordAuditPanel) recordAuditPanel.hidden = true;
+        if (recordDetailStatusBadge) {
+          recordDetailStatusBadge.textContent = 'Carregando';
+          recordDetailStatusBadge.className = 'status-badge status-neutral';
+        }
+        if (recordDetailSubtitle) recordDetailSubtitle.textContent = '';
+        if (recordDetailLine) recordDetailLine.textContent = '';
 
         try {
-          const registro = await apiRequest('config', { consulta: 'registro', chave }, 50000);
+          const registro = await consultarRegistroComRetry_(chave);
+          recordDetailScreen.classList.remove('is-detail-loading', 'is-detail-error');
           recordDetailLoading.hidden = true;
           renderizarFichaRegistro_(registro);
         } catch (erro) {
-          recordDetailLoading.hidden = false;
-          recordDetailLoading.textContent = erro?.message || 'Não foi possível abrir a ficha.';
+          const msg = String(erro?.message || 'Não foi possível abrir a ficha.').replace('O registro continua seguro neste aparelho.', '').trim();
+          estadoErroFicha_(msg);
         }
       }
 
@@ -4366,9 +4407,12 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       }
       async function carregarDdUs_(){
         const inicioLoadingDdu = Date.now();
-        const tempoMinimoLoading = 850;
+        const tempoMinimoLoading = 1200;
         dduSummaryCard?.classList.add('is-loading');
-        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label"><i></i>Atualizando demandas...</span>';
+        if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
+          dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
+        }
+        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label">Atualizando demandas...</span>';
         if(dduSummaryCount)dduSummaryCount.innerHTML='<span class="ddu-count-loading" aria-hidden="true"></span>';
         try{
           const r=await apiRequest('config',{consulta:'ddus'},20000);
@@ -4377,6 +4421,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
           ddusAtivos=novosDdUs;
           dduSummaryCard?.classList.remove('is-loading');
+          dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
           renderizarDdUs_();
           if(dduListStatus)dduListStatus.textContent=`${ddusAtivos.length} registro(s) ativo(s).`;
         }catch(e){
@@ -4384,6 +4429,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
           if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
           dduSummaryCard?.classList.remove('is-loading');
+          dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
           if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar • toque para tentar novamente';
           if(dduSummaryCount)dduSummaryCount.textContent='!';
           dduSummaryCard?.classList.remove('is-danger','is-warning');
@@ -4740,7 +4786,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
 
       async function carregarPreparacoesVistoria_() {
         const inicioLoadingProgramadas = Date.now();
-        const tempoMinimoLoading = 900;
+        const tempoMinimoLoading = 1200;
         const cacheKey = 'gpv_preparacoes_cache_v1';
         let cachePreparacoes = [];
         try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
@@ -4922,7 +4968,6 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
             if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
           }
           if (obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
-          await Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_(), carregarDdUs_()]);
         }
 
         const vistaForcada = vistaInicialDaUrl_();
@@ -4936,6 +4981,17 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           }
         } else {
           marcarAbaApp_('form');
+        }
+
+        // V23.9.38: só inicia os loaders de DDU/programações depois que a vista já está pintada.
+        // Antes, as consultas começavam durante a inicialização e a animação terminava antes de a tela Vistoria aparecer.
+        if (navigator.onLine) {
+          if (vistaInicial === 'form') {
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            await Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_(), carregarDdUs_()]);
+          } else {
+            Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_(), carregarDdUs_()]).catch(() => {});
+          }
         }
       }
 
@@ -4952,6 +5008,12 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       goalsModalCloseBtn?.addEventListener('click', fecharMetas_);
       goalsModal?.addEventListener('click', event => { if (event.target === goalsModal) fecharMetas_(); });
       registerDduBtn?.addEventListener('click', () => { fecharMenuMais_(); abrirCadastroDdu_(); });
+      recordDetailLoading?.addEventListener('click', event => {
+        const btn = event.target.closest('[data-retry-record-detail]');
+        if (!btn || !recordsState.chaveSelecionada) return;
+        abrirDetalheRegistro_(recordsState.chaveSelecionada);
+      });
+
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
       dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
