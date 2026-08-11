@@ -4771,18 +4771,50 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       }
 
       function rolarParaFormularioProgramado_() {
-        // O fluxo altera a visibilidade de várias seções. Esperamos o navegador
-        // concluir o layout antes de calcular a posição real do primeiro bloco.
-        requestAnimationFrame(() => requestAnimationFrame(() => {
+        // Em alguns navegadores/PWAs móveis o window.scrollTo pode ser ignorado
+        // logo após revelar seções que estavam com [hidden]. Para tornar o salto
+        // confiável, aguardamos o reflow, usamos scrollIntoView e fazemos uma
+        // segunda correção pelo scrollingElement caso o primeiro movimento não
+        // tenha levado o formulário à área visível.
+        const executarRolagem = (behavior = 'smooth') => {
           const alvo = document.getElementById('cidadeSecao') || document.getElementById('vistoriaForm');
-          if (!alvo) return;
-          const cabecalho = document.querySelector('.app-nav-shell, .app-view-nav, header');
-          const alturaCabecalho = cabecalho ? Math.min(180, Math.max(0, cabecalho.getBoundingClientRect().height)) : 0;
-          const margem = window.innerWidth <= 680 ? 18 : 24;
-          const topo = Math.max(0, window.scrollY + alvo.getBoundingClientRect().top - alturaCabecalho - margem);
-          window.scrollTo({ top: topo, behavior: 'smooth' });
+          if (!alvo || alvo.hidden) return false;
+
+          const nav = document.querySelector('.app-view-nav');
+          const header = document.querySelector('.app-header, header');
+          const alturaNav = nav ? Math.max(0, nav.getBoundingClientRect().height) : 0;
+          const alturaHeader = header ? Math.max(0, header.getBoundingClientRect().height) : 0;
+          const offset = Math.min(190, alturaNav + alturaHeader) + (window.innerWidth <= 680 ? 14 : 20);
+
+          try { alvo.scrollIntoView({ behavior, block: 'start', inline: 'nearest' }); } catch (e) {}
+
+          // Ajuste explícito no elemento que realmente rola a página.
+          const scroller = document.scrollingElement || document.documentElement || document.body;
+          const topoAbsoluto = scroller.scrollTop + alvo.getBoundingClientRect().top - offset;
+          if (Number.isFinite(topoAbsoluto)) {
+            try { scroller.scrollTo({ top: Math.max(0, topoAbsoluto), behavior }); }
+            catch (e) { scroller.scrollTop = Math.max(0, topoAbsoluto); }
+          }
+
           alvo.classList.add('programmed-form-highlight');
-          window.setTimeout(() => alvo.classList.remove('programmed-form-highlight'), 1500);
+          window.setTimeout(() => alvo.classList.remove('programmed-form-highlight'), 1700);
+          return true;
+        };
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          // Primeira tentativa logo após o fluxo ser exibido.
+          window.setTimeout(() => executarRolagem('smooth'), 40);
+
+          // Reconfere depois que selects, máscaras e demais campos terminarem de
+          // alterar o layout. Se o formulário ainda não estiver próximo do topo,
+          // aplica uma correção direta (sem animação) para garantir o resultado.
+          window.setTimeout(() => {
+            const alvo = document.getElementById('cidadeSecao') || document.getElementById('vistoriaForm');
+            if (!alvo || alvo.hidden) return;
+            const rect = alvo.getBoundingClientRect();
+            const limite = window.innerWidth <= 680 ? 190 : 220;
+            if (rect.top < 0 || rect.top > limite) executarRolagem('auto');
+          }, 650);
         }));
       }
 

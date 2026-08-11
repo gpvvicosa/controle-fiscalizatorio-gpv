@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-32-programadas-modernas';
-const VERSION = '23.9.32';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-33-scroll-programada';
+const VERSION = '23.9.33';
 
 const CORE_SHELL = [
   './',
