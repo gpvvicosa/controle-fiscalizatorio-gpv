@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.24">
+  <link rel="stylesheet" href="styles.css?v=23.9.26">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -60,7 +60,7 @@
       </div>
       <span class="auth-kicker">Acesso institucional</span>
       <h1 id="authTitle">Controle Fiscalizatório</h1>
-      <p class="auth-subtitle" id="authSubtitle">Informe seu <strong>Nº BM</strong> para acessar o aplicativo.</p>
+      <p class="auth-subtitle" id="authSubtitle">Informe seu <strong>Nº BM e senha</strong> para acessar o aplicativo.</p>
 
       <div class="auth-device-choice" id="authDeviceChoice" hidden>
         <strong>Escolha seu usuário</strong>
@@ -72,10 +72,28 @@
       <div class="auth-manual-login" id="authManualLogin">
         <form id="authForm" autocomplete="off">
           <label class="auth-label" for="authBmInput">Nº BM</label>
-          <input class="auth-input" id="authBmInput" type="text" inputmode="numeric" maxlength="7" placeholder="0000000" autocomplete="off">
+          <input class="auth-input" id="authBmInput" type="text" inputmode="numeric" maxlength="7" placeholder="0000000" autocomplete="username">
+          <label class="auth-label" for="authPinInput">Senha</label>
+          <div class="auth-pin-wrap">
+            <input class="auth-input auth-pin-input" id="authPinInput" type="password" inputmode="numeric" maxlength="6" placeholder="6 dígitos" autocomplete="current-password">
+            <button class="auth-pin-toggle" id="authPinToggleBtn" type="button" aria-label="Mostrar senha" title="Mostrar senha">👁</button>
+          </div>
+          <label class="auth-save-password">
+            <input id="authSavePasswordCheck" type="checkbox">
+            <span><strong>Salvar senha neste aparelho</strong><small>O usuário/Nº BM já fica lembrado automaticamente. Marque somente se também quiser guardar a senha.</small></span>
+          </label>
           <button class="auth-enter-btn" id="authEnterBtn" type="submit">Entrar</button>
         </form>
         <div class="auth-message" id="authMessage" role="status" aria-live="polite"></div>
+        <div class="auth-pin-setup" id="authPinSetup" hidden>
+          <strong>Crie sua senha de acesso</strong>
+          <span>Este é o primeiro acesso com senha. Cadastre 6 dígitos numéricos.</span>
+          <label class="auth-label" for="authNewPinInput">Nova senha</label>
+          <input class="auth-input" id="authNewPinInput" type="password" inputmode="numeric" maxlength="6" placeholder="6 dígitos" autocomplete="new-password">
+          <label class="auth-label" for="authConfirmPinInput">Confirmar senha</label>
+          <input class="auth-input" id="authConfirmPinInput" type="password" inputmode="numeric" maxlength="6" placeholder="Repita os 6 dígitos" autocomplete="new-password">
+          <button class="auth-enter-btn" id="authCreatePinBtn" type="button">Criar senha e entrar</button>
+        </div>
         <div class="auth-profile-choice" id="authProfileChoice" hidden>
           <strong>Este Nº BM está temporariamente associado a mais de um usuário.</strong>
           <span>Escolha seu nome para continuar e depois atualize o Nº BM em Mais → Gerenciar usuários.</span>
@@ -168,9 +186,17 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><path d="M10 17.5h4"/></svg>
       <span><strong>Identificar aparelho</strong><small id="deviceNameMenuText">Definir nome deste celular ou tablet</small></span>
     </button>
+    <button class="app-more-menu-item" id="changePinBtn" data-menu-tone="green" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>
+      <span><strong>Alterar minha senha</strong><small>Trocar a senha de 6 dígitos deste usuário</small></span>
+    </button>
+    <button class="app-more-menu-item" id="forgetSavedPinBtn" data-menu-tone="amber" type="button" role="menuitem" hidden>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2-4.9"/><path d="M5 4v5h5"/><path d="M10 12h7M14 9l3 3-3 3"/></svg>
+      <span><strong>Esquecer senha salva</strong><small>Remove somente a senha deste aparelho; o usuário continua lembrado</small></span>
+    </button>
     <button class="app-more-menu-item" id="manageUsersBtn" data-menu-tone="indigo" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.5-5 5.5-5s4.9 1.8 5.5 5M16 8h5M18.5 5.5v5"/></svg>
-      <span><strong>Gerenciar usuários</strong><small>Incluir, editar ou excluir Nº BM</small></span>
+      <span><strong>Gerenciar usuários</strong><small>Incluir, editar, redefinir senha ou excluir Nº BM</small></span>
     </button>
     <button class="app-more-menu-item" id="logoutUserBtn" data-menu-tone="rose" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
@@ -919,6 +945,34 @@
     </aside>
   </div>
 
+  <div class="user-manager-overlay" id="changePinModal" hidden>
+    <section class="user-manager-card change-pin-card" role="dialog" aria-modal="true" aria-labelledby="changePinTitle">
+      <header class="user-manager-header">
+        <div>
+          <span class="user-manager-kicker">Segurança de acesso</span>
+          <h2 id="changePinTitle">Alterar minha senha</h2>
+          <p>Informe a senha atual e defina uma nova senha com 6 dígitos.</p>
+        </div>
+        <button class="user-manager-close" id="changePinCloseBtn" type="button" aria-label="Fechar">×</button>
+      </header>
+      <form class="user-manager-form" id="changePinForm" autocomplete="off">
+        <label>Senha atual
+          <input id="changePinCurrent" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password">
+        </label>
+        <label>Nova senha
+          <input id="changePinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
+        </label>
+        <label>Confirmar nova senha
+          <input id="changePinConfirm" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
+        </label>
+        <div class="user-manager-message" id="changePinMessage" role="status" aria-live="polite"></div>
+        <div class="user-manager-actions">
+          <button class="btn btn-primary" id="changePinSaveBtn" type="submit">Salvar nova senha</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <div class="user-manager-overlay" id="userManagerModal" hidden>
     <section class="user-manager-card" role="dialog" aria-modal="true" aria-labelledby="userManagerTitle">
       <header class="user-manager-header">
@@ -1146,8 +1200,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.22"></script>
-  <script src="ocupacoes.js?v=23.9.22"></script>
-  <script src="app.js?v=23.9.24"></script>
+  <script src="config.js?v=23.9.26"></script>
+  <script src="ocupacoes.js?v=23.9.26"></script>
+  <script src="app.js?v=23.9.26"></script>
 </body>
 </html>

@@ -11,10 +11,13 @@
       const AUTH_USER_STORAGE = 'gpvVistoriasUsuarioBmV1';
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
+      const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.24';
+      const APP_VERSION = '23.9.26';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
+      let authPendingUserId = '';
+      let authPendingBm = '';
       const DEFAULT_CONFIG = Object.freeze({
         ok: true,
         titulo: 'Controle de Vistorias — GPV Viçosa',
@@ -55,7 +58,10 @@
           .map(item => ({
             usuario: item.usuario,
             sessionToken: String(item.sessionToken || ''),
-            lastUsedAt: Number(item.lastUsedAt || 0)
+            lastUsedAt: Number(item.lastUsedAt || 0),
+            offlinePinSalt: String(item.offlinePinSalt || ''),
+            offlinePinVerifier: String(item.offlinePinVerifier || ''),
+            savedPinCipher: String(item.savedPinCipher || '')
           }));
 
         // Migração transparente da V19: o usuário que já estava gravado no aparelho
@@ -80,14 +86,154 @@
 
       function registrarPerfilConhecidoBm_(usuario, sessionToken) {
         if (!usuario?.id || !sessionToken) return;
-        const lista = carregarPerfisConhecidosBm_().filter(item => String(item.usuario.id) !== String(usuario.id));
-        lista.unshift({ usuario, sessionToken: String(sessionToken), lastUsedAt: Date.now() });
+        const existentes = carregarPerfisConhecidosBm_();
+        const anterior = existentes.find(item => String(item.usuario.id) === String(usuario.id));
+        const lista = existentes.filter(item => String(item.usuario.id) !== String(usuario.id));
+        lista.unshift({
+          usuario,
+          sessionToken: String(sessionToken),
+          lastUsedAt: Date.now(),
+          offlinePinSalt: String(anterior?.offlinePinSalt || ''),
+          offlinePinVerifier: String(anterior?.offlinePinVerifier || ''),
+          savedPinCipher: String(anterior?.savedPinCipher || '')
+        });
         salvarPerfisConhecidosBm_(lista);
       }
 
       function removerPerfilConhecidoBm_(userId) {
         if (!userId) return;
         salvarPerfisConhecidosBm_(carregarPerfisConhecidosBm_().filter(item => String(item.usuario.id) !== String(userId)));
+      }
+
+      function bytesParaBase64Bm_(bytes) {
+        let bin = '';
+        const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+        for (let i = 0; i < arr.length; i += 1) bin += String.fromCharCode(arr[i]);
+        return btoa(bin);
+      }
+
+      function base64ParaBytesBm_(valor) {
+        const bin = atob(String(valor || ''));
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i += 1) arr[i] = bin.charCodeAt(i);
+        return arr;
+      }
+
+      async function obterChaveSenhaLocalBm_() {
+        if (!window.crypto?.subtle) throw new Error('Este navegador não oferece suporte ao armazenamento local protegido.');
+        let chaveB64 = '';
+        try { chaveB64 = String(localStorage.getItem(AUTH_DEVICE_PIN_KEY_STORAGE) || ''); } catch (e) {}
+        let bytes;
+        try { bytes = chaveB64 ? base64ParaBytesBm_(chaveB64) : null; } catch (e) { bytes = null; }
+        if (!bytes || bytes.length !== 32) {
+          bytes = crypto.getRandomValues(new Uint8Array(32));
+          try { localStorage.setItem(AUTH_DEVICE_PIN_KEY_STORAGE, bytesParaBase64Bm_(bytes)); } catch (e) {}
+        }
+        return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+      }
+
+      async function criptografarSenhaLocalBm_(pin) {
+        const senha = normalizarPinCliente_(pin);
+        if (!/^\d{6}$/.test(senha)) throw new Error('Senha inválida para armazenamento local.');
+        const chave = await obterChaveSenhaLocalBm_();
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const dados = new TextEncoder().encode(senha);
+        const cifrado = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, chave, dados);
+        return `v1.${bytesParaBase64Bm_(iv)}.${bytesParaBase64Bm_(new Uint8Array(cifrado))}`;
+      }
+
+      async function descriptografarSenhaLocalBm_(valor) {
+        const partes = String(valor || '').split('.');
+        if (partes.length !== 3 || partes[0] !== 'v1') return '';
+        try {
+          const chave = await obterChaveSenhaLocalBm_();
+          const iv = base64ParaBytesBm_(partes[1]);
+          const cifrado = base64ParaBytesBm_(partes[2]);
+          const aberto = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, chave, cifrado);
+          return normalizarPinCliente_(new TextDecoder().decode(aberto));
+        } catch (e) { return ''; }
+      }
+
+      async function salvarSenhaLocalPerfilBm_(userId, pin) {
+        const id = String(userId || '').trim();
+        const senha = normalizarPinCliente_(pin);
+        if (!id || !/^\d{6}$/.test(senha)) return false;
+        try {
+          const lista = carregarPerfisConhecidosBm_();
+          const item = lista.find(p => String(p.usuario.id) === id);
+          if (!item) return false;
+          item.savedPinCipher = await criptografarSenhaLocalBm_(senha);
+          item.lastUsedAt = Date.now();
+          salvarPerfisConhecidosBm_(lista);
+          atualizarUsuarioLogadoUi_();
+          return true;
+        } catch (e) { return false; }
+      }
+
+      function apagarSenhaLocalPerfilBm_(userId) {
+        const id = String(userId || '').trim();
+        if (!id) return;
+        const lista = carregarPerfisConhecidosBm_();
+        const item = lista.find(p => String(p.usuario.id) === id);
+        if (!item) return;
+        item.savedPinCipher = '';
+        salvarPerfisConhecidosBm_(lista);
+        atualizarUsuarioLogadoUi_();
+      }
+
+      function perfilTemSenhaSalvaBm_(userId) {
+        const id = String(userId || '').trim();
+        return Boolean(carregarPerfisConhecidosBm_().find(p => String(p.usuario.id) === id)?.savedPinCipher);
+      }
+
+      function invalidarCredenciaisLocaisPerfilBm_(userId) {
+        const id = String(userId || '').trim();
+        if (!id) return;
+        const lista = carregarPerfisConhecidosBm_();
+        const item = lista.find(p => String(p.usuario.id) === id);
+        if (!item) return;
+        item.savedPinCipher = '';
+        item.offlinePinSalt = '';
+        item.offlinePinVerifier = '';
+        salvarPerfisConhecidosBm_(lista);
+        atualizarUsuarioLogadoUi_();
+      }
+
+      function normalizarPinCliente_(valor) {
+        return String(valor || '').replace(/\D/g, '').slice(0, 6);
+      }
+
+      async function derivarVerificadorPinOfflineBm_(pin, saltB64 = '') {
+        if (!window.crypto?.subtle) throw new Error('Este navegador não oferece suporte à validação segura de senha offline.');
+        const enc = new TextEncoder();
+        const salt = saltB64 ? base64ParaBytesBm_(saltB64) : crypto.getRandomValues(new Uint8Array(16));
+        const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(String(pin || '')), 'PBKDF2', false, ['deriveBits']);
+        const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 120000, hash: 'SHA-256' }, keyMaterial, 256);
+        return { salt: bytesParaBase64Bm_(salt), verifier: bytesParaBase64Bm_(new Uint8Array(bits)) };
+      }
+
+      async function registrarCredencialOfflineBm_(usuario, pin) {
+        if (!usuario?.id || !/^\d{6}$/.test(String(pin || ''))) return;
+        try {
+          const derivado = await derivarVerificadorPinOfflineBm_(pin);
+          const lista = carregarPerfisConhecidosBm_();
+          const item = lista.find(p => String(p.usuario.id) === String(usuario.id));
+          if (!item) return;
+          item.offlinePinSalt = derivado.salt;
+          item.offlinePinVerifier = derivado.verifier;
+          item.lastUsedAt = Date.now();
+          salvarPerfisConhecidosBm_(lista);
+        } catch (e) {}
+      }
+
+      async function validarPinOfflineBm_(perfil, pin) {
+        if (!perfil?.offlinePinSalt || !perfil?.offlinePinVerifier) return false;
+        try {
+          const derivado = await derivarVerificadorPinOfflineBm_(pin, perfil.offlinePinSalt);
+          return derivado.verifier === String(perfil.offlinePinVerifier || '');
+        } catch (e) {
+          return false;
+        }
       }
 
       function salvarSessaoLocalBm_(usuario, sessionToken) {
@@ -188,6 +334,13 @@
       const authGate = document.getElementById('authGate');
       const authForm = document.getElementById('authForm');
       const authBmInput = document.getElementById('authBmInput');
+      const authPinInput = document.getElementById('authPinInput');
+      const authPinToggleBtn = document.getElementById('authPinToggleBtn');
+      const authSavePasswordCheck = document.getElementById('authSavePasswordCheck');
+      const authPinSetup = document.getElementById('authPinSetup');
+      const authNewPinInput = document.getElementById('authNewPinInput');
+      const authConfirmPinInput = document.getElementById('authConfirmPinInput');
+      const authCreatePinBtn = document.getElementById('authCreatePinBtn');
       const authEnterBtn = document.getElementById('authEnterBtn');
       const authMessage = document.getElementById('authMessage');
       const authProfileChoice = document.getElementById('authProfileChoice');
@@ -199,8 +352,18 @@
       const authDeviceProfileList = document.getElementById('authDeviceProfileList');
       const authUseOtherBmBtn = document.getElementById('authUseOtherBmBtn');
       const loggedUserBadge = document.getElementById('loggedUserBadge');
+      const changePinBtn = document.getElementById('changePinBtn');
+      const forgetSavedPinBtn = document.getElementById('forgetSavedPinBtn');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
       const logoutUserBtn = document.getElementById('logoutUserBtn');
+      const changePinModal = document.getElementById('changePinModal');
+      const changePinCloseBtn = document.getElementById('changePinCloseBtn');
+      const changePinForm = document.getElementById('changePinForm');
+      const changePinCurrent = document.getElementById('changePinCurrent');
+      const changePinNew = document.getElementById('changePinNew');
+      const changePinConfirm = document.getElementById('changePinConfirm');
+      const changePinMessage = document.getElementById('changePinMessage');
+      const changePinSaveBtn = document.getElementById('changePinSaveBtn');
       const loggedUserMenuText = document.getElementById('loggedUserMenuText');
       const userManagerModal = document.getElementById('userManagerModal');
       const userManagerCloseBtn = document.getElementById('userManagerCloseBtn');
@@ -3558,7 +3721,22 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
             ? `${usuario.nome} · Nº BM ${usuario.bm}`
             : 'Encerrar o acesso neste aparelho';
         }
+        if (forgetSavedPinBtn) {
+          const temSenhaSalva = Boolean(usuario?.id && perfilTemSenhaSalvaBm_(usuario.id));
+          forgetSavedPinBtn.hidden = !temSenhaSalva;
+        }
         atualizarIndicadorPreparacoesUsuario_();
+      }
+
+      function limparEstadoPinLogin_() {
+        authPendingUserId = '';
+        authPendingBm = '';
+        if (authPinSetup) authPinSetup.hidden = true;
+        if (authNewPinInput) authNewPinInput.value = '';
+        if (authConfirmPinInput) authConfirmPinInput.value = '';
+        if (authPinInput) authPinInput.value = '';
+        if (authSavePasswordCheck) authSavePasswordCheck.checked = false;
+        if (authBmInput) authBmInput.readOnly = false;
       }
 
       function mostrarTelaLoginBm_(mensagem = '') {
@@ -3568,32 +3746,27 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         document.body.classList.add('auth-locked');
         if (authManualLogin) authManualLogin.hidden = false;
         if (authDeviceChoice) authDeviceChoice.hidden = true;
-        if (authSubtitle) authSubtitle.innerHTML = 'Informe seu <strong>Nº BM</strong> para acessar o aplicativo.';
-        if (authMessage) authMessage.textContent = mensagem;
+        if (authSubtitle) authSubtitle.textContent = mensagem || 'Informe seu Nº BM e sua senha de 6 dígitos.';
+        if (authMessage) authMessage.textContent = '';
         if (authProfileChoice) authProfileChoice.hidden = true;
-        if (authProfileList) authProfileList.innerHTML = '';
-        if (authOfflineNote) authOfflineNote.hidden = navigator.onLine;
-        if (authEnterBtn) authEnterBtn.disabled = !navigator.onLine;
-        setTimeout(() => authBmInput?.focus(), 30);
+        if (authPinSetup) authPinSetup.hidden = true;
+        setTimeout(() => (authBmInput?.readOnly ? authPinInput : authBmInput)?.focus(), 30);
       }
 
       function mostrarEscolhaUsuariosDispositivo_(mensagem = '') {
         const perfis = carregarPerfisConhecidosBm_();
-        if (!perfis.length) {
-          mostrarTelaLoginBm_(mensagem);
-          return;
-        }
         if (!authGate) return;
         authGate.classList.add('show');
         authGate.setAttribute('aria-hidden', 'false');
         document.body.classList.add('auth-locked');
         if (authManualLogin) authManualLogin.hidden = true;
         if (authDeviceChoice) authDeviceChoice.hidden = false;
-        if (authSubtitle) authSubtitle.textContent = mensagem || 'Escolha quem está utilizando este aparelho.';
+        if (authSubtitle) authSubtitle.textContent = mensagem || 'Escolha seu usuário e informe sua senha.';
         if (authDeviceProfileList) {
           authDeviceProfileList.innerHTML = perfis.map(item => `
             <button type="button" class="auth-device-profile-btn" data-device-user-id="${escapeHtml(item.usuario.id)}">
-              ${escapeHtml(item.usuario.nome)}
+              <strong>${escapeHtml(item.usuario.nome)}</strong>
+              <span>Nº BM ${escapeHtml(item.usuario.bm)}${item.savedPinCipher ? ' · senha salva' : ''}</span>
             </button>
           `).join('');
         }
@@ -3608,27 +3781,62 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         if (authProfileChoice) authProfileChoice.hidden = true;
         if (authDeviceChoice) authDeviceChoice.hidden = true;
         if (authManualLogin) authManualLogin.hidden = false;
+        if (authPinSetup) authPinSetup.hidden = true;
       }
 
       function normalizarBmCliente_(valor) {
         return String(valor || '').replace(/\D/g, '').slice(0, 7);
       }
 
-      async function concluirLoginBm_(bm, userId = '') {
-        if (!navigator.onLine) {
-          mostrarTelaLoginBm_('Primeiro acesso neste aparelho exige internet.');
-          return false;
-        }
+      function prepararLoginPerfilBm_(perfil) {
+        if (!perfil?.usuario) return;
+        authPendingUserId = String(perfil.usuario.id || '');
+        authPendingBm = normalizarBmCliente_(perfil.usuario.bm || '');
+        if (authBmInput) { authBmInput.value = authPendingBm; authBmInput.readOnly = true; }
+        if (authPinInput) authPinInput.value = '';
+        if (authSavePasswordCheck) authSavePasswordCheck.checked = Boolean(perfil.savedPinCipher);
+        mostrarTelaLoginBm_(`Olá, ${perfil.usuario.nome}. Informe sua senha de 6 dígitos.`);
+        if (authBmInput) authBmInput.readOnly = true;
+        setTimeout(() => authPinInput?.focus(), 30);
+      }
+
+      async function concluirLoginBm_(bm, userId = '', pin = '', newPin = '') {
         const numero = normalizarBmCliente_(bm);
+        const senha = normalizarPinCliente_(pin);
+        const novaSenha = normalizarPinCliente_(newPin);
+        const alvoId = String(userId || authPendingUserId || '').trim();
         if (!/^\d{7}$/.test(numero)) {
           if (authMessage) authMessage.textContent = 'Informe um Nº BM com 7 dígitos.';
           return false;
         }
+
+        if (!navigator.onLine) {
+          const perfis = carregarPerfisConhecidosBm_().filter(p => String(p.usuario.bm || '') === numero);
+          let perfil = alvoId ? perfis.find(p => String(p.usuario.id) === alvoId) : (perfis.length === 1 ? perfis[0] : null);
+          if (!perfil) {
+            if (authMessage) authMessage.textContent = perfis.length > 1 ? 'Escolha seu usuário antes de entrar offline.' : 'Este usuário ainda não possui acesso offline validado neste aparelho.';
+            return false;
+          }
+          if (!/^\d{6}$/.test(senha)) {
+            if (authMessage) authMessage.textContent = 'Informe sua senha de 6 dígitos.';
+            return false;
+          }
+          const ok = await validarPinOfflineBm_(perfil, senha);
+          if (!ok) {
+            if (authMessage) authMessage.textContent = perfil.offlinePinVerifier ? 'Senha incorreta.' : 'Conecte-se à internet uma vez para habilitar o acesso offline com senha.';
+            return false;
+          }
+          salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
+          ocultarTelaLoginBm_();
+          return true;
+        }
+
         if (authEnterBtn) authEnterBtn.disabled = true;
-        if (authMessage) authMessage.textContent = 'Verificando Nº BM...';
+        if (authMessage) authMessage.textContent = novaSenha ? 'Criando senha...' : 'Verificando acesso...';
         try {
-          const result = await authRequest_({ bm: numero, userId }, 30000);
+          const result = await authRequest_({ bm: numero, userId: alvoId, pin: senha, newPin: novaSenha }, 30000);
           if (result?.requiresSelection) {
+            authPendingBm = numero;
             if (authProfileChoice) authProfileChoice.hidden = false;
             if (authProfileList) {
               authProfileList.innerHTML = (result.usuarios || []).map(u => `
@@ -3637,88 +3845,74 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
                 </button>
               `).join('');
             }
-            if (authMessage) authMessage.textContent = 'Escolha seu nome para continuar.';
+            if (authMessage) authMessage.textContent = 'Escolha seu nome e depois informe sua senha.';
             return false;
           }
-          if (!result?.autenticado || !result?.usuario || !result?.sessionToken) throw new Error('Não foi possível concluir a identificação.');
+          if (result?.requiresPinSetup) {
+            authPendingUserId = String(result.usuario?.id || alvoId || '');
+            authPendingBm = numero;
+            if (authPinSetup) authPinSetup.hidden = false;
+            if (authProfileChoice) authProfileChoice.hidden = true;
+            if (authBmInput) authBmInput.readOnly = true;
+            if (authMessage) authMessage.textContent = 'Primeiro acesso com senha: crie uma senha de 6 dígitos.';
+            setTimeout(() => authNewPinInput?.focus(), 30);
+            return false;
+          }
+          if (!result?.autenticado || !result?.usuario || !result?.sessionToken) throw new Error('Não foi possível concluir o acesso.');
           salvarSessaoLocalBm_(result.usuario, result.sessionToken);
+          await registrarCredencialOfflineBm_(result.usuario, novaSenha || senha);
+          const senhaEfetiva = novaSenha || senha;
+          if (authSavePasswordCheck?.checked && /^\d{6}$/.test(senhaEfetiva)) {
+            await salvarSenhaLocalPerfilBm_(result.usuario.id, senhaEfetiva);
+          } else if (result.usuario?.id && perfilTemSenhaSalvaBm_(result.usuario.id)) {
+            apagarSenhaLocalPerfilBm_(result.usuario.id);
+          }
           ocultarTelaLoginBm_();
           if (result.usuario.provisorio) {
             setTimeout(() => alert('Seu Nº BM está cadastrado provisoriamente como 1234567. Atualize-o em Mais → Gerenciar usuários quando souber o número correto.'), 250);
           }
+          limparEstadoPinLogin_();
           return true;
         } catch (error) {
           if (authMessage) authMessage.textContent = error?.message || 'Não foi possível entrar.';
           return false;
         } finally {
-          if (authEnterBtn) authEnterBtn.disabled = !navigator.onLine;
+          if (authEnterBtn) authEnterBtn.disabled = false;
         }
       }
 
       async function selecionarPerfilConhecidoBm_(userId) {
-        const perfis = carregarPerfisConhecidosBm_();
-        const perfil = perfis.find(item => String(item.usuario.id) === String(userId || ''));
+        const perfil = carregarPerfisConhecidosBm_().find(item => String(item.usuario.id) === String(userId || ''));
         if (!perfil) {
           mostrarEscolhaUsuariosDispositivo_('O usuário salvo neste aparelho não foi localizado.');
           return false;
         }
-
-        // Offline: um perfil já validado neste aparelho pode ser selecionado sem rede.
-        if (!navigator.onLine) {
-          salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
-          ocultarTelaLoginBm_();
-          return true;
-        }
-
-        try {
-          const result = await authRequest_({ sessionToken: perfil.sessionToken }, 20000);
-          if (!result?.autenticado || !result?.usuario) throw new Error('Não foi possível confirmar este usuário.');
-          salvarSessaoLocalBm_(result.usuario, result.sessionToken || perfil.sessionToken);
-          ocultarTelaLoginBm_();
-          return true;
-        } catch (error) {
-          if (error?.code === 'AUTH_REQUIRED' || error?.status === 401) {
-            removerPerfilConhecidoBm_(perfil.usuario.id);
-            limparSessaoLocalBm_();
-            const restantes = carregarPerfisConhecidosBm_();
-            if (restantes.length) mostrarEscolhaUsuariosDispositivo_('Esse acesso precisa ser validado novamente. Escolha outro usuário ou entre com o Nº BM.');
-            else mostrarTelaLoginBm_('Esse acesso precisa ser validado novamente. Informe o Nº BM.');
-            return false;
+        if (perfil.savedPinCipher) {
+          const senhaSalva = await descriptografarSenhaLocalBm_(perfil.savedPinCipher);
+          if (/^\d{6}$/.test(senhaSalva)) {
+            authPendingUserId = String(perfil.usuario.id || '');
+            authPendingBm = normalizarBmCliente_(perfil.usuario.bm || '');
+            if (authSavePasswordCheck) authSavePasswordCheck.checked = true;
+            if (authMessage) authMessage.textContent = `Entrando como ${perfil.usuario.nome}...`;
+            const entrou = await concluirLoginBm_(authPendingBm, authPendingUserId, senhaSalva);
+            if (entrou) await loadInitialData();
+            return entrou;
           }
-          // Se a internet estiver instável, mantém o perfil já validado no aparelho.
-          salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
-          ocultarTelaLoginBm_();
-          return true;
+          apagarSenhaLocalPerfilBm_(perfil.usuario.id);
         }
+        prepararLoginPerfilBm_(perfil);
+        return false;
       }
 
       async function inicializarAutenticacaoBm_() {
         carregarSessaoLocalBm_();
         const perfis = carregarPerfisConhecidosBm_();
-        atualizarUsuarioLogadoUi_();
-
-        // Tablet compartilhado: mais de um perfil conhecido sempre exige escolha
-        // na abertura, evitando atribuir a vistoria ao último usuário por engano.
-        if (perfis.length > 1) {
-          loadingOverlay.classList.remove('show');
-          mostrarEscolhaUsuariosDispositivo_();
-          return;
-        }
-
-        if (perfis.length === 1) {
-          const entrou = await selecionarPerfilConhecidoBm_(perfis[0].usuario.id);
-          if (entrou) return loadInitialData();
-          loadingOverlay.classList.remove('show');
-          return;
-        }
-
-        if (authState.usuario && authState.sessionToken) {
-          const entrou = await selecionarPerfilConhecidoBm_(authState.usuario.id);
-          if (entrou) return loadInitialData();
-        }
-
+        // Em aparelhos compartilhados, o perfil/Nº BM fica lembrado automaticamente.
+        // A senha só é reutilizada se o usuário tiver marcado "Salvar senha neste aparelho".
+        limparSessaoLocalBm_();
         loadingOverlay.classList.remove('show');
-        mostrarTelaLoginBm_();
+        if (perfis.length) mostrarEscolhaUsuariosDispositivo_();
+        else mostrarTelaLoginBm_();
       }
 
       function resetarFormularioUsuario_() {
@@ -3740,10 +3934,11 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
             <div class="user-manager-avatar" aria-hidden="true">${escapeHtml(String(u.nome || '?').charAt(0).toUpperCase())}</div>
             <div class="user-manager-item-copy">
               <strong>${escapeHtml(u.nome)}</strong>
-              <span>Nº BM ${escapeHtml(u.bm)}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''}</span>
+              <span>Nº BM ${escapeHtml(u.bm)}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''} · ${u.senhaConfigurada ? 'senha ativa' : 'senha a criar'}</span>
             </div>
             <div class="user-manager-item-actions">
               <button type="button" class="user-edit-btn" data-user-edit="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" data-user-bm="${escapeHtml(u.bm)}">Editar</button>
+              <button type="button" class="user-reset-pin-btn" data-user-reset-pin="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}">Redefinir senha</button>
               <button type="button" class="user-delete-btn" data-user-delete="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" ${ehAtual ? 'disabled title="Você está conectado com este usuário"' : ''}>Excluir</button>
             </div>
           </article>`;
@@ -3817,6 +4012,78 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         }
       }
 
+      function abrirAlterarSenha_() {
+        fecharMenuMais_();
+        if (!navigator.onLine) { alert('Conecte o aparelho à internet para alterar a senha.'); return; }
+        if (changePinMessage) changePinMessage.textContent = '';
+        if (changePinCurrent) changePinCurrent.value = '';
+        if (changePinNew) changePinNew.value = '';
+        if (changePinConfirm) changePinConfirm.value = '';
+        if (changePinModal) changePinModal.hidden = false;
+        document.body.classList.add('user-manager-open');
+        setTimeout(() => changePinCurrent?.focus(), 30);
+      }
+
+      function fecharAlterarSenha_() {
+        if (changePinModal) changePinModal.hidden = true;
+        document.body.classList.remove('user-manager-open');
+      }
+
+      async function salvarAlteracaoSenha_(event) {
+        event?.preventDefault();
+        const atual = normalizarPinCliente_(changePinCurrent?.value || '');
+        const nova = normalizarPinCliente_(changePinNew?.value || '');
+        const confirma = normalizarPinCliente_(changePinConfirm?.value || '');
+        if (!/^\d{6}$/.test(atual) || !/^\d{6}$/.test(nova)) {
+          if (changePinMessage) changePinMessage.textContent = 'As senhas devem ter 6 dígitos numéricos.';
+          return;
+        }
+        if (nova !== confirma) {
+          if (changePinMessage) changePinMessage.textContent = 'A confirmação da nova senha não confere.';
+          return;
+        }
+        if (atual === nova) {
+          if (changePinMessage) changePinMessage.textContent = 'Escolha uma nova senha diferente da atual.';
+          return;
+        }
+        if (changePinSaveBtn) changePinSaveBtn.disabled = true;
+        try {
+          const result = await apiRequest('user_update', { mode: 'pin_change', currentPin: atual, newPin: nova }, 30000);
+          if (result?.sessionToken && result?.usuarioAtual) {
+            salvarSessaoLocalBm_(result.usuarioAtual, result.sessionToken);
+            await registrarCredencialOfflineBm_(result.usuarioAtual, nova);
+          }
+          if (authState.usuario?.id) apagarSenhaLocalPerfilBm_(authState.usuario.id);
+          if (changePinMessage) changePinMessage.textContent = 'Senha alterada com sucesso. Por segurança, a senha salva neste aparelho foi removida.';
+          setTimeout(fecharAlterarSenha_, 600);
+        } catch (error) {
+          if (changePinMessage) changePinMessage.textContent = error?.message || 'Não foi possível alterar a senha.';
+        } finally {
+          if (changePinSaveBtn) changePinSaveBtn.disabled = false;
+        }
+      }
+
+      async function redefinirSenhaUsuario_(id, nome) {
+        if (!id || !confirm(`Redefinir a senha de ${nome || 'este usuário'}? No próximo acesso ele deverá criar uma nova senha de 6 dígitos.`)) return;
+        try {
+          const result = await apiRequest('user_update', { mode: 'pin_reset', userId: id }, 30000);
+          invalidarCredenciaisLocaisPerfilBm_(id);
+          renderizarListaUsuarios_(result?.usuarios || []);
+          if (userManagerMessage) userManagerMessage.textContent = 'Senha redefinida. O usuário criará uma nova senha no próximo acesso.';
+        } catch (error) {
+          if (userManagerMessage) userManagerMessage.textContent = error?.message || 'Não foi possível redefinir a senha.';
+        }
+      }
+
+      function esquecerSenhaSalvaAtualBm_() {
+        fecharMenuMais_();
+        const usuario = authState.usuario;
+        if (!usuario?.id || !perfilTemSenhaSalvaBm_(usuario.id)) return;
+        if (!confirm(`Esquecer a senha salva de ${usuario.nome} neste aparelho? O Nº BM continuará lembrado.`)) return;
+        apagarSenhaLocalPerfilBm_(usuario.id);
+        alert('Senha removida deste aparelho. O usuário continuará aparecendo na lista de acesso.');
+      }
+
       function sairUsuarioBm_() {
         fecharMenuMais_();
         if (!confirm('Trocar o usuário que está usando este aparelho?')) return;
@@ -3833,8 +4100,9 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         try { if (rascunhoAtual) localStorage.setItem(chaveRascunho, rascunhoAtual); } catch (e) {}
 
         limparSessaoLocalBm_();
+        limparEstadoPinLogin_();
         const perfis = carregarPerfisConhecidosBm_();
-        if (perfis.length) mostrarEscolhaUsuariosDispositivo_('Escolha seu usuário.');
+        if (perfis.length) mostrarEscolhaUsuariosDispositivo_('Escolha seu usuário e informe sua senha.');
         else mostrarTelaLoginBm_();
       }
 
@@ -4803,33 +5071,58 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       deviceNameBtn?.addEventListener('click', definirNomeDispositivo_);
       aboutSystemCloseBtn?.addEventListener('click', fecharSobreSistema_);
       aboutSystemModal?.addEventListener('click', event => { if (event.target === aboutSystemModal) fecharSobreSistema_(); });
+      changePinBtn?.addEventListener('click', abrirAlterarSenha_);
+      forgetSavedPinBtn?.addEventListener('click', esquecerSenhaSalvaAtualBm_);
       manageUsersBtn?.addEventListener('click', abrirGerenciadorUsuarios_);
       logoutUserBtn?.addEventListener('click', sairUsuarioBm_);
-      authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); });
+      changePinCloseBtn?.addEventListener('click', fecharAlterarSenha_);
+      changePinModal?.addEventListener('click', event => { if (event.target === changePinModal) fecharAlterarSenha_(); });
+      changePinForm?.addEventListener('submit', salvarAlteracaoSenha_);
+      [authPinInput, authNewPinInput, authConfirmPinInput, changePinCurrent, changePinNew, changePinConfirm].forEach(el => el?.addEventListener('input', () => { el.value = normalizarPinCliente_(el.value); }));
+      authPinToggleBtn?.addEventListener('click', () => {
+        if (!authPinInput) return;
+        const mostrar = authPinInput.type === 'password';
+        authPinInput.type = mostrar ? 'text' : 'password';
+        authPinToggleBtn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+        authPinToggleBtn.title = mostrar ? 'Ocultar senha' : 'Mostrar senha';
+      });
+      authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); authPendingUserId = ''; authPendingBm = ''; });
       authForm?.addEventListener('submit', async event => {
         event.preventDefault();
-        await concluirLoginBm_(authBmInput?.value || '');
-        if (authState.usuario && authState.sessionToken) await loadInitialData();
+        const entrou = await concluirLoginBm_(authBmInput?.value || '', authPendingUserId, authPinInput?.value || '');
+        if (entrou) await loadInitialData();
       });
-      authProfileList?.addEventListener('click', async event => {
+      authCreatePinBtn?.addEventListener('click', async () => {
+        const nova = normalizarPinCliente_(authNewPinInput?.value || '');
+        const confirma = normalizarPinCliente_(authConfirmPinInput?.value || '');
+        if (!/^\d{6}$/.test(nova)) { if (authMessage) authMessage.textContent = 'A nova senha deve ter 6 dígitos.'; return; }
+        if (nova !== confirma) { if (authMessage) authMessage.textContent = 'A confirmação da senha não confere.'; return; }
+        const entrou = await concluirLoginBm_(authPendingBm || authBmInput?.value || '', authPendingUserId, '', nova);
+        if (entrou) await loadInitialData();
+      });
+      authProfileList?.addEventListener('click', event => {
         const btn = event.target.closest('[data-auth-user-id]');
         if (!btn) return;
-        const entrou = await concluirLoginBm_(authBmInput?.value || '', btn.dataset.authUserId || '');
-        if (entrou) await loadInitialData();
+        authPendingUserId = String(btn.dataset.authUserId || '');
+        authPendingBm = normalizarBmCliente_(authBmInput?.value || authPendingBm);
+        if (authProfileChoice) authProfileChoice.hidden = true;
+        if (authMessage) authMessage.textContent = 'Agora informe a senha de 6 dígitos.';
+        authPinInput?.focus();
       });
-      authDeviceProfileList?.addEventListener('click', async event => {
+      authDeviceProfileList?.addEventListener('click', event => {
         const btn = event.target.closest('[data-device-user-id]');
         if (!btn) return;
-        const entrou = await selecionarPerfilConhecidoBm_(btn.dataset.deviceUserId || '');
-        if (entrou) await loadInitialData();
+        selecionarPerfilConhecidoBm_(btn.dataset.deviceUserId || '');
       });
-      authUseOtherBmBtn?.addEventListener('click', () => mostrarTelaLoginBm_('Informe seu Nº BM para adicionar ou trocar o usuário deste aparelho.'));
+      authUseOtherBmBtn?.addEventListener('click', () => { limparEstadoPinLogin_(); mostrarTelaLoginBm_('Informe seu Nº BM e sua senha.'); });
       userManagerCloseBtn?.addEventListener('click', fecharGerenciadorUsuarios_);
       userManagerModal?.addEventListener('click', event => { if (event.target === userManagerModal) fecharGerenciadorUsuarios_(); });
       userManagerBm?.addEventListener('input', () => { userManagerBm.value = normalizarBmCliente_(userManagerBm.value); });
       userManagerCancelBtn?.addEventListener('click', resetarFormularioUsuario_);
       userManagerForm?.addEventListener('submit', salvarUsuarioGerenciado_);
       userManagerList?.addEventListener('click', event => {
+        const resetPin = event.target.closest('[data-user-reset-pin]');
+        if (resetPin) { redefinirSenhaUsuario_(resetPin.dataset.userResetPin || '', resetPin.dataset.userName || ''); return; }
         const editar = event.target.closest('[data-user-edit]');
         if (editar) {
           userManagerId.value = editar.dataset.userEdit || '';
