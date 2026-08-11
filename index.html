@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.26">
+  <link rel="stylesheet" href="styles.css?v=23.9.29">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -198,9 +198,13 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.5-5 5.5-5s4.9 1.8 5.5 5M16 8h5M18.5 5.5v5"/></svg>
       <span><strong>Gerenciar usuários</strong><small>Incluir, editar, redefinir senha ou excluir Nº BM</small></span>
     </button>
+    <button class="app-more-menu-item" id="switchUserBtn" data-menu-tone="indigo" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M2.8 18c.5-3 2.3-4.8 5.2-4.8 1.6 0 2.9.5 3.8 1.4M16 8h5M18.5 5.5v5"/></svg>
+      <span><strong>Trocar usuário</strong><small>Voltar para a lista de usuários deste aparelho</small></span>
+    </button>
     <button class="app-more-menu-item" id="logoutUserBtn" data-menu-tone="rose" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
-      <span><strong>Trocar usuário / Sair</strong><small id="loggedUserMenuText">Encerrar o acesso neste aparelho</small></span>
+      <span><strong>Sair</strong><small id="loggedUserMenuText">Desconectar o usuário atual</small></span>
     </button>
   </div>
 
@@ -286,7 +290,7 @@
         <article class="tutorial-step" data-tutorial-step="7">
           <div class="tutorial-step-icon">⋯</div>
           <h3>7. Usar o menu Mais</h3>
-          <p>Em <strong>Mais</strong>, os três primeiros recursos permanecem nesta ordem: <strong>Tutorial</strong>, <strong>Planilha Excel</strong> e <strong>Atualizar app</strong>. Abaixo ficam <strong>Gerenciar usuários</strong> e <strong>Trocar usuário / Sair</strong>.</p>
+          <p>Em <strong>Mais</strong>, os três primeiros recursos permanecem nesta ordem: <strong>Tutorial</strong>, <strong>Planilha Excel</strong> e <strong>Atualizar app</strong>. Abaixo ficam <strong>Gerenciar usuários</strong>, <strong>Trocar usuário</strong> e <strong>Sair</strong>.</p>
           <p class="tutorial-note">Usuários autorizados também podem abrir a planilha diretamente pelo botão <strong>Planilha</strong> disponível no Painel.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="8">
@@ -1200,8 +1204,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.26"></script>
-  <script src="ocupacoes.js?v=23.9.26"></script>
-  <script src="app.js?v=23.9.26"></script>
+  <script src="config.js?v=23.9.29"></script>
+  <script src="ocupacoes.js?v=23.9.29"></script>
+  <script src="app.js?v=23.9.29"></script>
 </body>
 </html>

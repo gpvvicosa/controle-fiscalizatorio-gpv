@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.26';
+      const APP_VERSION = '23.9.29';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -355,6 +355,7 @@
       const changePinBtn = document.getElementById('changePinBtn');
       const forgetSavedPinBtn = document.getElementById('forgetSavedPinBtn');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
+      const switchUserBtn = document.getElementById('switchUserBtn');
       const logoutUserBtn = document.getElementById('logoutUserBtn');
       const changePinModal = document.getElementById('changePinModal');
       const changePinCloseBtn = document.getElementById('changePinCloseBtn');
@@ -4084,12 +4085,8 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         alert('Senha removida deste aparelho. O usuário continuará aparecendo na lista de acesso.');
       }
 
-      function sairUsuarioBm_() {
-        fecharMenuMais_();
-        if (!confirm('Trocar o usuário que está usando este aparelho?')) return;
-
-        // Em tablet compartilhado, preserva o rascunho do usuário atual e limpa
-        // somente a tela antes de entregar o aparelho ao próximo usuário.
+      function prepararSaidaUsuarioBm_() {
+        // Preserva o rascunho do usuário atual antes de encerrar a sessão.
         let rascunhoAtual = '';
         const chaveRascunho = draftKeyAtual_();
         try {
@@ -4099,11 +4096,44 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         resetForm();
         try { if (rascunhoAtual) localStorage.setItem(chaveRascunho, rascunhoAtual); } catch (e) {}
 
+        // Encerra somente a sessão. Perfis conhecidos e senha salva, quando
+        // autorizada pelo usuário, permanecem no aparelho.
         limparSessaoLocalBm_();
         limparEstadoPinLogin_();
+      }
+
+      function trocarUsuarioBm_() {
+        fecharMenuMais_();
+        if (!confirm('Trocar o usuário que está usando este aparelho?')) return;
+        prepararSaidaUsuarioBm_();
         const perfis = carregarPerfisConhecidosBm_();
-        if (perfis.length) mostrarEscolhaUsuariosDispositivo_('Escolha seu usuário e informe sua senha.');
+        if (perfis.length) mostrarEscolhaUsuariosDispositivo_('Escolha o usuário que vai utilizar o aparelho.');
         else mostrarTelaLoginBm_();
+      }
+
+      function sairUsuarioBm_() {
+        fecharMenuMais_();
+        if (!confirm('Deseja sair do aplicativo?')) return;
+        const usuarioAnterior = authState.usuario ? { ...authState.usuario } : null;
+        prepararSaidaUsuarioBm_();
+
+        // Ao sair, mantém o Nº BM lembrado. Se houver apenas um perfil conhecido,
+        // abre diretamente a tela de senha desse perfil; com vários usuários,
+        // volta para a escolha de usuário. A senha salva não é apagada.
+        const perfis = carregarPerfisConhecidosBm_();
+        const perfilAnterior = usuarioAnterior?.id
+          ? perfis.find(p => String(p.usuario?.id || '') === String(usuarioAnterior.id))
+          : null;
+        if (perfis.length === 1 && perfilAnterior) {
+          prepararLoginPerfilBm_(perfilAnterior);
+          if (authMessage) authMessage.textContent = 'Sessão encerrada. Informe sua senha para entrar novamente.';
+          return;
+        }
+        if (perfis.length) {
+          mostrarEscolhaUsuariosDispositivo_('Sessão encerrada. Escolha um usuário para entrar novamente.');
+          return;
+        }
+        mostrarTelaLoginBm_('Sessão encerrada.');
       }
 
       function renderizarTutorial_() {
@@ -5074,6 +5104,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       changePinBtn?.addEventListener('click', abrirAlterarSenha_);
       forgetSavedPinBtn?.addEventListener('click', esquecerSenhaSalvaAtualBm_);
       manageUsersBtn?.addEventListener('click', abrirGerenciadorUsuarios_);
+      switchUserBtn?.addEventListener('click', trocarUsuarioBm_);
       logoutUserBtn?.addEventListener('click', sairUsuarioBm_);
       changePinCloseBtn?.addEventListener('click', fecharAlterarSenha_);
       changePinModal?.addEventListener('click', event => { if (event.target === changePinModal) fecharAlterarSenha_(); });
@@ -5182,7 +5213,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.24', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.29', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
