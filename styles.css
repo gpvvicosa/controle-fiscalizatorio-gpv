@@ -6219,3 +6219,54 @@ body.inspection-flow-active:not(.records-mode) .connection-banner.connection-onl
   .goals-modal-list{grid-template-columns:1fr!important;gap:10px!important}.goals-modal-item{min-height:0!important;padding:13px 13px 12px!important}
   .goals-modal-meta{grid-template-columns:1fr!important}.goals-modal-meta span:last-child{text-align:left!important}
 }
+
+
+/* =============================================================================
+   V23.9.24 — HOTFIX rolagem do modal Metas no mobile
+   Mantém cabeçalho/fechar visíveis e permite alcançar todas as categorias,
+   inclusive Nível de risco III.
+   ============================================================================= */
+.goals-modal-card{
+  display:flex!important;
+  flex-direction:column!important;
+}
+.goals-modal-head{
+  flex:0 0 auto!important;
+}
+.goals-modal-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-gutter:stable;
+}
+@media(max-width:900px){
+  #goalsModal.review-overlay{
+    align-items:center!important;
+    padding:14px 11px max(14px,env(safe-area-inset-bottom))!important;
+  }
+  .goals-modal-card{
+    width:100%!important;
+    max-height:calc(100dvh - 28px)!important;
+    height:auto!important;
+    overflow:hidden!important;
+  }
+  .goals-modal-head{
+    position:sticky!important;
+    top:0!important;
+    z-index:5!important;
+  }
+  .goals-modal-body{
+    padding-bottom:max(22px,env(safe-area-inset-bottom))!important;
+  }
+  .goals-modal-list{
+    padding-bottom:4px!important;
+  }
+}
+@supports not (height:100dvh){
+  @media(max-width:900px){
+    .goals-modal-card{max-height:calc(100vh - 28px)!important}
+  }
+}
