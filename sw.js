@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-38-ficha-loaders';
-const VERSION = '23.9.38';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260811-v23-9-39-mensagem-motivacional';
+const VERSION = '23.9.39';
 
 const CORE_SHELL = [
   './',

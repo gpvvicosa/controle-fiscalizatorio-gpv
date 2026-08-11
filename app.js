@@ -3826,6 +3826,131 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         if (authPinSetup) authPinSetup.hidden = true;
       }
 
+      const MENSAGENS_MOTIVACIONAIS_DIARIAS_ = [
+        'Cada vistoria bem realizada contribui para uma cidade mais segura.',
+        'A prevenção começa com atenção aos detalhes. Bom serviço!',
+        'Segurança se constrói com técnica, responsabilidade e constância.',
+        'Seu trabalho de hoje ajuda a proteger vidas, patrimônios e histórias.',
+        'Excelência no serviço é fazer bem feito, mesmo nos detalhes que poucos veem.',
+        'Uma fiscalização cuidadosa hoje pode evitar uma emergência amanhã.',
+        'Trabalhe com atenção, equilíbrio e segurança. Bom serviço!',
+        'Cada orientação correta fortalece a prevenção contra incêndio e pânico.',
+        'Profissionalismo e prevenção caminham juntos em cada vistoria.',
+        'Seu compromisso com a prevenção faz diferença para toda a comunidade.',
+        'Comece o dia com foco: observar, orientar, registrar e prevenir.',
+        'A segurança de muitos também depende da qualidade de cada vistoria.',
+        'Consistência no trabalho transforma prevenção em proteção real.',
+        'Mais do que conferir medidas, cada vistoria fortalece uma cultura de segurança.',
+        'Atenção técnica e boa orientação fazem parte de um serviço de excelência.',
+        'Faça de cada vistoria uma oportunidade de fortalecer a prevenção.',
+        'Segurança é resultado de preparo, responsabilidade e ação correta.',
+        'O bom serviço aparece na precisão dos registros e na qualidade das decisões.',
+        'Prevenir exige olhar atento, conhecimento técnico e compromisso.',
+        'Que o serviço de hoje seja produtivo, seguro e bem executado.',
+        'Cada processo bem conduzido é mais um passo para uma Viçosa mais segura.',
+        'Responsabilidade no presente reduz riscos no futuro.',
+        'Sua atenção durante a vistoria é parte essencial da proteção da comunidade.',
+        'Técnica, clareza e responsabilidade: uma boa base para o serviço de hoje.',
+        'O trabalho preventivo nem sempre aparece, mas seus resultados protegem vidas.',
+        'Bom serviço! Mantenha o foco na segurança e na qualidade de cada registro.',
+        'A prevenção ganha força quando cada vistoria é conduzida com excelência.',
+        'Um dia produtivo começa com organização, atenção e propósito.',
+        'Cada medida conferida corretamente aproxima a edificação de uma condição mais segura.',
+        'Seu trabalho no GPV transforma conhecimento técnico em prevenção efetiva.'
+      ];
+
+      function dataLocalChaveMotivacional_() {
+        const agora = new Date();
+        const y = agora.getFullYear();
+        const m = String(agora.getMonth() + 1).padStart(2, '0');
+        const d = String(agora.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function chaveMotivacionalUsuario_() {
+        const id = String(authState.usuario?.id || authState.usuario?.bm || 'usuario').replace(/[^A-Za-z0-9_-]/g, '');
+        return `gpv_mensagem_motivacional_${id}`;
+      }
+
+      function deveMostrarMotivacionalHoje_() {
+        if (!authState.usuario?.id && !authState.usuario?.bm) return false;
+        try {
+          return localStorage.getItem(chaveMotivacionalUsuario_()) !== dataLocalChaveMotivacional_();
+        } catch (_) {
+          return true;
+        }
+      }
+
+      function marcarMotivacionalHoje_() {
+        try { localStorage.setItem(chaveMotivacionalUsuario_(), dataLocalChaveMotivacional_()); } catch (_) {}
+      }
+
+      function indiceMensagemMotivacional_() {
+        const base = `${dataLocalChaveMotivacional_()}|${authState.usuario?.id || authState.usuario?.bm || ''}`;
+        let hash = 0;
+        for (let i = 0; i < base.length; i += 1) hash = ((hash << 5) - hash + base.charCodeAt(i)) | 0;
+        return Math.abs(hash) % MENSAGENS_MOTIVACIONAIS_DIARIAS_.length;
+      }
+
+      function garantirOverlayMotivacional_() {
+        let overlay = document.getElementById('dailyMotivationalOverlay');
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'dailyMotivationalOverlay';
+        overlay.className = 'daily-motivational-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.innerHTML = `
+          <div class="daily-motivational-card" role="status" aria-live="polite">
+            <div class="daily-motivational-mark" aria-hidden="true">✓</div>
+            <span class="daily-motivational-kicker">GPV — 3º Pelotão Viçosa</span>
+            <h2 id="dailyMotivationalGreeting">Bom serviço!</h2>
+            <p id="dailyMotivationalMessage"></p>
+            <div class="daily-motivational-loading" aria-hidden="true"><span></span></div>
+            <small>Carregando seu ambiente de trabalho...</small>
+          </div>`;
+        document.body.appendChild(overlay);
+        return overlay;
+      }
+
+      async function carregarInicialComMotivacional_(opcoes = {}) {
+        const forcar = Boolean(opcoes.forcar);
+        const mostrar = forcar || deveMostrarMotivacionalHoje_();
+        if (!mostrar) {
+          await carregarInicialComMotivacional_();
+          return;
+        }
+
+        const overlay = garantirOverlayMotivacional_();
+        const nomeCompleto = String(authState.usuario?.nome || '').trim();
+        const primeiroNome = nomeCompleto || 'militar';
+        const greeting = overlay.querySelector('#dailyMotivationalGreeting');
+        const message = overlay.querySelector('#dailyMotivationalMessage');
+        if (greeting) greeting.textContent = `Bom serviço, ${primeiroNome}!`;
+        if (message) message.textContent = MENSAGENS_MOTIVACIONAIS_DIARIAS_[indiceMensagemMotivacional_()];
+
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('daily-motivational-open');
+        marcarMotivacionalHoje_();
+
+        const inicio = Date.now();
+        let erroCarga = null;
+        try {
+          await loadInitialData();
+        } catch (erro) {
+          erroCarga = erro;
+        }
+        const restante = Math.max(0, 5000 - (Date.now() - inicio));
+        if (restante) await new Promise(resolve => setTimeout(resolve, restante));
+
+        overlay.classList.add('leaving');
+        await new Promise(resolve => setTimeout(resolve, 360));
+        overlay.classList.remove('show', 'leaving');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('daily-motivational-open');
+        if (erroCarga) throw erroCarga;
+      }
+
       function normalizarBmCliente_(valor) {
         return String(valor || '').replace(/\D/g, '').slice(0, 7);
       }
@@ -3937,7 +4062,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
             if (authSavePasswordCheck) authSavePasswordCheck.checked = true;
             if (authMessage) authMessage.textContent = `Entrando como ${perfil.usuario.nome}...`;
             const entrou = await concluirLoginBm_(authPendingBm, authPendingUserId, senhaSalva);
-            if (entrou) await loadInitialData();
+            if (entrou) await carregarInicialComMotivacional_();
             return entrou;
           }
           apagarSenhaLocalPerfilBm_(perfil.usuario.id);
@@ -5297,7 +5422,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       authForm?.addEventListener('submit', async event => {
         event.preventDefault();
         const entrou = await concluirLoginBm_(authBmInput?.value || '', authPendingUserId, authPinInput?.value || '');
-        if (entrou) await loadInitialData();
+        if (entrou) await carregarInicialComMotivacional_();
       });
       authCreatePinBtn?.addEventListener('click', async () => {
         const nova = normalizarPinCliente_(authNewPinInput?.value || '');
@@ -5305,7 +5430,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         if (!/^\d{6}$/.test(nova)) { if (authMessage) authMessage.textContent = 'A nova senha deve ter 6 dígitos.'; return; }
         if (nova !== confirma) { if (authMessage) authMessage.textContent = 'A confirmação da senha não confere.'; return; }
         const entrou = await concluirLoginBm_(authPendingBm || authBmInput?.value || '', authPendingUserId, '', nova);
-        if (entrou) await loadInitialData();
+        if (entrou) await carregarInicialComMotivacional_();
       });
       authProfileList?.addEventListener('click', event => {
         const btn = event.target.closest('[data-auth-user-id]');
@@ -5389,7 +5514,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.29', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.39', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

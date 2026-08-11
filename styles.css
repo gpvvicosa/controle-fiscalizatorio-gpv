@@ -6816,3 +6816,48 @@ body.records-mode .records-status.loading .panel-loading-visual{
   .record-detail-sheet-link{padding:8px 9px!important;font-size:9px!important}
 }
 @media(prefers-reduced-motion:reduce){#dduSummaryCard .ddu-live-loading-bar i,.record-detail-loader-bar span{animation:none!important}}
+
+
+/* ===== V23.9.39 — mensagem motivacional diária ===== */
+body.daily-motivational-open{overflow:hidden!important}
+.daily-motivational-overlay{
+  position:fixed;inset:0;z-index:12000;display:none;align-items:center;justify-content:center;
+  padding:24px;background:
+    radial-gradient(circle at 50% 18%,rgba(255,211,108,.24),transparent 34%),
+    linear-gradient(155deg,rgba(111,8,13,.98),rgba(157,18,25,.97) 54%,rgba(92,8,13,.99));
+  opacity:0;transition:opacity .32s ease;
+}
+.daily-motivational-overlay.show{display:flex;opacity:1}
+.daily-motivational-overlay.leaving{opacity:0}
+.daily-motivational-card{
+  width:min(560px,92vw);padding:34px 30px 28px;border-radius:30px;text-align:center;
+  background:rgba(255,255,255,.97);border:1px solid rgba(255,255,255,.7);
+  box-shadow:0 32px 90px rgba(32,7,9,.34);transform:translateY(8px) scale(.985);
+  animation:dailyMotivationalEnter .5s cubic-bezier(.2,.75,.25,1) forwards;
+}
+.daily-motivational-mark{
+  width:68px;height:68px;margin:0 auto 16px;display:grid;place-items:center;border-radius:22px;
+  background:linear-gradient(145deg,#e8fbef,#d5f4e0);color:#159447;font-size:34px;font-weight:900;
+  border:1px solid #bfe6cc;box-shadow:0 10px 30px rgba(21,148,71,.16);
+}
+.daily-motivational-kicker{display:block;color:#8e171c;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.13em}
+.daily-motivational-card h2{margin:9px 0 12px;color:#182235;font-size:30px;line-height:1.15;letter-spacing:-.025em}
+.daily-motivational-card p{margin:0 auto;max-width:470px;color:#4f5c6d;font-size:18px;line-height:1.55;font-weight:600}
+.daily-motivational-loading{height:9px;margin:26px 0 11px;border-radius:999px;background:#e2ece5;overflow:hidden;position:relative}
+.daily-motivational-loading span{position:absolute;inset:0 auto 0 0;width:38%;border-radius:inherit;background:linear-gradient(90deg,#119543,#36bd67,#119543);animation:dailyMotivationalBar 1.45s ease-in-out infinite}
+.daily-motivational-card small{display:block;color:#6c7787;font-size:13px;font-weight:700}
+@keyframes dailyMotivationalEnter{to{transform:translateY(0) scale(1)}}
+@keyframes dailyMotivationalBar{0%{transform:translateX(-105%)}100%{transform:translateX(365%)}}
+@media(max-width:640px){
+  .daily-motivational-overlay{padding:16px}
+  .daily-motivational-card{width:100%;padding:29px 21px 24px;border-radius:25px}
+  .daily-motivational-mark{width:60px;height:60px;border-radius:19px;font-size:30px;margin-bottom:14px}
+  .daily-motivational-kicker{font-size:10px}
+  .daily-motivational-card h2{font-size:25px;margin-top:8px}
+  .daily-motivational-card p{font-size:16px;line-height:1.5}
+  .daily-motivational-loading{height:8px;margin-top:23px}
+  .daily-motivational-card small{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .daily-motivational-card,.daily-motivational-loading span{animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
