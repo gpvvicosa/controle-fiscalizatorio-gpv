@@ -4365,6 +4365,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
       async function carregarDdUs_(){
+        const inicioLoadingDdu = Date.now();
         dduSummaryCard?.classList.add('is-loading');
         if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label"><i></i>Atualizando demandas</span>';
         if(dduSummaryCount)dduSummaryCount.textContent='';
@@ -4381,6 +4382,8 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           dduSummaryCard?.classList.remove('is-danger','is-warning');
           if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
         }finally{
+          const espera = Math.max(0, 520 - (Date.now() - inicioLoadingDdu));
+          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
           dduSummaryCard?.classList.remove('is-loading');
         }
       }
@@ -4733,6 +4736,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       }
 
       async function carregarPreparacoesVistoria_() {
+        const inicioLoadingProgramadas = Date.now();
         const cacheKey = 'gpv_preparacoes_cache_v1';
         try { preparacoesVistoria = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { preparacoesVistoria = []; }
         renderizarPreparacoesVistoria_();
@@ -4758,6 +4762,8 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível atualizar as programações agora.';
           renderizarPreparacoesVistoria_();
         } finally {
+          const espera = Math.max(0, 620 - (Date.now() - inicioLoadingProgramadas));
+          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
           preparedInspectionsList?.classList.remove('is-loading');
         }
       }
@@ -4785,68 +4791,74 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       }
 
       function rolarParaFormularioProgramado_() {
-        const alvo = document.querySelector('#cidadeSecao .section-head') || document.getElementById('cidadeSecao');
-        if (!alvo) return;
+        const secao = document.getElementById('cidadeSecao');
+        if (!secao) return;
 
-        const encontrarScrollers = (el) => {
+        const alvo = secao.querySelector('.section-head') || secao;
+        const scrollers = () => {
           const lista = [];
-          let pai = el.parentElement;
-          while (pai && pai !== document.body && pai !== document.documentElement) {
+          let pai = alvo.parentElement;
+          while (pai && pai !== document.documentElement) {
             const css = window.getComputedStyle(pai);
             const oy = css.overflowY;
-            if ((oy === 'auto' || oy === 'scroll') && pai.scrollHeight > pai.clientHeight + 4) lista.push(pai);
+            if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && pai.scrollHeight > pai.clientHeight + 2) lista.push(pai);
             pai = pai.parentElement;
           }
           return lista;
         };
 
-        const executar = (behavior = 'smooth') => {
-          const secao = document.getElementById('cidadeSecao');
-          if (!secao || secao.hidden) return false;
+        const offsetTopo = () => {
+          let total = 12;
+          const candidatos = ['.app-header', '.topbar', '.app-view-nav'];
+          candidatos.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (!el || el.offsetParent === null) return;
+            const css = window.getComputedStyle(el);
+            if (css.position === 'fixed' || css.position === 'sticky') total += el.getBoundingClientRect().height || 0;
+          });
+          return Math.min(total, 190);
+        };
 
-          // Primeiro traz o alvo para a janela. Depois corrigimos o offset e qualquer
-          // contêiner interno que esteja realmente recebendo a rolagem no PWA.
-          try { alvo.scrollIntoView({ behavior, block: 'start', inline: 'nearest' }); } catch (e) {}
+        const posicionar = (suave = false) => {
+          if (secao.hidden || secao.offsetParent === null) return false;
+          const offset = offsetTopo();
 
-          const nav = document.querySelector('.app-view-nav');
-          const topbar = document.querySelector('.topbar');
-          const offset = Math.max(14,
-            (topbar?.getBoundingClientRect().height || 0) +
-            (nav && window.getComputedStyle(nav).position === 'sticky' ? nav.getBoundingClientRect().height : 0) + 10
-          );
+          // Navegador/documento principal.
+          const scrolling = document.scrollingElement || document.documentElement;
+          const rect = alvo.getBoundingClientRect();
+          const destino = Math.max(0, (scrolling.scrollTop || window.pageYOffset || 0) + rect.top - offset);
+          try { window.scrollTo({ top: destino, behavior: suave ? 'smooth' : 'auto' }); }
+          catch (e) { scrolling.scrollTop = destino; }
+          scrolling.scrollTop = destino;
 
-          encontrarScrollers(alvo).forEach(scroller => {
-            const alvoRect = alvo.getBoundingClientRect();
-            const scrollRect = scroller.getBoundingClientRect();
-            const destino = scroller.scrollTop + (alvoRect.top - scrollRect.top) - 12;
-            try { scroller.scrollTo({ top: Math.max(0, destino), behavior }); }
-            catch (e) { scroller.scrollTop = Math.max(0, destino); }
+          // Caso o PWA esteja usando algum contêiner interno rolável.
+          scrollers().forEach(container => {
+            const ar = alvo.getBoundingClientRect();
+            const cr = container.getBoundingClientRect();
+            const topo = Math.max(0, container.scrollTop + ar.top - cr.top - 10);
+            try { container.scrollTo({ top: topo, behavior: suave ? 'smooth' : 'auto' }); }
+            catch (e) { container.scrollTop = topo; }
+            if (!suave) container.scrollTop = topo;
           });
 
-          const rect = alvo.getBoundingClientRect();
-          const atual = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-          const destinoJanela = Math.max(0, atual + rect.top - offset);
-          try { window.scrollTo({ top: destinoJanela, behavior }); }
-          catch (e) { window.scrollTo(0, destinoJanela); }
-          document.documentElement.scrollTop = destinoJanela;
-          if (document.body) document.body.scrollTop = destinoJanela;
-
           secao.classList.add('programmed-form-highlight');
-          window.setTimeout(() => secao.classList.remove('programmed-form-highlight'), 1800);
           return true;
         };
 
-        // O formulário sofre reflow ao preencher cidade, PSCIP, máscaras e campos
-        // condicionais. Repetimos a correção em momentos distintos para Android PWA,
-        // iOS e desktop, sem depender de um único scrollIntoView.
-        requestAnimationFrame(() => requestAnimationFrame(() => executar('smooth')));
-        window.setTimeout(() => executar('smooth'), 180);
-        window.setTimeout(() => executar('auto'), 520);
-        window.setTimeout(() => {
+        // O preenchimento da programação muda altura/visibilidade de vários campos.
+        // Enquanto o layout estabiliza, mantemos o destino preso em "1. Cidade".
+        requestAnimationFrame(() => requestAnimationFrame(() => posicionar(true)));
+        const inicio = Date.now();
+        const timer = window.setInterval(() => {
+          posicionar(false);
           const rect = alvo.getBoundingClientRect();
-          const limiteInferior = Math.min(window.innerHeight * .38, 300);
-          if (rect.top < 0 || rect.top > limiteInferior) executar('auto');
-        }, 950);
+          const esperado = offsetTopo();
+          const acertou = Math.abs(rect.top - esperado) < 28;
+          if ((acertou && Date.now() - inicio > 500) || Date.now() - inicio > 2400) {
+            clearInterval(timer);
+            window.setTimeout(() => secao.classList.remove('programmed-form-highlight'), 1400);
+          }
+        }, 140);
       }
 
       function aplicarPreparacaoAoFormulario_(item) {
