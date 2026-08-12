@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.53';
+      const APP_VERSION = '23.9.54';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -1264,6 +1264,7 @@
         appStatus.textContent = automatico ? 'Enviando vistorias pendentes...' : 'Enviando fila de vistorias...';
 
         let enviados = 0;
+        let dduConcluidoEnviado = false;
         for (const item of [...lista]) {
           if (!navigator.onLine) break;
           try {
@@ -1272,6 +1273,7 @@
               ultimoRegistroConsultaChave = String(resultadoServidor?.chaveConsulta || '');
               atualizarBotaoPlanilhaSucesso_();
             }
+            if (String(item?.payload?._appDduId || '').trim()) dduConcluidoEnviado = true;
             removerPendente(item.id);
             enviados += 1;
           } catch (erro) {
@@ -1283,6 +1285,9 @@
         atualizarPainelPendentes();
         if (enviados > 0) {
           atualizarPlanilhaEmSegundoPlano();
+          // Se uma vistoria vinculada a DDU acabou de chegar ao servidor, atualiza o indicador
+          // para o ícone desaparecer imediatamente quando não houver mais DDU pendente.
+          if (dduConcluidoEnviado) setTimeout(() => { void carregarDdUs_(); }, 250);
           appStatus.textContent = enviados === 1
             ? '1 vistoria pendente enviada com sucesso.'
             : enviados + ' vistorias pendentes enviadas com sucesso.';
@@ -5972,6 +5977,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const ativos=todos.filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado'));
         const concluidos=todos.filter(x=>normalize(x.status)===normalize('Concluído') && !x.arquivoRemovidoEm);
         let vencidos=0,criticos=0; ativos.forEach(x=>{const p=classificarPrazoDdu_(x.dataLimite); if(p.c==='is-overdue')vencidos++; else if(p.c==='is-today')criticos++;});
+        // V23.9.54 — o atalho DDU só existe visualmente quando há demanda pendente.
+        // Registros concluídos/cancelados continuam disponíveis na janela DDU, mas não geram alerta na vistoria.
+        if (dduSummaryCard) dduSummaryCard.hidden = ativos.length === 0;
         if(dduSummaryCount)dduSummaryCount.textContent=String(ativos.length); if(dduSummaryText)dduSummaryText.textContent=ativos.length?`${ativos.length} demanda(s) pendente(s)${vencidos?` • ${vencidos} atrasada(s)`:criticos?` • ${criticos} próxima(s) do prazo`:''}`:'Nenhuma demanda pendente';
         dduSummaryCard?.classList.toggle('is-danger',vencidos>0); dduSummaryCard?.classList.toggle('is-warning',!vencidos&&criticos>0);
         if(!dduList)return;
@@ -5981,6 +5989,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function carregarDdUs_(){
         const inicioLoadingDdu = Date.now();
         const tempoMinimoLoading = 450;
+        // Até o servidor confirmar uma pendência, não exibimos o ícone DDU.
+        if (dduSummaryCard) dduSummaryCard.hidden = true;
         dduSummaryCard?.classList.add('is-loading');
         if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
           dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
@@ -6003,8 +6013,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
           dduSummaryCard?.classList.remove('is-loading');
           dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
-          if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar • toque para tentar novamente';
-          if(dduSummaryCount)dduSummaryCount.textContent='!';
+          if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar';
+          if(dduSummaryCount)dduSummaryCount.textContent='';
+          if (dduSummaryCard) dduSummaryCard.hidden = true;
           dduSummaryCard?.classList.remove('is-danger','is-warning');
           if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
         }
@@ -6426,74 +6437,77 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function rolarParaFormularioProgramado_() {
+        // V23.9.54 — ao tocar em "Abrir vistoria", o primeiro ponto útil da tela é sempre "1. Cidade".
+        // Alguns navegadores móveis restauram a posição anterior durante a mudança de altura do formulário;
+        // por isso a posição é conferida novamente enquanto o layout termina de estabilizar.
         const secao = document.getElementById('cidadeSecao');
-        if (!secao) return;
+        const campoCidade = document.getElementById('cidadeSelect');
+        if (!secao || !campoCidade) return;
 
-        const alvo = secao.querySelector('.section-head') || secao;
-        const scrollers = () => {
-          const lista = [];
-          let pai = alvo.parentElement;
-          while (pai && pai !== document.documentElement) {
-            const css = window.getComputedStyle(pai);
-            const oy = css.overflowY;
-            if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && pai.scrollHeight > pai.clientHeight + 2) lista.push(pai);
-            pai = pai.parentElement;
-          }
-          return lista;
-        };
-
-        const offsetTopo = () => {
+        const topoFixo = () => {
           let total = 12;
-          const candidatos = ['.app-header', '.topbar', '.app-view-nav'];
-          candidatos.forEach(sel => {
+          ['.app-header', '.topbar', '.app-view-nav'].forEach(sel => {
             const el = document.querySelector(sel);
             if (!el || el.offsetParent === null) return;
             const css = window.getComputedStyle(el);
             if (css.position === 'fixed' || css.position === 'sticky') total += el.getBoundingClientRect().height || 0;
           });
-          return Math.min(total, 190);
+          return Math.min(Math.max(total, 12), 200);
         };
 
-        const posicionar = (suave = false) => {
+        const rolar = (suave = false) => {
           if (secao.hidden || secao.offsetParent === null) return false;
-          const offset = offsetTopo();
-
-          // Navegador/documento principal.
+          const alvo = secao.querySelector('.section-head') || secao;
+          const offset = topoFixo();
           const scrolling = document.scrollingElement || document.documentElement;
-          const rect = alvo.getBoundingClientRect();
-          const destino = Math.max(0, (scrolling.scrollTop || window.pageYOffset || 0) + rect.top - offset);
+          const atual = Number(scrolling.scrollTop || window.pageYOffset || 0);
+          const destino = Math.max(0, atual + alvo.getBoundingClientRect().top - offset);
+
           try { window.scrollTo({ top: destino, behavior: suave ? 'smooth' : 'auto' }); }
           catch (e) { scrolling.scrollTop = destino; }
-          scrolling.scrollTop = destino;
+          if (!suave) scrolling.scrollTop = destino;
 
-          // Caso o PWA esteja usando algum contêiner interno rolável.
-          scrollers().forEach(container => {
-            const ar = alvo.getBoundingClientRect();
-            const cr = container.getBoundingClientRect();
-            const topo = Math.max(0, container.scrollTop + ar.top - cr.top - 10);
-            try { container.scrollTo({ top: topo, behavior: suave ? 'smooth' : 'auto' }); }
-            catch (e) { container.scrollTop = topo; }
-            if (!suave) container.scrollTop = topo;
-          });
+          // Compatibilidade com eventual contêiner interno rolável do PWA.
+          let pai = alvo.parentElement;
+          while (pai && pai !== document.documentElement) {
+            const css = window.getComputedStyle(pai);
+            const rolavel = /auto|scroll|overlay/.test(css.overflowY) && pai.scrollHeight > pai.clientHeight + 2;
+            if (rolavel) {
+              const rAlvo = alvo.getBoundingClientRect();
+              const rPai = pai.getBoundingClientRect();
+              const destinoPai = Math.max(0, pai.scrollTop + rAlvo.top - rPai.top - 10);
+              try { pai.scrollTo({ top: destinoPai, behavior: suave ? 'smooth' : 'auto' }); }
+              catch (e) { pai.scrollTop = destinoPai; }
+              if (!suave) pai.scrollTop = destinoPai;
+            }
+            pai = pai.parentElement;
+          }
 
           secao.classList.add('programmed-form-highlight');
           return true;
         };
 
-        // O preenchimento da programação muda altura/visibilidade de vários campos.
-        // Enquanto o layout estabiliza, mantemos o destino preso em "1. Cidade".
-        requestAnimationFrame(() => requestAnimationFrame(() => posicionar(true)));
-        const inicio = Date.now();
-        const timer = window.setInterval(() => {
-          posicionar(false);
-          const rect = alvo.getBoundingClientRect();
-          const esperado = offsetTopo();
-          const acertou = Math.abs(rect.top - esperado) < 28;
-          if ((acertou && Date.now() - inicio > 500) || Date.now() - inicio > 2400) {
-            clearInterval(timer);
-            window.setTimeout(() => secao.classList.remove('programmed-form-highlight'), 1400);
-          }
-        }, 140);
+        const conferir = () => {
+          if (secao.hidden || secao.offsetParent === null) return false;
+          const alvo = secao.querySelector('.section-head') || secao;
+          return Math.abs(alvo.getBoundingClientRect().top - topoFixo()) <= 32;
+        };
+
+        // 1) muda imediatamente para a área do formulário; 2) repete após render/layout;
+        // 3) segura a posição por alguns segundos contra restauração automática de scroll no mobile.
+        try { campoCidade.blur(); } catch (e) {}
+        rolar(false);
+        requestAnimationFrame(() => requestAnimationFrame(() => rolar(true)));
+
+        const tentativas = [120, 280, 520, 850, 1250, 1800, 2600, 3600];
+        tentativas.forEach((ms, indice) => {
+          window.setTimeout(() => {
+            if (!conferir() || indice < 3) rolar(false);
+            if (indice === tentativas.length - 1) {
+              window.setTimeout(() => secao.classList.remove('programmed-form-highlight'), 1400);
+            }
+          }, ms);
+        });
       }
 
       function aplicarPreparacaoAoFormulario_(item) {
@@ -7040,7 +7054,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.53', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.54', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
