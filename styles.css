@@ -6987,3 +6987,35 @@ body.daily-motivational-open{overflow:hidden!important}
 /* V23.9.44 — Históricos REDS para Fiscalização + Nº do Auto posterior */
 .record-reds-tools{display:grid;gap:10px;margin:10px 0 12px}.record-reds-model-label{display:grid;gap:6px;font-size:.82rem;font-weight:800;color:#31483a}.record-reds-model-select{width:100%;min-height:42px;border:1px solid #cddbd2;border-radius:10px;background:#fff;padding:8px 10px;color:#1d2b22;font:inherit}.record-auto-number{border:1px solid #ead8a4;background:#fffaf0;border-radius:12px;padding:10px 12px}.record-auto-number label{display:block;font-size:.84rem;font-weight:800;color:#674d13;margin-bottom:7px}.record-auto-number label small{font-weight:500;color:#806d43;margin-left:4px}.record-auto-number-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.record-auto-number-row input{min-width:0;border:1px solid #d8c996;border-radius:9px;padding:9px 10px;background:#fff;font:inherit}.record-auto-number-row button{border:0;border-radius:9px;background:#6e5312;color:#fff;font-weight:800;padding:9px 13px;cursor:pointer}.record-auto-number-row button:disabled{opacity:.6;cursor:wait}.record-auto-number-status{min-height:18px;margin-top:6px;font-size:.78rem;color:#6b5c35}.record-reds-report-text{white-space:pre-wrap}
 @media(max-width:640px){.record-auto-number-row{grid-template-columns:1fr}.record-auto-number-row button{width:100%}.record-auto-number label small{display:block;margin:2px 0 0}}
+
+
+/* V23.9.45 — WhatsApp robusto no encerramento + envio pela Ficha do Processo */
+.record-whatsapp-panel{
+  margin-top:14px;
+  border:1px solid #cfe9d7;
+  background:linear-gradient(180deg,#f8fffa 0%,#f3fbf6 100%);
+  border-radius:16px;
+  padding:14px;
+}
+.record-whatsapp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.record-whatsapp-head h3{margin:0 0 4px;color:#173b25;font-size:1rem}
+.record-whatsapp-head span{display:block;color:#66756c;font-size:.83rem;line-height:1.45}
+.record-whatsapp-label{display:block;margin-bottom:7px;color:#284a35;font-size:.84rem;font-weight:800}
+.record-whatsapp-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px}
+.record-whatsapp-row input{
+  min-width:0;min-height:44px;border:1px solid #bcd8c5;border-radius:11px;background:#fff;
+  padding:9px 11px;font:inherit;color:#1f2d24;outline:none
+}
+.record-whatsapp-row input:focus{border-color:#25a85a;box-shadow:0 0 0 3px rgba(37,168,90,.12)}
+.record-whatsapp-send-btn{
+  min-height:44px;border:0;border-radius:11px;background:#25D366;color:#fff;
+  padding:10px 15px;font:inherit;font-weight:850;cursor:pointer;white-space:nowrap
+}
+.record-whatsapp-send-btn:hover{background:#20bd5a}
+.record-whatsapp-send-btn:disabled{background:#d0d5dd;color:#667085;cursor:default}
+.record-whatsapp-help{margin-top:7px;color:#718077;font-size:.76rem;line-height:1.4}
+.record-whatsapp-status{min-height:19px;margin-top:6px;color:#42614d;font-size:.79rem;font-weight:650}
+@media(max-width:640px){
+  .record-whatsapp-row{grid-template-columns:1fr}
+  .record-whatsapp-send-btn{width:100%}
+}

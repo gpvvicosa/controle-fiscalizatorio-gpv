@@ -444,6 +444,10 @@
       const recordAutoNumberInput = document.getElementById('recordAutoNumberInput');
       const recordAutoNumberSaveBtn = document.getElementById('recordAutoNumberSaveBtn');
       const recordAutoNumberStatus = document.getElementById('recordAutoNumberStatus');
+      const recordWhatsappPanel = document.getElementById('recordWhatsappPanel');
+      const recordWhatsappPhoneInput = document.getElementById('recordWhatsappPhoneInput');
+      const recordWhatsappSendBtn = document.getElementById('recordWhatsappSendBtn');
+      const recordWhatsappStatus = document.getElementById('recordWhatsappStatus');
       const recordAuditCount = document.getElementById('recordAuditCount');
       const recordAuditList = document.getElementById('recordAuditList');
       const connectionBanner = document.getElementById('connectionBanner');
@@ -604,6 +608,7 @@
       let preparacaoEditandoId = '';
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
+      let recordWhatsappRegistroAtual = null;
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
       const recordsState = {
@@ -968,7 +973,14 @@
       }
 
       function dataOrientacao_(valor) {
-        const data = valor ? new Date(valor) : new Date();
+        const bruto = String(valor || '').trim();
+        if (bruto) {
+          const ptBr = bruto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+          if (ptBr) {
+            return `${ptBr[1].padStart(2, '0')}/${ptBr[2].padStart(2, '0')}/${ptBr[3]}`;
+          }
+        }
+        const data = bruto ? new Date(bruto) : new Date();
         if (Number.isNaN(data.getTime())) return '';
         return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
       }
@@ -1043,6 +1055,35 @@
         linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais*');
         linhas.push('*GPV — 3º Pelotão Viçosa*');
         return linhas.join('\n');
+      }
+
+      function abrirMensagemWhatsAppResponsavel_(payload = ultimoRegistroParaOrientacoes, telefoneAlternativo = '') {
+        if (!navigator.onLine) {
+          alert('Sem internet no momento. A mensagem poderá ser aberta no WhatsApp quando a conexão voltar.');
+          return false;
+        }
+
+        const dados = payload || {};
+        const numero = telefoneWhatsApp_(telefoneAlternativo || dados.telefone);
+        if (!numero) {
+          alert('Telefone do responsável não informado ou inválido.');
+          return false;
+        }
+
+        const mensagem = montarMensagemOrientacoes_(dados);
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+
+        try {
+          window.location.assign(url);
+        } catch (erro) {
+          try {
+            window.location.href = url;
+          } catch (erro2) {
+            const alternativa = `https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(mensagem)}`;
+            window.location.href = alternativa;
+          }
+        }
+        return true;
       }
 
       function atualizarBotaoOrientacoes_() {
@@ -1555,6 +1596,10 @@
         recordDetailLoading.hidden = false;
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
+        if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
+        if (recordWhatsappPhoneInput) recordWhatsappPhoneInput.value = '';
+        if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
+        recordWhatsappRegistroAtual = null;
       }
 
       function descricaoSituacaoPainel_(situacao) {
@@ -1903,6 +1948,52 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      function payloadWhatsAppFicha_(registro, telefone) {
+        const nomeResponsavel = valorCampoFicha_(registro, 'Nome');
+        const nomeFantasia = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia');
+        const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
+        const dataRegistro = valorCampoFicha_(registro, 'Data e hora');
+        return {
+          telefone: telefone || valorCampoFicha_(registro, 'Telefone'),
+          nomeResponsavel,
+          nomeFantasia,
+          razaoSocial,
+          _appCriadoEm: dataRegistro
+        };
+      }
+
+      function atualizarWhatsAppFicha_() {
+        if (!recordWhatsappPanel || !recordWhatsappPhoneInput || !recordWhatsappSendBtn) return;
+        const numero = telefoneWhatsApp_(recordWhatsappPhoneInput.value);
+        recordWhatsappSendBtn.disabled = !numero;
+        if (recordWhatsappStatus) {
+          recordWhatsappStatus.textContent = numero
+            ? 'A mensagem será aberta no WhatsApp para conferência e envio.'
+            : 'Informe um telefone válido com DDD para habilitar o envio.';
+        }
+      }
+
+      function renderizarWhatsAppFicha_(registro) {
+        if (!recordWhatsappPanel || !recordWhatsappPhoneInput || !recordWhatsappSendBtn) return;
+        recordWhatsappRegistroAtual = registro || null;
+        recordWhatsappPanel.hidden = false;
+        recordWhatsappPhoneInput.value = valorCampoFicha_(registro, 'Telefone');
+        atualizarWhatsAppFicha_();
+      }
+
+      function enviarWhatsAppFicha_() {
+        if (!recordWhatsappRegistroAtual || !recordWhatsappPhoneInput) return;
+        const telefone = String(recordWhatsappPhoneInput.value || '').trim();
+        const payload = payloadWhatsAppFicha_(recordWhatsappRegistroAtual, telefone);
+        const abriu = abrirMensagemWhatsAppResponsavel_(payload, telefone);
+        if (recordWhatsappStatus) {
+          recordWhatsappStatus.textContent = abriu
+            ? 'Abrindo o WhatsApp com a mensagem pronta...'
+            : 'Não foi possível abrir o WhatsApp. Confira o telefone e a conexão.';
+        }
+      }
+
+
       function renderizarFichaRegistro_(registro) {
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
@@ -1947,6 +2038,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
         renderizarRelatorioReds_(registro, situacao);
+        renderizarWhatsAppFicha_(registro);
         renderizarHistorico_(registro?.historico || []);
         renderizarAuditoriaRegistro_(registro?.auditoria || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
@@ -1997,6 +2089,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         estadoCarregandoFicha_();
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
+        if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
+        if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
+        recordWhatsappRegistroAtual = null;
         recordDetailGroups.innerHTML = '';
         recordHistoryTimeline.innerHTML = '';
         recordHistoryPanel.hidden = true;
@@ -5596,6 +5691,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordRedsModelSelect?.addEventListener('change', atualizarTextoRelatorioRedsFiscalizacao_);
       recordAutoNumberInput?.addEventListener('input', atualizarTextoRelatorioRedsFiscalizacao_);
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
+      recordWhatsappPhoneInput?.addEventListener('input', atualizarWhatsAppFicha_);
+      recordWhatsappSendBtn?.addEventListener('click', enviarWhatsAppFicha_);
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);

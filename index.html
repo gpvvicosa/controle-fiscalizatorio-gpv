@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.43">
+  <link rel="stylesheet" href="styles.css?v=23.9.45">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -952,6 +952,21 @@
           <textarea id="recordRedsReportText" class="record-reds-report-text" readonly aria-label="Relatório para copiar no REDS"></textarea>
           <div class="record-reds-copy-status" id="recordRedsCopyStatus" role="status" aria-live="polite"></div>
         </section>
+        <section class="record-whatsapp-panel" id="recordWhatsappPanel" hidden>
+          <div class="record-whatsapp-head">
+            <div>
+              <h3>Orientações por WhatsApp</h3>
+              <span>Envie ou reenvie a mensagem ao responsável mesmo após o encerramento da vistoria.</span>
+            </div>
+          </div>
+          <label class="record-whatsapp-label" for="recordWhatsappPhoneInput">Telefone do responsável</label>
+          <div class="record-whatsapp-row">
+            <input id="recordWhatsappPhoneInput" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ex.: (31) 99999-9999">
+            <button class="record-whatsapp-send-btn" id="recordWhatsappSendBtn" type="button">Enviar pelo WhatsApp</button>
+          </div>
+          <div class="record-whatsapp-help">Você pode corrigir o número antes do envio. A alteração feita aqui é usada somente para abrir esta mensagem.</div>
+          <div class="record-whatsapp-status" id="recordWhatsappStatus" role="status" aria-live="polite"></div>
+        </section>
         <section class="record-history-panel" id="recordHistoryPanel" hidden>
           <div class="record-history-head"><h3>Histórico</h3><span id="recordHistoryCount"></span></div>
           <div class="record-history-timeline" id="recordHistoryTimeline"></div>
@@ -1220,8 +1235,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.43"></script>
-  <script src="ocupacoes.js?v=23.9.43"></script>
-  <script src="app.js?v=23.9.43"></script>
+  <script src="config.js?v=23.9.45"></script>
+  <script src="ocupacoes.js?v=23.9.45"></script>
+  <script src="app.js?v=23.9.45"></script>
 </body>
 </html>
