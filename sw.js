@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-45-whatsapp-ficha';
-const VERSION = '23.9.45';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-47-whatsapp-desktop-loading-manual-drive';
+const VERSION = '23.9.47';
 
 const CORE_SHELL = [
   './',

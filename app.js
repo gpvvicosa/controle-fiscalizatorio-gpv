@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.43';
+      const APP_VERSION = '23.9.47';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -1010,7 +1010,7 @@
         linhas.push('');
         linhas.push('Consulte o *Manual do Autuado*, com orientações sobre o procedimento de fiscalização, prazos, defesa, regularização e acompanhamento no INFOSCIP:');
         linhas.push('');
-        linhas.push('https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/manual');
+        linhas.push('https://drive.google.com/file/d/1ruWxhB-8QVlOAV6o6eItqOeHgjUyKvt0/view?usp=sharing');
         linhas.push('');
         linhas.push('👷‍♂️ *PRIMEIRO PASSO FUNDAMENTAL*');
         linhas.push('');
@@ -1070,17 +1070,32 @@
           return false;
         }
 
-        const mensagem = montarMensagemOrientacoes_(dados);
-        const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+        // V23.9.47: preserva integralmente o padrão atual da mensagem, mas evita o
+        // redirecionamento wa.me no desktop. O WhatsApp Web recebe o texto UTF-8
+        // diretamente, reduzindo perda de emojis/caracteres durante redirecionamentos.
+        const mensagem = montarMensagemOrientacoes_(dados).normalize('NFC');
+        const textoCodificado = encodeURIComponent(mensagem);
+        const ehDesktop = !/Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator.userAgent || ''));
+        const urlPrimaria = ehDesktop
+          ? `https://web.whatsapp.com/send?phone=${numero}&text=${textoCodificado}`
+          : `https://wa.me/${numero}?text=${textoCodificado}`;
+        const urlAlternativa = `https://api.whatsapp.com/send?phone=${numero}&text=${textoCodificado}`;
 
         try {
-          window.location.assign(url);
+          if (ehDesktop) {
+            const novaAba = window.open(urlPrimaria, '_blank');
+            if (novaAba) {
+              try { novaAba.opener = null; } catch (_) {}
+              try { novaAba.focus(); } catch (_) {}
+              return true;
+            }
+          }
+          window.location.assign(urlPrimaria);
         } catch (erro) {
           try {
-            window.location.href = url;
+            window.location.href = urlPrimaria;
           } catch (erro2) {
-            const alternativa = `https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(mensagem)}`;
-            window.location.href = alternativa;
+            window.location.href = urlAlternativa;
           }
         }
         return true;
@@ -4328,7 +4343,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const forcar = Boolean(opcoes.forcar);
         const mostrar = forcar || deveMostrarMotivacionalHoje_();
         if (!mostrar) {
-          await carregarInicialComMotivacional_();
+          // V23.9.47: sem mensagem diária pendente, carrega o ambiente diretamente.
+          // A versão anterior chamava esta própria função novamente, prolongando o estado de carregamento.
+          await loadInitialData();
           return;
         }
 
@@ -4352,11 +4369,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } catch (erro) {
           erroCarga = erro;
         }
-        const restante = Math.max(0, 5000 - (Date.now() - inicio));
+        const restante = Math.max(0, 1800 - (Date.now() - inicio));
         if (restante) await new Promise(resolve => setTimeout(resolve, restante));
 
         overlay.classList.add('leaving');
-        await new Promise(resolve => setTimeout(resolve, 360));
+        await new Promise(resolve => setTimeout(resolve, 220));
         overlay.classList.remove('show', 'leaving');
         overlay.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('daily-motivational-open');
@@ -4945,7 +4962,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
       async function carregarDdUs_(){
         const inicioLoadingDdu = Date.now();
-        const tempoMinimoLoading = 1200;
+        const tempoMinimoLoading = 450;
         dduSummaryCard?.classList.add('is-loading');
         if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
           dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
@@ -5326,7 +5343,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function carregarPreparacoesVistoria_() {
         const inicioLoadingProgramadas = Date.now();
-        const tempoMinimoLoading = 1200;
+        const tempoMinimoLoading = 450;
         const cacheKey = 'gpv_preparacoes_cache_v1';
         let cachePreparacoes = [];
         try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
@@ -5500,15 +5517,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         appStatus.textContent = navigator.onLine ? 'Aplicativo pronto. Sincronizando configurações...' : 'Modo offline — aplicativo pronto para preenchimento.';
 
         if (navigator.onLine) {
-          try {
-            const data = await apiRequest('config', {}, 30000);
-            aplicarConfig(data);
-            try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
-            appStatus.textContent = 'Sistema pronto para registrar vistoria.';
-          } catch (error) {
-            appStatus.textContent = 'Aplicativo pronto com configuração armazenada.';
-            if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
-          }
+          const sincronizarConfigOnline_ = async () => {
+            try {
+              const data = await apiRequest('config', {}, 30000);
+              aplicarConfig(data);
+              try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+              appStatus.textContent = 'Sistema pronto para registrar vistoria.';
+            } catch (error) {
+              appStatus.textContent = cached ? 'Aplicativo pronto com configuração armazenada.' : 'Aplicativo pronto com configuração padrão.';
+              if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
+            }
+          };
+
+          // V23.9.47: em aparelhos já sincronizados, a configuração armazenada libera a tela
+          // imediatamente. A conferência online ocorre depois, sem prolongar o "Carregando".
+          if (cached) setTimeout(() => { void sincronizarConfigOnline_(); }, 1600);
+          else await sincronizarConfigOnline_();
+
           if (obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
         }
 
@@ -5525,15 +5550,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           marcarAbaApp_('form');
         }
 
-        // V23.9.38: só inicia os loaders de DDU/programações depois que a vista já está pintada.
-        // Antes, as consultas começavam durante a inicialização e a animação terminava antes de a tela Vistoria aparecer.
+        // V23.9.47: DDU, programações e lista de vistoriadores são dados auxiliares.
+        // A tela principal não fica mais presa ao "Carregando" aguardando essas três consultas.
+        // Cada área mantém seu próprio indicador e termina a atualização em segundo plano.
         if (navigator.onLine) {
-          if (vistaInicial === 'form') {
-            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            await Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_(), carregarDdUs_()]);
-          } else {
-            Promise.allSettled([carregarUsuariosVistoriadores_(), carregarPreparacoesVistoria_(), carregarDdUs_()]).catch(() => {});
-          }
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            Promise.allSettled([
+              carregarUsuariosVistoriadores_(),
+              carregarPreparacoesVistoria_(),
+              carregarDdUs_()
+            ]).catch(() => {});
+          }));
         }
       }
 
