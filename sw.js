@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-50-hotfix-notificacoes-temporarias-15d';
-const VERSION = '23.9.50';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-51-seletores-mobile-lista-vertical';
+const VERSION = '23.9.51';
 
 const CORE_SHELL = [
   './',

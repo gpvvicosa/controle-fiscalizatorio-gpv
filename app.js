@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.50';
+      const APP_VERSION = '23.9.51';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -735,6 +735,248 @@
       function digits(v) { return String(v || '').replace(/\D/g, ''); }
       function normalize(v) {
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      }
+
+      /* V23.9.51 — seletor móvel padronizado.
+         Em telas pequenas, selects e campos com datalist abrem em uma folha inferior
+         com lista vertical rolável. Campos datalist continuam aceitando texto livre. */
+      const MOBILE_CHOICE_MEDIA = '(max-width: 820px), (pointer: coarse)';
+      let mobileChoiceState = {
+        target: null,
+        options: [],
+        allowCustom: false,
+        overlay: null,
+        sheet: null,
+        title: null,
+        search: null,
+        list: null,
+        empty: null,
+        custom: null,
+        customBtn: null,
+        closeBtn: null
+      };
+
+      function escolhaMovelDisponivel_() {
+        try { return window.matchMedia(MOBILE_CHOICE_MEDIA).matches; } catch (e) { return window.innerWidth <= 820; }
+      }
+
+      function campoElegivelEscolhaMovel_(alvo) {
+        if (!(alvo instanceof HTMLElement)) return false;
+        if (alvo.closest('.mobile-choice-overlay')) return false;
+        if (alvo.dataset?.mobilePicker === 'off') return false;
+        if (alvo.matches('select')) return !alvo.multiple && !alvo.disabled;
+        if (alvo.matches('input[list]')) {
+          if (alvo.disabled || alvo.readOnly) return false;
+          const listaId = String(alvo.getAttribute('list') || '').trim();
+          return Boolean(listaId && document.getElementById(listaId));
+        }
+        return false;
+      }
+
+      function rotuloCampoEscolhaMovel_(alvo) {
+        if (!alvo) return 'Selecionar opção';
+        const id = String(alvo.id || '').trim();
+        if (id) {
+          const label = document.querySelector(`label[for="${CSS.escape(id)}"]`);
+          if (label) return String(label.textContent || '').replace(/\s+/g, ' ').trim() || 'Selecionar opção';
+        }
+        const labelPai = alvo.closest('label');
+        if (labelPai) {
+          const clone = labelPai.cloneNode(true);
+          clone.querySelectorAll('input,select,textarea,datalist,button').forEach(el => el.remove());
+          const texto = String(clone.textContent || '').replace(/\s+/g, ' ').trim();
+          if (texto) return texto;
+        }
+        return String(alvo.getAttribute('aria-label') || alvo.name || alvo.placeholder || 'Selecionar opção').trim();
+      }
+
+      function opcoesCampoEscolhaMovel_(alvo) {
+        const vistos = new Set();
+        const saida = [];
+        const adicionar = (valor, texto, detalhe = '') => {
+          const v = String(valor ?? '');
+          const t = String(texto ?? v).replace(/\s+/g, ' ').trim() || v;
+          const chave = `${v}\u0000${t}`;
+          if (vistos.has(chave)) return;
+          vistos.add(chave);
+          saida.push({ value: v, text: t, detail: String(detalhe || '').replace(/\s+/g, ' ').trim() });
+        };
+
+        if (alvo?.matches('select')) {
+          Array.from(alvo.options || []).forEach(option => {
+            if (option.disabled) return;
+            adicionar(option.value, option.textContent || option.label || option.value);
+          });
+          return saida;
+        }
+
+        const listaId = String(alvo?.getAttribute('list') || '').trim();
+        const datalist = listaId ? document.getElementById(listaId) : null;
+        Array.from(datalist?.options || []).forEach(option => {
+          const valor = String(option.value || '').trim();
+          if (!valor) return;
+          const label = String(option.label || option.textContent || '').trim();
+          adicionar(valor, valor, label && normalize(label) !== normalize(valor) ? label : '');
+        });
+        return saida;
+      }
+
+      function garantirEscolhaMovel_() {
+        if (mobileChoiceState.overlay) return mobileChoiceState;
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-choice-overlay';
+        overlay.hidden = true;
+        overlay.innerHTML = `
+          <section class="mobile-choice-sheet" role="dialog" aria-modal="true" aria-labelledby="mobileChoiceTitle">
+            <div class="mobile-choice-handle" aria-hidden="true"></div>
+            <header class="mobile-choice-head">
+              <div>
+                <span>Selecionar opção</span>
+                <h2 id="mobileChoiceTitle">Escolha uma opção</h2>
+              </div>
+              <button class="mobile-choice-close" type="button" aria-label="Fechar lista">×</button>
+            </header>
+            <div class="mobile-choice-search-wrap">
+              <span aria-hidden="true">⌕</span>
+              <input class="mobile-choice-search" type="search" autocomplete="off" inputmode="search" placeholder="Pesquisar na lista..." aria-label="Pesquisar opções">
+            </div>
+            <div class="mobile-choice-list" role="listbox"></div>
+            <div class="mobile-choice-empty" hidden>Nenhuma opção encontrada.</div>
+            <div class="mobile-choice-custom" hidden>
+              <button type="button" class="mobile-choice-custom-btn"></button>
+            </div>
+          </section>`;
+        document.body.appendChild(overlay);
+
+        mobileChoiceState = {
+          ...mobileChoiceState,
+          overlay,
+          sheet: overlay.querySelector('.mobile-choice-sheet'),
+          title: overlay.querySelector('#mobileChoiceTitle'),
+          search: overlay.querySelector('.mobile-choice-search'),
+          list: overlay.querySelector('.mobile-choice-list'),
+          empty: overlay.querySelector('.mobile-choice-empty'),
+          custom: overlay.querySelector('.mobile-choice-custom'),
+          customBtn: overlay.querySelector('.mobile-choice-custom-btn'),
+          closeBtn: overlay.querySelector('.mobile-choice-close')
+        };
+
+        mobileChoiceState.closeBtn?.addEventListener('click', fecharEscolhaMovel_);
+        overlay.addEventListener('click', event => { if (event.target === overlay) fecharEscolhaMovel_(); });
+        mobileChoiceState.search?.addEventListener('input', renderizarOpcoesEscolhaMovel_);
+        mobileChoiceState.list?.addEventListener('click', event => {
+          const botao = event.target.closest('[data-mobile-choice-index]');
+          if (!botao) return;
+          const indice = Number(botao.dataset.mobileChoiceIndex);
+          const opcao = mobileChoiceState.options[indice];
+          if (opcao) aplicarEscolhaMovel_(opcao.value);
+        });
+        mobileChoiceState.customBtn?.addEventListener('click', () => {
+          const valor = String(mobileChoiceState.search?.value || '').trim();
+          if (valor) aplicarEscolhaMovel_(valor);
+        });
+        return mobileChoiceState;
+      }
+
+      function renderizarOpcoesEscolhaMovel_() {
+        const state = garantirEscolhaMovel_();
+        if (!state.target) return;
+        const termo = normalize(state.search?.value || '');
+        const atual = String(state.target.value || '');
+        const indices = state.options
+          .map((opcao, index) => ({ opcao, index }))
+          .filter(({ opcao }) => !termo || normalize(`${opcao.text} ${opcao.detail} ${opcao.value}`).includes(termo));
+
+        state.list.innerHTML = indices.map(({ opcao, index }) => {
+          const selecionado = String(opcao.value) === atual;
+          const texto = opcao.text || (opcao.value ? opcao.value : 'Limpar seleção');
+          return `<button type="button" class="mobile-choice-option${selecionado ? ' is-selected' : ''}" data-mobile-choice-index="${index}" role="option" aria-selected="${selecionado ? 'true' : 'false'}">
+            <span class="mobile-choice-option-text">${escapeHtml(texto)}</span>
+            ${opcao.detail ? `<small>${escapeHtml(opcao.detail)}</small>` : ''}
+            <span class="mobile-choice-check" aria-hidden="true">${selecionado ? '✓' : '›'}</span>
+          </button>`;
+        }).join('');
+
+        state.empty.hidden = Boolean(indices.length);
+        const digitado = String(state.search?.value || '').trim();
+        const existeExato = state.options.some(opcao => normalize(opcao.value) === normalize(digitado));
+        const mostrarCustom = state.allowCustom && Boolean(digitado) && !existeExato;
+        state.custom.hidden = !mostrarCustom;
+        if (mostrarCustom) state.customBtn.textContent = `Usar texto digitado: “${digitado}”`;
+      }
+
+      function abrirEscolhaMovel_(alvo) {
+        if (!escolhaMovelDisponivel_() || !campoElegivelEscolhaMovel_(alvo)) return false;
+        const state = garantirEscolhaMovel_();
+        state.target = alvo;
+        state.options = opcoesCampoEscolhaMovel_(alvo);
+        state.allowCustom = alvo.matches('input[list]');
+        state.title.textContent = rotuloCampoEscolhaMovel_(alvo);
+        state.search.value = '';
+        state.search.placeholder = state.allowCustom ? 'Pesquisar ou digitar...' : 'Pesquisar na lista...';
+        state.overlay.hidden = false;
+        document.body.classList.add('mobile-choice-open');
+        alvo.setAttribute('aria-expanded', 'true');
+        renderizarOpcoesEscolhaMovel_();
+        requestAnimationFrame(() => {
+          state.sheet?.scrollTo?.({ top: 0 });
+          state.closeBtn?.focus?.({ preventScroll: true });
+        });
+        return true;
+      }
+
+      function fecharEscolhaMovel_() {
+        const state = mobileChoiceState;
+        if (!state.overlay || state.overlay.hidden) return;
+        const alvo = state.target;
+        state.overlay.hidden = true;
+        document.body.classList.remove('mobile-choice-open');
+        if (alvo) alvo.setAttribute('aria-expanded', 'false');
+        state.target = null;
+        state.options = [];
+        state.allowCustom = false;
+        if (state.search) state.search.value = '';
+      }
+
+      function aplicarEscolhaMovel_(valor) {
+        const alvo = mobileChoiceState.target;
+        if (!alvo) return;
+        const novo = String(valor ?? '');
+        const anterior = String(alvo.value || '');
+        alvo.value = novo;
+        if (anterior !== novo || alvo.matches('input[list]')) {
+          alvo.dispatchEvent(new Event('input', { bubbles: true }));
+          alvo.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        fecharEscolhaMovel_();
+      }
+
+      function focarCampoCompatEscolhaMovel_(alvo) {
+        if (!alvo) return;
+        if (abrirEscolhaMovel_(alvo)) return;
+        alvo.focus?.();
+      }
+
+      function instalarEscolhaMovel_() {
+        garantirEscolhaMovel_();
+        const interceptar = event => {
+          if (!escolhaMovelDisponivel_()) return;
+          const alvo = event.target?.closest?.('select,input[list]');
+          if (!campoElegivelEscolhaMovel_(alvo)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          abrirEscolhaMovel_(alvo);
+        };
+        document.addEventListener('pointerdown', interceptar, true);
+        document.addEventListener('click', event => {
+          if (!escolhaMovelDisponivel_()) return;
+          const alvo = event.target?.closest?.('select,input[list]');
+          if (!campoElegivelEscolhaMovel_(alvo)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (mobileChoiceState.target !== alvo || mobileChoiceState.overlay?.hidden) abrirEscolhaMovel_(alvo);
+        }, true);
+        window.addEventListener('resize', () => { if (!escolhaMovelDisponivel_()) fecharEscolhaMovel_(); });
       }
 
       function nomeDispositivo_() {
@@ -2950,7 +3192,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           setTimeout(() => {
             const alvo = notificacoesLiberacaoLista?.querySelector(`[data-notification-local-card="${CSS.escape(local.id)}"]`);
             alvo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            alvo?.querySelector('[data-notification-field="tipoLocal"]')?.focus();
+            focarCampoCompatEscolhaMovel_(alvo?.querySelector('[data-notification-field="tipoLocal"]'));
           }, 30);
         }
         return local;
@@ -2968,7 +3210,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           setTimeout(() => {
             const alvo = notificacoesLiberacaoLista?.querySelector(`[data-notification-irregularity-card="${CSS.escape(item.id)}"]`);
             alvo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            alvo?.querySelector('[data-notification-field="tipoIrregularidade"]')?.focus();
+            focarCampoCompatEscolhaMovel_(alvo?.querySelector('[data-notification-field="tipoIrregularidade"]'));
           }, 30);
         }
         return item;
@@ -3091,7 +3333,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (faltantes.length) {
           if (mostrarMensagem) showError(`Complete o rascunho antes de concluir como Notificado: ${faltantes.slice(0, 5).join('; ')}${faltantes.length > 5 ? '...' : ''}.`);
           primeiro?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          primeiro?.focus();
+          focarCampoCompatEscolhaMovel_(primeiro);
           return false;
         }
         return true;
@@ -3107,7 +3349,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : `[data-notification-local-card="${CSS.escape(localId)}"]`;
           const alvo = notificacoesLiberacaoLista?.querySelector(seletor);
           alvo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          alvo?.querySelector('input,textarea')?.focus();
+          focarCampoCompatEscolhaMovel_(alvo?.querySelector('input,textarea'));
         }, 80);
       }
 
@@ -6583,7 +6825,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
@@ -6625,12 +6867,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.50', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.51', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
       }
 
+      instalarEscolhaMovel_();
       inicializarCatalogoNotificacoes_();
       renderizarNotificacoesLiberacao_();
       atualizarStatusConexao();
