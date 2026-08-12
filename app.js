@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.51';
+      const APP_VERSION = '23.9.52';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -523,6 +523,10 @@
       const pendenciaDocumentalSelect = document.getElementById('pendenciaDocumental');
       const tipoVistoriaInput = document.getElementById('tipoVistoria');
       const vistoriadorResponsavelSelect = document.getElementById('vistoriadorResponsavel');
+      const categoriaMetaSelect = document.getElementById('categoriaMeta');
+      const areaInput = document.getElementById('area');
+      const areaLabel = document.getElementById('areaLabel');
+      const areaMetaStatus = document.getElementById('areaMetaStatus');
       const notificacoesLiberacaoSecao = document.getElementById('notificacoesLiberacaoSecao');
       const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
       const notificacoesLiberacaoResumo = document.getElementById('notificacoesLiberacaoResumo');
@@ -2359,11 +2363,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           [rotuloIdentificador, identificadorRegistro]
         ];
         const responsavel = [
-          ['Responsável', valorCampoFicha_(registro, 'Responsável')],
+          ['Responsável / vínculo', valorCampoFicha_(registro, 'Responsável')],
           ['Nome', valorCampoFicha_(registro, 'Nome')],
+          ['RG', valorCampoFicha_(registro, 'RG')],
           ['CPF', valorCampoFicha_(registro, 'CPF')],
+          ['Mãe', valorCampoFicha_(registro, 'Mãe')],
+          ['Data de nascimento', valorCampoFicha_(registro, 'Nascimento', 'Data de nascimento')],
+          ['Profissão', valorCampoFicha_(registro, 'Profissão')],
+          ['Estado civil', valorCampoFicha_(registro, 'Estado civil')],
+          ['Escolaridade', valorCampoFicha_(registro, 'Escolaridade')],
           ['Telefone', valorCampoFicha_(registro, 'Telefone')],
-          ['E-mail', valorCampoFicha_(registro, 'E-mail')]
+          ['E-mail', valorCampoFicha_(registro, 'E-mail')],
+          ['Endereço do responsável', valorCampoFicha_(registro, 'Endereço do responsável')]
         ];
 
         recordDetailGroups.innerHTML =
@@ -2855,6 +2866,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         fillDatalist('dlNatureza', op.natureza);
         fillDatalist('dlDemanda', op.demandaPrincipal);
         fillSelect('categoriaMeta', (op.categoriaMeta || []).filter(Boolean), 'Nenhuma / não se aplica');
+        atualizarVerificacaoMetasFiscalizacao_();
         ocupacoesExistentes = Array.from(new Set(
           (op.ocupacao || [])
             .filter(Boolean)
@@ -2902,6 +2914,82 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function ehFluxoLiberacao_() { return fluxoVistoriaAtual_() === 'liberacao'; }
+      function ehFluxoFiscalizacao_() { return fluxoVistoriaAtual_() === 'fiscalizacao'; }
+
+      function numeroAreaM2_(valor) {
+        let texto = String(valor == null ? '' : valor).trim().replace(/\s+/g, '');
+        if (!texto) return NaN;
+        texto = texto.replace(/[^0-9,.-]/g, '');
+        const temVirgula = texto.includes(',');
+        const temPonto = texto.includes('.');
+        if (temVirgula && temPonto) {
+          if (texto.lastIndexOf(',') > texto.lastIndexOf('.')) texto = texto.replace(/\./g, '').replace(',', '.');
+          else texto = texto.replace(/,/g, '');
+        } else if (temVirgula) {
+          const partes = texto.split(',');
+          texto = partes.length > 2 ? partes.join('') : `${partes[0]}.${partes[1] || ''}`;
+        } else if (temPonto) {
+          const partes = texto.split('.');
+          if (partes.length > 2) texto = partes.join('');
+          else if (partes.length === 2 && partes[1].length === 3 && partes[0].length <= 3) texto = partes.join('');
+        }
+        const numero = Number(texto);
+        return Number.isFinite(numero) ? numero : NaN;
+      }
+
+      function categoriaMetaComAreaParaExibicao_(payload = {}) {
+        const partes = String(payload?.categoriaMeta || '')
+          .split(/\s*\|\s*|\s*;\s*|\n+/)
+          .map(v => String(v || '').trim())
+          .filter(Boolean);
+        const tipo = normalize(payload?.tipoVistoria || '');
+        const fiscalizacao = tipo.includes('fiscalizacao');
+        const area = numeroAreaM2_(payload?.area);
+        if (fiscalizacao && Number.isFinite(area) && area > 930 && !partes.some(v => normalize(v) === normalize('Nível de risco III'))) {
+          partes.push('Nível de risco III');
+        }
+        return partes.join(' | ');
+      }
+
+      function atualizarVerificacaoMetasFiscalizacao_() {
+        const fiscalizacao = ehFluxoFiscalizacao_();
+        if (areaInput) areaInput.required = fiscalizacao;
+        areaLabel?.classList.toggle('required', fiscalizacao);
+
+        if (categoriaMetaSelect) {
+          const opcaoNivel3 = Array.from(categoriaMetaSelect.options || []).find(op => normalize(op.value) === normalize('Nível de risco III'));
+          if (opcaoNivel3) opcaoNivel3.disabled = fiscalizacao;
+          if (fiscalizacao && normalize(categoriaMetaSelect.value) === normalize('Nível de risco III')) categoriaMetaSelect.value = '';
+        }
+
+        if (!areaMetaStatus) return;
+        if (!fiscalizacao) {
+          areaMetaStatus.className = 'lookup-status';
+          areaMetaStatus.textContent = '';
+          return;
+        }
+
+        const bruto = String(areaInput?.value || '').trim();
+        const area = numeroAreaM2_(bruto);
+        const categoriaManual = String(categoriaMetaSelect?.value || '').trim();
+        if (!bruto) {
+          areaMetaStatus.className = 'lookup-status show info';
+          areaMetaStatus.textContent = 'Fiscalização: informe a área da edificação para verificar automaticamente o enquadramento nas metas.';
+          return;
+        }
+        if (!Number.isFinite(area) || area <= 0) {
+          areaMetaStatus.className = 'lookup-status show error';
+          areaMetaStatus.textContent = 'Informe uma área válida em metros quadrados.';
+          return;
+        }
+        if (area > 930) {
+          areaMetaStatus.className = 'lookup-status show success';
+          areaMetaStatus.textContent = `Meta verificada: ${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m² — enquadra-se automaticamente em Nível de risco III (> 930 m²)${categoriaManual ? ` e também mantém a categoria ${categoriaManual}` : ''}.`;
+          return;
+        }
+        areaMetaStatus.className = 'lookup-status show info';
+        areaMetaStatus.textContent = `Meta verificada: ${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m² — não se enquadra automaticamente em Nível de risco III pela regra de área${categoriaManual ? `. Categoria informada: ${categoriaManual}.` : '. Nenhuma outra categoria de meta foi selecionada.'}`;
+      }
 
       function atualizarOpcoesSancaoPorFluxo_() {
         if (!sancaoSelect) return;
@@ -2954,6 +3042,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           syncLicenciamento();
         }
         syncNotificado();
+        atualizarVerificacaoMetasFiscalizacao_();
         if (!opcoes.silencioso && f) {
           document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           scheduleDraftSave();
@@ -3468,6 +3557,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           _appDispositivo: nomeDispositivo_(),
           _appPreparacaoId: preparacaoEmUsoId,
           _appDduId: dduEmUsoId,
+          _appVersao: APP_VERSION,
           vistoriadorResponsavel: value('vistoriadorResponsavel'),
           cidade: cityValue() || 'Viçosa',
           nomeFantasia: value('nomeFantasia'),
@@ -3523,6 +3613,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const checks = [
           ['tipoVistoria', 'Tipo de vistoria'],
           ...(ehFluxoLiberacao_() ? [] : [['licenciamento', 'Situação do licenciamento'], ['possuiPscip', 'Possui PSCIP?']]),
+          ...(ehFluxoFiscalizacao_() ? [['area', 'Área da edificação (m²)']] : []),
           ['vistoriadorResponsavel', 'Vistoriador responsável'],
           ['cnpj', 'CNPJ ou CPF'],
           ['endereco', 'Endereço'],
@@ -3554,6 +3645,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           missing.push('Outra cidade');
           otherCity.classList.add('invalid');
           if (!first) first = otherCity;
+        }
+        if (ehFluxoFiscalizacao_() && value('area')) {
+          const area = numeroAreaM2_(value('area'));
+          if (!Number.isFinite(area) || area <= 0) {
+            if (areaInput) areaInput.classList.add('invalid');
+            if (showMessage) showError('Informe uma área válida da edificação em metros quadrados.');
+            if (areaInput) {
+              openParentDetails(areaInput);
+              areaInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return false;
+          }
         }
         const identificador = digits(value('cnpj'));
         if (identificador && ![11, 14].includes(identificador.length)) {
@@ -4688,6 +4791,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (tipoId === 'cnpj') cnpjAssociadoDadosEmpresa = digits(value('cnpj'));
           telefoneResponsavelAssociado = digits(value('telefone'));
           syncNotificado();
+          atualizarVerificacaoMetasFiscalizacao_();
           appStatus.textContent = 'Rascunho anterior recuperado.';
         } catch (e) {}
       }
@@ -4744,6 +4848,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         renderizarOcupacoesSelecionadas();
         mostrarMetaOcupacao(null);
         esconderResultadosOcupacao();
+        atualizarVerificacaoMetasFiscalizacao_();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
@@ -4780,7 +4885,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
           ['Possui PSCIP?', payload?._appPossuiPscip === 'sim' ? 'Sim' : (payload?._appPossuiPscip === 'nao' ? 'Não' : '—')],
           ['Nº PSCIP', payload?.pscip || '—'],
-          ['Demanda', [payload?.demandaPrincipal, payload?.categoriaMeta].filter(Boolean).join(' | ') || '—'],
+          ['Área da edificação', payload?.area ? `${payload.area} m²` : '—'],
+          ['Demanda', [payload?.demandaPrincipal, categoriaMetaComAreaParaExibicao_(payload)].filter(Boolean).join(' | ') || '—'],
+          ['Verificação de meta por área', normalize(payload?.tipoVistoria || '').includes('fiscalizacao')
+            ? (numeroAreaM2_(payload?.area) > 930 ? 'Nível de risco III — enquadramento automático' : 'Não enquadra automaticamente em Nível de risco III pela área')
+            : 'Não se aplica'],
           ['Tipo de vistoria', payload?.tipoVistoria || '—'],
           ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
           ['Sanção', payload?.sancao || '—'],
@@ -6349,6 +6458,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           syncOtherCity();
         }
         applyIdentificadorMask();
+        atualizarVerificacaoMetasFiscalizacao_();
         scheduleDraftSave();
         agendarConsultaProcessoPf_('form', 180);
         rolarParaFormularioProgramado_();
@@ -6542,6 +6652,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         scheduleDraftSave();
       });
       form.addEventListener('change', scheduleDraftSave);
+      areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
+      areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
+      categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
@@ -6867,7 +6980,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.51', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.52', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
