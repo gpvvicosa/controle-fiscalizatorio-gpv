@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.30';
+      const APP_VERSION = '23.9.43';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -548,6 +548,12 @@
       const prepareTipo = document.getElementById('prepareTipo');
       const prepareData = document.getElementById('prepareData');
       const prepareVistoriador = document.getElementById('prepareVistoriador');
+      const preparePfInput = document.getElementById('preparePf');
+      const preparePfLookupStatus = document.getElementById('preparePfLookupStatus');
+      const preparePfLookupResults = document.getElementById('preparePfLookupResults');
+      const processPfInput = document.getElementById('pf');
+      const processPfLookupStatus = document.getElementById('processPfLookupStatus');
+      const processPfLookupResults = document.getElementById('processPfLookupResults');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
       const establishmentHistoryResults = document.getElementById('establishmentHistoryResults');
@@ -637,6 +643,14 @@
       let encerramentoFiscalTimer = null;
       let encerramentoFiscalSequencia = 0;
       let encerramentoFiscalAtual = null;
+      let processoPfLookupTimer = null;
+      let processoPfLookupSequencia = 0;
+      let processoPfCandidatos = [];
+      let processoPfAutoAtual = '';
+      let preparePfLookupTimer = null;
+      let preparePfLookupSequencia = 0;
+      let preparePfCandidatos = [];
+      let preparePfAutoAtual = '';
 
       function value(id) {
         const el = document.getElementById(id);
@@ -3304,6 +3318,140 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         agendarConsultaEncerramentoFiscal_();
       }
 
+
+      function filtrosProcessoPf_(origem = 'form') {
+        const g = id => String(document.getElementById(id)?.value || '').trim();
+        if (origem === 'prepare') {
+          return {
+            identificador: digits(g('prepareCnpj')),
+            pscip: g('preparePscip'),
+            cidade: g('prepareCidade'),
+            endereco: g('prepareEndereco'),
+            numero: g('prepareNumero')
+          };
+        }
+        return {
+          identificador: digits(value('cnpj')),
+          pscip: value('pscip'),
+          cidade: cityValue(),
+          endereco: value('endereco'),
+          numero: value('numero')
+        };
+      }
+
+      function chaveFiltrosProcessoPf_(f) {
+        return [digits(f.identificador || ''), normalizarPscipTela_(f.pscip || ''), normalize(f.cidade || ''), normalize(f.endereco || ''), normalize(f.numero || '')].join('|');
+      }
+
+      function filtrosSuficientesProcessoPf_(f) {
+        const d = digits(f.identificador || '');
+        const docOk = d.length === 11 || d.length === 14;
+        const pscipOk = normalizarPscipTela_(f.pscip || '').length > 3;
+        const enderecoOk = !!(String(f.cidade || '').trim() && String(f.endereco || '').trim() && String(f.numero || '').trim());
+        return docOk || pscipOk || enderecoOk;
+      }
+
+      function limparResultadoProcessoPf_(origem = 'form') {
+        const prepare = origem === 'prepare';
+        const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
+        const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
+        if (status) { status.textContent = ''; status.className = 'lookup-status'; }
+        if (resultados) { resultados.innerHTML = ''; resultados.hidden = true; }
+        if (prepare) preparePfCandidatos = []; else processoPfCandidatos = [];
+      }
+
+      function aplicarPfLocalizado_(origem, candidato, automatico = false) {
+        if (!candidato?.pf) return;
+        const prepare = origem === 'prepare';
+        const input = prepare ? preparePfInput : processPfInput;
+        if (!input) return;
+        const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
+        const atual = String(input.value || '').trim();
+        if (automatico && atual && atual !== autoAtual) return;
+        input.value = String(candidato.pf).trim();
+        if (prepare) preparePfAutoAtual = input.value; else processoPfAutoAtual = input.value;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
+        if (status) {
+          const ref = [candidato.criterio, candidato.estabelecimento, candidato.sancao].filter(Boolean).join(' • ');
+          status.textContent = `PF ${candidato.pf} localizado no histórico desde 01/07/2025${ref ? ` — ${ref}` : ''}.`;
+          status.className = 'lookup-status show success';
+        }
+        const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
+        if (resultados) { resultados.innerHTML = ''; resultados.hidden = true; }
+        if (!prepare) scheduleDraftSave();
+      }
+
+      function renderizarCandidatosProcessoPf_(origem, candidatos) {
+        const prepare = origem === 'prepare';
+        const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
+        const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
+        if (prepare) preparePfCandidatos = candidatos; else processoPfCandidatos = candidatos;
+        if (!resultados) return;
+        if (!candidatos.length) {
+          resultados.innerHTML = '';
+          resultados.hidden = true;
+          const input = prepare ? preparePfInput : processPfInput;
+          const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
+          if (input && autoAtual && String(input.value || '').trim() === autoAtual) input.value = '';
+          if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
+          if (status) { status.textContent = 'Nenhum Nº do PF localizado no histórico desde 01/07/2025.'; status.className = 'lookup-status show info'; }
+          return;
+        }
+        if (candidatos.length === 1) {
+          aplicarPfLocalizado_(origem, candidatos[0], true);
+          return;
+        }
+        const inputAtual = prepare ? preparePfInput : processPfInput;
+        const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
+        if (inputAtual && autoAtual && String(inputAtual.value || '').trim() === autoAtual && !candidatos.some(item => String(item.pf || '').trim() === autoAtual)) inputAtual.value = '';
+        if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
+        if (status) {
+          status.textContent = `${candidatos.length} processos compatíveis encontrados desde 01/07/2025. Selecione o Nº do PF correto.`;
+          status.className = 'lookup-status show info';
+        }
+        resultados.innerHTML = candidatos.map((item,index) => {
+          const endereco = [item.endereco,item.numero,item.cidade].filter(Boolean).join(', ');
+          const detalhe = [item.criterio,item.sancao,item.carimbo,endereco].filter(Boolean).join(' • ');
+          return `<div class="establishment-history-item"><div class="establishment-history-copy"><strong>PF ${escapeHtml(item.pf)}</strong><span>${escapeHtml(item.estabelecimento || 'Processo localizado')}</span><span>${escapeHtml(detalhe)}</span></div><button class="establishment-history-use" type="button" data-pf-origin="${prepare ? 'prepare' : 'form'}" data-pf-index="${index}">Usar PF</button></div>`;
+        }).join('');
+        resultados.hidden = false;
+      }
+
+      async function consultarProcessoPf_(origem = 'form') {
+        if (!navigator.onLine) return;
+        const filtros = filtrosProcessoPf_(origem);
+        if (!filtrosSuficientesProcessoPf_(filtros)) { limparResultadoProcessoPf_(origem); return; }
+        const prepare = origem === 'prepare';
+        const seq = prepare ? ++preparePfLookupSequencia : ++processoPfLookupSequencia;
+        const chave = chaveFiltrosProcessoPf_(filtros);
+        const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
+        if (status) { status.textContent = 'Pesquisando processo fiscalizatório desde 01/07/2025...'; status.className = 'lookup-status show info'; }
+        try {
+          const resposta = await apiRequest('config', { consulta:'processo_pf', filtros }, 10000);
+          if ((prepare ? preparePfLookupSequencia : processoPfLookupSequencia) !== seq) return;
+          if (chaveFiltrosProcessoPf_(filtrosProcessoPf_(origem)) !== chave) return;
+          const candidatos = Array.isArray(resposta?.candidatos) ? resposta.candidatos : [];
+          renderizarCandidatosProcessoPf_(origem, candidatos);
+        } catch (erro) {
+          if ((prepare ? preparePfLookupSequencia : processoPfLookupSequencia) !== seq) return;
+          if (status) { status.textContent = erro?.message || 'Não foi possível pesquisar o Nº do PF agora.'; status.className = 'lookup-status show error'; }
+        }
+      }
+
+      function agendarConsultaProcessoPf_(origem = 'form', atraso = 650) {
+        const prepare = origem === 'prepare';
+        if (prepare) {
+          clearTimeout(preparePfLookupTimer);
+          preparePfLookupSequencia += 1;
+          preparePfLookupTimer = setTimeout(() => consultarProcessoPf_('prepare'), atraso);
+        } else {
+          clearTimeout(processoPfLookupTimer);
+          processoPfLookupSequencia += 1;
+          processoPfLookupTimer = setTimeout(() => consultarProcessoPf_('form'), atraso);
+        }
+      }
+
       function situacaoAtualPodeEncerrarFiscalizacao_() {
         const n = normalize(value('sancao'));
         return n === normalize('Regularizado') || n === normalize('Liberado');
@@ -4477,7 +4625,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
 
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
-        ['prepareCnpj','prepareData','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => {
+        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
@@ -4486,10 +4634,11 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
         const cidade = document.getElementById('prepareCidade'); if (cidade) cidade.value = 'Viçosa';
         const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value = 'PRJ';
-        const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Preparar vistoria';
-        if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Salvar programação';
+        const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Cadastrar vistoria';
+        if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Cadastrar vistoria';
         ultimoCnpjPreparacaoConsultado = '';
         clearPrepareCnpjStatus_();
+        limparResultadoProcessoPf_('prepare');
         atualizarCamposPreparacaoPorTipo_();
       }
 
@@ -4571,7 +4720,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         }catch(e){if(dduRegisterError){dduRegisterError.textContent=e?.message||'Não foi possível cadastrar o DDU.';dduRegisterError.hidden=false;}}
         finally{dduRegisterSaveBtn.disabled=false;dduRegisterSaveBtn.textContent='Salvar DDU';}
       }
-      function iniciarDdu_(item){ if(!item)return; dduEmUsoId=String(item.id||''); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v}; set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} appStatus.textContent='DDU carregado. Complete os dados da fiscalização.'; }
+      function iniciarDdu_(item){ if(!item)return; dduEmUsoId=String(item.id||''); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v}; set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} agendarConsultaProcessoPf_('form',180); appStatus.textContent='DDU carregado. Complete os dados da fiscalização.'; }
 
       function abrirModalPreparacao_() {
         fecharMenuMais_();
@@ -4594,6 +4743,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         set('prepareVistoriador', item.vistoriadorResponsavel || '');
         set('prepareCidade', item.cidade || 'Viçosa');
         set('preparePscip', item.pscip || 'PRJ');
+        set('preparePf', item.pf || '');
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
@@ -4636,6 +4786,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           cidade: g('prepareCidade') || 'Viçosa',
           _appPossuiPscip: tipo === 'liberacao' ? 'sim' : (normalizarPscipTela_(g('preparePscip')).length > 3 ? 'sim' : 'nao'),
           pscip: normalizarPscipExibicao_(g('preparePscip'), tipo === 'liberacao'),
+          pf: g('preparePf'),
           cnpj: g('prepareCnpj'),
           nomeFantasia: g('prepareNomeFantasia'),
           razaoSocial: g('prepareRazaoSocial'),
@@ -4791,7 +4942,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
           fecharModalPreparacao_();
           limparFormularioPreparacao_();
           await carregarPreparacoesVistoria_();
-          appStatus.textContent = eraEdicao ? 'Programação atualizada com sucesso.' : 'Vistoria programada e compartilhada com a equipe.';
+          appStatus.textContent = eraEdicao ? 'Programação atualizada com sucesso.' : 'Vistoria cadastrada e compartilhada com a equipe.';
         } catch (erro) {
           if (prepareInspectionError) {
             prepareInspectionError.hidden = false;
@@ -4883,7 +5034,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
             <div class="prepared-card-main">
               <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : 'Fiscalização'}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
               <h3>${escapeHtml(titulo)}</h3>
-              <p class="prepared-identifiers">${escapeHtml(item.pscip || 'Sem PSCIP informado')}${item.area ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
+              <p class="prepared-identifiers">${escapeHtml(item.pscip || 'Sem PSCIP informado')}${item.pf ? ` <span aria-hidden="true">•</span> PF ${escapeHtml(item.pf)}` : ''}${item.area ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
               <p class="prepared-address">${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
               <p class="prepared-inspector"><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
             </div>
@@ -5058,6 +5209,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         set('endereco', item.endereco);
         set('numero', item.numero);
         set('bairro', item.bairro);
+        set('pf', item.pf);
         set('area', item.area);
         if (item.pscip) { if (possuiPscipSelect) possuiPscipSelect.value='sim'; set('pscip', item.pscip); syncPscip_(); }
         if (item.cidade) {
@@ -5068,6 +5220,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         }
         applyIdentificadorMask();
         scheduleDraftSave();
+        agendarConsultaProcessoPf_('form', 180);
         rolarParaFormularioProgramado_();
         appStatus.textContent = `Vistoria programada carregada${item.vistoriadorResponsavel ? ` — responsável: ${item.vistoriadorResponsavel}` : ''}.`;
       }
@@ -5149,7 +5302,8 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
       prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
-      document.getElementById('preparePscip')?.addEventListener('input', event => { event.target.value = String(event.target.value || '').replace(/^prj/i, 'PRJ'); });
+      document.getElementById('preparePscip')?.addEventListener('input', event => { event.target.value = String(event.target.value || '').replace(/^prj/i, 'PRJ'); agendarConsultaProcessoPf_('prepare'); });
+      ['prepareCidade','prepareEndereco','prepareNumero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('prepare')));
       let timerConsultaCnpjPreparacao = null;
       let ultimoCnpjPreparacaoConsultado = '';
       const prepareCnpjInput = document.getElementById('prepareCnpj');
@@ -5164,6 +5318,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         const ok = await consultarCnpjPreparacao_();
         if (ok && digits(prepareCnpjInput?.value || '') === numero) {
           ultimoCnpjPreparacaoConsultado = numero;
+          agendarConsultaProcessoPf_('prepare', 120);
           return true;
         }
         return false;
@@ -5171,6 +5326,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       prepareCnpjInput?.addEventListener('input', () => {
         const numero = digits(prepareCnpjInput.value || '').slice(0, 14);
         prepareCnpjInput.value = numero.length > 11 ? formatarCnpjTela_(numero) : numero;
+        agendarConsultaProcessoPf_('prepare');
         if (timerConsultaCnpjPreparacao) {
           window.clearTimeout(timerConsultaCnpjPreparacao);
           timerConsultaCnpjPreparacao = null;
@@ -5263,6 +5419,8 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         agendarConsultaPscip_();
         scheduleDraftSave();
       });
+      pscipInput?.addEventListener('input', () => agendarConsultaProcessoPf_('form'));
+      pscipInput?.addEventListener('blur', () => agendarConsultaProcessoPf_('form', 100));
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       pendenciaDocumentalSelect?.addEventListener('change', scheduleDraftSave);
       recordRedsCopyBtn?.addEventListener('click', copiarRelatorioReds_);
@@ -5273,7 +5431,18 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       ['cnpj','endereco','numero','pf','demandaPrincipal'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', agendarConsultaEncerramentoFiscal_);
       });
+      ['cnpj','endereco','numero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('form')));
       citySelect?.addEventListener('change', agendarConsultaEncerramentoFiscal_);
+      citySelect?.addEventListener('change', () => agendarConsultaProcessoPf_('form'));
+      [processPfLookupResults, preparePfLookupResults].forEach(container => container?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-pf-index]');
+        if (!botao) return;
+        const origem = botao.dataset.pfOrigin === 'prepare' ? 'prepare' : 'form';
+        const lista = origem === 'prepare' ? preparePfCandidatos : processoPfCandidatos;
+        const indice = Number(botao.dataset.pfIndex);
+        if (!Number.isInteger(indice) || !lista[indice]) return;
+        aplicarPfLocalizado_(origem, lista[indice], false);
+      }));
       pscipHistoryResults?.addEventListener('click', event => {
         const botao = event.target.closest('[data-history-pscip-index]');
         if (!botao) return;
@@ -5514,7 +5683,7 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.39', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.43', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

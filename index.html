@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.29">
+  <link rel="stylesheet" href="styles.css?v=23.9.43">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -164,7 +164,7 @@
     </button>
     <button class="app-more-menu-item" id="prepareInspectionBtn" data-menu-tone="red" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
-      <span><strong>Preparar vistoria</strong><small>Cadastrar uma vistoria antes do deslocamento</small></span>
+      <span><strong>Cadastrar vistoria</strong><small>Cadastrar uma vistoria antes do deslocamento</small></span>
     </button>
     <button class="app-more-menu-item" id="registerDduBtn" data-menu-tone="crimson" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5M8 12h8M8 16h6"/></svg>
@@ -539,7 +539,7 @@
                 <div class="programmed-title-wrap"><span class="programmed-title-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 10h6M9 14h6M9 18h4"/></svg></span><div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div></div>
                 <button class="desktop-prepare-btn" id="desktopPrepareInspectionBtn" type="button">
                   <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
-                  <span>Preparar vistoria</span>
+                  <span>Cadastrar vistoria</span>
                 </button>
               </div>
               <div id="programDeadlineNotice" class="program-deadline-notice" hidden></div>
@@ -780,6 +780,8 @@
             <div class="field">
               <label for="pf">Nº do PF</label>
               <input id="pf" name="pf" placeholder="Nº do PF">
+              <div class="lookup-status" id="processPfLookupStatus" role="status" aria-live="polite"></div>
+              <div class="establishment-history-results pf-history-results" id="processPfLookupResults" hidden></div>
             </div>
             <div class="field wide process-closure-notice" id="processClosureNotice" hidden aria-live="polite"></div>
             <div class="field">
@@ -1011,7 +1013,7 @@
   <div class="review-overlay" id="prepareInspectionModal" hidden>
     <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="prepareInspectionTitle">
       <div class="review-head">
-        <div><h2 id="prepareInspectionTitle">Preparar vistoria</h2><p>Cadastre os dados conhecidos antes do deslocamento.</p></div>
+        <div><h2 id="prepareInspectionTitle">Cadastrar vistoria</h2><p>Cadastre os dados conhecidos antes do deslocamento.</p></div>
         <button class="icon-btn" type="button" id="prepareInspectionCloseBtn" aria-label="Fechar">×</button>
       </div>
       <div class="review-body">
@@ -1022,6 +1024,7 @@
           <div class="field"><label class="required" for="prepareVistoriador">Vistoriador responsável</label><select id="prepareVistoriador"><option value="">Selecione</option></select></div>
           <div class="field"><label for="prepareCidade">Cidade</label><input id="prepareCidade" value="Viçosa"></div>
           <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP</label><input id="preparePscip" value="PRJ" autocomplete="off"><div class="hint">Obrigatório para vistoria de liberação.</div></div>
+          <div class="field"><label for="preparePf">Nº do PF</label><input id="preparePf" autocomplete="off" placeholder="Preenchido automaticamente quando houver processo anterior"><div class="lookup-status" id="preparePfLookupStatus" role="status" aria-live="polite"></div><div class="establishment-history-results pf-history-results" id="preparePfLookupResults" hidden></div></div>
           <div class="field"><label for="prepareNomeFantasia">Nome Fantasia</label><input id="prepareNomeFantasia"></div>
           <div class="field"><label for="prepareRazaoSocial">Razão Social</label><input id="prepareRazaoSocial"></div>
           <div class="field"><label for="prepareArea">Área (m²)</label><input id="prepareArea" inputmode="decimal"></div>
@@ -1033,7 +1036,7 @@
         </div>
         <div class="error-box" id="prepareInspectionError" hidden></div>
       </div>
-      <div class="review-actions"><button class="btn btn-secondary" type="button" id="prepareInspectionCancelBtn">Cancelar</button><button class="btn btn-primary" type="button" id="prepareInspectionSaveBtn">Salvar programação</button></div>
+      <div class="review-actions"><button class="btn btn-secondary" type="button" id="prepareInspectionCancelBtn">Cancelar</button><button class="btn btn-primary" type="button" id="prepareInspectionSaveBtn">Cadastrar vistoria</button></div>
     </div>
   </div>
 
@@ -1204,8 +1207,8 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.29"></script>
-  <script src="ocupacoes.js?v=23.9.29"></script>
-  <script src="app.js?v=23.9.29"></script>
+  <script src="config.js?v=23.9.43"></script>
+  <script src="ocupacoes.js?v=23.9.43"></script>
+  <script src="app.js?v=23.9.43"></script>
 </body>
 </html>
