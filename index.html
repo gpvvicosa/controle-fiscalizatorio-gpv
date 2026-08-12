@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.47">
+  <link rel="stylesheet" href="styles.css?v=23.9.49">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -820,11 +820,32 @@
         </div>
       </section>
 
+      <section class="section vistoria-flow-section release-notifications-section" id="notificacoesLiberacaoSecao" hidden>
+        <div class="section-head">
+          <div class="section-icon notification-draft-icon" aria-hidden="true">📝</div>
+          <div class="head-text">
+            <h2>5. Rascunho das notificações</h2>
+            <p>Use durante a vistoria de liberação para registrar as irregularidades conforme forem sendo encontradas. O rascunho é salvo automaticamente neste aparelho.</p>
+          </div>
+        </div>
+        <div class="section-body notification-draft-body">
+          <div class="notification-draft-notice">
+            <strong>Estrutura baseada no INFOSCIP</strong>
+            <span>Local → Tipo de irregularidade → Item irregular → Descrição. Após concluir como Notificado, as anotações ficam disponíveis na Ficha por 15 dias e depois são excluídas automaticamente. A fundamentação normativa continua sob conferência do vistoriador.</span>
+          </div>
+          <datalist id="dlNotificacaoTiposLocal"></datalist>
+          <datalist id="dlNotificacaoCategorias"></datalist>
+          <div class="notification-draft-summary" id="notificacoesLiberacaoResumo">Nenhuma notificação adicionada.</div>
+          <div class="notification-local-list" id="notificacoesLiberacaoLista"></div>
+          <button class="btn notification-add-local-btn" id="notificacoesAdicionarLocalBtn" type="button">+ Adicionar local da irregularidade</button>
+        </div>
+      </section>
+
       <section class="section vistoria-flow-section" id="edificacao" hidden>
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V6l8-3v18M12 9h8v12M7.5 9h1M7.5 13h1M7.5 17h1M15 13l1.5 1.5L20 11"/></svg></div>
           <div class="head-text">
-            <h2>5. Características da edificação</h2>
+            <h2>6. Características da edificação</h2>
             <p>Área, pavimentos, altura e ocupação(ões) visíveis diretamente na página.</p>
           </div>
         </div>
@@ -928,6 +949,17 @@
       <div class="record-detail-loading" id="recordDetailLoading">Selecione um processo na tabela para abrir a ficha.</div>
       <div class="record-detail-content">
         <div class="record-detail-groups" id="recordDetailGroups"></div>
+        <section class="record-notifications-panel" id="recordNotificationsPanel" hidden>
+          <div class="record-notifications-head">
+            <div>
+              <h3>Notificações INFOSCIP — temporárias</h3>
+              <span id="recordNotificationsSummary">Irregularidades registradas durante a vistoria. Armazenamento temporário por 15 dias.</span>
+            </div>
+            <button class="record-notifications-copy-all" id="recordNotificationsCopyAllBtn" type="button">Copiar todas</button>
+          </div>
+          <div class="record-notifications-list" id="recordNotificationsList"></div>
+          <div class="record-notifications-status" id="recordNotificationsStatus" role="status" aria-live="polite"></div>
+        </section>
         <section class="record-reds-report" id="recordRedsReportPanel" hidden>
           <div class="record-reds-report-head">
             <div>
@@ -1098,6 +1130,26 @@
     </div>
   </div>
 
+  <div class="review-overlay notification-review-overlay" id="notificationReviewModal" hidden>
+    <section class="review-card notification-review-card" role="dialog" aria-modal="true" aria-labelledby="notificationReviewTitle">
+      <header class="review-header notification-review-header">
+        <div>
+          <span>Liberação — resultado Notificado</span>
+          <h2 id="notificationReviewTitle">Conferir notificações</h2>
+          <p>Confira os locais, itens e descrições antes de encerrar a vistoria.</p>
+        </div>
+        <button class="review-close" id="notificationReviewCloseBtn" type="button" aria-label="Voltar ao rascunho">×</button>
+      </header>
+      <div class="notification-review-summary" id="notificationReviewSummary"></div>
+      <div class="notification-review-list" id="notificationReviewList"></div>
+      <div class="review-actions notification-review-actions">
+        <button class="btn btn-secondary" id="notificationReviewAddBtn" type="button">+ Adicionar outra</button>
+        <button class="btn btn-secondary" id="notificationReviewBackBtn" type="button">Voltar e corrigir</button>
+        <button class="btn btn-primary" id="notificationReviewConfirmBtn" type="button">Notificações conferidas — continuar</button>
+      </div>
+    </section>
+  </div>
+
   <div class="review-overlay" id="reviewModal" hidden>
     <section class="review-card" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
       <header class="review-header">
@@ -1235,8 +1287,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.47"></script>
-  <script src="ocupacoes.js?v=23.9.47"></script>
-  <script src="app.js?v=23.9.47"></script>
+  <script src="config.js?v=23.9.49"></script>
+  <script src="ocupacoes.js?v=23.9.49"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.49"></script>
+  <script src="app.js?v=23.9.49"></script>
 </body>
 </html>

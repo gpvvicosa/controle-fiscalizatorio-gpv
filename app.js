@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.47';
+      const APP_VERSION = '23.9.49';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -448,6 +448,11 @@
       const recordWhatsappPhoneInput = document.getElementById('recordWhatsappPhoneInput');
       const recordWhatsappSendBtn = document.getElementById('recordWhatsappSendBtn');
       const recordWhatsappStatus = document.getElementById('recordWhatsappStatus');
+      const recordNotificationsPanel = document.getElementById('recordNotificationsPanel');
+      const recordNotificationsSummary = document.getElementById('recordNotificationsSummary');
+      const recordNotificationsList = document.getElementById('recordNotificationsList');
+      const recordNotificationsCopyAllBtn = document.getElementById('recordNotificationsCopyAllBtn');
+      const recordNotificationsStatus = document.getElementById('recordNotificationsStatus');
       const recordAuditCount = document.getElementById('recordAuditCount');
       const recordAuditList = document.getElementById('recordAuditList');
       const connectionBanner = document.getElementById('connectionBanner');
@@ -518,6 +523,19 @@
       const pendenciaDocumentalSelect = document.getElementById('pendenciaDocumental');
       const tipoVistoriaInput = document.getElementById('tipoVistoria');
       const vistoriadorResponsavelSelect = document.getElementById('vistoriadorResponsavel');
+      const notificacoesLiberacaoSecao = document.getElementById('notificacoesLiberacaoSecao');
+      const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
+      const notificacoesLiberacaoResumo = document.getElementById('notificacoesLiberacaoResumo');
+      const notificacoesAdicionarLocalBtn = document.getElementById('notificacoesAdicionarLocalBtn');
+      const dlNotificacaoTiposLocal = document.getElementById('dlNotificacaoTiposLocal');
+      const dlNotificacaoCategorias = document.getElementById('dlNotificacaoCategorias');
+      const notificationReviewModal = document.getElementById('notificationReviewModal');
+      const notificationReviewCloseBtn = document.getElementById('notificationReviewCloseBtn');
+      const notificationReviewBackBtn = document.getElementById('notificationReviewBackBtn');
+      const notificationReviewAddBtn = document.getElementById('notificationReviewAddBtn');
+      const notificationReviewConfirmBtn = document.getElementById('notificationReviewConfirmBtn');
+      const notificationReviewSummary = document.getElementById('notificationReviewSummary');
+      const notificationReviewList = document.getElementById('notificationReviewList');
       const licenciamentoFieldWrap = document.getElementById('licenciamentoFieldWrap');
       const possuiPscipFieldWrap = document.getElementById('possuiPscipFieldWrap');
       const fluxoFiscalizacaoBtn = document.getElementById('fluxoFiscalizacaoBtn');
@@ -661,6 +679,8 @@
       let preparePfLookupSequencia = 0;
       let preparePfCandidatos = [];
       let preparePfAutoAtual = '';
+      let notificacoesLiberacaoDraft = [];
+      let recordNotificationsAtual = [];
 
       function value(id) {
         const el = document.getElementById(id);
@@ -2009,6 +2029,69 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
 
+
+      function notificacoesDaFicha_(registro) {
+        const bruto = String(registro?.notificacoesTemporarias || '').trim();
+        const estrutura = normalizarEstruturaNotificacoes_(bruto);
+        const itens = [];
+        estrutura.forEach(local => {
+          (local.irregularidades || []).forEach(irregularidade => {
+            if (!irregularidadeNotificacaoTemConteudo_(irregularidade)) return;
+            itens.push({ local, irregularidade });
+          });
+        });
+        return itens;
+      }
+
+      function renderizarNotificacoesFicha_(registro) {
+        if (!recordNotificationsPanel || !recordNotificationsList) return;
+        recordNotificationsAtual = notificacoesDaFicha_(registro);
+        if (!recordNotificationsAtual.length) {
+          recordNotificationsPanel.hidden = true;
+          recordNotificationsList.innerHTML = '';
+          if (recordNotificationsStatus) recordNotificationsStatus.textContent = '';
+          return;
+        }
+
+        recordNotificationsPanel.hidden = false;
+        if (recordNotificationsSummary) {
+          const locais = new Set(recordNotificationsAtual.map(item => `${item.local.tipoLocal}|${item.local.complemento}`)).size;
+          const validade = String(registro?.notificacoesDisponiveisAte || '').trim();
+          recordNotificationsSummary.textContent =
+            `${recordNotificationsAtual.length} irregularidade${recordNotificationsAtual.length === 1 ? '' : 's'} registrada${recordNotificationsAtual.length === 1 ? '' : 's'} em ${locais} local${locais === 1 ? '' : 'is'}.` +
+            (validade ? ` Disponível na Ficha até ${validade}.` : '');
+        }
+        recordNotificationsList.innerHTML = recordNotificationsAtual.map((item, indice) => {
+          const local = item.local;
+          const irregularidade = item.irregularidade;
+          return `<article class="record-notification-item">
+            <div class="record-notification-item-head">
+              <div>
+                <strong>${indice + 1}. ${escapeHtml([local.tipoLocal, local.complemento].filter(Boolean).join(' — ') || 'Local não informado')}</strong>
+                <small>${escapeHtml(irregularidade.tipoIrregularidade || 'Tipo não informado')} • ${escapeHtml(irregularidade.itemIrregular || 'Item não informado')}</small>
+              </div>
+              <button class="record-notification-copy" type="button" data-record-notification-copy="${indice}">Copiar</button>
+            </div>
+            <p>${escapeHtml(irregularidade.descricao || '')}</p>
+          </article>`;
+        }).join('');
+        if (recordNotificationsStatus) recordNotificationsStatus.textContent = '';
+      }
+
+      async function copiarNotificacaoFicha_(indice) {
+        const item = recordNotificationsAtual[Number(indice)];
+        if (!item) return;
+        const ok = await copiarTextoCompat_(textoNotificacaoIndividual_(item.local, item.irregularidade, false));
+        if (recordNotificationsStatus) recordNotificationsStatus.textContent = ok ? 'Descrição copiada.' : 'Não foi possível copiar automaticamente.';
+      }
+
+      async function copiarTodasNotificacoesFicha_() {
+        if (!recordNotificationsAtual.length) return;
+        const ok = await copiarTextoCompat_(textoTodasNotificacoes_(recordNotificationsAtual));
+        if (recordNotificationsStatus) recordNotificationsStatus.textContent = ok ? 'Todas as notificações foram copiadas.' : 'Não foi possível copiar automaticamente.';
+      }
+
+
       function renderizarFichaRegistro_(registro) {
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
@@ -2052,6 +2135,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
+        renderizarNotificacoesFicha_(registro);
         renderizarRelatorioReds_(registro, situacao);
         renderizarWhatsAppFicha_(registro);
         renderizarHistorico_(registro?.historico || []);
@@ -2607,6 +2691,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', f === 'fiscalizacao' ? 'true' : 'false');
         fluxoLiberacaoBtn?.setAttribute('aria-pressed', f === 'liberacao' ? 'true' : 'false');
         vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
+        if (notificacoesLiberacaoSecao) notificacoesLiberacaoSecao.hidden = f !== 'liberacao';
         if (vistoriaBottomBar) vistoriaBottomBar.hidden = !f;
         if (fluxoVistoriaAtualTexto) {
           fluxoVistoriaAtualTexto.hidden = !f;
@@ -2640,6 +2725,496 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const sancao = normalize(String(p.sancao || ''));
         if (sancao === normalize('Liberado') || sancao === normalize('Notificado')) return 'liberacao';
         return p.tipoVistoria || p.sancao ? 'fiscalizacao' : '';
+      }
+
+
+      function catalogoNotificacoesInfoscip_() {
+        const catalogo = window.GPV_NOTIFICACOES_INFOSCIP || {};
+        return {
+          tiposLocal: Array.isArray(catalogo.tiposLocal) ? catalogo.tiposLocal : [],
+          categorias: Array.isArray(catalogo.categorias) ? catalogo.categorias : []
+        };
+      }
+
+      function novoIdNotificacao_(prefixo) {
+        const aleatorio = Math.random().toString(36).slice(2, 9);
+        return `${prefixo || 'notif'}_${Date.now().toString(36)}_${aleatorio}`;
+      }
+
+      function novaIrregularidadeNotificacao_() {
+        return {
+          id: novoIdNotificacao_('irr'),
+          tipoIrregularidade: '',
+          itemIrregular: '',
+          descricao: ''
+        };
+      }
+
+      function novoLocalNotificacao_() {
+        return {
+          id: novoIdNotificacao_('loc'),
+          tipoLocal: '',
+          complemento: '',
+          irregularidades: [novaIrregularidadeNotificacao_()]
+        };
+      }
+
+      function sanitizarEstruturaNotificacoesLocal_(entrada) {
+        if (!entrada || typeof entrada !== 'object') return null;
+        const irregularidadesOrigem = Array.isArray(entrada.irregularidades) ? entrada.irregularidades : [];
+        const irregularidades = irregularidadesOrigem.slice(0, 80).map(item => ({
+          id: String(item?.id || novoIdNotificacao_('irr')),
+          tipoIrregularidade: String(item?.tipoIrregularidade || '').slice(0, 500),
+          itemIrregular: String(item?.itemIrregular || '').slice(0, 500),
+          descricao: String(item?.descricao || '').slice(0, 6000)
+        }));
+        return {
+          id: String(entrada.id || novoIdNotificacao_('loc')),
+          tipoLocal: String(entrada.tipoLocal || '').slice(0, 300),
+          complemento: String(entrada.complemento || '').slice(0, 500),
+          irregularidades
+        };
+      }
+
+      function normalizarEstruturaNotificacoes_(valor) {
+        let origem = valor;
+        if (typeof origem === 'string') {
+          const texto = origem.trim();
+          if (!texto) return [];
+          try { origem = JSON.parse(texto); } catch (erro) { return []; }
+        }
+        if (!Array.isArray(origem)) return [];
+        return origem.slice(0, 40).map(sanitizarEstruturaNotificacoesLocal_).filter(Boolean);
+      }
+
+      function restaurarNotificacoesLiberacao_(valor) {
+        notificacoesLiberacaoDraft = normalizarEstruturaNotificacoes_(valor);
+        renderizarNotificacoesLiberacao_();
+      }
+
+      function serializarNotificacoesLiberacao_() {
+        if (!notificacoesLiberacaoDraft.length) return '';
+        try {
+          return JSON.stringify(notificacoesLiberacaoDraft.map(local => ({
+            tipoLocal: String(local.tipoLocal || '').trim(),
+            complemento: String(local.complemento || '').trim(),
+            irregularidades: (local.irregularidades || []).map(item => ({
+              tipoIrregularidade: String(item.tipoIrregularidade || '').trim(),
+              itemIrregular: String(item.itemIrregular || '').trim(),
+              descricao: String(item.descricao || '').trim()
+            }))
+          })));
+        } catch (erro) {
+          return '';
+        }
+      }
+
+      function localNotificacaoPorId_(id) {
+        return notificacoesLiberacaoDraft.find(item => String(item.id) === String(id)) || null;
+      }
+
+      function irregularidadeNotificacaoPorId_(local, id) {
+        return (local?.irregularidades || []).find(item => String(item.id) === String(id)) || null;
+      }
+
+      function localNotificacaoTemConteudo_(local) {
+        if (!local) return false;
+        if (String(local.tipoLocal || '').trim() || String(local.complemento || '').trim()) return true;
+        return (local.irregularidades || []).some(irregularidadeNotificacaoTemConteudo_);
+      }
+
+      function irregularidadeNotificacaoTemConteudo_(item) {
+        if (!item) return false;
+        return Boolean(
+          String(item.tipoIrregularidade || '').trim() ||
+          String(item.itemIrregular || '').trim() ||
+          String(item.descricao || '').trim()
+        );
+      }
+
+      function notificacoesPossuemConteudo_() {
+        return notificacoesLiberacaoDraft.some(localNotificacaoTemConteudo_);
+      }
+
+      function flattenNotificacoesLiberacao_(somenteComConteudo = true) {
+        const itens = [];
+        notificacoesLiberacaoDraft.forEach((local, indiceLocal) => {
+          (local.irregularidades || []).forEach((irregularidade, indiceIrregularidade) => {
+            if (somenteComConteudo && !irregularidadeNotificacaoTemConteudo_(irregularidade) && !String(local.tipoLocal || '').trim() && !String(local.complemento || '').trim()) return;
+            itens.push({
+              local,
+              irregularidade,
+              indiceLocal,
+              indiceIrregularidade
+            });
+          });
+        });
+        return itens;
+      }
+
+      function itensCategoriaNotificacao_(categoria) {
+        const chave = normalize(categoria);
+        if (!chave) return [];
+        const encontrado = catalogoNotificacoesInfoscip_().categorias.find(item => normalize(item?.tipo) === chave);
+        return Array.isArray(encontrado?.itens) ? encontrado.itens : [];
+      }
+
+      function optionsHtmlNotificacao_(valores) {
+        return (valores || []).map(valor => `<option value="${escapeAttr(valor)}"></option>`).join('');
+      }
+
+      function inicializarCatalogoNotificacoes_() {
+        const catalogo = catalogoNotificacoesInfoscip_();
+        if (dlNotificacaoTiposLocal) dlNotificacaoTiposLocal.innerHTML = optionsHtmlNotificacao_(catalogo.tiposLocal);
+        if (dlNotificacaoCategorias) dlNotificacaoCategorias.innerHTML = optionsHtmlNotificacao_(catalogo.categorias.map(item => item.tipo));
+      }
+
+      function atualizarResumoNotificacoesLiberacao_() {
+        if (!notificacoesLiberacaoResumo) return;
+        const locaisComConteudo = notificacoesLiberacaoDraft.filter(localNotificacaoTemConteudo_);
+        const irregularidades = flattenNotificacoesLiberacao_(true);
+        if (!locaisComConteudo.length && !irregularidades.length) {
+          notificacoesLiberacaoResumo.textContent = 'Nenhuma notificação adicionada.';
+          return;
+        }
+        notificacoesLiberacaoResumo.textContent =
+          `${locaisComConteudo.length} local${locaisComConteudo.length === 1 ? '' : 'is'} • ` +
+          `${irregularidades.length} irregularidade${irregularidades.length === 1 ? '' : 's'} em rascunho`;
+      }
+
+      function renderizarNotificacoesLiberacao_() {
+        if (!notificacoesLiberacaoLista) return;
+        if (!notificacoesLiberacaoDraft.length) {
+          notificacoesLiberacaoLista.innerHTML = '<div class="notification-draft-notice"><strong>Rascunho vazio</strong><span>Adicione um local somente quando encontrar uma irregularidade na vistoria.</span></div>';
+          atualizarResumoNotificacoesLiberacao_();
+          return;
+        }
+
+        notificacoesLiberacaoLista.innerHTML = notificacoesLiberacaoDraft.map((local, indiceLocal) => {
+          const irregs = Array.isArray(local.irregularidades) ? local.irregularidades : [];
+          const irregularidadesHtml = irregs.length
+            ? irregs.map((item, indiceItem) => {
+                const listaId = `dlNotifItens_${escapeAttr(item.id)}`;
+                const opcoesItens = itensCategoriaNotificacao_(item.tipoIrregularidade);
+                return `<article class="notification-irregularity-card" data-notification-irregularity-card="${escapeAttr(item.id)}">
+                  <div class="notification-irregularity-head">
+                    <strong>Irregularidade ${indiceItem + 1}</strong>
+                    <button type="button" data-notification-remove-irregularity="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}" aria-label="Excluir irregularidade">×</button>
+                  </div>
+                  <div class="notification-irregularity-fields">
+                    <label>Tipo de Irregularidade
+                      <input data-notification-field="tipoIrregularidade" data-notification-local-id="${escapeAttr(local.id)}" data-notification-irregularity-id="${escapeAttr(item.id)}" list="dlNotificacaoCategorias" value="${escapeAttr(item.tipoIrregularidade)}" placeholder="Pesquise ou digite a categoria">
+                    </label>
+                    <label>Item Irregular
+                      <input data-notification-field="itemIrregular" data-notification-local-id="${escapeAttr(local.id)}" data-notification-irregularity-id="${escapeAttr(item.id)}" list="${listaId}" value="${escapeAttr(item.itemIrregular)}" placeholder="Selecione ou digite o item">
+                      <datalist id="${listaId}">${optionsHtmlNotificacao_(opcoesItens)}</datalist>
+                    </label>
+                    <label class="notification-description-field">Descrição
+                      <textarea data-notification-field="descricao" data-notification-local-id="${escapeAttr(local.id)}" data-notification-irregularity-id="${escapeAttr(item.id)}" placeholder="Descreva objetivamente a irregularidade constatada.">${escapeHtml(item.descricao)}</textarea>
+                    </label>
+                  </div>
+                  <div class="notification-irregularity-actions">
+                    <button class="notification-mini-btn" type="button" data-notification-copy="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}">Copiar descrição</button>
+                  </div>
+                </article>`;
+              }).join('')
+            : '<div class="notification-draft-notice"><span>Nenhuma irregularidade neste local.</span></div>';
+
+          return `<article class="notification-local-card" data-notification-local-card="${escapeAttr(local.id)}">
+            <div class="notification-local-head">
+              <strong>Local ${indiceLocal + 1} — Local da irregularidade</strong>
+              <button type="button" data-notification-remove-local="${escapeAttr(local.id)}" aria-label="Excluir local">×</button>
+            </div>
+            <div class="notification-local-fields">
+              <label>Tipo do Local
+                <input data-notification-field="tipoLocal" data-notification-local-id="${escapeAttr(local.id)}" list="dlNotificacaoTiposLocal" value="${escapeAttr(local.tipoLocal)}" placeholder="Ex.: ESCADA ou OUTROS LOCAIS">
+              </label>
+              <label>Complemento
+                <input data-notification-field="complemento" data-notification-local-id="${escapeAttr(local.id)}" value="${escapeAttr(local.complemento)}" placeholder="Ex.: ENTRADA PRINCIPAL">
+              </label>
+            </div>
+            <div class="notification-irregularities">${irregularidadesHtml}</div>
+            <button class="notification-add-irregularity-btn" type="button" data-notification-add-irregularity="${escapeAttr(local.id)}">+ Adicionar irregularidade neste local</button>
+          </article>`;
+        }).join('');
+
+        atualizarResumoNotificacoesLiberacao_();
+      }
+
+      function adicionarLocalNotificacao_(rolar = true) {
+        const local = novoLocalNotificacao_();
+        notificacoesLiberacaoDraft.push(local);
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+        if (rolar) {
+          setTimeout(() => {
+            const alvo = notificacoesLiberacaoLista?.querySelector(`[data-notification-local-card="${CSS.escape(local.id)}"]`);
+            alvo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alvo?.querySelector('[data-notification-field="tipoLocal"]')?.focus();
+          }, 30);
+        }
+        return local;
+      }
+
+      function adicionarIrregularidadeNotificacao_(localId, rolar = true) {
+        const local = localNotificacaoPorId_(localId);
+        if (!local) return null;
+        if (!Array.isArray(local.irregularidades)) local.irregularidades = [];
+        const item = novaIrregularidadeNotificacao_();
+        local.irregularidades.push(item);
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+        if (rolar) {
+          setTimeout(() => {
+            const alvo = notificacoesLiberacaoLista?.querySelector(`[data-notification-irregularity-card="${CSS.escape(item.id)}"]`);
+            alvo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alvo?.querySelector('[data-notification-field="tipoIrregularidade"]')?.focus();
+          }, 30);
+        }
+        return item;
+      }
+
+      function removerLocalNotificacao_(localId) {
+        notificacoesLiberacaoDraft = notificacoesLiberacaoDraft.filter(item => String(item.id) !== String(localId));
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+      }
+
+      function removerIrregularidadeNotificacao_(localId, irregularId) {
+        const local = localNotificacaoPorId_(localId);
+        if (!local) return;
+        local.irregularidades = (local.irregularidades || []).filter(item => String(item.id) !== String(irregularId));
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+      }
+
+      function atualizarCampoNotificacao_(alvo) {
+        const campo = String(alvo?.dataset?.notificationField || '');
+        const local = localNotificacaoPorId_(alvo?.dataset?.notificationLocalId);
+        if (!campo || !local) return;
+        const valor = String(alvo.value || '');
+        if (campo === 'tipoLocal' || campo === 'complemento') {
+          local[campo] = valor;
+        } else {
+          const irregularidade = irregularidadeNotificacaoPorId_(local, alvo?.dataset?.notificationIrregularityId);
+          if (!irregularidade) return;
+          irregularidade[campo] = valor;
+          if (campo === 'tipoIrregularidade') {
+            const listaId = `dlNotifItens_${irregularidade.id}`;
+            const dl = document.getElementById(listaId);
+            if (dl) dl.innerHTML = optionsHtmlNotificacao_(itensCategoriaNotificacao_(valor));
+          }
+        }
+        alvo.classList.remove('notification-field-invalid');
+        atualizarResumoNotificacoesLiberacao_();
+        scheduleDraftSave();
+      }
+
+      async function copiarTextoCompat_(texto) {
+        const conteudo = String(texto || '');
+        if (!conteudo) return false;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(conteudo);
+            return true;
+          }
+        } catch (erro) {}
+        try {
+          const area = document.createElement('textarea');
+          area.value = conteudo;
+          area.setAttribute('readonly', '');
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.select();
+          const ok = document.execCommand('copy');
+          area.remove();
+          return Boolean(ok);
+        } catch (erro) {
+          return false;
+        }
+      }
+
+      function textoNotificacaoIndividual_(local, irregularidade, incluirEstrutura = false) {
+        const descricao = String(irregularidade?.descricao || '').trim();
+        if (!incluirEstrutura) return descricao;
+        const linhas = [
+          `LOCAL: ${[local?.tipoLocal, local?.complemento].filter(Boolean).join(' — ') || 'NÃO INFORMADO'}`,
+          `TIPO DE IRREGULARIDADE: ${irregularidade?.tipoIrregularidade || 'NÃO INFORMADO'}`,
+          `ITEM IRREGULAR: ${irregularidade?.itemIrregular || 'NÃO INFORMADO'}`,
+          `DESCRIÇÃO: ${descricao || 'NÃO INFORMADA'}`
+        ];
+        return linhas.join('\n');
+      }
+
+      function textoTodasNotificacoes_(itens) {
+        return (itens || []).map((item, indice) =>
+          `${indice + 1}. ${textoNotificacaoIndividual_(item.local, item.irregularidade, true)}`
+        ).join('\n\n');
+      }
+
+      function limparErrosCamposNotificacoes_() {
+        notificacoesLiberacaoLista?.querySelectorAll('.notification-field-invalid').forEach(el => el.classList.remove('notification-field-invalid'));
+      }
+
+      function validarNotificacoesParaNotificado_(mostrarMensagem = true) {
+        limparErrosCamposNotificacoes_();
+        const ehNotificado = ehFluxoLiberacao_() && normalize(value('sancao')) === normalize('Notificado');
+        if (!ehNotificado) return true;
+
+        const candidatos = flattenNotificacoesLiberacao_(true);
+        if (!candidatos.length) {
+          if (mostrarMensagem) showError('Para concluir a vistoria de liberação como Notificado, registre ao menos uma irregularidade no Rascunho das notificações.');
+          notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return false;
+        }
+
+        const faltantes = [];
+        let primeiro = null;
+        candidatos.forEach(({ local, irregularidade }, indice) => {
+          const verificar = (campo, rotulo, seletor) => {
+            if (String(campo || '').trim()) return;
+            faltantes.push(`Notificação ${indice + 1}: ${rotulo}`);
+            const el = notificacoesLiberacaoLista?.querySelector(seletor);
+            if (el) {
+              el.classList.add('notification-field-invalid');
+              primeiro = primeiro || el;
+            }
+          };
+          verificar(local.tipoLocal, 'Tipo do Local', `[data-notification-field="tipoLocal"][data-notification-local-id="${CSS.escape(local.id)}"]`);
+          verificar(local.complemento, 'Complemento', `[data-notification-field="complemento"][data-notification-local-id="${CSS.escape(local.id)}"]`);
+          verificar(irregularidade.tipoIrregularidade, 'Tipo de Irregularidade', `[data-notification-field="tipoIrregularidade"][data-notification-irregularity-id="${CSS.escape(irregularidade.id)}"]`);
+          verificar(irregularidade.itemIrregular, 'Item Irregular', `[data-notification-field="itemIrregular"][data-notification-irregularity-id="${CSS.escape(irregularidade.id)}"]`);
+          verificar(irregularidade.descricao, 'Descrição', `[data-notification-field="descricao"][data-notification-irregularity-id="${CSS.escape(irregularidade.id)}"]`);
+        });
+
+        if (faltantes.length) {
+          if (mostrarMensagem) showError(`Complete o rascunho antes de concluir como Notificado: ${faltantes.slice(0, 5).join('; ')}${faltantes.length > 5 ? '...' : ''}.`);
+          primeiro?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          primeiro?.focus();
+          return false;
+        }
+        return true;
+      }
+
+      function rolarParaNotificacao_(localId, irregularId) {
+        notificationReviewModal.hidden = true;
+        document.body.classList.remove('review-open');
+        notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => {
+          const seletor = irregularId
+            ? `[data-notification-irregularity-card="${CSS.escape(irregularId)}"]`
+            : `[data-notification-local-card="${CSS.escape(localId)}"]`;
+          const alvo = notificacoesLiberacaoLista?.querySelector(seletor);
+          alvo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          alvo?.querySelector('input,textarea')?.focus();
+        }, 80);
+      }
+
+      function mostrarConferenciaNotificacoes_() {
+        const ehNotificado = ehFluxoLiberacao_() && normalize(value('sancao')) === normalize('Notificado');
+        if (!ehNotificado) return Promise.resolve(true);
+        if (!notificationReviewModal || !notificationReviewList || !notificationReviewConfirmBtn) return Promise.resolve(true);
+
+        const render = () => {
+          const itens = flattenNotificacoesLiberacao_(true);
+          if (notificationReviewSummary) {
+            const locais = new Set(itens.map(item => item.local.id)).size;
+            notificationReviewSummary.textContent = `${itens.length} irregularidade${itens.length === 1 ? '' : 's'} em ${locais} local${locais === 1 ? '' : 'is'}. Confira antes de continuar.`;
+          }
+          notificationReviewConfirmBtn.disabled = !itens.length;
+          notificationReviewList.innerHTML = itens.map((item, indice) => {
+            const local = item.local;
+            const irregularidade = item.irregularidade;
+            return `<article class="notification-review-item">
+              <div class="notification-review-item-head">
+                <div>
+                  <strong>${indice + 1}. ${escapeHtml([local.tipoLocal, local.complemento].filter(Boolean).join(' — ') || 'Local não informado')}</strong>
+                  <small>${escapeHtml(irregularidade.tipoIrregularidade || 'Tipo não informado')} • ${escapeHtml(irregularidade.itemIrregular || 'Item não informado')}</small>
+                </div>
+                <div class="notification-review-tools">
+                  <button type="button" data-notification-review-copy="${escapeAttr(irregularidade.id)}" data-notification-local-id="${escapeAttr(local.id)}">Copiar</button>
+                  <button type="button" data-notification-review-edit="${escapeAttr(irregularidade.id)}" data-notification-local-id="${escapeAttr(local.id)}">Editar</button>
+                  <button type="button" data-notification-review-delete="${escapeAttr(irregularidade.id)}" data-notification-local-id="${escapeAttr(local.id)}">Excluir</button>
+                </div>
+              </div>
+              <p>${escapeHtml(irregularidade.descricao || '')}</p>
+            </article>`;
+          }).join('');
+        };
+
+        render();
+        notificationReviewModal.hidden = false;
+        document.body.classList.add('review-open');
+
+        return new Promise(resolve => {
+          let finalizado = false;
+
+          const encerrar = resultado => {
+            if (finalizado) return;
+            finalizado = true;
+            notificationReviewModal.hidden = true;
+            document.body.classList.remove('review-open');
+            notificationReviewConfirmBtn.removeEventListener('click', onConfirmar);
+            notificationReviewBackBtn?.removeEventListener('click', onVoltar);
+            notificationReviewCloseBtn?.removeEventListener('click', onVoltar);
+            notificationReviewAddBtn?.removeEventListener('click', onAdicionar);
+            notificationReviewList.removeEventListener('click', onLista);
+            document.removeEventListener('keydown', onKeydown);
+            resolve(resultado);
+          };
+
+          const onConfirmar = () => {
+            if (!validarNotificacoesParaNotificado_(true)) {
+              encerrar(false);
+              return;
+            }
+            encerrar(true);
+          };
+          const onVoltar = () => encerrar(false);
+          const onAdicionar = () => {
+            encerrar(false);
+            const local = adicionarLocalNotificacao_(false);
+            rolarParaNotificacao_(local?.id || '', '');
+          };
+          const onKeydown = event => { if (event.key === 'Escape') onVoltar(); };
+          const onLista = async event => {
+            const copiar = event.target.closest('[data-notification-review-copy]');
+            if (copiar) {
+              const local = localNotificacaoPorId_(copiar.dataset.notificationLocalId);
+              const irregularidade = irregularidadeNotificacaoPorId_(local, copiar.dataset.notificationReviewCopy);
+              await copiarTextoCompat_(textoNotificacaoIndividual_(local, irregularidade, false));
+              return;
+            }
+            const editar = event.target.closest('[data-notification-review-edit]');
+            if (editar) {
+              const localId = editar.dataset.notificationLocalId;
+              const irregularId = editar.dataset.notificationReviewEdit;
+              encerrar(false);
+              rolarParaNotificacao_(localId, irregularId);
+              return;
+            }
+            const excluir = event.target.closest('[data-notification-review-delete]');
+            if (excluir) {
+              const localId = excluir.dataset.notificationLocalId;
+              const irregularId = excluir.dataset.notificationReviewDelete;
+              removerIrregularidadeNotificacao_(localId, irregularId);
+              const local = localNotificacaoPorId_(localId);
+              if (local && !(local.irregularidades || []).length && !String(local.tipoLocal || '').trim() && !String(local.complemento || '').trim()) {
+                removerLocalNotificacao_(localId);
+              }
+              render();
+            }
+          };
+
+          notificationReviewConfirmBtn.addEventListener('click', onConfirmar);
+          notificationReviewBackBtn?.addEventListener('click', onVoltar);
+          notificationReviewCloseBtn?.addEventListener('click', onVoltar);
+          notificationReviewAddBtn?.addEventListener('click', onAdicionar);
+          notificationReviewList.addEventListener('click', onLista);
+          document.addEventListener('keydown', onKeydown);
+          setTimeout(() => notificationReviewConfirmBtn.focus(), 30);
+        });
       }
 
       function buildPayload() {
@@ -2690,7 +3265,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           escolaridade: value('escolaridade'),
           telefone: value('telefone'),
           email: value('email'),
-          enderecoResponsavel: value('enderecoResponsavel')
+          enderecoResponsavel: value('enderecoResponsavel'),
+          notificacoesLiberacao: ehFluxoLiberacao_() ? serializarNotificacoesLiberacao_() : ''
         };
       }
 
@@ -2839,6 +3415,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncPendenciaDocumental_();
         const isNotificado = normalize(value('sancao')) === normalize('Notificado');
         document.getElementById('noticeNotificado').classList.toggle('show', isNotificado);
+        notificacoesLiberacaoSecao?.classList.toggle('notification-required-state', isNotificado && ehFluxoLiberacao_());
         if ((isNotificado || ehFluxoLiberacao_()) && !value('demandaPrincipal')) document.getElementById('demandaPrincipal').value = 'Liberação';
       }
 
@@ -3852,10 +4429,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             otherCity.value = p.cidade;
           }
           Object.entries(p).forEach(([key, val]) => {
-            if (key === 'cidade' || key === 'ocupacao' || key.startsWith('_app')) return;
+            if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key.startsWith('_app')) return;
             const el = document.getElementById(key);
             if (el) el.value = val == null ? '' : val;
           });
+          restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
           restaurarOcupacoesSelecionadas(p.ocupacao);
           aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
           if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
@@ -3918,6 +4496,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarInterfaceIdentificador_('');
         ocupacaoSelecionada = null;
         ocupacoesSelecionadas = [];
+        notificacoesLiberacaoDraft = [];
+        renderizarNotificacoesLiberacao_();
         ocupacaoInput.value = '';
         renderizarOcupacoesSelecionadas();
         mostrarMetaOcupacao(null);
@@ -3962,6 +4542,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Tipo de vistoria', payload?.tipoVistoria || '—'],
           ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
           ['Sanção', payload?.sancao || '—'],
+          ['Notificações da liberação', normalize(payload?.sancao || '') === normalize('Notificado') ? `${flattenNotificacoesLiberacao_(true).length} registrada(s)` : '—'],
           ['Nº PF', payload?.pf || '—'],
           ['Enviado por', authState.usuario?.nome || '—']
         ];
@@ -4040,10 +4621,37 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function submit() {
         if (submitting || !validateRequired(true)) return;
+        if (!validarNotificacoesParaNotificado_(true)) return;
+
+        const liberadoComRascunho = ehFluxoLiberacao_() &&
+          normalize(value('sancao')) === normalize('Liberado') &&
+          notificacoesPossuemConteudo_();
+
+        if (liberadoComRascunho) {
+          const continuar = window.confirm(
+            'Existem irregularidades/notificações registradas no rascunho desta vistoria, mas o resultado está como Liberado.\n\n' +
+            'Se continuar, essas anotações NÃO serão gravadas como notificações da liberação.\n\n' +
+            'Deseja realmente concluir como Liberado?'
+          );
+          if (!continuar) {
+            notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            appStatus.textContent = 'Confira o rascunho das notificações antes de concluir como Liberado.';
+            return;
+          }
+        }
+
+        saveDraft();
+
+        const notificacoesConferidas = await mostrarConferenciaNotificacoes_();
+        if (!notificacoesConferidas) {
+          appStatus.textContent = 'Revise as notificações e conclua novamente quando estiverem conferidas.';
+          return;
+        }
+
         const payload = buildPayload();
+        if (liberadoComRascunho) payload.notificacoesLiberacao = '';
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
-        saveDraft();
 
         if (navigator.onLine) appStatus.textContent = 'Conferindo duplicidade e processos anteriores antes do envio...';
         const [duplicidade, encerramentoFiscal] = await Promise.all([
@@ -5720,6 +6328,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
       recordWhatsappPhoneInput?.addEventListener('input', atualizarWhatsAppFicha_);
       recordWhatsappSendBtn?.addEventListener('click', enviarWhatsAppFicha_);
+      recordNotificationsCopyAllBtn?.addEventListener('click', copiarTodasNotificacoesFicha_);
+      recordNotificationsList?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-record-notification-copy]');
+        if (!botao) return;
+        copiarNotificacaoFicha_(botao.dataset.recordNotificationCopy);
+      });
+      notificacoesAdicionarLocalBtn?.addEventListener('click', () => adicionarLocalNotificacao_(true));
+      notificacoesLiberacaoLista?.addEventListener('input', event => {
+        const alvo = event.target.closest('[data-notification-field]');
+        if (alvo) atualizarCampoNotificacao_(alvo);
+      });
+      notificacoesLiberacaoLista?.addEventListener('change', event => {
+        const alvo = event.target.closest('[data-notification-field]');
+        if (alvo) atualizarCampoNotificacao_(alvo);
+      });
+      notificacoesLiberacaoLista?.addEventListener('click', async event => {
+        const adicionar = event.target.closest('[data-notification-add-irregularity]');
+        if (adicionar) {
+          adicionarIrregularidadeNotificacao_(adicionar.dataset.notificationAddIrregularity, true);
+          return;
+        }
+        const removerLocal = event.target.closest('[data-notification-remove-local]');
+        if (removerLocal) {
+          removerLocalNotificacao_(removerLocal.dataset.notificationRemoveLocal);
+          return;
+        }
+        const removerIrregularidade = event.target.closest('[data-notification-remove-irregularity]');
+        if (removerIrregularidade) {
+          removerIrregularidadeNotificacao_(removerIrregularidade.dataset.notificationLocalId, removerIrregularidade.dataset.notificationRemoveIrregularity);
+          return;
+        }
+        const copiar = event.target.closest('[data-notification-copy]');
+        if (copiar) {
+          const local = localNotificacaoPorId_(copiar.dataset.notificationLocalId);
+          const irregularidade = irregularidadeNotificacaoPorId_(local, copiar.dataset.notificationCopy);
+          const ok = await copiarTextoCompat_(textoNotificacaoIndividual_(local, irregularidade, false));
+          appStatus.textContent = ok ? 'Descrição da notificação copiada.' : 'Não foi possível copiar a descrição automaticamente.';
+        }
+      });
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
@@ -5979,12 +6626,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.43', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.49', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
       }
 
+      inicializarCatalogoNotificacoes_();
+      renderizarNotificacoesLiberacao_();
       atualizarStatusConexao();
       carregarSessaoLocalBm_();
       inicializarFilaOffline().then(inicializarAutenticacaoBm_).catch(inicializarAutenticacaoBm_);
