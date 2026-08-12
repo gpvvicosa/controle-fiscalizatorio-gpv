@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.52';
+      const APP_VERSION = '23.9.53';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -741,9 +741,10 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      /* V23.9.51 — seletor móvel padronizado.
+      /* V23.9.53 — seletor móvel padronizado com gesto seguro.
          Em telas pequenas, selects e campos com datalist abrem em uma folha inferior
-         com lista vertical rolável. Campos datalist continuam aceitando texto livre. */
+         com lista vertical rolável. Arrastar a página/lista nunca é tratado como seleção;
+         somente um toque intencional abre o seletor. Campos datalist continuam aceitando texto livre. */
       const MOBILE_CHOICE_MEDIA = '(max-width: 820px), (pointer: coarse)';
       let mobileChoiceState = {
         target: null,
@@ -963,23 +964,82 @@
 
       function instalarEscolhaMovel_() {
         garantirEscolhaMovel_();
-        const interceptar = event => {
+
+        // Não bloqueia pointerdown: isso preserva a rolagem natural da página.
+        // O clique posterior só abre o seletor quando o dedo praticamente não se moveu.
+        const gesto = {
+          pointerId: null,
+          target: null,
+          startX: 0,
+          startY: 0,
+          moved: false,
+          endedAt: 0
+        };
+        const LIMITE_MOVIMENTO_TOQUE = 12;
+        const JANELA_CLIQUE_APOS_GESTO_MS = 700;
+
+        const limparGesto = () => {
+          gesto.pointerId = null;
+          gesto.target = null;
+          gesto.startX = 0;
+          gesto.startY = 0;
+          gesto.moved = false;
+          gesto.endedAt = 0;
+        };
+
+        document.addEventListener('pointerdown', event => {
           if (!escolhaMovelDisponivel_()) return;
           const alvo = event.target?.closest?.('select,input[list]');
-          if (!campoElegivelEscolhaMovel_(alvo)) return;
-          event.preventDefault();
-          event.stopPropagation();
-          abrirEscolhaMovel_(alvo);
-        };
-        document.addEventListener('pointerdown', interceptar, true);
+          if (!campoElegivelEscolhaMovel_(alvo)) { limparGesto(); return; }
+          gesto.pointerId = event.pointerId;
+          gesto.target = alvo;
+          gesto.startX = Number(event.clientX || 0);
+          gesto.startY = Number(event.clientY || 0);
+          gesto.moved = false;
+          gesto.endedAt = 0;
+        }, true);
+
+        document.addEventListener('pointermove', event => {
+          if (gesto.pointerId == null || event.pointerId !== gesto.pointerId || gesto.moved) return;
+          const dx = Math.abs(Number(event.clientX || 0) - gesto.startX);
+          const dy = Math.abs(Number(event.clientY || 0) - gesto.startY);
+          if (dx > LIMITE_MOVIMENTO_TOQUE || dy > LIMITE_MOVIMENTO_TOQUE) gesto.moved = true;
+        }, true);
+
+        document.addEventListener('pointerup', event => {
+          if (gesto.pointerId == null || event.pointerId !== gesto.pointerId) return;
+          gesto.endedAt = Date.now();
+        }, true);
+
+        document.addEventListener('pointercancel', event => {
+          if (gesto.pointerId == null || event.pointerId !== gesto.pointerId) return;
+          limparGesto();
+        }, true);
+
         document.addEventListener('click', event => {
           if (!escolhaMovelDisponivel_()) return;
           const alvo = event.target?.closest?.('select,input[list]');
           if (!campoElegivelEscolhaMovel_(alvo)) return;
+
+          const veioDoMesmoGesto = gesto.target === alvo &&
+            (!gesto.endedAt || (Date.now() - gesto.endedAt) <= JANELA_CLIQUE_APOS_GESTO_MS);
+
+          // Alguns navegadores ainda disparam click depois de um pequeno arrasto.
+          // Nesse caso consumimos o click, mas não abrimos nem alteramos o campo.
+          if (veioDoMesmoGesto && gesto.moved) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            limparGesto();
+            return;
+          }
+
           event.preventDefault();
-          event.stopPropagation();
+          event.stopImmediatePropagation();
+          limparGesto();
+          alvo.blur?.();
           if (mobileChoiceState.target !== alvo || mobileChoiceState.overlay?.hidden) abrirEscolhaMovel_(alvo);
         }, true);
+
         window.addEventListener('resize', () => { if (!escolhaMovelDisponivel_()) fecharEscolhaMovel_(); });
       }
 
@@ -6980,7 +7040,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.52', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.53', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

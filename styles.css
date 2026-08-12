@@ -7255,7 +7255,7 @@ body.daily-motivational-open{overflow:hidden!important}
 }
 
 /* =========================================================
-   V23.9.51 — Lista vertical rolável para seletores no mobile
+   V23.9.53 — Lista vertical rolável segura para seletores no mobile
    Padroniza <select> e campos com datalist sem alterar desktop.
    ========================================================= */
 .mobile-choice-overlay[hidden] { display: none !important; }
@@ -7489,6 +7489,21 @@ body.daily-motivational-open{overflow:hidden!important}
   select:not([multiple]),
   input[list] {
     cursor: pointer;
+    touch-action: pan-y;
+  }
+
+  /* Campos pesquisáveis (datalist): deixa explícito que há uma lista de opções.
+     A seta é apenas visual; a abertura continua controlada pelo seletor móvel. */
+  input[list]:not([data-mobile-picker="off"]) {
+    padding-right: 46px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5.5 7.75 10 12.25l4.5-4.5' stroke='%23667085' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 20px 20px !important;
+  }
+
+  input[list]:not([data-mobile-picker="off"]):focus {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5.5 7.75 10 12.25l4.5-4.5' stroke='%2336669a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
   }
 
   @keyframes mobileChoiceIn {

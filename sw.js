@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-52-area-metas-ficha-responsavel';
-const VERSION = '23.9.52';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-53-mobile-touch-safe-arrows';
+const VERSION = '23.9.53';
 
 const CORE_SHELL = [
   './',
