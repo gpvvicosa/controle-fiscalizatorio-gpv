@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.49';
+      const APP_VERSION = '23.9.50';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -4542,7 +4542,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Tipo de vistoria', payload?.tipoVistoria || '—'],
           ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
           ['Sanção', payload?.sancao || '—'],
-          ['Notificações da liberação', normalize(payload?.sancao || '') === normalize('Notificado') ? `${flattenNotificacoesLiberacao_(true).length} registrada(s)` : '—'],
+          ['Notificações da liberação', payload?.notificacoesLiberacao ? `${flattenNotificacoesLiberacao_(true).length} registrada(s)` : '—'],
           ['Nº PF', payload?.pf || '—'],
           ['Enviado por', authState.usuario?.nome || '—']
         ];
@@ -4630,7 +4630,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (liberadoComRascunho) {
           const continuar = window.confirm(
             'Existem irregularidades/notificações registradas no rascunho desta vistoria, mas o resultado está como Liberado.\n\n' +
-            'Se continuar, essas anotações NÃO serão gravadas como notificações da liberação.\n\n' +
+            'Se continuar, a vistoria será concluída como Liberado e essas anotações permanecerão temporariamente na Ficha do Processo por até 15 dias.\n\n' +
             'Deseja realmente concluir como Liberado?'
           );
           if (!continuar) {
@@ -4649,7 +4649,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         const payload = buildPayload();
-        if (liberadoComRascunho) payload.notificacoesLiberacao = '';
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
 
@@ -6626,7 +6625,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.49', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.50', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
