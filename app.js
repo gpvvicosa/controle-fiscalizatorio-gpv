@@ -439,6 +439,11 @@
       const recordRedsReportText = document.getElementById('recordRedsReportText');
       const recordRedsCopyBtn = document.getElementById('recordRedsCopyBtn');
       const recordRedsCopyStatus = document.getElementById('recordRedsCopyStatus');
+      const recordRedsModelSelect = document.getElementById('recordRedsModelSelect');
+      const recordAutoNumberWrap = document.getElementById('recordAutoNumberWrap');
+      const recordAutoNumberInput = document.getElementById('recordAutoNumberInput');
+      const recordAutoNumberSaveBtn = document.getElementById('recordAutoNumberSaveBtn');
+      const recordAutoNumberStatus = document.getElementById('recordAutoNumberStatus');
       const recordAuditCount = document.getElementById('recordAuditCount');
       const recordAuditList = document.getElementById('recordAuditList');
       const connectionBanner = document.getElementById('connectionBanner');
@@ -1687,6 +1692,69 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         }
       });
 
+      const RELATORIOS_REDS_FISCALIZACAO = Object.freeze({
+        irregular: {
+          titulo: 'Fiscalização — irregularidade / autuação',
+          texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES{{PSCIP_TRECHO}}, AS QUAIS FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA.{{AUTO_PARAGRAFO}}
+
+O RESPONSÁVEL FOI CIENTIFICADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DA EDIFICAÇÃO.`
+        },
+        semAvcb: {
+          titulo: 'Fiscalização — sem AVCB/CLCB',
+          texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES QUANTO ÀS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO. AS IRREGULARIDADES FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.{{AUTO_PARAGRAFO}}
+
+O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DA EDIFICAÇÃO JUNTO AO CBMMG.`
+        },
+        comPscipSemAvcb: {
+          titulo: 'Fiscalização — possui PSCIP, mas não possui AVCB',
+          texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO.
+
+DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO POSSUI PSCIP Nº {{PSCIP}}, PORÉM AINDA NÃO POSSUI AVCB. A IRREGULARIDADE FOI REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.{{AUTO_PARAGRAFO}}
+
+O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DA EDIFICAÇÃO JUNTO AO CBMMG.`
+        },
+        avcbVencido: {
+          titulo: 'Fiscalização — AVCB vencido',
+          texto: `EM AÇÃO FISCALIZADORA, FOI REALIZADA VISTORIA NO ENDEREÇO MENCIONADO NESTE RELATÓRIO, NOS TERMOS DA LEGISLAÇÃO DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO.
+
+DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO FUNCIONA SEM AVCB VÁLIDO JUNTO AO CBMMG, UMA VEZ QUE O AVCB/PSCIP Nº {{PSCIP}} ENCONTRA-SE COM PRAZO DE VALIDADE EXPIRADO. A IRREGULARIDADE FOI REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.{{AUTO_PARAGRAFO}}
+
+O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+        },
+        regularizado: {
+          titulo: 'Fiscalização — regularizado com AVCB/CLCB',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO.
+
+VERIFICOU-SE QUE A EDIFICAÇÃO POSSUI {{LICENCA}} VÁLIDO{{PSCIP_TRECHO}} E QUE, NO MOMENTO DA VISTORIA, AS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO ENCONTRAVAM-SE INSTALADAS EM CONFORMIDADE COM A LEGISLAÇÃO E COM O PROJETO APROVADO.
+
+O RESPONSÁVEL FOI ORIENTADO A MANTER AS MEDIDAS DE SEGURANÇA EM CONDIÇÕES PERMANENTES DE USO E A COMUNICAR AO CBMMG EVENTUAIS ALTERAÇÕES DE LAYOUT, USO OU OCUPAÇÃO.
+
+A EDIFICAÇÃO ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
+        },
+        dispensado: {
+          titulo: 'Fiscalização — dispensado de licenciamento / regular',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO.
+
+IN LOCO, CONSTATOU-SE QUE A EDIFICAÇÃO SE ENQUADRA COMO DISPENSADA DE LICENCIAMENTO. NO MOMENTO DA VISTORIA, O SISTEMA PREVENTIVO ENCONTRAVA-SE EM CONFORMIDADE COM A LEGISLAÇÃO VIGENTE; PORTANTO, A EDIFICAÇÃO ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.
+
+O RESPONSÁVEL FOI ORIENTADO A MANTER AS MEDIDAS DE SEGURANÇA EM CONDIÇÕES PERMANENTES DE USO E A REGULARIZAR EVENTUAIS ALTERAÇÕES DE LAYOUT, USO OU OCUPAÇÃO.`
+        },
+        localFechado: {
+          titulo: 'Fiscalização — local fechado / vistoria não realizada',
+          texto: `COMPARECEMOS AO ENDEREÇO CITADO NESTE REDS PARA REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO.
+
+ENTRETANTO, COMO O ESTABELECIMENTO ENCONTRAVA-SE FECHADO E/OU NÃO FOI LOCALIZADO RESPONSÁVEL PARA ACOMPANHAR A GUARNIÇÃO, NÃO FOI POSSÍVEL REALIZAR A VISTORIA.
+
+UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
+        }
+      });
+
+      let recordRedsRegistroAtual = null;
+
       function modeloRelatorioRedsLiberacao_(registro, situacao) {
         const n = normalize(situacao);
         if (n === normalize('Notificado')) return RELATORIOS_REDS_LIBERACAO.notificado;
@@ -1695,22 +1763,123 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
         return pendencia === normalize('Sim') ? RELATORIOS_REDS_LIBERACAO.liberadoPendencia : RELATORIOS_REDS_LIBERACAO.liberado;
       }
 
+      function sugestaoModeloFiscalizacao_(registro, situacao) {
+        const n = normalize(situacao);
+        const projeto = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        if (n === normalize('Regularizado')) return projeto ? 'regularizado' : 'dispensado';
+        return projeto ? 'comPscipSemAvcb' : 'semAvcb';
+      }
+
+      function preencherSelectModelosReds_(ehLiberacao, registro, situacao) {
+        if (!recordRedsModelSelect) return '';
+        recordRedsModelSelect.innerHTML = '';
+        const label = recordRedsModelSelect.closest('.record-reds-model-label');
+        if (ehLiberacao) {
+          recordRedsModelSelect.hidden = true;
+          if (label) label.hidden = true;
+          return '';
+        }
+        recordRedsModelSelect.hidden = false;
+        if (label) label.hidden = false;
+        const opcoes = [
+          ['irregular', 'Fiscalização — irregularidade / autuação'],
+          ['semAvcb', 'Fiscalização — sem AVCB/CLCB'],
+          ['comPscipSemAvcb', 'Fiscalização — possui PSCIP, mas não possui AVCB'],
+          ['avcbVencido', 'Fiscalização — AVCB vencido'],
+          ['regularizado', 'Fiscalização — regularizado com AVCB/CLCB'],
+          ['dispensado', 'Fiscalização — dispensado de licenciamento / regular'],
+          ['localFechado', 'Fiscalização — local fechado / vistoria não realizada']
+        ];
+        opcoes.forEach(([valor, rotulo]) => {
+          const option = document.createElement('option'); option.value = valor; option.textContent = rotulo; recordRedsModelSelect.appendChild(option);
+        });
+        const sugerido = sugestaoModeloFiscalizacao_(registro, situacao);
+        recordRedsModelSelect.value = RELATORIOS_REDS_FISCALIZACAO[sugerido] ? sugerido : 'irregular';
+        return recordRedsModelSelect.value;
+      }
+
+      function montarTextoRedsFiscalizacao_(modelo, registro) {
+        const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        const pf = valorCampoFicha_(registro, 'Nº do PF') || 'NÃO INFORMADO';
+        const numeroAuto = String(recordAutoNumberInput?.value || valorCampoFicha_(registro, 'Nº do Auto') || '').trim();
+        const autoParagrafo = numeroAuto ? `\n\nPOSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAuto}, VINCULADO AO PROCESSO FISCALIZATÓRIO.` : '';
+        const pscipTrecho = pscip ? `, VINCULADA AO PSCIP Nº ${pscip}` : '';
+        const licenca = pscip ? `AVCB/CLCB Nº ${pscip}` : 'LICENCIAMENTO VÁLIDO';
+        return modelo.texto
+          .replaceAll('{{PSCIP}}', pscip || 'NÃO INFORMADO')
+          .replaceAll('{{PF}}', pf)
+          .replaceAll('{{AUTO_PARAGRAFO}}', autoParagrafo)
+          .replaceAll('{{PSCIP_TRECHO}}', pscipTrecho)
+          .replaceAll('{{LICENCA}}', licenca);
+      }
+
+      function atualizarTextoRelatorioRedsFiscalizacao_() {
+        const registro = recordRedsRegistroAtual;
+        if (!registro || !recordRedsReportText || !recordRedsReportModel) return;
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        const situacao = registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção');
+        if (tipo.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao))) return;
+        const chaveModelo = recordRedsModelSelect?.value || sugestaoModeloFiscalizacao_(registro, situacao);
+        const modelo = RELATORIOS_REDS_FISCALIZACAO[chaveModelo] || RELATORIOS_REDS_FISCALIZACAO.irregular;
+        recordRedsReportModel.textContent = `${modelo.titulo} — confira o texto antes de copiar.`;
+        recordRedsReportText.value = montarTextoRedsFiscalizacao_(modelo, registro);
+      }
+
       function renderizarRelatorioReds_(registro, situacao) {
         if (!recordRedsReportPanel || !recordRedsReportText || !recordRedsReportModel) return;
+        recordRedsRegistroAtual = registro;
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const ehLiberacao = tipo.includes('liberacao') || demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao));
-        const modelo = ehLiberacao ? modeloRelatorioRedsLiberacao_(registro, situacao) : null;
         const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
-        if (!modelo || !pscip) {
-          recordRedsReportPanel.hidden = true;
-          recordRedsReportText.value = '';
-          return;
+
+        if (recordAutoNumberWrap) recordAutoNumberWrap.hidden = ehLiberacao;
+        if (recordAutoNumberInput) recordAutoNumberInput.value = ehLiberacao ? '' : valorCampoFicha_(registro, 'Nº do Auto');
+        if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = '';
+
+        if (ehLiberacao) {
+          const modelo = modeloRelatorioRedsLiberacao_(registro, situacao);
+          if (!modelo || !pscip) {
+            recordRedsReportPanel.hidden = true;
+            recordRedsReportText.value = '';
+            return;
+          }
+          preencherSelectModelosReds_(true, registro, situacao);
+          recordRedsReportModel.textContent = modelo.titulo;
+          recordRedsReportText.value = modelo.texto.replaceAll('{{PSCIP}}', pscip);
+        } else {
+          preencherSelectModelosReds_(false, registro, situacao);
+          atualizarTextoRelatorioRedsFiscalizacao_();
         }
-        recordRedsReportModel.textContent = modelo.titulo;
-        recordRedsReportText.value = modelo.texto.replaceAll('{{PSCIP}}', pscip);
         recordRedsReportPanel.hidden = false;
         if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = '';
+      }
+
+      async function salvarNumeroAutoRegistro_() {
+        const chave = String(recordsState.chaveSelecionada || '');
+        const numeroAuto = String(recordAutoNumberInput?.value || '').trim();
+        if (!chave || !recordAutoNumberInput || !recordAutoNumberSaveBtn) return;
+        if (!navigator.onLine) {
+          if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = 'É necessário estar online para salvar o Nº do Auto.';
+          return;
+        }
+        recordAutoNumberSaveBtn.disabled = true;
+        if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = 'Salvando...';
+        try {
+          const r = await apiRequest('config', { consulta: 'auto_salvar', chave, numeroAuto }, 30000);
+          if (!r?.ok) throw new Error(r?.error || 'Não foi possível salvar o Nº do Auto.');
+          if (recordRedsRegistroAtual) {
+            const campo = (recordRedsRegistroAtual.campos || []).find(x => normalize(x?.rotulo) === normalize('Nº do Auto'));
+            if (campo) campo.valor = numeroAuto;
+            else if (numeroAuto) recordRedsRegistroAtual.campos = [...(recordRedsRegistroAtual.campos || []), { grupo: 'Processo', rotulo: 'Nº do Auto', valor: numeroAuto }];
+          }
+          if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = numeroAuto ? 'Nº do Auto salvo na ficha do processo.' : 'Nº do Auto removido da ficha.';
+          atualizarTextoRelatorioRedsFiscalizacao_();
+        } catch (erro) {
+          if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = String(erro?.message || 'Falha ao salvar o Nº do Auto.');
+        } finally {
+          recordAutoNumberSaveBtn.disabled = false;
+        }
       }
 
       async function copiarRelatorioReds_() {
@@ -5424,6 +5593,9 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       pendenciaDocumentalSelect?.addEventListener('change', scheduleDraftSave);
       recordRedsCopyBtn?.addEventListener('click', copiarRelatorioReds_);
+      recordRedsModelSelect?.addEventListener('change', atualizarTextoRelatorioRedsFiscalizacao_);
+      recordAutoNumberInput?.addEventListener('input', atualizarTextoRelatorioRedsFiscalizacao_);
+      recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
       document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);

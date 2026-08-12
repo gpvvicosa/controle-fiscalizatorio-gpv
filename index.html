@@ -932,9 +932,22 @@
           <div class="record-reds-report-head">
             <div>
               <h3>Relatório para REDS</h3>
-              <span id="recordRedsReportModel">Modelo automático conforme o resultado da vistoria de liberação.</span>
+              <span id="recordRedsReportModel">Modelo sugerido conforme os dados da vistoria.</span>
             </div>
             <button class="record-reds-copy-btn" id="recordRedsCopyBtn" type="button">Copiar relatório</button>
+          </div>
+          <div class="record-reds-tools">
+            <label class="record-reds-model-label" for="recordRedsModelSelect">Modelo do histórico
+              <select id="recordRedsModelSelect" class="record-reds-model-select" hidden></select>
+            </label>
+            <div class="record-auto-number" id="recordAutoNumberWrap" hidden>
+              <label for="recordAutoNumberInput">Nº do Auto de Infração <small>opcional — pode ser informado posteriormente</small></label>
+              <div class="record-auto-number-row">
+                <input id="recordAutoNumberInput" autocomplete="off" placeholder="Ex.: 2026-AUT016424">
+                <button id="recordAutoNumberSaveBtn" type="button">Salvar Nº do Auto</button>
+              </div>
+              <div id="recordAutoNumberStatus" class="record-auto-number-status" role="status" aria-live="polite"></div>
+            </div>
           </div>
           <textarea id="recordRedsReportText" class="record-reds-report-text" readonly aria-label="Relatório para copiar no REDS"></textarea>
           <div class="record-reds-copy-status" id="recordRedsCopyStatus" role="status" aria-live="polite"></div>

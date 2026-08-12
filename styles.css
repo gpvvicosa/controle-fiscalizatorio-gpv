@@ -6982,3 +6982,8 @@ body.daily-motivational-open{overflow:hidden!important}
     animation:none!important;
   }
 }
+
+
+/* V23.9.44 — Históricos REDS para Fiscalização + Nº do Auto posterior */
+.record-reds-tools{display:grid;gap:10px;margin:10px 0 12px}.record-reds-model-label{display:grid;gap:6px;font-size:.82rem;font-weight:800;color:#31483a}.record-reds-model-select{width:100%;min-height:42px;border:1px solid #cddbd2;border-radius:10px;background:#fff;padding:8px 10px;color:#1d2b22;font:inherit}.record-auto-number{border:1px solid #ead8a4;background:#fffaf0;border-radius:12px;padding:10px 12px}.record-auto-number label{display:block;font-size:.84rem;font-weight:800;color:#674d13;margin-bottom:7px}.record-auto-number label small{font-weight:500;color:#806d43;margin-left:4px}.record-auto-number-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.record-auto-number-row input{min-width:0;border:1px solid #d8c996;border-radius:9px;padding:9px 10px;background:#fff;font:inherit}.record-auto-number-row button{border:0;border-radius:9px;background:#6e5312;color:#fff;font-weight:800;padding:9px 13px;cursor:pointer}.record-auto-number-row button:disabled{opacity:.6;cursor:wait}.record-auto-number-status{min-height:18px;margin-top:6px;font-size:.78rem;color:#6b5c35}.record-reds-report-text{white-space:pre-wrap}
+@media(max-width:640px){.record-auto-number-row{grid-template-columns:1fr}.record-auto-number-row button{width:100%}.record-auto-number label small{display:block;margin:2px 0 0}}
