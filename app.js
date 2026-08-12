@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.54';
+      const APP_VERSION = '23.9.55';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -6436,75 +6436,96 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      function rolarParaFormularioProgramado_() {
-        // V23.9.54 — ao tocar em "Abrir vistoria", o primeiro ponto útil da tela é sempre "1. Cidade".
-        // Alguns navegadores móveis restauram a posição anterior durante a mudança de altura do formulário;
-        // por isso a posição é conferida novamente enquanto o layout termina de estabilizar.
-        const secao = document.getElementById('cidadeSecao');
-        const campoCidade = document.getElementById('cidadeSelect');
-        if (!secao || !campoCidade) return;
+      let rolagemProgramadaSequencia_ = 0;
 
-        const topoFixo = () => {
-          let total = 12;
-          ['.app-header', '.topbar', '.app-view-nav'].forEach(sel => {
-            const el = document.querySelector(sel);
-            if (!el || el.offsetParent === null) return;
-            const css = window.getComputedStyle(el);
-            if (css.position === 'fixed' || css.position === 'sticky') total += el.getBoundingClientRect().height || 0;
-          });
-          return Math.min(Math.max(total, 12), 200);
+      function rolarParaFormularioProgramado_() {
+        // V23.9.55 — correção isolada do comando "Abrir vistoria → 1. Cidade".
+        // Em alguns celulares, o botão tocado permanece focado e o navegador restaura a
+        // posição dele logo depois do scroll. A correção transfere o foco para a própria
+        // seção Cidade (sem abrir teclado), desativa temporariamente o scroll suave do CSS
+        // e reaplica a posição enquanto o layout termina de estabilizar.
+        const secao = document.getElementById('cidadeSecao');
+        if (!secao) return;
+
+        const sequencia = ++rolagemProgramadaSequencia_;
+
+        const removerFocoDoBotao_ = () => {
+          const ativo = document.activeElement;
+          if (ativo && ativo !== document.body && typeof ativo.blur === 'function') {
+            try { ativo.blur(); } catch (e) {}
+          }
+          if (!secao.hasAttribute('tabindex')) secao.setAttribute('tabindex', '-1');
+          try { secao.focus({ preventScroll: true }); } catch (e) {}
         };
 
-        const rolar = (suave = false) => {
+        const alturaSticky_ = () => {
+          // Considera somente elementos sticky/fixed que realmente ocupam a faixa superior
+          // naquele instante. Não soma barras sobrepostas duas vezes.
+          let limite = 8;
+          document.querySelectorAll('.app-header, .topbar, .app-view-nav').forEach(el => {
+            if (!el || el.offsetParent === null) return;
+            const css = window.getComputedStyle(el);
+            if (css.position !== 'fixed' && css.position !== 'sticky') return;
+            const r = el.getBoundingClientRect();
+            if (r.bottom > 0 && r.top <= 12) limite = Math.max(limite, r.bottom + 8);
+          });
+          return Math.min(Math.max(limite, 8), 180);
+        };
+
+        const posicionar_ = () => {
+          if (sequencia !== rolagemProgramadaSequencia_) return false;
           if (secao.hidden || secao.offsetParent === null) return false;
-          const alvo = secao.querySelector('.section-head') || secao;
-          const offset = topoFixo();
-          const scrolling = document.scrollingElement || document.documentElement;
-          const atual = Number(scrolling.scrollTop || window.pageYOffset || 0);
-          const destino = Math.max(0, atual + alvo.getBoundingClientRect().top - offset);
 
-          try { window.scrollTo({ top: destino, behavior: suave ? 'smooth' : 'auto' }); }
-          catch (e) { scrolling.scrollTop = destino; }
-          if (!suave) scrolling.scrollTop = destino;
+          removerFocoDoBotao_();
 
-          // Compatibilidade com eventual contêiner interno rolável do PWA.
-          let pai = alvo.parentElement;
-          while (pai && pai !== document.documentElement) {
-            const css = window.getComputedStyle(pai);
-            const rolavel = /auto|scroll|overlay/.test(css.overflowY) && pai.scrollHeight > pai.clientHeight + 2;
-            if (rolavel) {
-              const rAlvo = alvo.getBoundingClientRect();
-              const rPai = pai.getBoundingClientRect();
-              const destinoPai = Math.max(0, pai.scrollTop + rAlvo.top - rPai.top - 10);
-              try { pai.scrollTo({ top: destinoPai, behavior: suave ? 'smooth' : 'auto' }); }
-              catch (e) { pai.scrollTop = destinoPai; }
-              if (!suave) pai.scrollTop = destinoPai;
-            }
-            pai = pai.parentElement;
+          const html = document.documentElement;
+          const body = document.body;
+          const scrolling = document.scrollingElement || html;
+          const antigoHtml = html.style.scrollBehavior;
+          const antigoBody = body.style.scrollBehavior;
+
+          // O CSS global usa scroll-behavior:smooth. Para este comando o posicionamento
+          // precisa ser imediato, caso contrário o mobile pode interromper a animação.
+          html.style.scrollBehavior = 'auto';
+          body.style.scrollBehavior = 'auto';
+
+          try {
+            const offset = alturaSticky_();
+            const topoDocumento = Number(window.pageYOffset || scrolling.scrollTop || 0) + secao.getBoundingClientRect().top;
+            const destino = Math.max(0, Math.round(topoDocumento - offset));
+
+            window.scrollTo(0, destino);
+            scrolling.scrollTop = destino;
+            html.scrollTop = destino;
+            // Safari/iOS antigos podem usar body como elemento rolável.
+            body.scrollTop = destino;
+          } catch (e) {
+            try { secao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (erro) {}
           }
+
+          // Restaura a preferência visual normal após o posicionamento já ter sido aplicado.
+          requestAnimationFrame(() => {
+            if (sequencia !== rolagemProgramadaSequencia_) return;
+            html.style.scrollBehavior = antigoHtml;
+            body.style.scrollBehavior = antigoBody;
+          });
 
           secao.classList.add('programmed-form-highlight');
           return true;
         };
 
-        const conferir = () => {
-          if (secao.hidden || secao.offsetParent === null) return false;
-          const alvo = secao.querySelector('.section-head') || secao;
-          return Math.abs(alvo.getBoundingClientRect().top - topoFixo()) <= 32;
-        };
-
-        // 1) muda imediatamente para a área do formulário; 2) repete após render/layout;
-        // 3) segura a posição por alguns segundos contra restauração automática de scroll no mobile.
-        try { campoCidade.blur(); } catch (e) {}
-        rolar(false);
-        requestAnimationFrame(() => requestAnimationFrame(() => rolar(true)));
-
-        const tentativas = [120, 280, 520, 850, 1250, 1800, 2600, 3600];
+        // O primeiro disparo ocorre depois que todas as seções do fluxo deixam de estar hidden.
+        // Os reforços cobrem reflow de cards, fontes, teclado fechado e barra do navegador móvel.
+        removerFocoDoBotao_();
+        const tentativas = [0, 40, 120, 260, 520, 900, 1400];
         tentativas.forEach((ms, indice) => {
           window.setTimeout(() => {
-            if (!conferir() || indice < 3) rolar(false);
+            if (sequencia !== rolagemProgramadaSequencia_) return;
+            posicionar_();
             if (indice === tentativas.length - 1) {
-              window.setTimeout(() => secao.classList.remove('programmed-form-highlight'), 1400);
+              window.setTimeout(() => {
+                if (sequencia === rolagemProgramadaSequencia_) secao.classList.remove('programmed-form-highlight');
+              }, 1200);
             }
           }, ms);
         });
@@ -6708,6 +6729,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         const btn = event.target.closest('[data-preparacao-id]');
         if (!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
+        try { btn.blur(); } catch (e) {}
+        try { document.activeElement?.blur?.(); } catch (e) {}
         const item = preparacoesVistoria.find(p => String(p.id) === String(btn.dataset.preparacaoId));
         aplicarPreparacaoAoFormulario_(item);
       });
@@ -7054,7 +7079,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.54', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.55', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
