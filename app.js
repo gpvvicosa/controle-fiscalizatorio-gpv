@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.56';
+      const APP_VERSION = '23.9.57';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -522,6 +522,7 @@
       const pendenciaDocumentalWrap = document.getElementById('pendenciaDocumentalWrap');
       const pendenciaDocumentalSelect = document.getElementById('pendenciaDocumental');
       const tipoVistoriaInput = document.getElementById('tipoVistoria');
+      const tipoVistoriaSecao = document.getElementById('tipoVistoriaSecao');
       const vistoriadorResponsavelSelect = document.getElementById('vistoriadorResponsavel');
       const categoriaMetaSelect = document.getElementById('categoriaMeta');
       const areaInput = document.getElementById('area');
@@ -4857,11 +4858,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           telefoneResponsavelAssociado = digits(value('telefone'));
           syncNotificado();
           atualizarVerificacaoMetasFiscalizacao_();
+          if (preparacaoEmUsoId) setTimeout(() => rolarParaFormularioProgramado_(), 0);
           appStatus.textContent = 'Rascunho anterior recuperado.';
         } catch (e) {}
       }
 
       function resetForm() {
+        restaurarPainelProgramadas_(false);
         preparacaoEmUsoId = '';
         dduEmUsoId = '';
         form.reset();
@@ -6436,84 +6439,70 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      let rolagemProgramadaSequencia_ = 0;
+      // V23.9.57 — modo estrutural para vistoria programada.
+      // Em vez de depender da rolagem programática do navegador, recolhe o bloco inteiro
+      // de Vistorias Programadas/Tipo de vistoria. Assim, "1. Cidade" passa a ocupar
+      // naturalmente o início útil do formulário no celular.
+      function garantirBarraRetornoProgramadas_() {
+        const cidadeSecao = document.getElementById('cidadeSecao');
+        if (!cidadeSecao) return null;
+        let barra = document.getElementById('programmedReturnBar');
+        if (barra) return barra;
+
+        barra = document.createElement('div');
+        barra.id = 'programmedReturnBar';
+        barra.hidden = true;
+        barra.setAttribute('aria-label', 'Navegação da vistoria programada');
+        barra.style.cssText = 'padding:0 0 12px;display:flex;justify-content:flex-start;';
+        barra.innerHTML = '<button type="button" class="btn btn-secondary" id="returnToProgrammedBtn">← Voltar às vistorias programadas</button>';
+        cidadeSecao.insertBefore(barra, cidadeSecao.firstChild);
+        barra.querySelector('#returnToProgrammedBtn')?.addEventListener('click', () => {
+          restaurarPainelProgramadas_(true);
+        });
+        return barra;
+      }
+
+      function restaurarPainelProgramadas_(rolar = false) {
+        const barra = document.getElementById('programmedReturnBar');
+        if (barra) barra.hidden = true;
+        if (tipoVistoriaSecao) {
+          tipoVistoriaSecao.hidden = false;
+          tipoVistoriaSecao.removeAttribute('aria-hidden');
+        }
+        document.body.classList.remove('programmed-form-focused');
+        document.documentElement.dataset.formProgramadoVersion = '23.9.57';
+
+        if (rolar && tipoVistoriaSecao) {
+          requestAnimationFrame(() => {
+            try { tipoVistoriaSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
+          });
+        }
+      }
 
       function rolarParaFormularioProgramado_() {
-        // V23.9.56 — correção isolada: "Abrir vistoria" navega por âncora nativa até 1. Cidade.
-        // A âncora é a ação principal; scrollIntoView e ajuste de ancestral rolável são apenas
-        // contingências para navegadores/PWAs que não reposicionarem a tela após a troca do hash.
-        const secao = document.getElementById('cidadeSecao');
-        if (!secao) return;
+        const cidadeSecao = document.getElementById('cidadeSecao');
+        if (!cidadeSecao || !tipoVistoriaSecao) return;
 
-        const sequencia = ++rolagemProgramadaSequencia_;
-        document.documentElement.dataset.scrollCidadeVersion = '23.9.56';
+        const barra = garantirBarraRetornoProgramadas_();
+        try { document.activeElement?.blur?.(); } catch (e) {}
 
-        const removerFoco_ = () => {
-          const ativo = document.activeElement;
-          if (ativo && ativo !== document.body && typeof ativo.blur === 'function') {
-            try { ativo.blur(); } catch (e) {}
-          }
-        };
+        // A correção principal é estrutural: remove do fluxo visual todo o painel que estava
+        // acima de Cidade. Mesmo se o WebView/PWA ignorar scrollTo/âncora/scrollIntoView,
+        // o usuário deixa de permanecer dentro do cartão de Vistorias Programadas.
+        tipoVistoriaSecao.hidden = true;
+        tipoVistoriaSecao.setAttribute('aria-hidden', 'true');
+        if (barra) barra.hidden = false;
+        document.body.classList.add('programmed-form-focused');
+        document.documentElement.dataset.formProgramadoVersion = '23.9.57';
 
-        const ajustarAncestraisRolaveis_ = () => {
-          if (sequencia !== rolagemProgramadaSequencia_) return;
-          let pai = secao.parentElement;
-          while (pai && pai !== document.body && pai !== document.documentElement) {
-            try {
-              const css = getComputedStyle(pai);
-              const rolavel = /(auto|scroll|overlay)/.test(String(css.overflowY || '')) && pai.scrollHeight > pai.clientHeight + 4;
-              if (rolavel) {
-                const rp = pai.getBoundingClientRect();
-                const rs = secao.getBoundingClientRect();
-                pai.scrollTop += rs.top - rp.top - 10;
-              }
-            } catch (e) {}
-            pai = pai.parentElement;
-          }
-        };
-
-        const navegarPorAncora_ = () => {
-          if (sequencia !== rolagemProgramadaSequencia_) return false;
-          if (secao.hidden || secao.offsetParent === null) return false;
-          removerFoco_();
-
-          // Força uma mudança real de hash mesmo se o usuário já tiver aberto outra vistoria.
-          // Isso dispara o mecanismo nativo de navegação do navegador/PWA para #cidadeSecao.
-          const baseUrl = `${location.pathname}${location.search}`;
-          try { history.replaceState(history.state, '', baseUrl); } catch (e) {}
-          // Leitura de layout antes do hash evita que a seção ainda esteja em reflow quando o
-          // navegador tentar localizar o destino.
-          try { void secao.getBoundingClientRect().top; } catch (e) {}
-          try { location.hash = 'cidadeSecao'; } catch (e) {}
-
+        // Garante que a seção do formulário já esteja no fluxo antes do navegador recalcular
+        // a posição. Esta chamada é apenas um ajuste final; a funcionalidade não depende dela.
+        cidadeSecao.hidden = false;
+        try { void cidadeSecao.offsetHeight; } catch (e) {}
+        requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            if (sequencia !== rolagemProgramadaSequencia_) return;
-            try { secao.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' }); } catch (e) {}
-            ajustarAncestraisRolaveis_();
+            try { cidadeSecao.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' }); } catch (e) {}
           });
-
-          secao.classList.add('programmed-form-highlight');
-          return true;
-        };
-
-        // Espera o fluxo retirar "hidden" das seções e os dados programados terminarem de
-        // preencher. Repetições posteriores não usam scrollTo: renovam a navegação por âncora.
-        const tentativas = [0, 80, 220, 520, 900, 1400];
-        tentativas.forEach((ms, indice) => {
-          setTimeout(() => {
-            if (sequencia !== rolagemProgramadaSequencia_) return;
-            navegarPorAncora_();
-            if (indice === tentativas.length - 1) {
-              setTimeout(() => {
-                if (sequencia !== rolagemProgramadaSequencia_) return;
-                secao.classList.remove('programmed-form-highlight');
-                // Limpa a âncora sem navegar novamente, mantendo a posição alcançada.
-                if (location.hash === '#cidadeSecao') {
-                  try { history.replaceState(history.state, '', `${location.pathname}${location.search}`); } catch (e) {}
-                }
-              }, 900);
-            }
-          }, ms);
         });
       }
 
@@ -7065,7 +7054,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.56', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.57', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

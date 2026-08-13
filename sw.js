@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-56-ancora-cidade';
-const VERSION = '23.9.56';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-57-formulario-programado-focado';
+const VERSION = '23.9.57';
 
 const CORE_SHELL = [
   './',
