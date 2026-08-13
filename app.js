@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.60';
+      const APP_VERSION = '23.9.61';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -6482,7 +6482,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.60 — a lista de programações fica em modal próprio.
+      // V23.9.61 — navegação e acabamento do modal de Vistorias Programadas.
       // Ao escolher uma vistoria, o painel inicial sai do fluxo e Cidade passa a ser o início do formulário.
       function garantirBarraRetornoProgramadas_() {
         const cidadeSecao = document.getElementById('cidadeSecao');
@@ -6494,11 +6494,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         barra.hidden = true;
         barra.className = 'programmed-return-bar';
         barra.setAttribute('aria-label', 'Navegação da vistoria programada');
-        barra.innerHTML = '<button type="button" class="btn btn-secondary" id="returnToProgrammedBtn">← Vistorias programadas</button>';
+        barra.innerHTML = `
+          <button type="button" class="btn btn-secondary programmed-return-btn" id="returnToProgrammedBtn">
+            <span aria-hidden="true">←</span><span>Vistorias programadas</span>
+          </button>
+          <button type="button" class="btn btn-secondary programmed-home-btn" id="returnToInspectionHomeBtn">
+            <span class="programmed-home-icon" aria-hidden="true">⌂</span><span>Início da Vistoria</span>
+          </button>`;
         cidadeSecao.insertBefore(barra, cidadeSecao.firstChild);
         barra.querySelector('#returnToProgrammedBtn')?.addEventListener('click', () => {
           restaurarPainelProgramadas_(true);
           abrirListaProgramadas_(true);
+        });
+        barra.querySelector('#returnToInspectionHomeBtn')?.addEventListener('click', () => {
+          // Apenas volta ao início visual da aba Vistoria. Os dados carregados permanecem no formulário.
+          restaurarPainelProgramadas_(true);
         });
         return barra;
       }
@@ -6512,7 +6522,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           tipoVistoriaSecao.hidden = false;
           tipoVistoriaSecao.removeAttribute('aria-hidden');
         }
-        document.documentElement.dataset.formProgramadoVersion = '23.9.60';
+        document.documentElement.dataset.formProgramadoVersion = '23.9.61';
         if (rolar && tipoVistoriaSecao) requestAnimationFrame(() => {
           try { tipoVistoriaSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
         });
@@ -6530,7 +6540,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (barra) barra.hidden = false;
         document.body.classList.remove('programmed-form-focused');
         form?.removeAttribute('data-programmed-fill-mode');
-        document.documentElement.dataset.formProgramadoVersion = '23.9.60';
+        document.documentElement.dataset.formProgramadoVersion = '23.9.61';
 
         // Como a lista saiu da página inicial, Cidade ocupa o espaço do painel removido.
         // O scroll é apenas um ajuste final; a navegação não depende dele para funcionar.
@@ -6647,8 +6657,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
-      programmedListCloseBtn?.addEventListener('click', fecharListaProgramadas_);
+      const acionarFechamentoProgramadas_ = event => {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        fecharListaProgramadas_();
+      };
+      programmedListCloseBtn?.addEventListener('click', acionarFechamentoProgramadas_);
+      // Alguns navegadores Android/PWA podem atrasar ou suprimir o click em elementos de modal.
+      // pointerup garante resposta imediata do botão sem depender do click sintetizado.
+      programmedListCloseBtn?.addEventListener('pointerup', acionarFechamentoProgramadas_);
       programmedListModal?.addEventListener('click', event => { if (event.target === programmedListModal) fecharListaProgramadas_(); });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && programmedListModal && !programmedListModal.hidden) fecharListaProgramadas_();
+      });
       dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
       dduList?.addEventListener('click', e => { const b=e.target.closest('[data-ddu-start]'); if(!b)return; iniciarDdu_(ddusAtivos.find(x=>String(x.id)===String(b.dataset.dduStart))); });
