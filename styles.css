@@ -7521,3 +7521,53 @@ body.daily-motivational-open{overflow:hidden!important}
   .mobile-choice-head { padding-top: 7px; padding-bottom: 8px; }
   .mobile-choice-search-wrap { margin-top: 7px; margin-bottom: 6px; }
 }
+
+
+/* V23.9.58 — modo de preenchimento dedicado da vistoria programada.
+   O formulário vira uma superfície rolável própria; não depende do scroll da janela/WebView. */
+body.programmed-form-focused {
+  overflow: hidden !important;
+}
+body.programmed-form-focused #vistoriaForm[data-programmed-fill-mode="true"] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 38 !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) calc(118px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto !important;
+  overflow-anchor: none !important;
+  background: var(--bg, #f5f6f8) !important;
+}
+body.programmed-form-focused #tipoVistoriaSecao {
+  display: none !important;
+}
+body.programmed-form-focused #cidadeSecao {
+  display: block !important;
+  margin-top: 0 !important;
+  scroll-margin-top: 0 !important;
+}
+body.programmed-form-focused #programmedReturnBar {
+  display: flex !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 8 !important;
+  margin: -2px -2px 10px !important;
+  padding: 4px 2px 10px !important;
+  background: linear-gradient(180deg, var(--bg, #f5f6f8) 76%, rgba(245,246,248,0)) !important;
+}
+body.programmed-form-focused #programmedReturnBar .btn {
+  min-height: 42px;
+}
+@supports not (height: 100dvh) {
+  body.programmed-form-focused #vistoriaForm[data-programmed-fill-mode="true"] {
+    height: 100vh !important;
+    max-height: 100vh !important;
+  }
+}

@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.57';
+      const APP_VERSION = '23.9.58';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -6439,10 +6439,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.57 — modo estrutural para vistoria programada.
-      // Em vez de depender da rolagem programática do navegador, recolhe o bloco inteiro
-      // de Vistorias Programadas/Tipo de vistoria. Assim, "1. Cidade" passa a ocupar
-      // naturalmente o início útil do formulário no celular.
+      // V23.9.58 — modo de preenchimento dedicado para vistoria programada.
+      // O formulário passa a ser o próprio contêiner rolável da tela. Isso evita depender
+      // da rolagem da janela, de âncora, de scrollIntoView e do scroll anchoring do WebView.
       function garantirBarraRetornoProgramadas_() {
         const cidadeSecao = document.getElementById('cidadeSecao');
         if (!cidadeSecao) return null;
@@ -6465,12 +6464,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function restaurarPainelProgramadas_(rolar = false) {
         const barra = document.getElementById('programmedReturnBar');
         if (barra) barra.hidden = true;
+        document.body.classList.remove('programmed-form-focused');
+        if (form) {
+          form.removeAttribute('data-programmed-fill-mode');
+          try { form.scrollTop = 0; } catch (e) {}
+        }
         if (tipoVistoriaSecao) {
           tipoVistoriaSecao.hidden = false;
           tipoVistoriaSecao.removeAttribute('aria-hidden');
         }
-        document.body.classList.remove('programmed-form-focused');
-        document.documentElement.dataset.formProgramadoVersion = '23.9.57';
+        document.documentElement.dataset.formProgramadoVersion = '23.9.58';
 
         if (rolar && tipoVistoriaSecao) {
           requestAnimationFrame(() => {
@@ -6481,29 +6484,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function rolarParaFormularioProgramado_() {
         const cidadeSecao = document.getElementById('cidadeSecao');
-        if (!cidadeSecao || !tipoVistoriaSecao) return;
+        if (!cidadeSecao || !tipoVistoriaSecao || !form) return;
 
         const barra = garantirBarraRetornoProgramadas_();
         try { document.activeElement?.blur?.(); } catch (e) {}
 
-        // A correção principal é estrutural: remove do fluxo visual todo o painel que estava
-        // acima de Cidade. Mesmo se o WebView/PWA ignorar scrollTo/âncora/scrollIntoView,
-        // o usuário deixa de permanecer dentro do cartão de Vistorias Programadas.
+        // O painel de programações sai do fluxo e o FORMULÁRIO vira uma tela rolável própria.
+        // Assim o ponto inicial é controlado por form.scrollTop = 0, e não pela janela do PWA.
         tipoVistoriaSecao.hidden = true;
         tipoVistoriaSecao.setAttribute('aria-hidden', 'true');
-        if (barra) barra.hidden = false;
-        document.body.classList.add('programmed-form-focused');
-        document.documentElement.dataset.formProgramadoVersion = '23.9.57';
-
-        // Garante que a seção do formulário já esteja no fluxo antes do navegador recalcular
-        // a posição. Esta chamada é apenas um ajuste final; a funcionalidade não depende dela.
         cidadeSecao.hidden = false;
-        try { void cidadeSecao.offsetHeight; } catch (e) {}
+        if (barra) barra.hidden = false;
+        form.setAttribute('data-programmed-fill-mode', 'true');
+        document.body.classList.add('programmed-form-focused');
+        document.documentElement.dataset.formProgramadoVersion = '23.9.58';
+
+        const fixarInicio = () => {
+          try { form.scrollTop = 0; } catch (e) {}
+        };
+        fixarInicio();
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            try { cidadeSecao.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' }); } catch (e) {}
-          });
+          fixarInicio();
+          requestAnimationFrame(fixarInicio);
         });
+        setTimeout(fixarInicio, 80);
+        setTimeout(fixarInicio, 220);
+        setTimeout(fixarInicio, 500);
       }
 
       function aplicarPreparacaoAoFormulario_(item) {
@@ -7054,7 +7060,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.57', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.58', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

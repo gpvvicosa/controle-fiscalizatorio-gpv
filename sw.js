@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-57-formulario-programado-focado';
-const VERSION = '23.9.57';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-58-modo-preenchimento-dedicado';
+const VERSION = '23.9.58';
 
 const CORE_SHELL = [
   './',
