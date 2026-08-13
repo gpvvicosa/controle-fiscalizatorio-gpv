@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.61';
+      const APP_VERSION = '23.9.62';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -1996,7 +1996,7 @@
       function descricaoHistorico_(item) {
         const n = normalize(item?.sancao || '');
         let texto = '';
-        if (n === 'autuado') texto = 'Irregularidades registradas na fiscalização.';
+        if (n === 'autuado') texto = 'Irregularidades registradas na fiscalização. O responsável foi informado que a autuação será encaminhada por correspondência, com Aviso de Recebimento (AR), para o endereço da edificação.';
         else if (n === 'advertencia') texto = 'Prazo de regularização em acompanhamento.';
         else if (n === 'notificado') texto = 'Pendências técnicas registradas para liberação.';
         else if (n === 'regularizado') texto = 'Fiscalização regularizada.';
