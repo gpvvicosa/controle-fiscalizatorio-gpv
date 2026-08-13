@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-67-acompanhamento-operacional';
-const VERSION = '23.9.67';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-68-infoscip-multas-manual';
+const VERSION = '23.9.68';
 
 const CORE_SHELL = [
   './',

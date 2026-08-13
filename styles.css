@@ -8089,3 +8089,42 @@ body.records-mode .records-status.cached { display:block !important; }
   .record-operational-summary .record-detail-fields{grid-template-columns:1fr!important}
   .record-operational-summary .record-detail-field:last-child{grid-column:auto}
 }
+
+/* ==============================================================
+   V23.9.68 — Conferência INFOSCIP, multa e atualização objetiva
+   ============================================================== */
+.status-pendente{color:#9a3412;background:#fff7ed;border-color:#fed7aa}
+.record-current-status.status-pendente .record-current-status-icon{background:#c2410c;border-color:#ffedd5}
+.record-infoscip-update-panel{margin:12px 0;padding:14px 16px;border:1px solid #d9e5df;border-radius:14px;background:#f7fbf8;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.record-infoscip-update-panel[hidden]{display:none!important}
+.record-infoscip-update-panel h3{margin:0 0 3px;color:#244f35;font-size:13px}
+.record-infoscip-update-panel span{display:block;color:#667085;font-size:11px;line-height:1.4}
+.record-infoscip-update-btn{min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#176b3a;color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.record-infoscip-update-btn:disabled{opacity:.55;cursor:not-allowed}
+.record-status-update-overlay{position:fixed;inset:0;z-index:2200;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.52);backdrop-filter:blur(2px)}
+.record-status-update-overlay[hidden]{display:none!important}
+.record-status-update-card{width:min(480px,100%);max-height:calc(100vh - 36px);overflow:auto;border-radius:18px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.28)}
+.record-status-update-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid #eaecf0}
+.record-status-update-card>header span{display:block;color:#176b3a;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.06em}
+.record-status-update-card>header h2{margin:3px 0 0;color:#1d2939;font-size:18px}
+.record-status-update-card>header button{width:36px;height:36px;border:1px solid #e4e7ec;border-radius:10px;background:#fff;color:#475467;font-size:24px;line-height:1;cursor:pointer}
+.record-status-update-body{display:grid;gap:13px;padding:16px 18px}
+.record-status-current{padding:10px 12px;border-radius:10px;background:#f8fafc;color:#475467;font-size:12px}
+.record-status-update-body>label:not(.record-status-confirm){display:grid;gap:6px;color:#344054;font-size:11px;font-weight:750}
+.record-status-update-body select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;color:#101828;font:inherit;font-size:13px}
+.record-status-confirm{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border:1px solid #e4e7ec;border-radius:10px;background:#fcfcfd;color:#344054;font-size:12px;line-height:1.35;cursor:pointer}
+.record-status-confirm input{margin-top:2px;flex:0 0 auto}
+.record-status-update-message{min-height:16px;color:#667085;font-size:11px}
+.record-status-update-message.error{color:#b42318;font-weight:700}
+.record-status-update-card>footer{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;border-top:1px solid #eaecf0}
+.record-status-update-card>footer button{min-height:40px;padding:0 14px;border-radius:10px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.record-status-update-card>footer .secondary{border:1px solid #d0d5dd;background:#fff;color:#344054}
+.record-status-update-card>footer .primary{border:1px solid #176b3a;background:#176b3a;color:#fff}
+.record-status-update-card>footer .primary:disabled{opacity:.55;cursor:wait}
+body.record-status-update-open{overflow:hidden}
+@media(max-width:680px){
+  .record-infoscip-update-panel{align-items:stretch;flex-direction:column;padding:13px}
+  .record-infoscip-update-btn{width:100%}
+  .record-status-update-overlay{align-items:flex-end;padding:0}
+  .record-status-update-card{width:100%;max-height:88vh;border-radius:20px 20px 0 0}
+}
