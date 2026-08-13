@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.58';
+      const APP_VERSION = '23.9.59';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -565,6 +565,12 @@
       const prepareDwgWrap = document.getElementById('prepareDwgWrap');
       const prepareDwgFile = document.getElementById('prepareDwgFile');
       const prepareDwgStatus = document.getElementById('prepareDwgStatus');
+
+      const programmedSummaryCard = document.getElementById('programmedSummaryCard');
+      const programmedSummaryText = document.getElementById('programmedSummaryText');
+      const programmedSummaryCount = document.getElementById('programmedSummaryCount');
+      const programmedListModal = document.getElementById('programmedListModal');
+      const programmedListCloseBtn = document.getElementById('programmedListCloseBtn');
 
       const desktopPrepareInspectionBtn = document.getElementById('desktopPrepareInspectionBtn');
       const prepareInspectionModal = document.getElementById('prepareInspectionModal');
@@ -5198,15 +5204,29 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      function definirFiltroPreparacoes_(filtro) {
+        const permitido = ['minhas','todas','fiscalizacao','liberacao'];
+        filtroPreparacoes = permitido.includes(filtro) ? filtro : 'todas';
+        document.querySelectorAll('[data-prepared-filter]').forEach(b => {
+          b.classList.toggle('is-active', b.dataset.preparedFilter === filtroPreparacoes);
+        });
+      }
+
+      function abrirListaProgramadas_(preferirMinhas = true) {
+        const minhas = preparacoesDoUsuarioLogado_();
+        definirFiltroPreparacoes_(preferirMinhas && minhas.length ? 'minhas' : 'todas');
+        renderizarPreparacoesVistoria_();
+        if (programmedListModal) programmedListModal.hidden = false;
+        if (navigator.onLine) carregarPreparacoesVistoria_().catch(() => {});
+      }
+
+      function fecharListaProgramadas_() {
+        if (programmedListModal) programmedListModal.hidden = true;
+      }
+
       function abrirPreparacoesDoUsuario_() {
         if (!preparacoesDoUsuarioLogado_().length) return;
-        mostrarVistaFormulario_();
-        filtroPreparacoes = 'todas';
-        document.querySelectorAll('[data-prepared-filter]').forEach(b => b.classList.toggle('is-active', b.dataset.preparedFilter === 'todas'));
-        renderizarPreparacoesVistoria_();
-        window.setTimeout(() => {
-          document.querySelector('.prepared-inspections-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 80);
+        abrirListaProgramadas_(true);
       }
 
       function atualizarUsuarioLogadoUi_() {
@@ -6307,10 +6327,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function atualizarVisibilidadeProgramadasMobile_() {
-        if (!programmedInspectionsBox) return;
-        const semProgramacoes = !Array.isArray(preparacoesVistoria) || preparacoesVistoria.length === 0;
-        programmedInspectionsBox.classList.toggle('mobile-hide-when-empty', semProgramacoes);
-        programmedInspectionsBox.setAttribute('data-program-count', String(Array.isArray(preparacoesVistoria) ? preparacoesVistoria.length : 0));
+        const lista = Array.isArray(preparacoesVistoria) ? preparacoesVistoria : [];
+        const total = lista.length;
+        const minhas = preparacoesDoUsuarioLogado_().length;
+        let criticas = 0;
+        lista.forEach(item => {
+          const prazo = classificarPrazoProgramacao_(item);
+          if (prazo.classe === 'atrasada' || prazo.classe === 'hoje') criticas += 1;
+        });
+
+        if (programmedInspectionsBox) programmedInspectionsBox.setAttribute('data-program-count', String(total));
+        if (programmedSummaryCard) {
+          programmedSummaryCard.hidden = total === 0;
+          programmedSummaryCard.classList.toggle('is-danger', criticas > 0);
+          programmedSummaryCard.setAttribute('aria-label', total
+            ? `Abrir Vistorias Programadas. ${total} pendente${total === 1 ? '' : 's'}${minhas ? `, ${minhas} para você` : ''}.`
+            : 'Nenhuma vistoria programada pendente');
+        }
+        if (programmedSummaryCount) programmedSummaryCount.textContent = String(total);
+        if (programmedSummaryText) programmedSummaryText.textContent = total
+          ? `${total} pendente${total === 1 ? '' : 's'}${minhas ? ` • ${minhas} para você` : ''}`
+          : 'Nenhuma vistoria pendente';
       }
 
       function renderizarPreparacoesVistoria_() {
@@ -6320,7 +6357,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!preparedInspectionsList) return;
         const meuNome = String(authState.usuario?.nome || '').trim();
         const lista = preparacoesVistoria
-          .filter(item => filtroPreparacoes === 'todas' || item.tipoPreparacao === filtroPreparacoes)
+          .filter(item => {
+            if (filtroPreparacoes === 'minhas') return Boolean(meuNome) && normalize(item?.vistoriadorResponsavel) === normalize(meuNome);
+            return filtroPreparacoes === 'todas' || item.tipoPreparacao === filtroPreparacoes;
+          })
           .slice()
           .sort((a, b) => {
             const aMinha = meuNome && normalize(a?.vistoriadorResponsavel) === normalize(meuNome) ? 0 : 1;
@@ -6375,6 +6415,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function carregarPreparacoesVistoria_() {
         const inicioLoadingProgramadas = Date.now();
+        if (programmedSummaryCard && navigator.onLine) programmedSummaryCard.hidden = true;
         const tempoMinimoLoading = 450;
         const cacheKey = 'gpv_preparacoes_cache_v1';
         let cachePreparacoes = [];
@@ -6439,24 +6480,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.58 — modo de preenchimento dedicado para vistoria programada.
-      // O formulário passa a ser o próprio contêiner rolável da tela. Isso evita depender
-      // da rolagem da janela, de âncora, de scrollIntoView e do scroll anchoring do WebView.
+      // V23.9.59 — a lista de programações fica em modal próprio.
+      // Ao escolher uma vistoria, o painel inicial sai do fluxo e Cidade passa a ser o início do formulário.
       function garantirBarraRetornoProgramadas_() {
         const cidadeSecao = document.getElementById('cidadeSecao');
         if (!cidadeSecao) return null;
         let barra = document.getElementById('programmedReturnBar');
         if (barra) return barra;
-
         barra = document.createElement('div');
         barra.id = 'programmedReturnBar';
         barra.hidden = true;
+        barra.className = 'programmed-return-bar';
         barra.setAttribute('aria-label', 'Navegação da vistoria programada');
-        barra.style.cssText = 'padding:0 0 12px;display:flex;justify-content:flex-start;';
-        barra.innerHTML = '<button type="button" class="btn btn-secondary" id="returnToProgrammedBtn">← Voltar às vistorias programadas</button>';
+        barra.innerHTML = '<button type="button" class="btn btn-secondary" id="returnToProgrammedBtn">← Vistorias programadas</button>';
         cidadeSecao.insertBefore(barra, cidadeSecao.firstChild);
         barra.querySelector('#returnToProgrammedBtn')?.addEventListener('click', () => {
           restaurarPainelProgramadas_(true);
+          abrirListaProgramadas_(true);
         });
         return barra;
       }
@@ -6465,51 +6505,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const barra = document.getElementById('programmedReturnBar');
         if (barra) barra.hidden = true;
         document.body.classList.remove('programmed-form-focused');
-        if (form) {
-          form.removeAttribute('data-programmed-fill-mode');
-          try { form.scrollTop = 0; } catch (e) {}
-        }
+        if (form) form.removeAttribute('data-programmed-fill-mode');
         if (tipoVistoriaSecao) {
           tipoVistoriaSecao.hidden = false;
           tipoVistoriaSecao.removeAttribute('aria-hidden');
         }
-        document.documentElement.dataset.formProgramadoVersion = '23.9.58';
-
-        if (rolar && tipoVistoriaSecao) {
-          requestAnimationFrame(() => {
-            try { tipoVistoriaSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
-          });
-        }
+        document.documentElement.dataset.formProgramadoVersion = '23.9.59';
+        if (rolar && tipoVistoriaSecao) requestAnimationFrame(() => {
+          try { tipoVistoriaSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
+        });
       }
 
       function rolarParaFormularioProgramado_() {
         const cidadeSecao = document.getElementById('cidadeSecao');
-        if (!cidadeSecao || !tipoVistoriaSecao || !form) return;
-
+        if (!cidadeSecao || !tipoVistoriaSecao) return;
         const barra = garantirBarraRetornoProgramadas_();
+        fecharListaProgramadas_();
         try { document.activeElement?.blur?.(); } catch (e) {}
-
-        // O painel de programações sai do fluxo e o FORMULÁRIO vira uma tela rolável própria.
-        // Assim o ponto inicial é controlado por form.scrollTop = 0, e não pela janela do PWA.
         tipoVistoriaSecao.hidden = true;
         tipoVistoriaSecao.setAttribute('aria-hidden', 'true');
         cidadeSecao.hidden = false;
         if (barra) barra.hidden = false;
-        form.setAttribute('data-programmed-fill-mode', 'true');
-        document.body.classList.add('programmed-form-focused');
-        document.documentElement.dataset.formProgramadoVersion = '23.9.58';
+        document.body.classList.remove('programmed-form-focused');
+        form?.removeAttribute('data-programmed-fill-mode');
+        document.documentElement.dataset.formProgramadoVersion = '23.9.59';
 
-        const fixarInicio = () => {
-          try { form.scrollTop = 0; } catch (e) {}
-        };
-        fixarInicio();
-        requestAnimationFrame(() => {
-          fixarInicio();
-          requestAnimationFrame(fixarInicio);
-        });
-        setTimeout(fixarInicio, 80);
-        setTimeout(fixarInicio, 220);
-        setTimeout(fixarInicio, 500);
+        // Como a lista saiu da página inicial, Cidade ocupa o espaço do painel removido.
+        // O scroll é apenas um ajuste final; a navegação não depende dele para funcionar.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          try { cidadeSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
+        }));
       }
 
       function aplicarPreparacaoAoFormulario_(item) {
@@ -6619,11 +6644,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
 
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
+      programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
+      programmedListCloseBtn?.addEventListener('click', fecharListaProgramadas_);
+      programmedListModal?.addEventListener('click', event => { if (event.target === programmedListModal) fecharListaProgramadas_(); });
       dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
       dduList?.addEventListener('click', e => { const b=e.target.closest('[data-ddu-start]'); if(!b)return; iniciarDdu_(ddusAtivos.find(x=>String(x.id)===String(b.dataset.dduStart))); });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
-      desktopPrepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
+      desktopPrepareInspectionBtn?.addEventListener('click', () => { fecharListaProgramadas_(); abrirModalPreparacao_(); });
       prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
@@ -6687,8 +6715,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         solicitarConsultaCnpjPreparacao_(numero).catch(() => {});
       });
       document.querySelectorAll('[data-prepared-filter]').forEach(btn => btn.addEventListener('click', () => {
-        filtroPreparacoes = btn.dataset.preparedFilter || 'todas';
-        document.querySelectorAll('[data-prepared-filter]').forEach(b => b.classList.toggle('is-active', b === btn));
+        definirFiltroPreparacoes_(btn.dataset.preparedFilter || 'todas');
         renderizarPreparacoesVistoria_();
       }));
       preparedInspectionsList?.addEventListener('click', event => {
@@ -6697,6 +6724,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           event.preventDefault();
           event.stopPropagation();
           const item = preparacoesVistoria.find(p => String(p.id) === String(editar.dataset.preparacaoEditId));
+          fecharListaProgramadas_();
           abrirEdicaoPreparacao_(item);
           return;
         }

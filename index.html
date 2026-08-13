@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.58">
+  <link rel="stylesheet" href="styles.css?v=23.9.59">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -528,29 +528,17 @@
     <form id="vistoriaForm" novalidate>
       <section class="section essential inspection-flow-section" id="tipoVistoriaSecao">
         <div class="section-body">
-          <div class="inspection-overview-grid">
+          <div class="inspection-overview-grid operational-shortcuts-grid" aria-label="Pendências operacionais">
             <button type="button" class="ddu-summary-card" id="dduSummaryCard" aria-label="Abrir demandas DDU" hidden>
               <span class="ddu-summary-icon">181</span>
               <span class="ddu-summary-copy"><strong>DDU</strong><small id="dduSummaryText">Carregando demandas...</small></span>
               <span class="ddu-summary-count" id="dduSummaryCount">—</span>
             </button>
-            <div class="prepared-inspections-box programmed-inspections-box">
-              <div class="prepared-inspections-head">
-                <div class="programmed-title-wrap"><span class="programmed-title-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 10h6M9 14h6M9 18h4"/></svg></span><div><strong>Vistorias Programadas</strong><div class="prepared-for-user" id="preparedForUserNotice" hidden></div></div></div>
-                <button class="desktop-prepare-btn" id="desktopPrepareInspectionBtn" type="button">
-                  <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
-                  <span>Cadastrar vistoria</span>
-                </button>
-              </div>
-              <div id="programDeadlineNotice" class="program-deadline-notice" hidden></div>
-              <div class="prepared-inspections-filters">
-                <button type="button" class="prepared-filter is-active" data-prepared-filter="todas">Todas</button>
-                <button type="button" class="prepared-filter" data-prepared-filter="fiscalizacao">Fiscalização</button>
-                <button type="button" class="prepared-filter" data-prepared-filter="liberacao">Liberação</button>
-              </div>
-              <div id="preparedInspectionsStatus" class="hint">Carregando programações...</div>
-              <div id="preparedInspectionsList" class="prepared-inspections-list"></div>
-            </div>
+            <button type="button" class="programmed-summary-card" id="programmedSummaryCard" aria-label="Abrir vistorias programadas" hidden>
+              <span class="programmed-summary-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 10h6M9 14h6M9 18h4"/></svg></span>
+              <span class="programmed-summary-copy"><strong>Vistorias Programadas</strong><small id="programmedSummaryText">Carregando programações...</small></span>
+              <span class="programmed-summary-count" id="programmedSummaryCount">—</span>
+            </button>
           </div>
           <div class="inspection-flow-grid inspection-flow-grid-after-programmed" role="group" aria-label="Tipo de vistoria">
             <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
@@ -1132,6 +1120,37 @@
     </div>
   </div>
 
+  <div class="review-overlay" id="programmedListModal" hidden>
+    <div class="review-card programmed-list-card" role="dialog" aria-modal="true" aria-labelledby="programmedListTitle">
+      <div class="review-head programmed-list-head">
+        <div class="programmed-modal-title-wrap">
+          <span class="programmed-modal-title-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 10h6M9 14h6M9 18h4"/></svg></span>
+          <div><h2 id="programmedListTitle">Vistorias Programadas</h2><p id="preparedForUserNotice" class="prepared-for-user" hidden></p></div>
+        </div>
+        <button class="icon-btn" id="programmedListCloseBtn" type="button" aria-label="Fechar vistorias programadas">×</button>
+      </div>
+      <div class="review-body programmed-list-body">
+        <div class="programmed-list-toolbar">
+          <div class="prepared-inspections-filters" aria-label="Filtrar vistorias programadas">
+            <button type="button" class="prepared-filter is-active" data-prepared-filter="minhas">Minhas</button>
+            <button type="button" class="prepared-filter" data-prepared-filter="todas">Todas</button>
+            <button type="button" class="prepared-filter" data-prepared-filter="fiscalizacao">Fiscalização</button>
+            <button type="button" class="prepared-filter" data-prepared-filter="liberacao">Liberação</button>
+          </div>
+          <button class="desktop-prepare-btn programmed-register-btn" id="desktopPrepareInspectionBtn" type="button">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
+            <span>Cadastrar vistoria</span>
+          </button>
+        </div>
+        <div id="programDeadlineNotice" class="program-deadline-notice" hidden></div>
+        <div id="preparedInspectionsStatus" class="hint">Carregando programações...</div>
+        <div class="prepared-inspections-box programmed-inspections-box">
+          <div id="preparedInspectionsList" class="prepared-inspections-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="review-overlay notification-review-overlay" id="notificationReviewModal" hidden>
     <section class="review-card notification-review-card" role="dialog" aria-modal="true" aria-labelledby="notificationReviewTitle">
       <header class="review-header notification-review-header">
@@ -1289,9 +1308,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.58"></script>
-  <script src="ocupacoes.js?v=23.9.58"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.58"></script>
-  <script src="app.js?v=23.9.58"></script>
+  <script src="config.js?v=23.9.59"></script>
+  <script src="ocupacoes.js?v=23.9.59"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.59"></script>
+  <script src="app.js?v=23.9.59"></script>
 </body>
 </html>

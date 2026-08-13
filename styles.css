@@ -7571,3 +7571,94 @@ body.programmed-form-focused #programmedReturnBar .btn {
     max-height: 100vh !important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.59 — atalhos operacionais: DDU + Vistorias Programadas
+   A lista de programações não ocupa mais a página inicial; abre em painel próprio.
+   ============================================================================= */
+.programmed-summary-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 66px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 82px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid #edc9cc;
+  border-radius: 18px;
+  background: linear-gradient(110deg,#fff 0%,#fff6f7 100%);
+  color: #172033;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 7px 22px rgba(132,20,28,.06);
+}
+.programmed-summary-card:hover { border-color:#b51d27; box-shadow:0 9px 25px rgba(132,20,28,.11); }
+.programmed-summary-card[hidden] { display:none !important; }
+.programmed-summary-icon {
+  display:grid; place-items:center; width:66px; height:54px; border-radius:15px;
+  background:linear-gradient(145deg,#b71925,#721017); color:#fff;
+  box-shadow:0 8px 18px rgba(128,18,26,.18);
+}
+.programmed-summary-icon .ui-icon { width:28px; height:28px; }
+.programmed-summary-copy { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.programmed-summary-copy strong { font-size:1.08rem; font-weight:850; }
+.programmed-summary-copy small { color:#667085; font-size:.86rem; line-height:1.3; }
+.programmed-summary-count {
+  min-width:40px; height:40px; padding:0 11px; display:grid; place-items:center;
+  border-radius:999px; background:#fff0f1; color:#a31520; font-size:.96rem; font-weight:850;
+  box-shadow:inset 0 0 0 1px rgba(181,29,39,.10);
+}
+.programmed-summary-card.is-danger .programmed-summary-count { background:#fee4e2; color:#b42318; }
+.operational-shortcuts-grid { display:grid !important; grid-template-columns:1fr !important; gap:10px !important; }
+
+.programmed-list-card { width:min(1080px,96vw); max-height:92vh; overflow:hidden; }
+.programmed-list-head { align-items:center; }
+.programmed-modal-title-wrap { display:flex; align-items:center; gap:12px; min-width:0; }
+.programmed-modal-title-wrap h2 { margin:0; }
+.programmed-modal-title-wrap p { margin:3px 0 0; color:#667085; }
+.programmed-modal-title-icon {
+  width:46px; height:46px; flex:0 0 auto; display:grid; place-items:center;
+  border-radius:13px; color:#a81721; background:#fff0f1;
+}
+.programmed-modal-title-icon .ui-icon { width:25px; height:25px; }
+.programmed-list-body { overflow:auto; overscroll-behavior:contain; }
+.programmed-list-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.programmed-list-toolbar .prepared-inspections-filters { margin:0; flex-wrap:wrap; }
+.programmed-register-btn { flex:0 0 auto; }
+.programmed-list-body .programmed-inspections-box {
+  margin:10px 0 0; padding:0; border:0; background:transparent; box-shadow:none;
+}
+.programmed-list-body .prepared-inspections-list { max-height:none; }
+.programmed-list-body .prepared-empty { min-height:90px; display:grid; place-items:center; }
+.programmed-return-bar { padding:0 0 10px; display:flex; justify-content:flex-start; }
+
+/* Neutraliza o modo fixo experimental da V23.9.58. */
+body.programmed-form-focused { overflow:auto !important; }
+body.programmed-form-focused #vistoriaForm[data-programmed-fill-mode="true"] {
+  position:static !important; inset:auto !important; z-index:auto !important; width:auto !important;
+  height:auto !important; max-height:none !important; margin:0 !important; padding:0 !important;
+  overflow:visible !important; background:transparent !important;
+}
+body.programmed-form-focused #programmedReturnBar { position:static !important; margin:0 !important; padding:0 0 10px !important; background:transparent !important; }
+
+@media (max-width:900px) {
+  .operational-shortcuts-grid { gap:8px !important; }
+  .programmed-summary-card {
+    min-height:62px; padding:7px 9px; grid-template-columns:58px minmax(0,1fr) 32px;
+    gap:9px; border-radius:15px;
+  }
+  .programmed-summary-icon { width:58px; height:44px; border-radius:12px; }
+  .programmed-summary-icon .ui-icon { width:23px; height:23px; }
+  .programmed-summary-copy { gap:1px; }
+  .programmed-summary-copy strong { font-size:.96rem; line-height:1.1; }
+  .programmed-summary-copy small { font-size:.72rem; line-height:1.18; white-space:normal; overflow-wrap:anywhere; }
+  .programmed-summary-count { width:32px; min-width:32px; height:32px; padding:0; font-size:.82rem; }
+  .programmed-list-card { width:98vw; max-height:94dvh; }
+  .programmed-list-body { padding:12px !important; }
+  .programmed-list-toolbar { align-items:stretch; flex-direction:column; }
+  .programmed-list-toolbar .prepared-inspections-filters { display:grid !important; grid-template-columns:1fr 1fr; width:100%; gap:7px !important; }
+  .programmed-list-toolbar .prepared-filter { width:100%; min-height:40px !important; }
+  .programmed-register-btn { display:flex !important; width:100%; justify-content:center; min-height:44px; }
+}

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-58-modo-preenchimento-dedicado';
-const VERSION = '23.9.58';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-59-atalhos-operacionais';
+const VERSION = '23.9.59';
 
 const CORE_SHELL = [
   './',
