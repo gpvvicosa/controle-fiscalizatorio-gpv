@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.65';
+      const APP_VERSION = '23.9.66';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -1692,6 +1692,17 @@
         return texto || '—';
       }
 
+      function formatarEnderecoPainel_(item) {
+        const logradouro = String(item?.endereco || '').trim();
+        const numero = String(item?.numero || '').trim();
+        const bairro = String(item?.bairro || '').trim();
+        const partes = [];
+        if (logradouro) partes.push(logradouro);
+        if (numero) partes[0] = partes[0] ? `${partes[0]}, ${numero}` : numero;
+        if (bairro) partes.push(bairro);
+        return partes.join(' — ') || '—';
+      }
+
       function marcarLinhaSelecionada_() {
         if (!recordsTableBody) return;
         recordsTableBody.querySelectorAll('.records-table-row').forEach(row => {
@@ -1703,7 +1714,7 @@
         const itens = recordsState.itens || [];
         if (!itens.length) {
           recordsList.innerHTML = '<div class="records-empty">Nenhum registro encontrado com os filtros informados.</div>';
-          recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
+          recordsTableBody.innerHTML = '<tr><td colspan="10" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
           return;
         }
 
@@ -1713,6 +1724,7 @@
           return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0">
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
             <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? `<small>${escapeHtml(item.razaoSocial)}</small>` : ''}</td>
+            <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${escapeHtml(formatarEnderecoPainel_(item))}</td>
             <td>${escapeHtml(item.cidade || '—')}</td>
             <td class="records-mono">${escapeHtml(identificadorPainel_(item).valor)}</td>
             <td>${escapeHtml(item.demanda || '—')}</td>
@@ -1728,7 +1740,7 @@
         recordsList.innerHTML = itens.map(item => {
           const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
           const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? item.razaoSocial : '';
-          const endereco = [item.endereco, item.numero, item.bairro].filter(Boolean).join(', ');
+          const endereco = formatarEnderecoPainel_(item);
           return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
             <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
@@ -1739,7 +1751,7 @@
               <div class="records-meta-item"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto || '—')}</strong></div>
               <div class="records-meta-item"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
             </div>
-            ${endereco ? `<div class="records-card-address">${escapeHtml(endereco)}</div>` : ''}
+            ${endereco && endereco !== '—' ? `<div class="records-card-address">${escapeHtml(endereco)}</div>` : ''}
             <div class="records-card-cta">Ver ficha completa <span aria-hidden="true">→</span></div>
           </button>`;
         }).join('');

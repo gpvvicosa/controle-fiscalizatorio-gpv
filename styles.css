@@ -8042,3 +8042,24 @@ body.records-mode .records-status.cached { display:block !important; }
 @media (max-width:390px) {
   .goals-detail-fields { grid-template-columns:1fr; }
 }
+
+/* =========================================================
+   V23.9.66 — Endereço no painel de consulta (desktop)
+   ========================================================= */
+@media(min-width:901px){
+  body.records-mode .records-table{min-width:1380px!important;table-layout:fixed!important}
+  body.records-mode .records-table th:nth-child(1), body.records-mode .records-table td:nth-child(1){width:7%}
+  body.records-mode .records-table th:nth-child(2), body.records-mode .records-table td:nth-child(2){width:16%}
+  body.records-mode .records-table th:nth-child(3), body.records-mode .records-table td:nth-child(3){width:18%}
+  body.records-mode .records-table th:nth-child(4), body.records-mode .records-table td:nth-child(4){width:7%}
+  body.records-mode .records-table th:nth-child(5), body.records-mode .records-table td:nth-child(5){width:11%}
+  body.records-mode .records-table th:nth-child(6), body.records-mode .records-table td:nth-child(6){width:12%}
+  body.records-mode .records-table th:nth-child(7), body.records-mode .records-table td:nth-child(7){width:9%}
+  body.records-mode .records-table th:nth-child(8), body.records-mode .records-table td:nth-child(8){width:10%}
+  body.records-mode .records-table th:nth-child(9), body.records-mode .records-table td:nth-child(9){width:7%}
+  body.records-mode .records-table th:nth-child(10), body.records-mode .records-table td:nth-child(10){width:3%}
+  body.records-mode .records-table td:nth-child(2),
+  body.records-mode .records-table td:nth-child(3),
+  body.records-mode .records-table td:nth-child(6){min-width:0;max-width:none;white-space:nowrap}
+  body.records-mode .records-address-cell{color:#475467!important;font-size:10px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}

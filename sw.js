@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-65-painel-ficha-metas-detalhadas';
-const VERSION = '23.9.65';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-66-endereco-painel';
+const VERSION = '23.9.66';
 
 const CORE_SHELL = [
   './',
