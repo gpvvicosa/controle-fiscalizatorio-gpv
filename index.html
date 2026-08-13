@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.64">
+  <link rel="stylesheet" href="styles.css?v=23.9.65">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -214,9 +214,22 @@
         <div><span class="goals-modal-kicker">GPV — 3º Pelotão Viçosa</span><h2 id="goalsModalTitle">Metas do mês</h2><p id="goalsModalSubtitle">Acompanhamento das metas mensais.</p></div>
         <button class="icon-btn" id="goalsModalCloseBtn" type="button" aria-label="Fechar metas">×</button>
       </div>
+      <div class="goals-modal-tabs" role="tablist" aria-label="Visualização das metas">
+        <button class="goals-modal-tab active" id="goalsTabSummaryBtn" type="button" role="tab" aria-selected="true" aria-controls="goalsSummaryPanel">Resumo</button>
+        <button class="goals-modal-tab" id="goalsTabDetailsBtn" type="button" role="tab" aria-selected="false" aria-controls="goalsDetailsPanel">Detalhes dos locais</button>
+      </div>
       <div class="review-body goals-modal-body">
-        <div class="goals-modal-summary" id="goalsModalSummary"></div>
-        <div class="goals-modal-list" id="goalsModalList"></div>
+        <section class="goals-tab-panel" id="goalsSummaryPanel" role="tabpanel" aria-labelledby="goalsTabSummaryBtn">
+          <div class="goals-modal-summary" id="goalsModalSummary"></div>
+          <div class="goals-modal-list" id="goalsModalList"></div>
+        </section>
+        <section class="goals-tab-panel" id="goalsDetailsPanel" role="tabpanel" aria-labelledby="goalsTabDetailsBtn" hidden>
+          <div class="goals-details-intro">
+            <strong>Locais contabilizados no mês</strong>
+            <span>São exibidos somente os registros que compõem cada meta. Brigada aparece como realização informativa fora da meta.</span>
+          </div>
+          <div class="goals-modal-details" id="goalsModalDetails"></div>
+        </section>
       </div>
     </section>
   </div>
@@ -1308,9 +1321,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.64"></script>
-  <script src="ocupacoes.js?v=23.9.64"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.64"></script>
-  <script src="app.js?v=23.9.64"></script>
+  <script src="config.js?v=23.9.65"></script>
+  <script src="ocupacoes.js?v=23.9.65"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.65"></script>
+  <script src="app.js?v=23.9.65"></script>
 </body>
 </html>

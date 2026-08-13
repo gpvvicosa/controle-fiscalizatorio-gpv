@@ -13,7 +13,13 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.64';
+      const APP_VERSION = '23.9.65';
+      const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
+      const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
+      const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
+      const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
+      const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
+      const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -485,6 +491,11 @@
       const goalsModalSubtitle = document.getElementById('goalsModalSubtitle');
       const goalsModalSummary = document.getElementById('goalsModalSummary');
       const goalsModalList = document.getElementById('goalsModalList');
+      const goalsModalDetails = document.getElementById('goalsModalDetails');
+      const goalsTabSummaryBtn = document.getElementById('goalsTabSummaryBtn');
+      const goalsTabDetailsBtn = document.getElementById('goalsTabDetailsBtn');
+      const goalsSummaryPanel = document.getElementById('goalsSummaryPanel');
+      const goalsDetailsPanel = document.getElementById('goalsDetailsPanel');
       const navMoreMenuBtn = document.getElementById('navMoreMenuBtn');
       const dashboardMoreMenuBtn = document.getElementById('dashboardMoreMenuBtn');
       const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
@@ -650,6 +661,7 @@
         itens: [],
         resumo: null,
         chaveSelecionada: '',
+        linhaSelecionada: 0,
         prazoMulta: ''
       };
       let saveTimer = null;
@@ -1291,6 +1303,7 @@
         sendingQueue = false;
         atualizarPainelPendentes();
         if (enviados > 0) {
+          limparCachesConsulta_();
           atualizarPlanilhaEmSegundoPlano();
           // Se uma vistoria vinculada a DDU acabou de chegar ao servidor, atualiza o indicador
           // para o ícone desaparecer imediatamente quando não houver mais DDU pendente.
@@ -1697,7 +1710,7 @@
         recordsTableBody.innerHTML = itens.map(item => {
           const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
           const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
-          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" tabindex="0">
+          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0">
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
             <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? `<small>${escapeHtml(item.razaoSocial)}</small>` : ''}</td>
             <td>${escapeHtml(item.cidade || '—')}</td>
@@ -1706,7 +1719,7 @@
             <td>${statusBadgeHtml_(item.sancao)}</td>
             <td class="records-mono">${escapeHtml(item.projeto || '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
-            <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" data-open-record-detail="${escapeAttr(item.chave || '')}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+            <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5"/></svg>
             </button></td>
           </tr>`;
@@ -1716,7 +1729,7 @@
           const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
           const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? item.razaoSocial : '';
           const endereco = [item.endereco, item.numero, item.bairro].filter(Boolean).join(', ');
-          return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+          return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
             <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
             <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span>${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
@@ -1832,104 +1845,245 @@
             </article>`;
           }).join('');
         }
+
+        if (goalsModalDetails) {
+          const gruposComRegistros = categorias.filter(item => Array.isArray(item?.detalhes) && item.detalhes.length);
+          goalsModalDetails.innerHTML = gruposComRegistros.length ? gruposComRegistros.map(item => {
+            const detalhes = item.detalhes || [];
+            const rotulo = Number(item?.meta || 0) > 0
+              ? `${detalhes.length} contabilizada${detalhes.length === 1 ? '' : 's'} na meta`
+              : `${detalhes.length} realização${detalhes.length === 1 ? '' : 'ões'} fora da meta`;
+            const cards = detalhes.map(registro => {
+              const areaBruta = String(registro?.area || '').trim();
+              const area = areaBruta ? (/m²|m2/i.test(areaBruta) ? areaBruta : `${areaBruta} m²`) : '';
+              const campos = [
+                ['REDS', registro?.reds],
+                ['Nº do PF', registro?.pf],
+                ['Nº do PSCIP', registro?.projeto],
+                ['Área', area],
+                ['Vistoriador', registro?.vistoriador],
+                ['Situação', registro?.sancao]
+              ].filter(([, valor]) => String(valor || '').trim());
+              return `<article class="goals-detail-card">
+                <div class="goals-detail-card-head"><span>${escaparHtmlMetas_(registro?.data || '')}</span>${registro?.tipoVistoria ? `<b>${escaparHtmlMetas_(registro.tipoVistoria)}</b>` : ''}</div>
+                <h4>${escaparHtmlMetas_(registro?.nomeFantasia || 'Local não informado')}</h4>
+                <div class="goals-detail-fields">${campos.map(([rotuloCampo, valorCampo]) => `<div><span>${escaparHtmlMetas_(rotuloCampo)}</span><strong>${escaparHtmlMetas_(valorCampo)}</strong></div>`).join('')}</div>
+                <button class="goals-detail-open-record" type="button" data-goal-open-record="${escapeAttr(registro?.chave || '')}" data-record-line="${Number(registro?.linha || 0)}">
+                  <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5"/></svg>
+                  Abrir Ficha
+                </button>
+              </article>`;
+            }).join('');
+            return `<section class="goals-details-category ${classeMeta_(item)}"><header><div><strong>${escaparHtmlMetas_(item?.nome || '')}</strong><span>${escaparHtmlMetas_(rotulo)}</span></div><b>${Number(item?.meta || 0) > 0 ? `${Number(item?.realizado || 0)}/${Number(item?.meta || 0)}` : Number(item?.totalReal || 0)}</b></header><div class="goals-details-grid">${cards}</div></section>`;
+          }).join('') : '<div class="goals-details-empty"><strong>Nenhum local contabilizado neste mês.</strong><span>Quando houver registros válidos para as metas, eles aparecerão aqui com acesso direto à Ficha do Processo.</span></div>';
+        }
+      }
+
+      function selecionarAbaMetas_(aba = 'resumo') {
+        const detalhes = aba === 'detalhes';
+        goalsTabSummaryBtn?.classList.toggle('active', !detalhes);
+        goalsTabDetailsBtn?.classList.toggle('active', detalhes);
+        goalsTabSummaryBtn?.setAttribute('aria-selected', String(!detalhes));
+        goalsTabDetailsBtn?.setAttribute('aria-selected', String(detalhes));
+        if (goalsSummaryPanel) goalsSummaryPanel.hidden = detalhes;
+        if (goalsDetailsPanel) goalsDetailsPanel.hidden = !detalhes;
       }
 
       async function carregarMetas_(forcar = false) {
         if (metasCarregando) return;
+        const cache = lerStorageJson_(GOALS_CACHE_STORAGE, {});
+        const cacheValido = cache?.resposta && cache?.salvoEm && (Date.now() - Number(cache.salvoEm) <= GOALS_CACHE_TTL_MS);
         if (metasMensaisAtual && !forcar) { renderizarMetas_(metasMensaisAtual); return; }
+        if (!metasMensaisAtual && cacheValido) {
+          metasMensaisAtual = cache.resposta;
+          renderizarMetas_(metasMensaisAtual);
+        }
         if (!navigator.onLine) {
-          if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Conecte-se à internet para atualizar as metas.';
+          if (!cacheValido && dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Conecte-se à internet para atualizar as metas.';
           return;
         }
         metasCarregando = true;
         try {
           const resposta = await apiRequest('config', { consulta: 'metas' }, 30000);
-          renderizarMetas_(resposta || {});
+          metasMensaisAtual = resposta || {};
+          gravarStorageJson_(GOALS_CACHE_STORAGE, { salvoEm: Date.now(), resposta: metasMensaisAtual });
+          renderizarMetas_(metasMensaisAtual);
         } catch (erro) {
-          if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora.';
+          if (!cacheValido && dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora.';
         } finally { metasCarregando = false; }
       }
 
       function abrirMetas_() {
         fecharMenuMais_();
+        selecionarAbaMetas_('resumo');
         if (goalsModal) goalsModal.hidden = false;
         void carregarMetas_(true);
       }
 
       function fecharMetas_() { if (goalsModal) goalsModal.hidden = true; }
 
-      async function carregarRegistros_(reiniciar = true) {
-        if (recordsState.carregando) return;
-        if (!navigator.onLine) {
-          recordsStatus.className = 'records-status error';
-          recordsStatus.textContent = 'Sem internet. O Painel Fiscalizatório é consultado somente online.';
+      function lerStorageJson_(chave, fallback = {}) {
+        try {
+          const bruto = localStorage.getItem(chave);
+          const obj = bruto ? JSON.parse(bruto) : fallback;
+          return obj && typeof obj === 'object' ? obj : fallback;
+        } catch (erro) { return fallback; }
+      }
+
+      function gravarStorageJson_(chave, valor) {
+        try { localStorage.setItem(chave, JSON.stringify(valor)); return true; }
+        catch (erro) { return false; }
+      }
+
+      function chaveCachePainel_(filtros, offset, limite) {
+        return JSON.stringify({ filtros: filtros || {}, offset: Number(offset || 0), limite: Number(limite || 25) });
+      }
+
+      function lerCachePainel_(chave) {
+        const mapa = lerStorageJson_(PANEL_CACHE_STORAGE, {});
+        const item = mapa[chave];
+        if (!item || !item.salvoEm || !item.resposta) return null;
+        if (Date.now() - Number(item.salvoEm) > PANEL_CACHE_TTL_MS) return null;
+        return item;
+      }
+
+      function salvarCachePainel_(chave, resposta) {
+        const mapa = lerStorageJson_(PANEL_CACHE_STORAGE, {});
+        mapa[chave] = { salvoEm: Date.now(), resposta };
+        const entradas = Object.entries(mapa).sort((a,b) => Number(b[1]?.salvoEm || 0) - Number(a[1]?.salvoEm || 0));
+        gravarStorageJson_(PANEL_CACHE_STORAGE, Object.fromEntries(entradas.slice(0, 6)));
+      }
+
+      function lerCacheFicha_(chave) {
+        const mapa = lerStorageJson_(RECORD_CACHE_STORAGE, {});
+        const item = mapa[String(chave || '')];
+        if (!item || !item.salvoEm || !item.registro) return null;
+        if (Date.now() - Number(item.salvoEm) > RECORD_CACHE_TTL_MS) return null;
+        return item;
+      }
+
+      function salvarCacheFicha_(chave, registro) {
+        if (!chave || !registro) return;
+        const mapa = lerStorageJson_(RECORD_CACHE_STORAGE, {});
+        mapa[String(chave)] = { salvoEm: Date.now(), registro };
+        const entradas = Object.entries(mapa).sort((a,b) => Number(b[1]?.salvoEm || 0) - Number(a[1]?.salvoEm || 0));
+        gravarStorageJson_(RECORD_CACHE_STORAGE, Object.fromEntries(entradas.slice(0, 12)));
+      }
+
+      function limparCachesConsulta_() {
+        try { localStorage.removeItem(PANEL_CACHE_STORAGE); } catch (erro) {}
+        try { localStorage.removeItem(RECORD_CACHE_STORAGE); } catch (erro) {}
+        try { localStorage.removeItem(GOALS_CACHE_STORAGE); } catch (erro) {}
+        metasMensaisAtual = null;
+      }
+
+      async function preaquecerPainel_() {
+        if (!navigator.onLine || recordsState.carregando || document.body.classList.contains('records-mode')) return;
+        const filtros = { busca:'', cidade:'', demanda:'', sancao:'', tipo:'', vistoriador:'', periodo:'', prazoMulta:'' };
+        const limite = 25;
+        const chaveCache = chaveCachePainel_(filtros, 0, limite);
+        if (lerCachePainel_(chaveCache)?.resposta) return;
+        try {
+          const resposta = await apiRequest('config', { consulta:'registros', filtros:{ ...filtros, offset:0, limite } }, 50000);
+          salvarCachePainel_(chaveCache, resposta || {});
+        } catch (erro) {}
+      }
+
+      function aplicarRespostaPainel_(resposta, opcoes = {}) {
+        recordsState.itens = (Array.isArray(resposta?.itens) ? resposta.itens : []).slice(0, recordsState.limite);
+        recordsState.total = Number(resposta?.total || 0);
+        recordsState.totalPaginas = Math.max(1, Math.ceil(recordsState.total / recordsState.limite));
+        recordsState.resumo = resposta?.resumo || null;
+        if (recordsState.pagina > recordsState.totalPaginas) recordsState.pagina = recordsState.totalPaginas;
+
+        const disponiveis = resposta?.filtrosDisponiveis || {};
+        preencherSelectConsulta_(recordsCityFilter, disponiveis.cidades, 'Todos');
+        preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas');
+        preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas');
+        preencherSelectConsulta_(recordsTypeFilter, disponiveis.tipos, 'Todas');
+        preencherSelectConsulta_(recordsInspectorFilter, disponiveis.vistoriadores, 'Todos');
+        preencherPeriodosConsulta_(disponiveis.anos);
+        atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
+        atualizarKpis_(resposta?.resumo || {});
+        void carregarMetas_(false);
+        const chaveAindaVisivel = recordsState.itens.some(item => item.chave === recordsState.chaveSelecionada);
+        if (!chaveAindaVisivel) recordsState.chaveSelecionada = '';
+        renderizarRegistros_();
+        atualizarPaginacao_();
+
+        const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(Boolean);
+        const rotuloMulta = recordsState.prazoMulta === 'primeira'
+          ? 'sujeito à 1ª multa'
+          : (recordsState.prazoMulta === 'segunda' ? 'sujeito à 2ª multa' : '');
+        const origemCache = opcoes.cache === true;
+        recordsStatus.className = origemCache ? 'records-status cached' : 'records-status';
+        if (origemCache) {
+          recordsStatus.innerHTML = navigator.onLine
+            ? `<strong>Painel aberto com a última consulta.</strong> Atualizando os dados em segundo plano...`
+            : `<strong>Offline:</strong> exibindo a última consulta salva neste aparelho.`;
           return;
         }
+        recordsStatus.innerHTML = rotuloMulta
+          ? `<strong>${recordsState.total}</strong> ${recordsState.total === 1 ? 'edificação' : 'edificações'} ${rotuloMulta}${recordsState.total === 1 ? '' : 's'}. Clique novamente no card para remover o filtro.`
+          : (filtrosAtivos
+            ? `<strong>${recordsState.total}</strong> resultado${recordsState.total === 1 ? '' : 's'} com os filtros atuais. Os indicadores acima representam o total da base.`
+            : `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} na consulta. Mais recentes primeiro.`);
+      }
 
+      async function carregarRegistros_(reiniciar = true) {
+        if (recordsState.carregando) return;
         if (reiniciar) recordsState.pagina = 1;
-        recordsState.carregando = true;
-        if (recordsRefreshBtn) recordsRefreshBtn.disabled = true;
-        atualizarPaginacao_();
-        recordsStatus.className = 'records-status loading';
-        recordsStatus.innerHTML = `
-          <div class="panel-loading-visual" role="status" aria-live="polite">
-            <div class="panel-loading-icon" aria-hidden="true">
-              <span class="panel-loading-sheet"></span>
-              <span class="panel-loading-pen"></span>
-            </div>
-            <strong>Atualizando Painel Fiscalizatório...</strong>
-            <small>Carregando dados da planilha</small>
-            <span class="panel-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          </div>`;
 
         const offset = (recordsState.pagina - 1) * recordsState.limite;
         const limiteApi = Math.max(10, recordsState.limite);
+        const filtros = filtrosConsultaAtuais_();
+        const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
+        const cache = lerCachePainel_(chaveCache);
+        if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true });
+
+        if (!navigator.onLine) {
+          if (!cache?.resposta) {
+            recordsStatus.className = 'records-status error';
+            recordsStatus.textContent = 'Sem internet e sem consulta recente salva neste aparelho.';
+          }
+          return;
+        }
+
+        recordsState.carregando = true;
+        if (recordsRefreshBtn) recordsRefreshBtn.disabled = true;
+        atualizarPaginacao_();
+        if (!cache?.resposta) {
+          recordsStatus.className = 'records-status loading';
+          recordsStatus.innerHTML = `
+            <div class="panel-loading-visual" role="status" aria-live="polite">
+              <div class="panel-loading-icon" aria-hidden="true">
+                <span class="panel-loading-sheet"></span>
+                <span class="panel-loading-pen"></span>
+              </div>
+              <strong>Atualizando Painel Fiscalizatório...</strong>
+              <small>Carregando dados da planilha</small>
+              <span class="panel-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            </div>`;
+        }
+
         try {
           const resposta = await apiRequest('config', {
             consulta: 'registros',
-            filtros: { ...filtrosConsultaAtuais_(), offset, limite: limiteApi }
+            filtros: { ...filtros, offset, limite: limiteApi }
           }, 50000);
-
-          recordsState.itens = (Array.isArray(resposta?.itens) ? resposta.itens : []).slice(0, recordsState.limite);
-          recordsState.total = Number(resposta?.total || 0);
-          recordsState.totalPaginas = Math.max(1, Math.ceil(recordsState.total / recordsState.limite));
-          recordsState.resumo = resposta?.resumo || null;
-          if (recordsState.pagina > recordsState.totalPaginas) recordsState.pagina = recordsState.totalPaginas;
-
-          const disponiveis = resposta?.filtrosDisponiveis || {};
-          preencherSelectConsulta_(recordsCityFilter, disponiveis.cidades, 'Todos');
-          preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas');
-          preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas');
-          preencherSelectConsulta_(recordsTypeFilter, disponiveis.tipos, 'Todas');
-          preencherSelectConsulta_(recordsInspectorFilter, disponiveis.vistoriadores, 'Todos');
-          preencherPeriodosConsulta_(disponiveis.anos);
-          atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
-          atualizarKpis_(resposta?.resumo || {});
-          void carregarMetas_(false);
-          const chaveAindaVisivel = recordsState.itens.some(item => item.chave === recordsState.chaveSelecionada);
-          if (!chaveAindaVisivel) recordsState.chaveSelecionada = '';
-          renderizarRegistros_();
-          atualizarPaginacao_();
-
-          // V23.9.12: carregar/atualizar o Painel nunca abre a Ficha do Processo sozinho.
-          // A ficha só é aberta por uma ação explícita do usuário (ícone da linha/cartão).
-
-          recordsStatus.className = 'records-status';
-          const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(Boolean);
-          const rotuloMulta = recordsState.prazoMulta === 'primeira'
-            ? 'sujeito à 1ª multa'
-            : (recordsState.prazoMulta === 'segunda' ? 'sujeito à 2ª multa' : '');
-          recordsStatus.innerHTML = rotuloMulta
-            ? `<strong>${recordsState.total}</strong> ${recordsState.total === 1 ? 'edificação' : 'edificações'} ${rotuloMulta}${recordsState.total === 1 ? '' : 's'}. Clique novamente no card para remover o filtro.`
-            : (filtrosAtivos
-              ? `<strong>${recordsState.total}</strong> resultado${recordsState.total === 1 ? '' : 's'} com os filtros atuais. Os indicadores acima representam o total da base.`
-              : `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} na consulta. Mais recentes primeiro.`);
+          salvarCachePainel_(chaveCache, resposta || {});
+          aplicarRespostaPainel_(resposta || {});
         } catch (erro) {
-          recordsStatus.className = 'records-status error';
-          recordsStatus.textContent = erro?.message || 'Não foi possível carregar o Painel Fiscalizatório.';
-          if (!recordsState.itens.length) {
-            recordsList.innerHTML = '<div class="records-empty">O painel não pôde ser carregado agora.</div>';
-            recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
+          if (cache?.resposta) {
+            recordsStatus.className = 'records-status cached';
+            recordsStatus.innerHTML = `<strong>Não foi possível atualizar agora.</strong> A última consulta salva continua disponível.`;
+          } else {
+            recordsStatus.className = 'records-status error';
+            recordsStatus.textContent = erro?.message || 'Não foi possível carregar o Painel Fiscalizatório.';
+            if (!recordsState.itens.length) {
+              recordsList.innerHTML = '<div class="records-empty">O painel não pôde ser carregado agora.</div>';
+              recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
+            }
           }
         } finally {
           recordsState.carregando = false;
@@ -2288,6 +2442,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             else if (numeroAuto) recordRedsRegistroAtual.campos = [...(recordRedsRegistroAtual.campos || []), { grupo: 'Processo', rotulo: 'Nº do Auto', valor: numeroAuto }];
           }
           if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = numeroAuto ? 'Nº do Auto salvo na ficha do processo.' : 'Nº do Auto removido da ficha.';
+          limparCachesConsulta_();
           atualizarTextoRelatorioRedsFiscalizacao_();
         } catch (erro) {
           if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = String(erro?.message || 'Falha ao salvar o Nº do Auto.');
@@ -2498,15 +2653,20 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         recordDetailLoading.innerHTML = `<div class="record-detail-error-card"><strong>Não foi possível carregar a ficha.</strong><p>${escapeHtml(mensagem || 'A consulta demorou mais que o esperado.')}</p><button type="button" class="record-detail-retry-btn" data-retry-record-detail> Tentar novamente </button></div>`;
       }
 
-      async function consultarRegistroComRetry_(chave) {
+      async function consultarRegistroComRetry_(chave, linhaHint = 0, modoRapido = true) {
         let ultimoErro = null;
         for (let tentativa = 0; tentativa < 2; tentativa += 1) {
           try {
             if (tentativa > 0) {
               estadoCarregandoFicha_('Tentando novamente...');
-              await new Promise(resolve => setTimeout(resolve, 450));
+              await new Promise(resolve => setTimeout(resolve, 350));
             }
-            return await apiRequest('config', { consulta: 'registro', chave }, 50000);
+            return await apiRequest('config', {
+              consulta: 'registro',
+              chave,
+              linhaHint: Number(linhaHint || 0),
+              modoRapido: modoRapido === true
+            }, modoRapido ? 30000 : 50000);
           } catch (erro) {
             ultimoErro = erro;
             if (!navigator.onLine) break;
@@ -2515,43 +2675,83 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         throw ultimoErro || new Error('Não foi possível consultar o processo.');
       }
 
-      async function abrirDetalheRegistro_(chave) {
-        if (!chave) return;
-        if (!navigator.onLine) {
-          alert('A Ficha do Processo precisa de internet para consultar os dados atualizados.');
-          return;
+      async function carregarComplementosFicha_(chave, linhaHint, registroBase) {
+        if (!navigator.onLine || !chave) return;
+        try {
+          const extras = await apiRequest('config', {
+            consulta: 'registro_extras',
+            chave,
+            linhaHint: Number(linhaHint || 0)
+          }, 50000);
+          if (!extras || !Array.isArray(extras.historico) || !Array.isArray(extras.auditoria)) return;
+          if (recordsState.chaveSelecionada !== chave || !recordDetailScreen?.classList.contains('show')) return;
+          renderizarHistorico_(extras.historico || []);
+          renderizarAuditoriaRegistro_(extras.auditoria || []);
+          const completo = { ...(registroBase || {}), historico: extras.historico || [], auditoria: extras.auditoria || [], parcial: false };
+          salvarCacheFicha_(chave, completo);
+        } catch (erro) {
+          // A ficha principal permanece utilizável mesmo se histórico/auditoria demorarem.
+          console.warn('Complementos da ficha não carregados:', erro?.message || erro);
         }
+      }
+
+      async function abrirDetalheRegistro_(chave, linhaHint = 0) {
+        if (!chave) return;
         recordsState.chaveSelecionada = chave;
+        recordsState.linhaSelecionada = Number(linhaHint || 0);
         marcarLinhaSelecionada_();
         recordDetailScreen.classList.add('show');
         recordDetailScreen.setAttribute('aria-hidden', 'false');
         document.body.classList.add('detail-open');
-        estadoCarregandoFicha_();
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
         if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
         if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
         recordWhatsappRegistroAtual = null;
-        recordDetailGroups.innerHTML = '';
-        recordHistoryTimeline.innerHTML = '';
-        recordHistoryPanel.hidden = true;
-        if (recordAuditList) recordAuditList.innerHTML = '';
-        if (recordAuditPanel) recordAuditPanel.hidden = true;
-        if (recordDetailStatusBadge) {
-          recordDetailStatusBadge.textContent = 'Carregando';
-          recordDetailStatusBadge.className = 'status-badge status-neutral';
-        }
-        if (recordDetailSubtitle) recordDetailSubtitle.textContent = '';
-        if (recordDetailLine) recordDetailLine.textContent = '';
 
-        try {
-          const registro = await consultarRegistroComRetry_(chave);
+        const cache = lerCacheFicha_(chave);
+        if (cache?.registro) {
           recordDetailScreen.classList.remove('is-detail-loading', 'is-detail-error');
           recordDetailLoading.hidden = true;
-          renderizarFichaRegistro_(registro);
+          renderizarFichaRegistro_(cache.registro);
+        } else {
+          recordDetailGroups.innerHTML = '';
+          recordHistoryTimeline.innerHTML = '';
+          recordHistoryPanel.hidden = true;
+          if (recordAuditList) recordAuditList.innerHTML = '';
+          if (recordAuditPanel) recordAuditPanel.hidden = true;
+          if (recordDetailStatusBadge) {
+            recordDetailStatusBadge.textContent = 'Carregando';
+            recordDetailStatusBadge.className = 'status-badge status-neutral';
+          }
+          if (recordDetailSubtitle) recordDetailSubtitle.textContent = '';
+          if (recordDetailLine) recordDetailLine.textContent = '';
+          estadoCarregandoFicha_('Abrindo dados principais...');
+        }
+
+        if (!navigator.onLine) {
+          if (!cache?.registro) estadoErroFicha_('Sem internet e sem uma ficha recente salva neste aparelho.');
+          return;
+        }
+
+        try {
+          // Com linhaHint, o backend valida e lê somente a linha escolhida primeiro.
+          const registro = await consultarRegistroComRetry_(chave, linhaHint, true);
+          const registroParaRender = cache?.registro
+            ? { ...registro, historico: cache.registro.historico || [], auditoria: cache.registro.auditoria || [] }
+            : registro;
+          recordDetailScreen.classList.remove('is-detail-loading', 'is-detail-error');
+          recordDetailLoading.hidden = true;
+          renderizarFichaRegistro_(registroParaRender);
+          salvarCacheFicha_(chave, registroParaRender);
+          void carregarComplementosFicha_(chave, registro?.linhaAtual || linhaHint, registroParaRender);
         } catch (erro) {
-          const msg = String(erro?.message || 'Não foi possível abrir a ficha.').replace('O registro continua seguro neste aparelho.', '').trim();
-          estadoErroFicha_(msg);
+          if (cache?.registro) {
+            appStatus.textContent = 'Ficha aberta com os dados recentes salvos; a atualização online não respondeu agora.';
+          } else {
+            const msg = String(erro?.message || 'Não foi possível abrir a ficha.').replace('O registro continua seguro neste aparelho.', '').trim();
+            estadoErroFicha_(msg);
+          }
         }
       }
 
@@ -2575,7 +2775,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         recordsStatus.textContent = 'Confirmando o registro enviado...';
         const chave = await aguardarChaveUltimoRegistro_();
         await carregarRegistros_(true);
-        if (chave) await abrirDetalheRegistro_(chave);
+        if (chave) {
+          const item = (recordsState.itens || []).find(registro => registro.chave === chave);
+          await abrirDetalheRegistro_(chave, Number(item?.linha || 0));
+        }
       }
 
       function salvarRegistroOffline(payload) {
@@ -6649,6 +6852,8 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
               carregarDdUs_()
             ]).catch(() => {});
           }));
+          // V23.9.65: aquece consultas pesadas sem bloquear a tela de vistoria.
+          setTimeout(() => { void preaquecerPainel_(); }, 4500);
         }
       }
 
@@ -6663,12 +6868,22 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       dashboardGoalsOpenBtn?.addEventListener('click', abrirMetas_);
       dashboardGoalsPanel?.addEventListener('dblclick', abrirMetas_);
       goalsModalCloseBtn?.addEventListener('click', fecharMetas_);
+      goalsTabSummaryBtn?.addEventListener('click', () => selecionarAbaMetas_('resumo'));
+      goalsTabDetailsBtn?.addEventListener('click', () => selecionarAbaMetas_('detalhes'));
+      goalsModalDetails?.addEventListener('click', event => {
+        const btn = event.target.closest('[data-goal-open-record]');
+        if (!btn) return;
+        const chave = String(btn.dataset.goalOpenRecord || '');
+        if (!chave) return;
+        fecharMetas_();
+        abrirDetalheRegistro_(chave, Number(btn.dataset.recordLine || 0));
+      });
       goalsModal?.addEventListener('click', event => { if (event.target === goalsModal) fecharMetas_(); });
       registerDduBtn?.addEventListener('click', () => { fecharMenuMais_(); abrirCadastroDdu_(); });
       recordDetailLoading?.addEventListener('click', event => {
         const btn = event.target.closest('[data-retry-record-detail]');
         if (!btn || !recordsState.chaveSelecionada) return;
-        abrirDetalheRegistro_(recordsState.chaveSelecionada);
+        abrirDetalheRegistro_(recordsState.chaveSelecionada, recordsState.linhaSelecionada || 0);
       });
 
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
@@ -6983,13 +7198,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       });
       recordsList?.addEventListener('click', event => {
         const card = event.target.closest('.records-card');
-        if (card) abrirDetalheRegistro_(card.dataset.recordKey || '');
+        if (card) abrirDetalheRegistro_(card.dataset.recordKey || '', Number(card.dataset.recordLine || 0));
       });
       recordsTableBody?.addEventListener('click', event => {
         const botaoFicha = event.target.closest('[data-open-record-detail]');
         if (!botaoFicha) return;
         event.stopPropagation();
-        abrirDetalheRegistro_(botaoFicha.dataset.openRecordDetail || '');
+        abrirDetalheRegistro_(botaoFicha.dataset.openRecordDetail || '', Number(botaoFicha.dataset.recordLine || 0));
       });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-64-historico-autuado-padrao-oficial';
-const VERSION = '23.9.64';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-65-painel-ficha-metas-detalhadas';
+const VERSION = '23.9.65';
 
 const CORE_SHELL = [
   './',
