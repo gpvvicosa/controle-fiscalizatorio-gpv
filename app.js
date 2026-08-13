@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.66';
+      const APP_VERSION = '23.9.67';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -1703,6 +1703,52 @@
         return partes.join(' — ') || '—';
       }
 
+      // V23.9.67 — concentra prazo e próxima providência em uma única leitura operacional.
+      // Prioriza textos já gravados pelo sistema/planilha e só usa descrições neutras como contingência.
+      function proximaAcaoPainel_(item) {
+        const acaoSugerida = String(item?.acaoSugerida || '').trim();
+        const alertaPrazo = String(item?.alertaPrazo || '').trim();
+        const pendenciaDocumental = String(item?.pendenciaDocumental || '').trim();
+        const diasAutuacao = String(item?.diasAutuacao || '').trim();
+        const sancao = normalize(item?.sancao || '');
+        const tipo = normalize(item?.tipoVistoria || '');
+
+        let principal = '';
+        let detalhe = '';
+
+        if (acaoSugerida) {
+          principal = acaoSugerida;
+          if (alertaPrazo && !normalize(acaoSugerida).includes(normalize(alertaPrazo))) detalhe = alertaPrazo;
+        } else if (alertaPrazo) {
+          principal = alertaPrazo;
+        } else if (pendenciaDocumental) {
+          principal = 'Pendência documental';
+          detalhe = pendenciaDocumental;
+        } else if (sancao === 'advertencia') {
+          principal = 'Acompanhar prazo de regularização';
+        } else if (sancao === 'autuado') {
+          principal = 'Acompanhar autuação e regularização';
+        } else if (sancao === 'notificado' && tipo.includes('liberacao')) {
+          principal = 'Aguardar correção das pendências';
+        } else if (sancao === 'notificado') {
+          principal = 'Acompanhar pendências registradas';
+        } else if (sancao === 'regularizado') {
+          principal = 'Processo regularizado';
+        } else if (sancao === 'liberado') {
+          principal = 'Liberação concluída';
+        } else {
+          principal = 'Sem ação pendente registrada';
+        }
+
+        if (!detalhe && diasAutuacao && (sancao === 'autuado' || sancao === 'advertencia')) {
+          const numero = Number(String(diasAutuacao).replace(',', '.'));
+          detalhe = Number.isFinite(numero)
+            ? `${Math.max(0, Math.trunc(numero))} dia${Math.trunc(numero) === 1 ? '' : 's'} desde a autuação`
+            : diasAutuacao;
+        }
+        return { principal, detalhe };
+      }
+
       function marcarLinhaSelecionada_() {
         if (!recordsTableBody) return;
         recordsTableBody.querySelectorAll('.records-table-row').forEach(row => {
@@ -1714,14 +1760,15 @@
         const itens = recordsState.itens || [];
         if (!itens.length) {
           recordsList.innerHTML = '<div class="records-empty">Nenhum registro encontrado com os filtros informados.</div>';
-          recordsTableBody.innerHTML = '<tr><td colspan="10" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
+          recordsTableBody.innerHTML = '<tr><td colspan="11" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
           return;
         }
 
         recordsTableBody.innerHTML = itens.map(item => {
           const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
           const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
-          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0">
+          const proximaAcao = proximaAcaoPainel_(item);
+          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
             <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? `<small>${escapeHtml(item.razaoSocial)}</small>` : ''}</td>
             <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${escapeHtml(formatarEnderecoPainel_(item))}</td>
@@ -1729,6 +1776,7 @@
             <td class="records-mono">${escapeHtml(identificadorPainel_(item).valor)}</td>
             <td>${escapeHtml(item.demanda || '—')}</td>
             <td>${statusBadgeHtml_(item.sancao)}</td>
+            <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
             <td class="records-mono">${escapeHtml(item.projeto || '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
             <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
@@ -1741,6 +1789,7 @@
           const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
           const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? item.razaoSocial : '';
           const endereco = formatarEnderecoPainel_(item);
+          const proximaAcao = proximaAcaoPainel_(item);
           return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
             <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
@@ -1752,6 +1801,7 @@
               <div class="records-meta-item"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
             </div>
             ${endereco && endereco !== '—' ? `<div class="records-card-address">${escapeHtml(endereco)}</div>` : ''}
+            <div class="records-card-action"><span>Prazo / Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
             <div class="records-card-cta">Ver ficha completa <span aria-hidden="true">→</span></div>
           </button>`;
         }).join('');
@@ -2153,10 +2203,31 @@
         return [endereco, cidade].filter(Boolean).join(' — ');
       }
 
-      function montarGrupoFicha_(titulo, campos) {
+      function montarGrupoFicha_(titulo, campos, classeExtra = '') {
         const validos = (campos || []).filter(item => item && item[1]);
         if (!validos.length) return '';
-        return `<section class="record-detail-group"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => `<div class="record-detail-field"><label>${escapeHtml(rotulo)}</label><div>${escapeHtml(valor)}</div></div>`).join('')}</div></section>`;
+        return `<section class="record-detail-group${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => `<div class="record-detail-field"><label>${escapeHtml(rotulo)}</label><div>${escapeHtml(valor)}</div></div>`).join('')}</div></section>`;
+      }
+
+      function resumoOperacionalFicha_(registro, situacao) {
+        const itemAcao = {
+          sancao: situacao,
+          tipoVistoria: valorCampoFicha_(registro, 'Tipo de vistoria'),
+          acaoSugerida: valorCampoFicha_(registro, 'Ação sugerida'),
+          alertaPrazo: valorCampoFicha_(registro, 'Alerta de Prazo'),
+          pendenciaDocumental: valorCampoFicha_(registro, 'Pendência documental'),
+          diasAutuacao: valorCampoFicha_(registro, 'Dias desde a Autuação')
+        };
+        const acao = proximaAcaoPainel_(itemAcao);
+        return [
+          ['Situação atual', situacao || 'Sem situação'],
+          ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
+          ['Nº do PSCIP', valorCampoFicha_(registro, 'Nº do PSCIP / Projeto')],
+          ['REDS', valorCampoFicha_(registro, 'REDS')],
+          ['Nº do Auto', valorCampoFicha_(registro, 'Nº do Auto')],
+          ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
+          ['Prazo / Próxima ação', [acao.principal, acao.detalhe].filter(Boolean).join(' — ')]
+        ];
       }
 
       function descricaoHistorico_(item) {
@@ -2633,6 +2704,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         ];
 
         recordDetailGroups.innerHTML =
+          montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary') +
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Local', local) +
           montarGrupoFicha_('Responsável', responsavel);
@@ -7214,9 +7286,22 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       });
       recordsTableBody?.addEventListener('click', event => {
         const botaoFicha = event.target.closest('[data-open-record-detail]');
-        if (!botaoFicha) return;
-        event.stopPropagation();
-        abrirDetalheRegistro_(botaoFicha.dataset.openRecordDetail || '', Number(botaoFicha.dataset.recordLine || 0));
+        if (botaoFicha) {
+          event.stopPropagation();
+          abrirDetalheRegistro_(botaoFicha.dataset.openRecordDetail || '', Number(botaoFicha.dataset.recordLine || 0));
+          return;
+        }
+        if (event.target.closest('a, button, input, select, textarea')) return;
+        const linha = event.target.closest('.records-table-row');
+        if (linha) abrirDetalheRegistro_(linha.dataset.recordKey || '', Number(linha.dataset.recordLine || 0));
+      });
+      recordsTableBody?.addEventListener('keydown', event => {
+        if (!['Enter', ' '].includes(event.key)) return;
+        if (event.target.closest('a, button, input, select, textarea')) return;
+        const linha = event.target.closest('.records-table-row');
+        if (!linha) return;
+        event.preventDefault();
+        abrirDetalheRegistro_(linha.dataset.recordKey || '', Number(linha.dataset.recordLine || 0));
       });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
