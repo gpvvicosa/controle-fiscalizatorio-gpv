@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-59-atalhos-operacionais';
-const VERSION = '23.9.59';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-60-hotfix-abrir-vistoria';
+const VERSION = '23.9.60';
 
 const CORE_SHELL = [
   './',

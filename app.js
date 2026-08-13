@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.59';
+      const APP_VERSION = '23.9.60';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -4081,12 +4081,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function applyIdentificadorMask(event) {
-        const raw = digits(event.target.value).slice(0, 14);
+        const target = event?.target || identificadorInput;
+        if (!target) return;
+        const raw = digits(target.value).slice(0, 14);
         clearTimeout(cnpjTimer);
         cnpjConsultaSequencia += 1;
 
         if (raw.length <= 10) {
-          event.target.value = raw;
+          target.value = raw;
           ultimoCnpjConsultado = '';
           atualizarInterfaceIdentificador_('');
           clearCnpjStatus();
@@ -4098,7 +4100,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (cnpjAssociadoDadosEmpresa) {
             limparDadosEmpresaParaNovoCnpj_('');
           }
-          event.target.value = formatarCpfTela_(raw);
+          target.value = formatarCpfTela_(raw);
           ultimoCnpjConsultado = '';
           atualizarInterfaceIdentificador_('cpf');
           cnpjTimer = setTimeout(() => {
@@ -4112,7 +4114,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         limparCpfCopiadoSeVirouCnpj_();
-        event.target.value = formatarCnpjTela_(raw);
+        target.value = formatarCnpjTela_(raw);
         atualizarInterfaceIdentificador_(raw.length === 14 ? 'cnpj' : '');
         clearCnpjStatus();
         if (raw.length === 14) {
@@ -6480,7 +6482,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.59 — a lista de programações fica em modal próprio.
+      // V23.9.60 — a lista de programações fica em modal próprio.
       // Ao escolher uma vistoria, o painel inicial sai do fluxo e Cidade passa a ser o início do formulário.
       function garantirBarraRetornoProgramadas_() {
         const cidadeSecao = document.getElementById('cidadeSecao');
@@ -6510,7 +6512,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           tipoVistoriaSecao.hidden = false;
           tipoVistoriaSecao.removeAttribute('aria-hidden');
         }
-        document.documentElement.dataset.formProgramadoVersion = '23.9.59';
+        document.documentElement.dataset.formProgramadoVersion = '23.9.60';
         if (rolar && tipoVistoriaSecao) requestAnimationFrame(() => {
           try { tipoVistoriaSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
         });
@@ -6528,7 +6530,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (barra) barra.hidden = false;
         document.body.classList.remove('programmed-form-focused');
         form?.removeAttribute('data-programmed-fill-mode');
-        document.documentElement.dataset.formProgramadoVersion = '23.9.59';
+        document.documentElement.dataset.formProgramadoVersion = '23.9.60';
 
         // Como a lista saiu da página inicial, Cidade ocupa o espaço do painel removido.
         // O scroll é apenas um ajuste final; a navegação não depende dele para funcionar.
