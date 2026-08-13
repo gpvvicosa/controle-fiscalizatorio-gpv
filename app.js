@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.62';
+      const APP_VERSION = '23.9.64';
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -1996,7 +1996,7 @@
       function descricaoHistorico_(item) {
         const n = normalize(item?.sancao || '');
         let texto = '';
-        if (n === 'autuado') texto = 'Irregularidades registradas na fiscalização. O responsável foi informado que a autuação será encaminhada por correspondência, com Aviso de Recebimento (AR), para o endereço da edificação.';
+        if (n === 'autuado') texto = 'Irregularidades registradas na fiscalização. O responsável foi cientificado de que a autuação será formalmente comunicada por meio de correspondência enviada via Aviso de Recebimento (AR) ao endereço da edificação.';
         else if (n === 'advertencia') texto = 'Prazo de regularização em acompanhamento.';
         else if (n === 'notificado') texto = 'Pendências técnicas registradas para liberação.';
         else if (n === 'regularizado') texto = 'Fiscalização regularizada.';
@@ -2200,7 +2200,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
         const pf = valorCampoFicha_(registro, 'Nº do PF') || 'NÃO INFORMADO';
         const numeroAuto = String(recordAutoNumberInput?.value || valorCampoFicha_(registro, 'Nº do Auto') || '').trim();
-        const autoParagrafo = numeroAuto ? `\n\nPOSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAuto}, VINCULADO AO PROCESSO FISCALIZATÓRIO.` : '';
+        const situacao = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção'));
+        const ehAutuado = situacao === normalize('Autuado');
+
+        // V23.9.64 — padrão oficial do histórico/REDS para Fiscalização + Autuado.
+        // Se o Nº do Auto ainda não existir no encerramento, preserva espaço para preenchimento posterior.
+        if (ehAutuado) {
+          const autoExibicao = numeroAuto || '________________________';
+          return `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES, AS QUAIS FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº ${pf}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${autoExibicao}.
+
+O RESPONSÁVEL FOI CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`;
+        }
+
+        const autoParagrafo = numeroAuto ? `
+
+POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAuto}, VINCULADO AO PROCESSO FISCALIZATÓRIO.` : '';
         const pscipTrecho = pscip ? `, VINCULADA AO PSCIP Nº ${pscip}` : '';
         const licenca = pscip ? `AVCB/CLCB Nº ${pscip}` : 'LICENCIAMENTO VÁLIDO';
         return modelo.texto
