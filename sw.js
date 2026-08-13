@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-55-scroll-cidade-isolado';
-const VERSION = '23.9.55';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260812-v23-9-56-ancora-cidade';
+const VERSION = '23.9.56';
 
 const CORE_SHELL = [
   './',
