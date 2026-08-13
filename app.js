@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.68';
+      const APP_VERSION = '23.9.69';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -615,6 +615,7 @@
       const processPfInput = document.getElementById('pf');
       const processPfLookupStatus = document.getElementById('processPfLookupStatus');
       const processPfLookupResults = document.getElementById('processPfLookupResults');
+      const priorProcessAlert = document.getElementById('priorProcessAlert');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
       const establishmentHistoryResults = document.getElementById('establishmentHistoryResults');
@@ -658,10 +659,12 @@
       let metasMensaisAtual = null;
       let metasCarregando = false;
       let preparacaoEditandoId = '';
+      let preparacaoRetornarProgramadas = false;
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
+      let recordDetailReturnContext = '';
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
       const recordsState = {
@@ -717,6 +720,19 @@
       let preparePfAutoAtual = '';
       let notificacoesLiberacaoDraft = [];
       let recordNotificationsAtual = [];
+
+      // V23.9.69 — navegação global do PWA.
+      // Um único "guard" de histórico é mantido apenas enquanto existe alguma
+      // camada interna aberta. Assim, o botão Voltar do Android fecha primeiro
+      // a tela/modal atual e só pode sair do app quando o usuário realmente
+      // retorna ao nível inicial.
+      let appNavigationRootView = 'form';
+      let appNavigationReady = false;
+      let appNavigationGuardActive = false;
+      let appNavigationConsumingGuard = false;
+      let appNavigationHandlingBack = false;
+      let appNavigationSyncTimer = null;
+      let appNavigationObserver = null;
 
       function value(id) {
         const el = document.getElementById(id);
@@ -1538,7 +1554,7 @@
           const url = new URL(window.location.href);
           if (modo === 'records') url.searchParams.set('view', 'painel');
           else url.searchParams.set('view', 'vistoria');
-          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+          window.history.replaceState({ ...(window.history.state || {}), gpvApp: true }, '', url.pathname + url.search + url.hash);
         } catch (e) {}
       }
 
@@ -1573,16 +1589,150 @@
         return 'records';
       }
 
+      function vistaAtualNavegacao_() {
+        return document.body.classList.contains('records-mode') ? 'records' : 'form';
+      }
+
+      function elementoVisivelNavegacao_(el, classe = '') {
+        if (!el) return false;
+        if (el.hidden) return false;
+        if (classe && !el.classList.contains(classe)) return false;
+        return true;
+      }
+
+      function camadaNavegacaoAtiva_() {
+        const mobileChoice = mobileChoiceState?.overlay;
+        if (elementoVisivelNavegacao_(mobileChoice)) return { id: 'mobile-choice', fechar: () => fecharEscolhaMovel_() };
+        if (elementoVisivelNavegacao_(recordStatusUpdateModal)) return { id: 'status-infoscip', fechar: () => fecharAtualizacaoSituacaoInfoscip_() };
+        if (elementoVisivelNavegacao_(notificationReviewModal)) return { id: 'notification-review', fechar: () => notificationReviewBackBtn?.click() };
+        if (elementoVisivelNavegacao_(reviewModal)) return { id: 'review', fechar: () => reviewCancelBtn?.click() };
+        if (elementoVisivelNavegacao_(cityCheckModal)) return { id: 'city-check', fechar: () => cityCheckKeepBtn?.click() };
+        if (elementoVisivelNavegacao_(changePinModal)) return { id: 'change-pin', fechar: () => fecharAlterarSenha_() };
+        if (elementoVisivelNavegacao_(userManagerModal)) return { id: 'user-manager', fechar: () => fecharGerenciadorUsuarios_() };
+        if (elementoVisivelNavegacao_(prepareInspectionModal)) return { id: 'prepare-inspection', fechar: () => fecharModalPreparacao_() };
+        if (elementoVisivelNavegacao_(dduRegisterModal)) return { id: 'ddu-register', fechar: () => fecharCadastroDdu_() };
+        if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
+        if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
+        if (elementoVisivelNavegacao_(tutorialModal)) return { id: 'tutorial', fechar: () => fecharTutorial_() };
+        if (elementoVisivelNavegacao_(recordDetailScreen, 'show')) return { id: 'record-detail', fechar: () => fecharDetalheRegistro_() };
+        if (elementoVisivelNavegacao_(goalsModal)) return { id: 'goals', fechar: () => fecharMetas_() };
+        if (elementoVisivelNavegacao_(programmedListModal)) return { id: 'programmed-list', fechar: () => fecharListaProgramadas_() };
+        if (elementoVisivelNavegacao_(dduListModal)) return { id: 'ddu-list', fechar: () => dduListCloseBtn?.click() };
+        if (elementoVisivelNavegacao_(successScreen, 'show')) return { id: 'success', fechar: () => document.getElementById('closeSuccessBtn')?.click() };
+        if (appMoreMenu && !appMoreMenu.hidden) return { id: 'more-menu', fechar: () => fecharMenuMais_() };
+
+        const programmedReturnBar = document.getElementById('programmedReturnBar');
+        if (programmedReturnBar && !programmedReturnBar.hidden) {
+          return { id: 'programmed-form', fechar: () => programmedReturnBar.querySelector('#returnToProgrammedBtn')?.click() };
+        }
+
+        const fluxoSelecionado = Boolean(String(tipoVistoriaInput?.value || '').trim()) &&
+          (document.body.classList.contains('inspection-flow-active') || document.body.classList.contains('release-flow-active'));
+        if (vistaAtualNavegacao_() === 'form' && fluxoSelecionado) {
+          return {
+            id: 'inspection-flow',
+            fechar: () => {
+              restaurarPainelProgramadas_(false);
+              aplicarFluxoVistoria_('', { silencioso: true });
+              try { tipoVistoriaSecao?.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
+            }
+          };
+        }
+
+        const vistaAtual = vistaAtualNavegacao_();
+        if (vistaAtual !== appNavigationRootView) {
+          return {
+            id: `view-${vistaAtual}`,
+            fechar: () => {
+              if (appNavigationRootView === 'records') mostrarVistaPlanilha_({ carregar: false });
+              else mostrarVistaFormulario_();
+            }
+          };
+        }
+        return null;
+      }
+
+      function precisaGuardNavegacao_() {
+        return Boolean(camadaNavegacaoAtiva_());
+      }
+
+      function agendarSincronizacaoNavegacao_() {
+        if (!appNavigationReady || appNavigationHandlingBack) return;
+        clearTimeout(appNavigationSyncTimer);
+        appNavigationSyncTimer = setTimeout(sincronizarGuardNavegacao_, 0);
+      }
+
+      function sincronizarGuardNavegacao_() {
+        if (!appNavigationReady || appNavigationHandlingBack || appNavigationConsumingGuard) return;
+        const precisa = precisaGuardNavegacao_();
+        if (precisa && !appNavigationGuardActive) {
+          try {
+            const estado = { ...(window.history.state || {}), gpvApp: true, gpvNavigationGuard: true };
+            window.history.pushState(estado, '', window.location.href);
+            appNavigationGuardActive = true;
+          } catch (e) {}
+          return;
+        }
+        if (!precisa && appNavigationGuardActive) {
+          appNavigationConsumingGuard = true;
+          try { window.history.back(); }
+          catch (e) { appNavigationConsumingGuard = false; appNavigationGuardActive = false; }
+        }
+      }
+
+      function tratarVoltarNavegacao_(event) {
+        if (!appNavigationReady) return;
+        if (appNavigationConsumingGuard) {
+          appNavigationConsumingGuard = false;
+          appNavigationGuardActive = false;
+          // Corrige a URL da entrada-base caso a troca Painel/Vistoria tenha
+          // ocorrido enquanto o guard estava no topo do histórico.
+          atualizarVistaNaUrl_(vistaAtualNavegacao_());
+          setTimeout(() => agendarSincronizacaoNavegacao_(), 0);
+          return;
+        }
+
+        if (!appNavigationGuardActive) return;
+        appNavigationGuardActive = false;
+        const camada = camadaNavegacaoAtiva_();
+        if (!camada) return;
+
+        appNavigationHandlingBack = true;
+        try { camada.fechar?.(); }
+        catch (e) { console.warn('Navegação interna:', e?.message || e); }
+        setTimeout(() => {
+          appNavigationHandlingBack = false;
+          agendarSincronizacaoNavegacao_();
+        }, 30);
+      }
+
+      function inicializarNavegacaoGlobal_(vistaRaiz) {
+        if (appNavigationReady) return;
+        appNavigationRootView = vistaRaiz === 'records' ? 'records' : 'form';
+        appNavigationReady = true;
+        try {
+          window.history.replaceState({ ...(window.history.state || {}), gpvApp: true, gpvNavigationBase: true }, '', window.location.href);
+        } catch (e) {}
+        window.addEventListener('popstate', tratarVoltarNavegacao_);
+        appNavigationObserver = new MutationObserver(() => agendarSincronizacaoNavegacao_());
+        appNavigationObserver.observe(document.body, {
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['hidden', 'class', 'aria-hidden']
+        });
+        agendarSincronizacaoNavegacao_();
+      }
+
       function mostrarVistaFormulario_() {
         marcarAbaApp_('form');
-        fecharDetalheRegistro_();
+        fecharDetalheRegistro_({ restaurarContexto: false });
         atualizarVistaNaUrl_('form');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
       function mostrarVistaPlanilha_(opcoes = {}) {
         // Sempre entrar no Painel com a ficha fechada.
-        fecharDetalheRegistro_();
+        fecharDetalheRegistro_({ restaurarContexto: false });
         marcarAbaApp_('records');
         atualizarVistaNaUrl_('records');
         if (opcoes.busca != null && recordsSearch) recordsSearch.value = String(opcoes.busca || '');
@@ -2172,8 +2322,10 @@
         }
       }
 
-      function fecharDetalheRegistro_() {
+      function fecharDetalheRegistro_(opcoes = {}) {
         if (!recordDetailScreen) return;
+        const contextoRetorno = recordDetailReturnContext;
+        recordDetailReturnContext = '';
         recordDetailScreen.classList.remove('show');
         recordDetailScreen.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('detail-open');
@@ -2190,6 +2342,10 @@
         recordStatusRegistroAtual = null;
         if (recordInfoscipUpdatePanel) recordInfoscipUpdatePanel.hidden = true;
         fecharAtualizacaoSituacaoInfoscip_();
+        if (opcoes.restaurarContexto !== false && contextoRetorno === 'goals-details') {
+          abrirMetas_();
+          selecionarAbaMetas_('detalhes');
+        }
       }
 
       function descricaoSituacaoPainel_(situacao) {
@@ -2912,8 +3068,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         }
       }
 
-      async function abrirDetalheRegistro_(chave, linhaHint = 0) {
+      async function abrirDetalheRegistro_(chave, linhaHint = 0, opcoes = {}) {
         if (!chave) return;
+        const jaAberta = Boolean(recordDetailScreen?.classList.contains('show'));
+        if (Object.prototype.hasOwnProperty.call(opcoes || {}, 'contexto')) recordDetailReturnContext = String(opcoes.contexto || '');
+        else if (!jaAberta) recordDetailReturnContext = '';
         recordsState.chaveSelecionada = chave;
         recordsState.linhaSelecionada = Number(linhaHint || 0);
         marcarLinhaSelecionada_();
@@ -5086,13 +5245,63 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         return docOk || pscipOk || enderecoOk;
       }
 
+      function textoPrazoProcessoAnterior_(item) {
+        const alerta = String(item?.alertaPrazo || '').trim();
+        if (alerta) return alerta;
+        const acao = String(item?.acaoSugerida || '').trim();
+        if (acao) return acao;
+        const situacao = String(item?.sancao || '').trim();
+        if (situacao) return `Situação registrada: ${situacao}`;
+        return 'Conferir andamento no INFOSCIP Fiscalização.';
+      }
+
+      function renderizarAlertaProcessoAnterior_(candidatos) {
+        if (!priorProcessAlert) return;
+        const lista = Array.isArray(candidatos) ? candidatos : [];
+        if (!lista.length) {
+          priorProcessAlert.hidden = true;
+          priorProcessAlert.innerHTML = '';
+          return;
+        }
+        const principal = lista[0];
+        const situacaoMulta = String(principal.situacaoMultaInfoscip || 'Não conferido').trim() || 'Não conferido';
+        const prazo = textoPrazoProcessoAnterior_(principal);
+        const endereco = [principal.endereco, principal.numero, principal.bairro, principal.cidade].filter(Boolean).join(', ');
+        const titulo = principal.estabelecimento || 'Processo fiscalizatório localizado';
+        const criterio = principal.criterio || 'Histórico compatível';
+        const alertaForte = Boolean(principal.aberto) || normalize(prazo).includes('multa') || normalize(prazo).includes('prazo');
+        priorProcessAlert.classList.toggle('is-critical', alertaForte);
+        priorProcessAlert.innerHTML = `
+          <div class="prior-process-alert-head">
+            <div><span>⚠ Processo fiscalizatório existente</span><strong>${escapeHtml(titulo)}</strong></div>
+            <span class="prior-process-match">${escapeHtml(criterio)}</span>
+          </div>
+          <div class="prior-process-alert-grid">
+            <div><span>Situação atual</span><strong>${escapeHtml(principal.sancao || '—')}</strong></div>
+            <div><span>Nº do PF</span><strong>${escapeHtml(principal.pf || '—')}</strong></div>
+            <div><span>Última vistoria</span><strong>${escapeHtml(principal.carimbo || '—')}</strong></div>
+            <div><span>Multa no INFOSCIP</span><strong>${escapeHtml(situacaoMulta)}</strong></div>
+          </div>
+          <div class="prior-process-next-action"><span>Prazo / acompanhamento</span><strong>${escapeHtml(prazo)}</strong></div>
+          ${endereco ? `<div class="prior-process-address">${escapeHtml(endereco)}</div>` : ''}
+          <div class="prior-process-alert-actions">
+            ${lista.length > 1 ? `<span>${lista.length} processos compatíveis encontrados. Confira o PF correto.</span>` : '<span>Confira o processo antes de concluir a nova vistoria.</span>'}
+            ${principal.chave ? `<button type="button" class="btn btn-secondary prior-process-open-btn" data-open-prior-record="${escapeAttr(principal.chave)}" data-record-line="${Number(principal.linha || 0)}">Abrir Ficha</button>` : ''}
+          </div>`;
+        priorProcessAlert.hidden = false;
+      }
+
       function limparResultadoProcessoPf_(origem = 'form') {
         const prepare = origem === 'prepare';
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
         const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
         if (status) { status.textContent = ''; status.className = 'lookup-status'; }
         if (resultados) { resultados.innerHTML = ''; resultados.hidden = true; }
-        if (prepare) preparePfCandidatos = []; else processoPfCandidatos = [];
+        if (prepare) preparePfCandidatos = [];
+        else {
+          processoPfCandidatos = [];
+          renderizarAlertaProcessoAnterior_([]);
+        }
       }
 
       function aplicarPfLocalizado_(origem, candidato, automatico = false) {
@@ -5104,7 +5313,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const atual = String(input.value || '').trim();
         if (automatico && atual && atual !== autoAtual) return;
         input.value = String(candidato.pf).trim();
-        if (prepare) preparePfAutoAtual = input.value; else processoPfAutoAtual = input.value;
+        if (prepare) preparePfAutoAtual = input.value;
+        else {
+          processoPfAutoAtual = input.value;
+          const demais = processoPfCandidatos.filter(item => String(item?.pf || '') !== String(candidato.pf || ''));
+          renderizarAlertaProcessoAnterior_([candidato, ...demais]);
+        }
         input.dispatchEvent(new Event('input', { bubbles: true }));
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
         if (status) {
@@ -5121,7 +5335,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const prepare = origem === 'prepare';
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
         const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
-        if (prepare) preparePfCandidatos = candidatos; else processoPfCandidatos = candidatos;
+        if (prepare) preparePfCandidatos = candidatos;
+        else {
+          processoPfCandidatos = candidatos;
+          renderizarAlertaProcessoAnterior_(candidatos);
+        }
         if (!resultados) return;
         if (!candidatos.length) {
           resultados.innerHTML = '';
@@ -5130,7 +5348,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
           if (input && autoAtual && String(input.value || '').trim() === autoAtual) input.value = '';
           if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
-          if (status) { status.textContent = 'Nenhum Nº do PF localizado no histórico desde 01/07/2025.'; status.className = 'lookup-status show info'; }
+          if (status) { status.textContent = 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.'; status.className = 'lookup-status show info'; }
           return;
         }
         if (candidatos.length === 1) {
@@ -5142,7 +5360,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (inputAtual && autoAtual && String(inputAtual.value || '').trim() === autoAtual && !candidatos.some(item => String(item.pf || '').trim() === autoAtual)) inputAtual.value = '';
         if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
         if (status) {
-          status.textContent = `${candidatos.length} processos compatíveis encontrados desde 01/07/2025. Selecione o Nº do PF correto.`;
+          status.textContent = `${candidatos.length} processos compatíveis encontrados. Selecione o Nº do PF correto e confira a situação.`;
           status.className = 'lookup-status show info';
         }
         resultados.innerHTML = candidatos.map((item,index) => {
@@ -5161,7 +5379,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const seq = prepare ? ++preparePfLookupSequencia : ++processoPfLookupSequencia;
         const chave = chaveFiltrosProcessoPf_(filtros);
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
-        if (status) { status.textContent = 'Pesquisando processo fiscalizatório desde 01/07/2025...'; status.className = 'lookup-status show info'; }
+        if (status) { status.textContent = 'Verificando processo anterior por CNPJ/CPF, PSCIP e endereço...'; status.className = 'lookup-status show info'; }
         try {
           const resposta = await apiRequest('config', { consulta:'processo_pf', filtros }, 10000);
           if ((prepare ? preparePfLookupSequencia : processoPfLookupSequencia) !== seq) return;
@@ -6526,9 +6744,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
       function iniciarDdu_(item){ if(!item)return; dduEmUsoId=String(item.id||''); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v}; set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} agendarConsultaProcessoPf_('form',180); appStatus.textContent='DDU carregado. Complete os dados da fiscalização.'; }
 
-      function abrirModalPreparacao_() {
+      function abrirModalPreparacao_(opcoes = {}) {
         fecharMenuMais_();
         if (!prepareInspectionModal) return;
+        preparacaoRetornarProgramadas = Boolean(opcoes.retornarProgramadas);
         limparFormularioPreparacao_();
         if (prepareInspectionError) prepareInspectionError.hidden = true;
         prepareInspectionModal.hidden = false;
@@ -6538,6 +6757,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       function abrirEdicaoPreparacao_(item) {
         if (!item?.id || !prepareInspectionModal) return;
         fecharMenuMais_();
+        preparacaoRetornarProgramadas = true;
         limparFormularioPreparacao_();
         preparacaoEditandoId = String(item.id);
         const set = (id, valor) => { const el = document.getElementById(id); if (el) el.value = String(valor ?? ''); };
@@ -6570,10 +6790,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         document.body.classList.add('review-open');
       }
 
-      function fecharModalPreparacao_() {
+      function fecharModalPreparacao_(opcoes = {}) {
         if (!prepareInspectionModal) return;
+        const retornar = preparacaoRetornarProgramadas;
+        preparacaoRetornarProgramadas = false;
         prepareInspectionModal.hidden = true;
         document.body.classList.remove('review-open');
+        if (opcoes.restaurarContexto !== false && retornar) abrirListaProgramadas_(true);
       }
 
       function dadosPreparacaoFormulario_() {
@@ -6743,7 +6966,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           } else {
             await apiRequest('save', { payload: p }, 30000);
           }
-          fecharModalPreparacao_();
+          fecharModalPreparacao_({ restaurarContexto: false });
           limparFormularioPreparacao_();
           await carregarPreparacoesVistoria_();
           appStatus.textContent = eraEdicao ? 'Programação atualizada com sucesso.' : 'Vistoria cadastrada e compartilhada com a equipe.';
@@ -7090,6 +7313,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         } else {
           marcarAbaApp_('form');
         }
+        inicializarNavegacaoGlobal_(vistaInicial);
 
         // V23.9.47: DDU, programações e lista de vistoriadores são dados auxiliares.
         // A tela principal não fica mais presa ao "Carregando" aguardando essas três consultas.
@@ -7126,7 +7350,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const chave = String(btn.dataset.goalOpenRecord || '');
         if (!chave) return;
         fecharMetas_();
-        abrirDetalheRegistro_(chave, Number(btn.dataset.recordLine || 0));
+        abrirDetalheRegistro_(chave, Number(btn.dataset.recordLine || 0), { contexto: 'goals-details' });
       });
       goalsModal?.addEventListener('click', event => { if (event.target === goalsModal) fecharMetas_(); });
       registerDduBtn?.addEventListener('click', () => { fecharMenuMais_(); abrirCadastroDdu_(); });
@@ -7155,7 +7379,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
       dduList?.addEventListener('click', e => { const b=e.target.closest('[data-ddu-start]'); if(!b)return; iniciarDdu_(ddusAtivos.find(x=>String(x.id)===String(b.dataset.dduStart))); });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
-      desktopPrepareInspectionBtn?.addEventListener('click', () => { fecharListaProgramadas_(); abrirModalPreparacao_(); });
+      desktopPrepareInspectionBtn?.addEventListener('click', () => { fecharListaProgramadas_(); abrirModalPreparacao_({ retornarProgramadas: true }); });
       prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
@@ -7353,6 +7577,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (!Number.isInteger(indice) || !lista[indice]) return;
         aplicarPfLocalizado_(origem, lista[indice], false);
       }));
+      priorProcessAlert?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-open-prior-record]');
+        if (!botao) return;
+        const chave = String(botao.dataset.openPriorRecord || '').trim();
+        if (!chave) return;
+        abrirDetalheRegistro_(chave, Number(botao.dataset.recordLine || 0));
+      });
       pscipHistoryResults?.addEventListener('click', event => {
         const botao = event.target.closest('[data-history-pscip-index]');
         if (!botao) return;
@@ -7611,7 +7842,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.58', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.69', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
