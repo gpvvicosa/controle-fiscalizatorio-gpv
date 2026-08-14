@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.73';
+      const APP_VERSION = '23.9.74';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -6874,7 +6874,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         return new Promise((resolve, reject) => {
           if (!file) return resolve(null);
           if (file.size > maxBytes) return reject(new Error(`O arquivo excede o limite de ${Math.round(maxBytes/1024/1024)} MB.`));
-          if (extensao && !String(file.name || '').toLowerCase().endsWith(extensao)) return reject(new Error(`Selecione um arquivo ${extensao}.`));
+          const extensoes = (Array.isArray(extensao) ? extensao : [extensao]).filter(Boolean).map(v => String(v).toLowerCase());
+          const nomeArquivo = String(file.name || '').toLowerCase();
+          if (extensoes.length && !extensoes.some(ext => nomeArquivo.endsWith(ext))) {
+            const rotulo = extensoes.length > 1 ? extensoes.slice(0,-1).join(', ') + ' ou ' + extensoes[extensoes.length - 1] : extensoes[0];
+            return reject(new Error(`Selecione um arquivo ${rotulo}.`));
+          }
           const reader = new FileReader();
           reader.onerror = () => reject(new Error('Não foi possível ler o arquivo selecionado.'));
           reader.onload = () => resolve({ nome:file.name, tipo:file.type || '', tamanho:file.size, base64:String(reader.result||'').split(',').pop() || '' });
@@ -6993,7 +6998,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ultimoCnpjPreparacaoConsultado = numero.length === 14 ? numero : '';
         }
         const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Editar vistoria programada';
-        if (prepareDwgStatus) prepareDwgStatus.textContent = item.arquivoDwgNome ? `Arquivo atual: ${item.arquivoDwgNome}. Selecione outro DWG apenas para substituir.` : 'Nenhum DWG anexado.';
+        if (prepareDwgStatus) prepareDwgStatus.textContent = item.arquivoDwgNome ? `Arquivo atual: ${item.arquivoDwgNome}. Selecione outro arquivo apenas para substituir.` : 'Nenhum arquivo anexado.';
         if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Salvar alterações';
         if (prepareInspectionError) prepareInspectionError.hidden = true;
         atualizarCamposPreparacaoPorTipo_();
@@ -7174,7 +7179,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         prepareInspectionSaveBtn.disabled = true;
         try {
           if (p.tipoPreparacao === 'liberacao' && prepareDwgFile?.files?.[0]) {
-            p._appArquivoDwg = await lerArquivoBase64_(prepareDwgFile.files[0], 8 * 1024 * 1024, '.dwg');
+            p._appArquivoDwg = await lerArquivoBase64_(prepareDwgFile.files[0], 8 * 1024 * 1024, ['.dwg', '.pdf']);
           }
           const eraEdicao = Boolean(preparacaoEditandoId);
           if (eraEdicao) {
@@ -7304,7 +7309,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
               <p class="prepared-inspector"><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
             </div>
             <div class="prepared-card-actions">
-              ${item.arquivoDwgUrl ? `<a class="btn btn-secondary" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir DWG</a>` : ''}
+              ${item.arquivoDwgUrl ? `<a class="btn btn-secondary" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir arquivo</a>` : ''}
               <button type="button" class="btn btn-secondary prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
               <button type="button" class="btn btn-secondary prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
               <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">Abrir vistoria</button>
