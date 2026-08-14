@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-75-liberacao-notificado';
-const VERSION = '23.9.75';
+const VERSION = '23.9.76';
 
 const CORE_SHELL = [
   './',

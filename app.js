@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.75';
+      const APP_VERSION = '23.9.76';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -3014,6 +3014,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const atual = normalize(registro?.situacaoAtual || '');
         const pendente = atual.startsWith(normalize('Pendente'));
         if (fluxoLiberacaoFicha_(registro)) {
+          // V23.9.76 — também permite corrigir Vistorias de Liberação antigas que
+          // chegaram à Ficha sem qualquer situação registrada.
+          if (!atual || atual === normalize('Sem situação')) return ['Notificado', 'Liberado'];
+
           // V23.9.75 — Liberação tecnicamente não aprovada é Notificado, nunca Autuado.
           // Permite corrigir pela Ficha registros antigos/inconsistentes que tenham sido
           // gravados como Autuado, Advertência ou Regularizado no fluxo de Liberação.
