@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.71';
+      const APP_VERSION = '23.9.72';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -744,9 +744,9 @@
         const usuarioAtualizado = { ...authState.usuario, perfil };
         salvarSessaoLocalBm_(usuarioAtualizado, authState.sessionToken);
         aplicarPermissoesInterface_();
-        if (perfil === 'GERAL' && vistaAtualNavegacao_() !== 'records') {
-          mostrarVistaPlanilha_();
-        }
+        // V23.9.72: uma atualização de perfil vinda da API não deve expulsar
+        // o usuário GERAL da Vistoria. Ele pode permanecer no fluxo para
+        // treinamento; ações de gravação continuam bloqueadas no servidor.
       }
 
       function aplicarPermissoesInterface_() {
@@ -1683,7 +1683,10 @@
       }
 
       function marcarAbaApp_(modo) {
-        if (!usuarioPodeOperar_()) modo = 'records';
+        // V23.9.72: o perfil GERAL também pode abrir o fluxo real de Vistoria
+        // para conhecimento/treinamento. A proteção contra gravação permanece
+        // no envio e, de forma independente, no backend.
+        modo = modo === 'records' ? 'records' : 'form';
         const painel = modo === 'records';
         document.body.classList.toggle('records-mode', painel);
         recordsPanel.hidden = !painel;
