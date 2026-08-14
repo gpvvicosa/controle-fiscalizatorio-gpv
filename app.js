@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.70';
+      const APP_VERSION = '23.9.71';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -651,7 +651,12 @@
       const aboutSystemCloseBtn = document.getElementById('aboutSystemCloseBtn');
       const aboutSystemGrid = document.getElementById('aboutSystemGrid');
       const aboutSystemNote = document.getElementById('aboutSystemNote');
+      const accessGuidanceModal = document.getElementById('accessGuidanceModal');
+      const accessGuidanceTitle = document.getElementById('accessGuidanceTitle');
+      const accessGuidanceText = document.getElementById('accessGuidanceText');
+      const accessGuidanceContinueBtn = document.getElementById('accessGuidanceContinueBtn');
 
+      let accessGuidanceResolve = null;
       let ocupacaoTouchStartY = null;
       let ocupacaoArrastando = false;
 
@@ -696,6 +701,42 @@
         return perfilAcessoAtual_() === 'GPV';
       }
 
+      function usuarioEmTreinamento_() {
+        return perfilAcessoAtual_() === 'GERAL';
+      }
+
+      function fecharAvisoAcessoGeral_() {
+        if (!accessGuidanceModal || accessGuidanceModal.hidden) return;
+        accessGuidanceModal.hidden = true;
+        accessGuidanceModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('access-guidance-open');
+        const resolver = accessGuidanceResolve;
+        accessGuidanceResolve = null;
+        if (resolver) resolver(true);
+      }
+
+      function mostrarAvisoAcessoGeral_(tipo = 'login') {
+        if (!usuarioEmTreinamento_() || !accessGuidanceModal) return Promise.resolve(true);
+        const textos = {
+          login: { titulo: 'Conheça o sistema', texto: 'Você pode utilizar as funcionalidades disponíveis para conhecer e praticar o funcionamento do sistema. Nenhuma vistoria ou alteração realizada neste acesso será registrada.', botao: 'Entendi — acessar o sistema' },
+          vistoria: { titulo: 'Vistoria', texto: 'Você pode preencher e percorrer todo o processo normalmente para conhecer o funcionamento da vistoria. Ao final, nenhuma informação será enviada ou registrada.', botao: 'Continuar' },
+          conclusao: { titulo: 'Treinamento concluído', texto: 'Você percorreu o fluxo da vistoria. Nenhuma vistoria ou alteração foi enviada ou registrada.', botao: 'Continuar no sistema' },
+          cadastro: { titulo: 'Cadastro concluído', texto: 'Você percorreu o cadastro da vistoria. Nenhuma programação, arquivo ou alteração foi enviada ou registrada.', botao: 'Continuar no sistema' }
+        };
+        const conteudo = textos[tipo] || textos.login;
+        if (accessGuidanceResolve) fecharAvisoAcessoGeral_();
+        if (accessGuidanceTitle) accessGuidanceTitle.textContent = conteudo.titulo;
+        if (accessGuidanceText) accessGuidanceText.textContent = conteudo.texto;
+        if (accessGuidanceContinueBtn) accessGuidanceContinueBtn.textContent = conteudo.botao;
+        accessGuidanceModal.hidden = false;
+        accessGuidanceModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('access-guidance-open');
+        return new Promise(resolve => {
+          accessGuidanceResolve = resolve;
+          setTimeout(() => accessGuidanceContinueBtn?.focus(), 20);
+        });
+      }
+
       function atualizarPerfilLocalPorResposta_(result) {
         const perfil = String(result?.acessoPerfil || '').trim().toUpperCase();
         if (!authState.usuario?.id || !['GPV', 'GERAL'].includes(perfil)) return;
@@ -713,9 +754,6 @@
         document.body.classList.toggle('access-geral', consulta);
 
         const ocultarOperacional = [
-          formTabBtn,
-          dashboardNewInspectionBtn,
-          prepareInspectionBtn,
           registerDduBtn,
           usefulLinksBtn,
           aboutSystemBtn,
@@ -736,18 +774,22 @@
           if (consulta) el.hidden = true;
         });
 
-        if (form) form.hidden = consulta;
+        if (form) form.hidden = false;
+        if (formTabBtn) formTabBtn.hidden = false;
+        if (dashboardNewInspectionBtn) dashboardNewInspectionBtn.hidden = false;
+        if (prepareInspectionBtn) prepareInspectionBtn.hidden = false;
+        if (desktopPrepareInspectionBtn) desktopPrepareInspectionBtn.hidden = false;
         if (!consulta) {
           // Elementos condicionais são reexibidos pelas rotinas próprias quando aplicável.
-          if (form) form.hidden = false;
-          if (formTabBtn) formTabBtn.hidden = false;
-          if (dashboardNewInspectionBtn) dashboardNewInspectionBtn.hidden = false;
-          if (prepareInspectionBtn) prepareInspectionBtn.hidden = false;
           if (registerDduBtn) registerDduBtn.hidden = false;
           if (usefulLinksBtn) usefulLinksBtn.hidden = false;
           if (aboutSystemBtn) aboutSystemBtn.hidden = false;
           if (manageUsersBtn) manageUsersBtn.hidden = false;
           if (syncSummary) syncSummary.hidden = false;
+        } else {
+          if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
+          if (submitBtn) submitBtn.textContent = 'Finalizar treinamento';
+          if (prepareInspectionSaveBtn && !preparacaoEditandoId) prepareInspectionSaveBtn.textContent = 'Finalizar treinamento';
         }
       }
 
@@ -1369,9 +1411,13 @@
           ? 'Online — conexão disponível'
           : 'Offline — dados preservados neste aparelho');
         if (connectionStateText) connectionStateText.textContent = online ? 'Online' : 'Offline';
-        submitBtn.textContent = online ? 'Registrar vistoria' : 'Salvar no aparelho';
+        submitBtn.textContent = usuarioPodeOperar_()
+          ? (online ? 'Registrar vistoria' : 'Salvar no aparelho')
+          : 'Finalizar treinamento';
         if (!online) {
-          appStatus.textContent = 'Sem internet — preenchimento salvo neste aparelho.';
+          appStatus.textContent = usuarioPodeOperar_()
+            ? 'Sem internet — preenchimento salvo neste aparelho.'
+            : 'Sem internet — o preenchimento continua disponível; pesquisas online ficam indisponíveis.';
           if (cnpjStatus) showCnpjStatus('Sem internet. A consulta automática de CNPJ fica disponível quando a conexão voltar.', 'info');
         }
         atualizarPainelPendentes();
@@ -1699,6 +1745,7 @@
       }
 
       function camadaNavegacaoAtiva_() {
+        if (elementoVisivelNavegacao_(accessGuidanceModal)) return { id: 'access-guidance', fechar: () => fecharAvisoAcessoGeral_() };
         const mobileChoice = mobileChoiceState?.overlay;
         if (elementoVisivelNavegacao_(mobileChoice)) return { id: 'mobile-choice', fechar: () => fecharEscolhaMovel_() };
         if (elementoVisivelNavegacao_(recordStatusUpdateModal)) return { id: 'status-infoscip', fechar: () => fecharAtualizacaoSituacaoInfoscip_() };
@@ -1822,15 +1869,17 @@
         agendarSincronizacaoNavegacao_();
       }
 
-      function mostrarVistaFormulario_() {
-        if (!usuarioPodeOperar_()) {
-          mostrarVistaPlanilha_();
-          return;
-        }
+      async function mostrarVistaFormulario_() {
+        const estavaNoFormulario = vistaAtualNavegacao_() === 'form';
+        if (usuarioEmTreinamento_() && !estavaNoFormulario) await mostrarAvisoAcessoGeral_('vistoria');
         marcarAbaApp_('form');
         fecharDetalheRegistro_({ restaurarContexto: false });
         atualizarVistaNaUrl_('form');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (usuarioEmTreinamento_()) {
+          if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
+          if (submitBtn) submitBtn.textContent = 'Finalizar treinamento';
+        }
       }
 
       function mostrarVistaPlanilha_(opcoes = {}) {
@@ -5590,11 +5639,20 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
 
       function scheduleDraftSave() {
+        if (!usuarioPodeOperar_()) {
+          clearTimeout(saveTimer);
+          if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
+          return;
+        }
         clearTimeout(saveTimer);
         saveTimer = setTimeout(saveDraft, 350);
       }
 
       function saveDraft() {
+        if (!usuarioPodeOperar_()) {
+          if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
+          return;
+        }
         try {
           localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt: Date.now(), recordId: currentRecordId, payload: buildPayload() }));
           draftStatus.textContent = '✓ Rascunho salvo';
@@ -5760,11 +5818,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ['Tipo de vistoria', payload?.tipoVistoria || '—'],
           ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
           ['Situação pretendida', payload?._appSancaoPretendida || payload?.sancao || '—'],
-          ['Situação final registrada', payload?.sancao || '—'],
+          [usuarioPodeOperar_() ? 'Situação final registrada' : 'Situação ao final do treinamento', payload?.sancao || '—'],
           ['Situação de multa no INFOSCIP', payload?.situacaoMultaInfoscip || 'Não conferido'],
-          ['Notificações da liberação', payload?.notificacoesLiberacao ? `${flattenNotificacoesLiberacao_(true).length} registrada(s)` : '—'],
+          ['Notificações da liberação', payload?.notificacoesLiberacao ? `${flattenNotificacoesLiberacao_(true).length} ${usuarioPodeOperar_() ? 'registrada(s)' : 'preenchida(s)'}` : '—'],
           ['Nº PF', payload?.pf || '—'],
-          ['Enviado por', authState.usuario?.nome || '—']
+          [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
         ];
 
         const duplicados = Array.isArray(duplicidade?.encontrados) ? duplicidade.encontrados : [];
@@ -5774,7 +5832,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
 
         if (!reviewModal || !reviewList || !reviewConfirmBtn || !reviewCancelBtn) {
           const texto = itens.map(([r, v]) => `${r}: ${v}`).join('\n');
-          const confirmou = window.confirm(`${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}\n\nConfirmar e registrar?`);
+          const confirmou = window.confirm(`${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}\n\n${usuarioPodeOperar_() ? 'Confirmar e registrar?' : 'Concluir treinamento?'}`);
           return Promise.resolve({ confirmado: confirmou, encerrarProcesso: false, chaveProcesso: '' });
         }
 
@@ -5800,16 +5858,21 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             }).join('');
             const unico = candidatosEncerramento.length === 1;
             const regularizacaoAutomatica = unico && normalize(payload?.sancao) === normalize('Regularizado');
-            reviewClosureNotice.innerHTML = `<strong>Processo fiscalizatório anterior localizado</strong>
-              <p>${escapeHtml(refPrincipal)} está em <b>${escapeHtml(principal.sancao || 'situação em aberto')}</b>. A vistoria atual está como <b>${escapeHtml(payload?.sancao || '')}</b>.</p>
-              ${regularizacaoAutomatica
-                ? `<p><strong>Atualização automática:</strong> ao confirmar esta nova vistoria como Regularizado, o processo anterior será atualizado para <strong>Regularizado</strong>.</p>`
-                : (unico
-                  ? `<label class="review-closure-check"><input type="checkbox" id="reviewClosureConfirm"> <span>Confirmar o encerramento deste processo anterior como <strong>Regularizado</strong> ao registrar a vistoria atual.</span></label>`
-                  : `<p><strong>Atenção:</strong> foram encontrados ${candidatosEncerramento.length} processos compatíveis. Nenhum será encerrado automaticamente; confira qual PF corresponde ao processo.</p><ul>${listaOutros}</ul>`)}`;
+            reviewClosureNotice.innerHTML = usuarioPodeOperar_()
+              ? `<strong>Processo fiscalizatório anterior localizado</strong>
+                <p>${escapeHtml(refPrincipal)} está em <b>${escapeHtml(principal.sancao || 'situação em aberto')}</b>. A vistoria atual está como <b>${escapeHtml(payload?.sancao || '')}</b>.</p>
+                ${regularizacaoAutomatica
+                  ? `<p><strong>Atualização automática:</strong> ao confirmar esta nova vistoria como Regularizado, o processo anterior será atualizado para <strong>Regularizado</strong>.</p>`
+                  : (unico
+                    ? `<label class="review-closure-check"><input type="checkbox" id="reviewClosureConfirm"> <span>Confirmar o encerramento deste processo anterior como <strong>Regularizado</strong> ao registrar a vistoria atual.</span></label>`
+                    : `<p><strong>Atenção:</strong> foram encontrados ${candidatosEncerramento.length} processos compatíveis. Nenhum será encerrado automaticamente; confira qual PF corresponde ao processo.</p><ul>${listaOutros}</ul>`)}`
+              : `<strong>Processo fiscalizatório anterior localizado</strong>
+                <p>${escapeHtml(refPrincipal)} está em <b>${escapeHtml(principal.sancao || 'situação em aberto')}</b>. O sistema demonstra a análise normalmente, mas nenhuma situação ou processo será alterado neste acesso.</p>
+                ${!unico ? `<p>Foram encontrados ${candidatosEncerramento.length} processos compatíveis. Confira qual PF corresponde ao processo.</p><ul>${listaOutros}</ul>` : ''}`;
             reviewClosureNotice.hidden = false;
           }
         }
+        reviewConfirmBtn.textContent = usuarioPodeOperar_() ? 'Confirmar e registrar' : 'Concluir treinamento';
         reviewModal.hidden = false;
         document.body.classList.add('review-open');
 
@@ -5820,8 +5883,8 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             encerrado = true;
             const candidatos = Array.isArray(encerramentoFiscal?.candidatos) ? encerramentoFiscal.candidatos : [];
             const principal = candidatos[0] || null;
-            const regularizacaoAutomatica = Boolean(confirmado && candidatos.length === 1 && normalize(payload?.sancao) === normalize('Regularizado'));
-            const encerramentoConfirmado = Boolean(confirmado && candidatos.length === 1 && document.getElementById('reviewClosureConfirm')?.checked);
+            const regularizacaoAutomatica = Boolean(usuarioPodeOperar_() && confirmado && candidatos.length === 1 && normalize(payload?.sancao) === normalize('Regularizado'));
+            const encerramentoConfirmado = Boolean(usuarioPodeOperar_() && confirmado && candidatos.length === 1 && document.getElementById('reviewClosureConfirm')?.checked);
             const encerrarProcesso = regularizacaoAutomatica || encerramentoConfirmado;
             const chaveProcesso = encerrarProcesso ? String(principal?.chave || '') : '';
             reviewModal.hidden = true;
@@ -5853,11 +5916,14 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           notificacoesPossuemConteudo_();
 
         if (liberadoComRascunho) {
-          const continuar = window.confirm(
-            'Existem irregularidades/notificações registradas no rascunho desta vistoria, mas o resultado está como Liberado.\n\n' +
-            'Se continuar, a vistoria será concluída como Liberado e essas anotações permanecerão temporariamente na Ficha do Processo por até 15 dias.\n\n' +
-            'Deseja realmente concluir como Liberado?'
-          );
+          const mensagemLiberado = usuarioPodeOperar_()
+            ? 'Existem irregularidades/notificações registradas no rascunho desta vistoria, mas o resultado está como Liberado.\n\n' +
+              'Se continuar, a vistoria será concluída como Liberado e essas anotações permanecerão temporariamente na Ficha do Processo por até 15 dias.\n\n' +
+              'Deseja realmente concluir como Liberado?'
+            : 'Existem irregularidades/notificações preenchidas neste treinamento, mas o resultado está como Liberado.\n\n' +
+              'Você pode continuar para conhecer a etapa de conferência. Nenhuma informação será enviada ou registrada.\n\n' +
+              'Deseja continuar?';
+          const continuar = window.confirm(mensagemLiberado);
           if (!continuar) {
             notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             appStatus.textContent = 'Confira o rascunho das notificações antes de concluir como Liberado.';
@@ -5877,7 +5943,9 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
 
-        if (navigator.onLine) appStatus.textContent = 'Conferindo duplicidade e processos anteriores antes do envio...';
+        if (navigator.onLine) appStatus.textContent = usuarioPodeOperar_()
+          ? 'Conferindo duplicidade e processos anteriores antes do envio...'
+          : 'Conferindo dados e processos anteriores para concluir o treinamento...';
         const [duplicidade, encerramentoFiscal] = await Promise.all([
           consultarDuplicidadeAntesEnvio_(payload),
           consultarEncerramentoFiscal_(payload)
@@ -5890,6 +5958,17 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (revisao.encerrarProcesso && revisao.chaveProcesso) {
           payload._appEncerrarProcesso = 'sim';
           payload._appEncerrarProcessoChave = revisao.chaveProcesso;
+        }
+
+        if (!usuarioPodeOperar_()) {
+          ultimoRegistroConsultaChave = '';
+          ultimoRegistroParaOrientacoes = null;
+          try { localStorage.removeItem(draftKeyAtual_()); } catch (_) {}
+          resetForm();
+          if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
+          appStatus.textContent = 'Treinamento concluído — nenhuma informação foi enviada ou registrada.';
+          await mostrarAvisoAcessoGeral_('conclusao');
+          return;
         }
 
         ultimoRegistroConsultaChave = '';
@@ -6272,6 +6351,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
           aplicarPermissoesInterface_();
           ocultarTelaLoginBm_();
+          if (usuarioEmTreinamento_()) await mostrarAvisoAcessoGeral_('login');
           return true;
         }
 
@@ -6313,6 +6393,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             apagarSenhaLocalPerfilBm_(result.usuario.id);
           }
           ocultarTelaLoginBm_();
+          if (usuarioEmTreinamento_()) await mostrarAvisoAcessoGeral_('login');
           if (result.usuario.provisorio) {
             setTimeout(() => alert('Seu Nº BM está cadastrado provisoriamente como 1234567. Atualize-o em Mais → Gerenciar usuários quando souber o número correto.'), 250);
           }
@@ -6775,7 +6856,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const cidade = document.getElementById('prepareCidade'); if (cidade) cidade.value = 'Viçosa';
         const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value = 'PRJ';
         const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Cadastrar vistoria';
-        if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Cadastrar vistoria';
+        if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = usuarioPodeOperar_() ? 'Cadastrar vistoria' : 'Finalizar treinamento';
         ultimoCnpjPreparacaoConsultado = '';
         clearPrepareCnpjStatus_();
         limparResultadoProcessoPf_('prepare');
@@ -7068,6 +7149,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             prepareInspectionError.hidden = false;
             prepareInspectionError.textContent = `Preencha: ${faltantes.join(', ')}.`;
           }
+          return;
+        }
+        if (!usuarioPodeOperar_()) {
+          fecharModalPreparacao_({ restaurarContexto: false });
+          limparFormularioPreparacao_();
+          appStatus.textContent = 'Cadastro percorrido — nenhuma vistoria foi programada ou registrada.';
+          await mostrarAvisoAcessoGeral_('cadastro');
           return;
         }
         if (!navigator.onLine) {
@@ -7400,12 +7488,18 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         aplicarConfig(cached || DEFAULT_CONFIG);
         aplicarPermissoesInterface_();
         if (usuarioPodeOperar_()) restoreDraft();
+        else if (authState.usuario?.nome) {
+          usuariosAtivosApp = [{ nome: authState.usuario.nome }];
+          preencherVistoriadores_();
+          if (vistoriadorResponsavelSelect) vistoriadorResponsavelSelect.value = authState.usuario.nome;
+          if (prepareVistoriador) prepareVistoriador.value = authState.usuario.nome;
+        }
         atualizarNomeDispositivoUi_();
         loadingOverlay.classList.remove('show');
         atualizarStatusConexao();
         appStatus.textContent = usuarioPodeOperar_()
           ? (navigator.onLine ? 'Aplicativo pronto. Sincronizando configurações...' : 'Modo offline — aplicativo pronto para preenchimento.')
-          : (navigator.onLine ? 'Aplicativo pronto para consulta. Atualizando dados...' : 'Modo offline — consulta disponível com os dados salvos neste aparelho.');
+          : (navigator.onLine ? 'Aplicativo pronto para consulta e treinamento. Atualizando dados...' : 'Sem internet — consultas salvas e preenchimento para conhecimento continuam disponíveis.');
 
         if (navigator.onLine) {
           const sincronizarConfigOnline_ = async () => {
@@ -7413,7 +7507,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
               const data = await apiRequest('config', {}, 30000);
               aplicarConfig(data);
               try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
-              appStatus.textContent = usuarioPodeOperar_() ? 'Sistema pronto para registrar vistoria.' : 'Sistema pronto para consulta.';
+              appStatus.textContent = usuarioPodeOperar_() ? 'Sistema pronto para registrar vistoria.' : 'Sistema pronto para consulta e treinamento.';
             } catch (error) {
               appStatus.textContent = cached ? 'Aplicativo pronto com configuração armazenada.' : 'Aplicativo pronto com configuração padrão.';
               if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
@@ -7761,7 +7855,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (!event.target.closest('.occupancy-field')) esconderResultadosOcupacao();
       });
       submitBtn.addEventListener('click', submit);
-      clearBtn.addEventListener('click', () => { if (confirm('Limpar todos os campos e apagar o rascunho deste aparelho?')) resetForm(); });
+      clearBtn.addEventListener('click', () => {
+        const mensagem = usuarioPodeOperar_()
+          ? 'Limpar todos os campos e apagar o rascunho deste aparelho?'
+          : 'Limpar todos os campos deste treinamento?';
+        if (confirm(mensagem)) resetForm();
+      });
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
       document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
@@ -7841,6 +7940,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }));
       appMoreMenu?.addEventListener('click', event => event.stopPropagation());
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
+      accessGuidanceContinueBtn?.addEventListener('click', fecharAvisoAcessoGeral_);
       systemManualBtn?.addEventListener('click', abrirManualSistema_);
       systemManualCloseBtn?.addEventListener('click', fecharManualSistema_);
       systemManualModal?.addEventListener('click', event => { if (event.target === systemManualModal) fecharManualSistema_(); });
@@ -7935,7 +8035,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharManualSistema_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharManualSistema_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
@@ -7977,7 +8077,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.70', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.71', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

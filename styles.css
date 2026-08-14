@@ -8267,10 +8267,6 @@ body.record-status-update-open{overflow:hidden}
   font-size: 15px;
 }
 
-body.access-geral #vistoriaForm,
-body.access-geral #formTabBtn,
-body.access-geral #dashboardNewInspectionBtn,
-body.access-geral #prepareInspectionBtn,
 body.access-geral #registerDduBtn,
 body.access-geral #usefulLinksBtn,
 body.access-geral #aboutSystemBtn,
@@ -8477,3 +8473,25 @@ body.system-manual-open {
     padding-top: 19px;
   }
 }
+
+
+/* =============================================================================
+   V23.9.71 — acesso de conhecimento para militares do GERAL
+   ============================================================================= */
+.access-guidance-overlay {
+  position: fixed; inset: 0; z-index: 13050; display: flex; align-items: center; justify-content: center;
+  padding: 18px; background: rgba(28, 19, 20, .58); backdrop-filter: blur(3px);
+}
+.access-guidance-overlay[hidden] { display: none !important; }
+.access-guidance-card {
+  width: min(460px, 100%); background: #fff; border-radius: 20px; padding: 24px 22px 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .25); text-align: center;
+}
+.access-guidance-mark {
+  width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center;
+  background: #f5e9ea; color: #7f1116; font-size: 24px; font-weight: 800;
+}
+.access-guidance-card h2 { margin: 0 0 10px; color: #4d1114; font-size: 1.35rem; }
+.access-guidance-card p { margin: 0 0 18px; color: #554a4b; line-height: 1.55; }
+.access-guidance-card .btn { width: 100%; min-height: 46px; }
+body.access-geral #draftStatus { color: #6b6262; }

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-70-perfis-acesso-manual';
-const VERSION = '23.9.70';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-71-treinamento-geral';
+const VERSION = '23.9.71';
 
 const CORE_SHELL = [
   './',

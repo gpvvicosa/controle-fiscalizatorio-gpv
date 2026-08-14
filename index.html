@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.70">
+  <link rel="stylesheet" href="styles.css?v=23.9.71">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -101,6 +101,15 @@
         </div>
         <p class="auth-offline-note" id="authOfflineNote" hidden>Primeiro acesso neste aparelho exige conexão com a internet.</p>
       </div>
+    </section>
+  </div>
+
+  <div class="access-guidance-overlay" id="accessGuidanceModal" hidden aria-hidden="true">
+    <section class="access-guidance-card" role="dialog" aria-modal="true" aria-labelledby="accessGuidanceTitle">
+      <div class="access-guidance-mark" aria-hidden="true">✓</div>
+      <h2 id="accessGuidanceTitle">Conheça o sistema</h2>
+      <p id="accessGuidanceText">Você pode utilizar as funcionalidades disponíveis para conhecer e praticar o funcionamento do sistema. Nenhuma vistoria ou alteração realizada neste acesso será registrada.</p>
+      <button class="btn btn-primary" id="accessGuidanceContinueBtn" type="button">Entendi — acessar o sistema</button>
     </section>
   </div>
 
@@ -307,8 +316,8 @@
         <section class="system-manual-section" id="manualSec9">
           <h3>9. Acesso dos militares</h3>
           <p>Todo usuário precisa ter o Nº BM cadastrado previamente. No primeiro acesso, cria uma senha pessoal de 6 dígitos.</p>
-          <p>Os militares do GPV mantêm as funções operacionais. Os militares cadastrados no setor GERAL acessam as áreas de consulta, sem funções de gravação relacionadas à vistoria.</p>
-          <p>A restrição também é validada pelo servidor; não depende apenas dos botões exibidos na tela.</p>
+          <p>Os militares do GPV mantêm as funções operacionais. Os militares cadastrados no setor GERAL podem consultar o sistema e também percorrer o fluxo de Vistoria e de Cadastrar vistoria para conhecer e praticar seu funcionamento.</p>
+          <p>Nesse acesso, pesquisas e validações de consulta continuam disponíveis, mas nenhuma vistoria, programação ou alteração é enviada ou registrada. A restrição também é validada pelo servidor; não depende apenas dos botões exibidos na tela.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
@@ -332,7 +341,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 13/08/2026 — V23.9.70.</div>
+        <div class="system-manual-revision">Última revisão: 13/08/2026 — V23.9.71.</div>
       </div>
     </section>
   </div>
@@ -1511,9 +1520,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.70"></script>
-  <script src="ocupacoes.js?v=23.9.70"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.70"></script>
-  <script src="app.js?v=23.9.70"></script>
+  <script src="config.js?v=23.9.71"></script>
+  <script src="ocupacoes.js?v=23.9.71"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.71"></script>
+  <script src="app.js?v=23.9.71"></script>
 </body>
 </html>
