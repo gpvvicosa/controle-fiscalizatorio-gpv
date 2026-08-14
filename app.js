@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.72';
+      const APP_VERSION = '23.9.73';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -634,6 +634,7 @@
       const responsavelLookupResultados = document.getElementById('responsavelLookupResultados');
       const ocupacaoInput = document.getElementById('ocupacao');
       const ocupacaoResultados = document.getElementById('ocupacaoResultados');
+      const ocupacaoToggle = document.getElementById('ocupacaoToggle');
       const ocupacaoMeta = document.getElementById('ocupacaoMeta');
       const ocupacoesSelecionadasBox = document.getElementById('ocupacoesSelecionadasBox');
       const ocupacoesSelecionadasLista = document.getElementById('ocupacoesSelecionadasLista');
@@ -3410,6 +3411,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       function esconderResultadosOcupacao() {
         ocupacaoResultados.classList.remove('show');
         ocupacaoResultados.innerHTML = '';
+        ocupacaoToggle?.setAttribute('aria-expanded', 'false');
       }
 
       function mostrarMetaOcupacao(item) {
@@ -3564,19 +3566,19 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         return true;
       }
 
-      function pesquisarOcupacoes(termo) {
+      function pesquisarOcupacoes(termo, exibirListaCompleta = false) {
         const q = normalizarTermoOcupacao(termo);
-        const oficiais = q
+        const oficiaisOrdenados = q
           ? OCUPACOES_CBMMG
               .map((item, indice) => ({ item, indice, pontos: pontuarOcupacao(item, q) }))
               .filter(resultado => resultado.pontos > 0)
               .filter(resultado => !ocupacaoJaSelecionada(valorOcupacao(resultado.item)))
               .sort((a, b) => b.pontos - a.pontos || a.indice - b.indice)
-              .slice(0, 10)
               .map(resultado => resultado.item)
           : OCUPACOES_CBMMG
-              .filter(item => !ocupacaoJaSelecionada(valorOcupacao(item)))
-              .slice(0, 10);
+              .filter(item => !ocupacaoJaSelecionada(valorOcupacao(item)));
+
+        const oficiais = exibirListaCompleta ? oficiaisOrdenados : oficiaisOrdenados.slice(0, 10);
 
         const existentes = q
           ? ocupacoesExistentes
@@ -3657,6 +3659,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         }
 
         ocupacaoResultados.classList.add('show');
+        ocupacaoToggle?.setAttribute('aria-expanded', 'true');
       }
 
       function sincronizarMetaOcupacao() {
@@ -7841,7 +7844,21 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         mostrarMetaOcupacao(ocupacaoSelecionada);
         pesquisarOcupacoes(ocupacaoInput.value);
       });
-      ocupacaoInput.addEventListener('blur', () => setTimeout(esconderResultadosOcupacao, 280));
+      ocupacaoInput.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (!document.activeElement?.closest?.('.occupancy-field')) esconderResultadosOcupacao();
+        }, 280);
+      });
+      ocupacaoToggle?.addEventListener('click', event => {
+        event.preventDefault();
+        if (ocupacaoResultados.classList.contains('show') && ocupacaoToggle.getAttribute('aria-expanded') === 'true') {
+          esconderResultadosOcupacao();
+          return;
+        }
+        ocupacaoToggle.focus({ preventScroll: true });
+        pesquisarOcupacoes(ocupacaoInput.value, true);
+        ocupacaoResultados.scrollTop = 0;
+      });
       ocupacaoResultados.addEventListener('touchstart', event => {
         ocupacaoArrastando = false;
         ocupacaoTouchStartY = event.touches && event.touches[0] ? event.touches[0].clientY : null;

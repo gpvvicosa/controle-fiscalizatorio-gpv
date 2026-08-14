@@ -197,6 +197,46 @@
     .hint { margin-top: 5px; color: var(--muted); font-size: 11px; }
 
     .occupancy-field { position: relative; }
+    .occupancy-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+    .occupancy-input-wrap input {
+      padding-right: 52px;
+    }
+    .occupancy-toggle {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      bottom: 4px;
+      width: 40px;
+      min-width: 40px;
+      border: 0;
+      border-left: 1px solid #e4e7ec;
+      border-radius: 0 8px 8px 0;
+      background: #fff;
+      color: #475467;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .occupancy-toggle span {
+      display: block;
+      font-size: 23px;
+      line-height: 1;
+      transform: translateY(-2px);
+      transition: transform .15s ease;
+    }
+    .occupancy-toggle[aria-expanded="true"] span { transform: rotate(180deg) translateY(2px); }
+    .occupancy-toggle:hover,
+    .occupancy-toggle:focus-visible {
+      background: #f9fafb;
+      color: #1d2939;
+      outline: none;
+    }
     .occupancy-results {
       display: none;
       position: static;

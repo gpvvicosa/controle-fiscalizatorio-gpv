@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.72">
+  <link rel="stylesheet" href="styles.css?v=23.9.73">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1027,9 +1027,15 @@
                 <div class="occupancy-selected-title">Ocupações selecionadas</div>
                 <div class="occupancy-chip-list" id="ocupacoesSelecionadasLista"></div>
               </div>
-              <input id="ocupacao" name="ocupacao" autocomplete="off"
-                     placeholder="Digite, por exemplo: supermercado, igreja, academia, escritório...">
-              <div class="hint">Você pode adicionar mais de uma ocupação. Pesquise pela atividade, grupo ou divisão. Você pode digitar D-1 ou simplesmente D1; o app entende os dois formatos. Toque na sugestão e continue pesquisando a próxima.</div>
+              <div class="occupancy-input-wrap">
+                <input id="ocupacao" name="ocupacao" autocomplete="off"
+                       placeholder="Digite ou selecione uma ocupação...">
+                <button type="button" class="occupancy-toggle" id="ocupacaoToggle"
+                        aria-label="Mostrar lista de ocupações" aria-expanded="false" aria-controls="ocupacaoResultados">
+                  <span aria-hidden="true">⌄</span>
+                </button>
+              </div>
+              <div class="hint">Você pode digitar para pesquisar ou tocar na seta para selecionar na lista. É possível adicionar mais de uma ocupação. Você pode digitar D-1 ou simplesmente D1; o app entende os dois formatos.</div>
               <div class="occupancy-results" id="ocupacaoResultados" role="listbox" aria-label="Sugestões de ocupação"></div>
               <div class="occupancy-meta" id="ocupacaoMeta"></div>
             </div>
@@ -1520,9 +1526,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.72"></script>
-  <script src="ocupacoes.js?v=23.9.72"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.72"></script>
-  <script src="app.js?v=23.9.72"></script>
+  <script src="config.js?v=23.9.73"></script>
+  <script src="ocupacoes.js?v=23.9.73"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.73"></script>
+  <script src="app.js?v=23.9.73"></script>
 </body>
 </html>
