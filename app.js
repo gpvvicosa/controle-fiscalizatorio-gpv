@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.69';
+      const APP_VERSION = '23.9.70';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -314,7 +314,9 @@
           throw error;
         }
         try {
-          return await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs);
+          const result = await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs);
+          atualizarPerfilLocalPorResposta_(result);
+          return result;
         } catch (error) {
           if (error?.code === 'AUTH_REQUIRED' || error?.status === 401) {
             limparSessaoLocalBm_();
@@ -361,6 +363,10 @@
       const changePinBtn = document.getElementById('changePinBtn');
       const forgetSavedPinBtn = document.getElementById('forgetSavedPinBtn');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
+      const systemManualBtn = document.getElementById('systemManualBtn');
+      const systemManualModal = document.getElementById('systemManualModal');
+      const systemManualCloseBtn = document.getElementById('systemManualCloseBtn');
+      const systemManualScroll = document.getElementById('systemManualScroll');
       const switchUserBtn = document.getElementById('switchUserBtn');
       const logoutUserBtn = document.getElementById('logoutUserBtn');
       const changePinModal = document.getElementById('changePinModal');
@@ -380,6 +386,7 @@
       const userManagerId = document.getElementById('userManagerId');
       const userManagerName = document.getElementById('userManagerName');
       const userManagerBm = document.getElementById('userManagerBm');
+      const userManagerProfile = document.getElementById('userManagerProfile');
       const userManagerMessage = document.getElementById('userManagerMessage');
       const userManagerFormTitle = document.getElementById('userManagerFormTitle');
       const userManagerSaveBtn = document.getElementById('userManagerSaveBtn');
@@ -680,6 +687,91 @@
         linhaSelecionada: 0,
         prazoMulta: ''
       };
+
+      function perfilAcessoAtual_() {
+        return String(authState.usuario?.perfil || 'GPV').trim().toUpperCase() === 'GERAL' ? 'GERAL' : 'GPV';
+      }
+
+      function usuarioPodeOperar_() {
+        return perfilAcessoAtual_() === 'GPV';
+      }
+
+      function atualizarPerfilLocalPorResposta_(result) {
+        const perfil = String(result?.acessoPerfil || '').trim().toUpperCase();
+        if (!authState.usuario?.id || !['GPV', 'GERAL'].includes(perfil)) return;
+        if (String(authState.usuario.perfil || 'GPV').trim().toUpperCase() === perfil) return;
+        const usuarioAtualizado = { ...authState.usuario, perfil };
+        salvarSessaoLocalBm_(usuarioAtualizado, authState.sessionToken);
+        aplicarPermissoesInterface_();
+        if (perfil === 'GERAL' && vistaAtualNavegacao_() !== 'records') {
+          mostrarVistaPlanilha_();
+        }
+      }
+
+      function aplicarPermissoesInterface_() {
+        const consulta = !usuarioPodeOperar_();
+        document.body.classList.toggle('access-geral', consulta);
+
+        const ocultarOperacional = [
+          formTabBtn,
+          dashboardNewInspectionBtn,
+          prepareInspectionBtn,
+          registerDduBtn,
+          usefulLinksBtn,
+          aboutSystemBtn,
+          manageUsersBtn,
+          loggedUserBadge,
+          adminSheetMenuLink,
+          dashboardSheetHeaderLink,
+          recordsOpenSheetLink,
+          recordDetailSheetLink,
+          recordInfoscipUpdatePanel,
+          recordAutoNumberWrap,
+          recordWhatsappPanel,
+          pendingPanel,
+          syncSummary
+        ];
+        ocultarOperacional.forEach(el => {
+          if (!el) return;
+          if (consulta) el.hidden = true;
+        });
+
+        if (form) form.hidden = consulta;
+        if (!consulta) {
+          // Elementos condicionais são reexibidos pelas rotinas próprias quando aplicável.
+          if (form) form.hidden = false;
+          if (formTabBtn) formTabBtn.hidden = false;
+          if (dashboardNewInspectionBtn) dashboardNewInspectionBtn.hidden = false;
+          if (prepareInspectionBtn) prepareInspectionBtn.hidden = false;
+          if (registerDduBtn) registerDduBtn.hidden = false;
+          if (usefulLinksBtn) usefulLinksBtn.hidden = false;
+          if (aboutSystemBtn) aboutSystemBtn.hidden = false;
+          if (manageUsersBtn) manageUsersBtn.hidden = false;
+          if (syncSummary) syncSummary.hidden = false;
+        }
+      }
+
+      function abrirManualSistema_() {
+        fecharMenuMais_();
+        if (!systemManualModal) return;
+        systemManualModal.hidden = false;
+        document.body.classList.add('system-manual-open');
+        if (systemManualScroll) systemManualScroll.scrollTop = 0;
+        setTimeout(() => systemManualCloseBtn?.focus(), 0);
+      }
+
+      function fecharManualSistema_() {
+        if (!systemManualModal) return;
+        systemManualModal.hidden = true;
+        document.body.classList.remove('system-manual-open');
+      }
+
+      function navegarManualSistema_(targetId) {
+        const alvo = document.getElementById(String(targetId || ''));
+        if (!alvo || !systemManualScroll) return;
+        const top = alvo.offsetTop - 12;
+        systemManualScroll.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
       let saveTimer = null;
       let cnpjTimer = null;
       let ultimoCnpjConsultado = '';
@@ -1515,6 +1607,11 @@
 
         [recordsOpenSheetLink, recordDetailSheetLink, adminSheetMenuLink, dashboardSheetHeaderLink].forEach(link => {
           if (!link) return;
+          if (!usuarioPodeOperar_()) {
+            link.href = '#';
+            link.hidden = true;
+            return;
+          }
           if (finalUrl) {
             link.href = finalUrl;
             link.hidden = false;
@@ -1540,6 +1637,7 @@
       }
 
       function marcarAbaApp_(modo) {
+        if (!usuarioPodeOperar_()) modo = 'records';
         const painel = modo === 'records';
         document.body.classList.toggle('records-mode', painel);
         recordsPanel.hidden = !painel;
@@ -1611,6 +1709,7 @@
         if (elementoVisivelNavegacao_(userManagerModal)) return { id: 'user-manager', fechar: () => fecharGerenciadorUsuarios_() };
         if (elementoVisivelNavegacao_(prepareInspectionModal)) return { id: 'prepare-inspection', fechar: () => fecharModalPreparacao_() };
         if (elementoVisivelNavegacao_(dduRegisterModal)) return { id: 'ddu-register', fechar: () => fecharCadastroDdu_() };
+        if (elementoVisivelNavegacao_(systemManualModal)) return { id: 'system-manual', fechar: () => fecharManualSistema_() };
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
         if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
         if (elementoVisivelNavegacao_(tutorialModal)) return { id: 'tutorial', fechar: () => fecharTutorial_() };
@@ -1724,6 +1823,10 @@
       }
 
       function mostrarVistaFormulario_() {
+        if (!usuarioPodeOperar_()) {
+          mostrarVistaPlanilha_();
+          return;
+        }
         marcarAbaApp_('form');
         fecharDetalheRegistro_({ restaurarContexto: false });
         atualizarVistaNaUrl_('form');
@@ -2868,6 +2971,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       function configurarAtualizacaoInfoscipFicha_(registro) {
         recordStatusRegistroAtual = registro || null;
         if (!recordInfoscipUpdatePanel || !recordInfoscipUpdateBtn) return;
+        if (!usuarioPodeOperar_()) {
+          recordInfoscipUpdatePanel.hidden = true;
+          recordInfoscipUpdateBtn.disabled = true;
+          return;
+        }
         const opcoes = opcoesAtualizacaoInfoscipFicha_(registro);
         recordInfoscipUpdatePanel.hidden = !opcoes.length;
         recordInfoscipUpdateBtn.disabled = !opcoes.length;
@@ -3010,6 +3118,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         renderizarHistorico_(registro?.historico || []);
         renderizarAuditoriaRegistro_(registro?.auditoria || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
+        aplicarPermissoesInterface_();
       }
 
       function estadoCarregandoFicha_(mensagem = 'Carregando ficha do processo...') {
@@ -3563,7 +3672,9 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (!navigator.onLine) return;
         try {
           const resposta = await apiRequest('users', {}, 15000);
-          usuariosAtivosApp = Array.isArray(resposta?.usuarios) ? resposta.usuarios : [];
+          usuariosAtivosApp = Array.isArray(resposta?.usuarios)
+            ? resposta.usuarios.filter(u => String(u?.perfil || 'GPV').toUpperCase() !== 'GERAL')
+            : [];
           preencherVistoriadores_();
         } catch (erro) {
           if (authState.usuario?.nome) {
@@ -5920,6 +6031,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
 
       function atualizarUsuarioLogadoUi_() {
         const usuario = authState.usuario;
+        aplicarPermissoesInterface_();
         if (loggedUserMenuText) {
           loggedUserMenuText.textContent = usuario
             ? `${usuario.nome} · Nº BM ${usuario.bm}`
@@ -6158,6 +6270,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             return false;
           }
           salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
+          aplicarPermissoesInterface_();
           ocultarTelaLoginBm_();
           return true;
         }
@@ -6191,6 +6304,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           }
           if (!result?.autenticado || !result?.usuario || !result?.sessionToken) throw new Error('Não foi possível concluir o acesso.');
           salvarSessaoLocalBm_(result.usuario, result.sessionToken);
+          aplicarPermissoesInterface_();
           await registrarCredencialOfflineBm_(result.usuario, novaSenha || senha);
           const senhaEfetiva = novaSenha || senha;
           if (authSavePasswordCheck?.checked && /^\d{6}$/.test(senhaEfetiva)) {
@@ -6245,6 +6359,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (sessao?.usuario?.id && String(sessao.sessionToken || '').trim()) {
           ocultarTelaLoginBm_();
           atualizarUsuarioLogadoUi_();
+          aplicarPermissoesInterface_();
           await loadInitialData();
           return;
         }
@@ -6259,6 +6374,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (userManagerId) userManagerId.value = '';
         if (userManagerName) userManagerName.value = '';
         if (userManagerBm) userManagerBm.value = '';
+        if (userManagerProfile) userManagerProfile.value = 'GERAL';
         if (userManagerFormTitle) userManagerFormTitle.textContent = 'Adicionar usuário';
         if (userManagerSaveBtn) userManagerSaveBtn.textContent = 'Adicionar usuário';
         if (userManagerCancelBtn) userManagerCancelBtn.hidden = true;
@@ -6274,10 +6390,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             <div class="user-manager-avatar" aria-hidden="true">${escapeHtml(String(u.nome || '?').charAt(0).toUpperCase())}</div>
             <div class="user-manager-item-copy">
               <strong>${escapeHtml(u.nome)}</strong>
-              <span>Nº BM ${escapeHtml(u.bm)}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''} · ${u.senhaConfigurada ? 'senha ativa' : 'senha a criar'}</span>
+              <span>Nº BM ${escapeHtml(u.bm)}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''} · ${u.senhaConfigurada ? 'senha ativa' : 'senha a criar'} · ${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}</span>
             </div>
             <div class="user-manager-item-actions">
-              <button type="button" class="user-edit-btn" data-user-edit="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" data-user-bm="${escapeHtml(u.bm)}">Editar</button>
+              <button type="button" class="user-edit-btn" data-user-edit="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" data-user-bm="${escapeHtml(u.bm)}" data-user-profile="${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}">Editar</button>
               <button type="button" class="user-reset-pin-btn" data-user-reset-pin="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}">Redefinir senha</button>
               <button type="button" class="user-delete-btn" data-user-delete="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" ${ehAtual ? 'disabled title="Você está conectado com este usuário"' : ''}>Excluir</button>
             </div>
@@ -6287,6 +6403,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
 
       async function abrirGerenciadorUsuarios_() {
         fecharMenuMais_();
+        if (!usuarioPodeOperar_()) return;
         if (!navigator.onLine) {
           alert('Conecte o aparelho à internet para gerenciar usuários.');
           return;
@@ -6318,6 +6435,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const id = String(userManagerId?.value || '').trim();
         const nome = String(userManagerName?.value || '').trim();
         const bm = normalizarBmCliente_(userManagerBm?.value || '');
+        const perfil = String(userManagerProfile?.value || 'GERAL').toUpperCase() === 'GPV' ? 'GPV' : 'GERAL';
         if (userManagerMessage) userManagerMessage.textContent = '';
         if (!nome || !/^\d{7}$/.test(bm)) {
           if (userManagerMessage) userManagerMessage.textContent = 'Informe nome e Nº BM com 7 dígitos.';
@@ -6326,9 +6444,15 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (userManagerSaveBtn) userManagerSaveBtn.disabled = true;
         try {
           const action = id ? 'user_update' : 'user_add';
-          const result = await apiRequest(action, { userId: id, nome, bm }, 30000);
+          const result = await apiRequest(action, { userId: id, nome, bm, perfil }, 30000);
           if (result?.sessionToken && result?.usuarioAtual) {
             salvarSessaoLocalBm_(result.usuarioAtual, result.sessionToken);
+            aplicarPermissoesInterface_();
+            if (!usuarioPodeOperar_()) {
+              fecharGerenciadorUsuarios_();
+              mostrarVistaPlanilha_();
+              return;
+            }
             if (userManagerCurrent) userManagerCurrent.textContent = `Conectado como ${result.usuarioAtual.nome} · Nº BM ${result.usuarioAtual.bm}`;
           }
           renderizarListaUsuarios_(result?.usuarios || []);
@@ -7274,11 +7398,14 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         let cached = null;
         try { cached = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || 'null'); } catch (e) {}
         aplicarConfig(cached || DEFAULT_CONFIG);
-        restoreDraft();
+        aplicarPermissoesInterface_();
+        if (usuarioPodeOperar_()) restoreDraft();
         atualizarNomeDispositivoUi_();
         loadingOverlay.classList.remove('show');
         atualizarStatusConexao();
-        appStatus.textContent = navigator.onLine ? 'Aplicativo pronto. Sincronizando configurações...' : 'Modo offline — aplicativo pronto para preenchimento.';
+        appStatus.textContent = usuarioPodeOperar_()
+          ? (navigator.onLine ? 'Aplicativo pronto. Sincronizando configurações...' : 'Modo offline — aplicativo pronto para preenchimento.')
+          : (navigator.onLine ? 'Aplicativo pronto para consulta. Atualizando dados...' : 'Modo offline — consulta disponível com os dados salvos neste aparelho.');
 
         if (navigator.onLine) {
           const sincronizarConfigOnline_ = async () => {
@@ -7286,7 +7413,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
               const data = await apiRequest('config', {}, 30000);
               aplicarConfig(data);
               try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
-              appStatus.textContent = 'Sistema pronto para registrar vistoria.';
+              appStatus.textContent = usuarioPodeOperar_() ? 'Sistema pronto para registrar vistoria.' : 'Sistema pronto para consulta.';
             } catch (error) {
               appStatus.textContent = cached ? 'Aplicativo pronto com configuração armazenada.' : 'Aplicativo pronto com configuração padrão.';
               if (!cached) showError('A configuração online não pôde ser atualizada agora. O preenchimento continua disponível.');
@@ -7298,11 +7425,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           if (cached) setTimeout(() => { void sincronizarConfigOnline_(); }, 1600);
           else await sincronizarConfigOnline_();
 
-          if (obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
+          if (usuarioPodeOperar_() && obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
         }
 
         const vistaForcada = vistaInicialDaUrl_();
-        const vistaInicial = vistaForcada || vistaInicialPorDispositivo_();
+        const vistaInicial = usuarioPodeOperar_() ? (vistaForcada || vistaInicialPorDispositivo_()) : 'records';
 
         if (vistaInicial === 'records') {
           if (vistaForcada) mostrarVistaPlanilha_();
@@ -7318,7 +7445,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         // V23.9.47: DDU, programações e lista de vistoriadores são dados auxiliares.
         // A tela principal não fica mais presa ao "Carregando" aguardando essas três consultas.
         // Cada área mantém seu próprio indicador e termina a atualização em segundo plano.
-        if (navigator.onLine) {
+        if (navigator.onLine && usuarioPodeOperar_()) {
           requestAnimationFrame(() => requestAnimationFrame(() => {
             Promise.allSettled([
               carregarUsuariosVistoriadores_(),
@@ -7714,6 +7841,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }));
       appMoreMenu?.addEventListener('click', event => event.stopPropagation());
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
+      systemManualBtn?.addEventListener('click', abrirManualSistema_);
+      systemManualCloseBtn?.addEventListener('click', fecharManualSistema_);
+      systemManualModal?.addEventListener('click', event => { if (event.target === systemManualModal) fecharManualSistema_(); });
+      systemManualModal?.addEventListener('click', event => {
+        const alvo = event.target.closest('[data-manual-target]');
+        if (alvo) navegarManualSistema_(alvo.dataset.manualTarget || '');
+      });
       usefulLinksBtn?.addEventListener('click', abrirLinksUteis_);
       usefulLinksCloseBtn?.addEventListener('click', fecharLinksUteis_);
       usefulLinksModal?.addEventListener('click', event => { if (event.target === usefulLinksModal) fecharLinksUteis_(); });
@@ -7788,6 +7922,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           userManagerId.value = editar.dataset.userEdit || '';
           userManagerName.value = editar.dataset.userName || '';
           userManagerBm.value = editar.dataset.userBm || '';
+          if (userManagerProfile) userManagerProfile.value = String(editar.dataset.userProfile || 'GPV').toUpperCase() === 'GERAL' ? 'GERAL' : 'GPV';
           userManagerFormTitle.textContent = 'Editar usuário';
           userManagerSaveBtn.textContent = 'Salvar alterações';
           userManagerCancelBtn.hidden = false;
@@ -7800,7 +7935,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharManualSistema_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
@@ -7810,7 +7945,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (authEnterBtn) authEnterBtn.disabled = false;
         if (authOfflineNote) authOfflineNote.hidden = true;
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
-        setTimeout(() => enviarPendentes(true), 650);
+        if (usuarioPodeOperar_()) setTimeout(() => enviarPendentes(true), 650);
         if (document.body.classList.contains('records-mode')) {
           setTimeout(() => carregarRegistros_(true), 900);
         }
@@ -7842,7 +7977,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.69', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.70', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

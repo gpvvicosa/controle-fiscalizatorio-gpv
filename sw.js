@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-69-navegacao-alerta-processo';
-const VERSION = '23.9.69';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260813-v23-9-70-perfis-acesso-manual';
+const VERSION = '23.9.70';
 
 const CORE_SHELL = [
   './',

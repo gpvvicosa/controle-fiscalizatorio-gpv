@@ -8249,3 +8249,231 @@ body.record-status-update-open{overflow:hidden}
   .prior-process-alert-actions { align-items: stretch; flex-direction: column; }
   .prior-process-open-btn { width: 100%; }
 }
+
+
+/* =============================================================================
+   V23.9.70 — Manual do Sistema + controle de acesso GPV / GERAL
+   ============================================================================= */
+
+.user-manager-form select {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 5px;
+  border: 1px solid #d8d1d1;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  color: #2e2929;
+  font-size: 15px;
+}
+
+body.access-geral #vistoriaForm,
+body.access-geral #formTabBtn,
+body.access-geral #dashboardNewInspectionBtn,
+body.access-geral #prepareInspectionBtn,
+body.access-geral #registerDduBtn,
+body.access-geral #usefulLinksBtn,
+body.access-geral #aboutSystemBtn,
+body.access-geral #manageUsersBtn,
+body.access-geral #loggedUserBadge,
+body.access-geral #adminSheetMenuLink,
+body.access-geral #dashboardSheetHeaderLink,
+body.access-geral #recordsOpenSheetLink,
+body.access-geral #recordDetailSheetLink,
+body.access-geral #recordInfoscipUpdatePanel,
+body.access-geral #recordAutoNumberWrap,
+body.access-geral #recordWhatsappPanel,
+body.access-geral #pendingPanel,
+body.access-geral #syncSummary {
+  display: none !important;
+}
+
+.system-manual-overlay {
+  z-index: 12050;
+  padding: 18px;
+  align-items: center;
+  justify-content: center;
+}
+
+.system-manual-card {
+  width: min(980px, 96vw);
+  max-height: min(92vh, 960px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.system-manual-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px 17px;
+  border-bottom: 1px solid #ece5e5;
+  background: linear-gradient(180deg, #fff 0%, #fbf8f8 100%);
+}
+
+.system-manual-header > div {
+  min-width: 0;
+}
+
+.system-manual-header span {
+  display: block;
+  margin-bottom: 4px;
+  color: #8a5a5d;
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.system-manual-header h2 {
+  margin: 0;
+  color: #2e2425;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.system-manual-header p {
+  margin: 6px 0 0;
+  color: #72686a;
+  font-size: .9rem;
+  line-height: 1.4;
+}
+
+.system-manual-scroll {
+  max-height: calc(min(92vh, 960px) - 108px);
+  overflow: auto;
+  padding: 18px 22px 30px;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+.system-manual-index {
+  scroll-margin-top: 12px;
+  padding: 16px;
+  border: 1px solid #eadfe0;
+  border-radius: 14px;
+  background: #fbf7f7;
+}
+
+.system-manual-index > strong {
+  display: block;
+  margin-bottom: 12px;
+  color: #5c292d;
+  font-size: 1rem;
+}
+
+.system-manual-index-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.system-manual-index-grid button,
+.manual-back-index {
+  border: 1px solid #dfd1d2;
+  border-radius: 10px;
+  background: #fff;
+  color: #5e3034;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 780;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.system-manual-index-grid button {
+  min-height: 44px;
+  padding: 9px 11px;
+}
+
+.system-manual-index-grid button:hover,
+.system-manual-index-grid button:focus-visible,
+.manual-back-index:hover,
+.manual-back-index:focus-visible {
+  border-color: #a8787c;
+  background: #fffafa;
+  outline: none;
+}
+
+.system-manual-section {
+  scroll-margin-top: 12px;
+  padding: 22px 2px 2px;
+  border-bottom: 1px solid #eee7e7;
+}
+
+.system-manual-section:last-of-type {
+  border-bottom: 0;
+}
+
+.system-manual-section h3 {
+  margin: 0 0 10px;
+  color: #3f292b;
+  font-size: 1.05rem;
+}
+
+.system-manual-section p {
+  margin: 0 0 9px;
+  color: #5f5556;
+  font-size: .91rem;
+  line-height: 1.55;
+}
+
+.manual-back-index {
+  margin: 3px 0 15px;
+  padding: 7px 10px;
+}
+
+.system-manual-revision {
+  margin-top: 22px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f5f1f1;
+  color: #74696a;
+  font-size: .78rem;
+  text-align: center;
+}
+
+body.system-manual-open {
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .system-manual-overlay {
+    align-items: flex-end;
+    padding: 0 !important;
+  }
+
+  .system-manual-card {
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .system-manual-header {
+    padding: 16px 16px 14px;
+  }
+
+  .system-manual-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .system-manual-scroll {
+    max-height: calc(94dvh - 100px);
+    padding: 14px 14px 24px;
+  }
+
+  .system-manual-index-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .system-manual-index-grid button {
+    min-height: 42px;
+  }
+
+  .system-manual-section {
+    padding-top: 19px;
+  }
+}
