@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.74';
+      const APP_VERSION = '23.9.75';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -3014,6 +3014,15 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const atual = normalize(registro?.situacaoAtual || '');
         const pendente = atual.startsWith(normalize('Pendente'));
         if (fluxoLiberacaoFicha_(registro)) {
+          // V23.9.75 — Liberação tecnicamente não aprovada é Notificado, nunca Autuado.
+          // Permite corrigir pela Ficha registros antigos/inconsistentes que tenham sido
+          // gravados como Autuado, Advertência ou Regularizado no fluxo de Liberação.
+          const inconsistente = [
+            normalize('Autuado'),
+            normalize('Advertência'),
+            normalize('Regularizado')
+          ].includes(atual);
+          if (inconsistente) return ['Notificado'];
           return pendente ? ['Notificado', 'Liberado'] : [];
         }
         if (atual === normalize('Autuado')) return ['Advertência'];
@@ -4402,7 +4411,15 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
 
       function buildPayload() {
-        const sancaoPretendida = value('sancao');
+        let sancaoPretendida = value('sancao');
+        // V23.9.75 — defesa adicional para rascunhos/estados antigos do navegador:
+        // no fluxo de Liberação, resultados próprios da Fiscalização nunca podem ser enviados.
+        if (ehFluxoLiberacao_()) {
+          const n = normalize(sancaoPretendida);
+          if ([normalize('Autuado'), normalize('Advertência'), normalize('Regularizado')].includes(n)) {
+            sancaoPretendida = 'Notificado';
+          }
+        }
         const situacaoMultaInfoscip = normalizarSituacaoMultaInfoscip_(value('situacaoMultaInfoscip'));
         return {
           _appRegistroId: currentRecordId,
@@ -4469,6 +4486,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const checks = [
           ['tipoVistoria', 'Tipo de vistoria'],
+          ['sancao', 'Situação / resultado'],
           ...(ehFluxoLiberacao_() ? [] : [['licenciamento', 'Situação do licenciamento'], ['possuiPscip', 'Possui PSCIP?']]),
           ...(ehFluxoFiscalizacao_() ? [['area', 'Área da edificação (m²)']] : []),
           ['vistoriadorResponsavel', 'Vistoriador responsável'],

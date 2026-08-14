@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-74-dwg-pdf-programadas';
-const VERSION = '23.9.74';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-75-liberacao-notificado';
+const VERSION = '23.9.75';
 
 const CORE_SHELL = [
   './',
