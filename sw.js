@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-77-atualizacao-situacao';
-const VERSION = '23.9.78';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-79-eventos-responsavel-cpf';
+const VERSION = '23.9.79';
 
 const CORE_SHELL = [
   './',

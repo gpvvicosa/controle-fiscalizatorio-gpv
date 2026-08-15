@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.78">
+  <link rel="stylesheet" href="styles.css?v=23.9.79">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -826,6 +826,13 @@
               <label for="eventoTelefoneOrganizador">Telefone</label>
               <input id="eventoTelefoneOrganizador" name="eventoTelefoneOrganizador" inputmode="tel" autocomplete="off" placeholder="(31) 99999-9999">
             </div>
+            <div class="field wide">
+              <div class="inline-check">
+                <input id="eventoResponsavelEhOrganizador" type="checkbox">
+                <label for="eventoResponsavelEhOrganizador">A pessoa informada como organizador é a mesma que acompanhou a vistoria.</label>
+              </div>
+              <div class="hint" id="eventoResponsavelEhOrganizadorHint">Disponível quando o organizador estiver identificado por CPF.</div>
+            </div>
           </div>
         </div>
       </section>
@@ -892,16 +899,16 @@
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.8-4 3-6 6.5-6s5.7 2 6.5 6"/></svg></div>
           <div class="head-text">
-            <h2>3. Responsável</h2>
-            <p>Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.</p>
+            <h2 id="responsavelTitulo">3. Responsável</h2>
+            <p id="responsavelDescricao">Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.</p>
           </div>
         </div>
         <div class="section-body">
           <div class="grid">
-            <div class="field wide responsible-phone-first">
+            <div class="field wide responsible-phone-first" id="responsavelTelefoneWrap">
               <label for="telefone">Telefone do responsável / RT</label>
               <input id="telefone" name="telefone" inputmode="tel" autocomplete="tel" placeholder="(31) 99999-9999">
-              <div class="hint">Digite primeiro o telefone. Se ele já existir na planilha, o app pode recuperar automaticamente os dados do responsável/RT.</div>
+              <div class="hint" id="responsavelTelefoneLookupHint">Digite primeiro o telefone. Se ele já existir na planilha, o app pode recuperar automaticamente os dados do responsável/RT.</div>
               <div class="lookup-status" id="responsavelLookupStatus" role="status" aria-live="polite"></div>
               <div class="responsavel-lookup-results" id="responsavelLookupResultados" role="listbox" aria-label="Responsáveis encontrados pelo telefone"></div>
             </div>
@@ -918,9 +925,12 @@
               <label for="rg">RG</label>
               <input id="rg" name="rg" placeholder="RG">
             </div>
-            <div class="field">
+            <div class="field" id="responsavelCpfWrap">
               <label for="cpf">CPF do responsável</label>
-              <input id="cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00" maxlength="14">
+              <input id="cpf" name="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14">
+              <div class="hint" id="responsavelCpfLookupHint" hidden>Digite primeiro o CPF. Se ele já existir na planilha, o app recupera os dados do responsável para conferência.</div>
+              <div class="lookup-status" id="responsavelCpfLookupStatus" role="status" aria-live="polite" hidden></div>
+              <div class="responsavel-lookup-results" id="responsavelCpfLookupResultados" role="listbox" aria-label="Responsáveis encontrados pelo CPF" hidden></div>
             </div>
             <div class="field">
               <label class="required" for="mae">Mãe</label>
@@ -967,7 +977,7 @@
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3.5h6V5M8.5 10h7M8.5 14h7M8.5 18h4"/></svg></div>
           <div class="head-text">
-            <h2>4. Processo e vistoria</h2>
+            <h2 id="processoTitulo">4. Processo e vistoria</h2>
             <p>Dados administrativos e operacionais da vistoria.</p>
           </div>
         </div>
@@ -1585,9 +1595,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.78"></script>
-  <script src="ocupacoes.js?v=23.9.78"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.78"></script>
-  <script src="app.js?v=23.9.78"></script>
+  <script src="config.js?v=23.9.79"></script>
+  <script src="ocupacoes.js?v=23.9.79"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.79"></script>
+  <script src="app.js?v=23.9.79"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.78';
+      const APP_VERSION = '23.9.79';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -571,6 +571,15 @@
       const estabelecimentoTitulo = document.getElementById('estabelecimentoTitulo');
       const estabelecimentoDescricao = document.getElementById('estabelecimentoDescricao');
       const responsavelSecao = document.getElementById('responsavelSecao');
+      const responsavelTitulo = document.getElementById('responsavelTitulo');
+      const responsavelDescricao = document.getElementById('responsavelDescricao');
+      const responsavelCpfWrap = document.getElementById('responsavelCpfWrap');
+      const responsavelTelefoneWrap = document.getElementById('responsavelTelefoneWrap');
+      const responsavelTelefoneLookupHint = document.getElementById('responsavelTelefoneLookupHint');
+      const responsavelCpfLookupHint = document.getElementById('responsavelCpfLookupHint');
+      const responsavelCpfLookupStatus = document.getElementById('responsavelCpfLookupStatus');
+      const responsavelCpfLookupResultados = document.getElementById('responsavelCpfLookupResultados');
+      const processoTitulo = document.getElementById('processoTitulo');
       const edificacaoSecao = document.getElementById('edificacao');
       const situacaoMultaInfoscipWrap = document.getElementById('situacaoMultaInfoscipWrap');
       const categoriaMetaWrap = document.getElementById('categoriaMetaWrap');
@@ -578,6 +587,8 @@
       const eventoClassificacaoSelect = document.getElementById('eventoClassificacao');
       const eventoOrganizadorDocumentoInput = document.getElementById('eventoOrganizadorDocumento');
       const eventoTelefoneOrganizadorInput = document.getElementById('eventoTelefoneOrganizador');
+      const eventoResponsavelEhOrganizadorCheck = document.getElementById('eventoResponsavelEhOrganizador');
+      const eventoResponsavelEhOrganizadorHint = document.getElementById('eventoResponsavelEhOrganizadorHint');
       const notificacoesLiberacaoSecao = document.getElementById('notificacoesLiberacaoSecao');
       const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
       const notificacoesLiberacaoResumo = document.getElementById('notificacoesLiberacaoResumo');
@@ -843,7 +854,11 @@
       let responsavelLookupTimer = null;
       let responsavelLookupSequencia = 0;
       let telefoneResponsavelAssociado = '';
+      let responsavelCpfLookupTimer = null;
+      let responsavelCpfLookupSequencia = 0;
+      let cpfResponsavelAssociado = '';
       let responsaveisLookupAtual = [];
+      let responsaveisCpfLookupAtual = [];
       let preenchendoResponsavelLookup = false;
       let ocupacoesExistentes = [];
       let ocupacaoSelecionada = null;
@@ -3227,10 +3242,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       function renderizarFichaRegistro_(registro) {
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
+        const eventoDeclaracaoFicha = valorCampoFicha_(registro, 'Nº da declaração INFOSCIP');
+        const eventoFicha = Boolean(eventoDeclaracaoFicha) || normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Eventos declaratórios'));
         const cnpj = valorCampoFicha_(registro, 'CNPJ');
         const cpfRegistro = valorCampoFicha_(registro, 'CPF');
-        const identificadorRegistro = cnpj || (cpfRegistro ? formatarCpfTela_(cpfRegistro) : '');
-        const rotuloIdentificador = cnpj ? 'CNPJ' : (cpfRegistro ? 'CPF' : 'CNPJ / CPF');
+        const identificadorRegistro = eventoFicha ? '' : (cnpj || (cpfRegistro ? formatarCpfTela_(cpfRegistro) : ''));
+        const rotuloIdentificador = cnpj ? 'CNPJ' : (cpfRegistro && !eventoFicha ? 'CPF' : 'CNPJ / CPF');
         const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
         const processo = [
           ['Nº PSCIP', valorCampoFicha_(registro, 'Nº do PSCIP / Projeto')],
@@ -3282,11 +3299,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
           montarGrupoFicha_('Local', local) +
-          montarGrupoFicha_('Responsável', responsavel);
+          montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel);
 
         recordDetailTitle.textContent = 'Ficha do Processo';
         recordDetailSubtitle.textContent = descricaoSituacaoPainel_(situacao);
-        recordDetailLine.textContent = [estabelecimento, identificadorRegistro].filter(Boolean).join(' • ');
+        recordDetailLine.textContent = [estabelecimento, eventoFicha && eventoDeclaracaoFicha ? `Declaração ${eventoDeclaracaoFicha}` : identificadorRegistro].filter(Boolean).join(' • ');
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
@@ -3894,6 +3911,32 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         return d.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
       }
 
+      function sincronizarResponsavelComOrganizadorEvento_() {
+        if (!ehEventoDeclaratorio_() || !eventoResponsavelEhOrganizadorCheck?.checked) return;
+        const cpfOrganizador = digits(eventoOrganizadorDocumentoInput?.value || '');
+        if (cpfOrganizador.length !== 11) return;
+        setResponsibleField_('cpf', cpfOrganizador, formatarCpfTela_);
+        setResponsibleField_('nomeResponsavel', value('eventoOrganizador'));
+        setResponsibleField_('telefone', value('eventoTelefoneOrganizador'), formatarTelefoneTela_);
+        if (!value('responsavel')) setResponsibleField_('responsavel', 'Organizador do evento');
+        scheduleDraftSave();
+      }
+
+      function atualizarDisponibilidadeResponsavelOrganizadorEvento_() {
+        if (!eventoResponsavelEhOrganizadorCheck) return;
+        const evento = ehEventoDeclaratorio_();
+        const cpfOrganizador = digits(eventoOrganizadorDocumentoInput?.value || '');
+        const disponivel = evento && cpfOrganizador.length === 11;
+        eventoResponsavelEhOrganizadorCheck.disabled = !disponivel;
+        if (!disponivel) eventoResponsavelEhOrganizadorCheck.checked = false;
+        if (eventoResponsavelEhOrganizadorHint) {
+          eventoResponsavelEhOrganizadorHint.textContent = disponivel
+            ? 'Marque para aproveitar CPF, nome e telefone do organizador pessoa física. Os demais dados continuam disponíveis para conferência.'
+            : 'Disponível quando o organizador estiver identificado por CPF.';
+        }
+        if (disponivel && eventoResponsavelEhOrganizadorCheck.checked) sincronizarResponsavelComOrganizadorEvento_();
+      }
+
       function aplicarModoEventoDeclaratorio_(opcoes = {}) {
         const fluxo = fluxoVistoriaAtual_();
         const evento = fluxo === 'fiscalizacao' && normalize(value('demandaPrincipal')) === normalize('Eventos declaratórios');
@@ -3906,7 +3949,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (nomeFantasiaWrap) nomeFantasiaWrap.hidden = evento;
         if (razaoSocialWrap) razaoSocialWrap.hidden = evento;
         if (enderecoCorrespondenciaWrap) enderecoCorrespondenciaWrap.hidden = evento;
-        if (responsavelSecao) responsavelSecao.hidden = evento || !fluxo;
+        if (responsavelSecao) responsavelSecao.hidden = !fluxo;
         if (edificacaoSecao) edificacaoSecao.hidden = evento || !fluxo;
         if (situacaoMultaInfoscipWrap) situacaoMultaInfoscipWrap.hidden = evento;
         if (categoriaMetaWrap) categoriaMetaWrap.hidden = evento;
@@ -3915,6 +3958,26 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (estabelecimentoDescricao) estabelecimentoDescricao.textContent = evento
           ? 'Informe o endereço real onde o evento será realizado. Este endereço é a principal referência para localizar o histórico do local.'
           : 'Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente.';
+        if (responsavelTitulo) responsavelTitulo.textContent = evento ? '4. Responsável que acompanhou a vistoria' : '3. Responsável';
+        if (responsavelDescricao) responsavelDescricao.textContent = evento
+          ? 'Informe a pessoa que acompanhou a guarnição durante a fiscalização. Ela pode ser diferente do organizador do evento.'
+          : 'Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.';
+        if (processoTitulo) processoTitulo.textContent = evento ? '5. Processo e vistoria' : '4. Processo e vistoria';
+        if (responsavelCpfWrap) {
+          responsavelCpfWrap.style.order = evento ? '-20' : '';
+          responsavelCpfWrap.classList.toggle('wide', evento);
+        }
+        if (responsavelTelefoneWrap) responsavelTelefoneWrap.style.order = evento ? '-19' : '';
+        if (responsavelTelefoneLookupHint) responsavelTelefoneLookupHint.hidden = evento;
+        if (responsavelLookupStatus) responsavelLookupStatus.hidden = evento;
+        if (responsavelLookupResultados) responsavelLookupResultados.hidden = evento;
+        if (responsavelCpfLookupHint) responsavelCpfLookupHint.hidden = !evento;
+        if (responsavelCpfLookupStatus) responsavelCpfLookupStatus.hidden = !evento;
+        if (responsavelCpfLookupResultados && !evento) {
+          responsavelCpfLookupResultados.hidden = true;
+          responsavelCpfLookupResultados.innerHTML = '';
+        }
+        atualizarDisponibilidadeResponsavelOrganizadorEvento_();
 
         if (categoriaMetaSelect) {
           categoriaMetaSelect.disabled = evento;
@@ -4646,18 +4709,18 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           pavimentos: eventoDeclaratorio ? '' : value('pavimentos'),
           altura: eventoDeclaratorio ? '' : value('altura'),
           ocupacao: eventoDeclaratorio ? '' : ocupacaoTextoFinal(),
-          responsavel: eventoDeclaratorio ? '' : value('responsavel'),
-          nomeResponsavel: eventoDeclaratorio ? '' : value('nomeResponsavel'),
-          rg: eventoDeclaratorio ? '' : value('rg'),
-          cpf: eventoDeclaratorio ? '' : (value('cpf') || (tipoIdentificador_(value('cnpj')) === 'cpf' ? value('cnpj') : '')) ,
-          mae: eventoDeclaratorio ? '' : value('mae'),
-          nascimento: eventoDeclaratorio ? '' : value('nascimento'),
-          profissao: eventoDeclaratorio ? '' : value('profissao'),
-          estadoCivil: eventoDeclaratorio ? '' : value('estadoCivil'),
-          escolaridade: eventoDeclaratorio ? '' : value('escolaridade'),
-          telefone: eventoDeclaratorio ? '' : value('telefone'),
-          email: eventoDeclaratorio ? '' : value('email'),
-          enderecoResponsavel: eventoDeclaratorio ? '' : value('enderecoResponsavel'),
+          responsavel: value('responsavel'),
+          nomeResponsavel: value('nomeResponsavel'),
+          rg: value('rg'),
+          cpf: eventoDeclaratorio ? value('cpf') : (value('cpf') || (tipoIdentificador_(value('cnpj')) === 'cpf' ? value('cnpj') : '')) ,
+          mae: value('mae'),
+          nascimento: value('nascimento'),
+          profissao: value('profissao'),
+          estadoCivil: value('estadoCivil'),
+          escolaridade: value('escolaridade'),
+          telefone: value('telefone'),
+          email: value('email'),
+          enderecoResponsavel: value('enderecoResponsavel'),
           eventoDeclaracaoNumero: eventoDeclaratorio ? value('eventoDeclaracaoNumero').toUpperCase() : '',
           eventoClassificacao: eventoDeclaratorio ? value('eventoClassificacao') : '',
           eventoNome: eventoDeclaratorio ? value('eventoNome') : '',
@@ -4686,7 +4749,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ['vistoriadorResponsavel', 'Vistoriador responsável'],
           ['endereco', eventoDeclaratorio ? 'Endereço do evento' : 'Endereço'],
           ...(eventoDeclaratorio
-            ? [['eventoDeclaracaoNumero', 'Nº da declaração INFOSCIP']]
+            ? [
+                ['eventoDeclaracaoNumero', 'Nº da declaração INFOSCIP'],
+                ['nomeResponsavel', 'Nome do responsável que acompanhou a vistoria'],
+                ['mae', 'Mãe']
+              ]
             : [
                 ...(ehFluxoLiberacao_() ? [] : [['licenciamento', 'Situação do licenciamento'], ['possuiPscip', 'Possui PSCIP?']]),
                 ...(ehFluxoFiscalizacao_() ? [['area', 'Área da edificação (m²)']] : []),
@@ -4746,6 +4813,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             eventoOrganizadorDocumentoInput?.classList.add('invalid');
             if (showMessage) showError('Informe o CPF/CNPJ do organizador com 11 ou 14 dígitos, ou deixe o campo em branco.');
             eventoOrganizadorDocumentoInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+          const cpfResponsavel = digits(value('cpf'));
+          if (cpfResponsavel && cpfResponsavel.length !== 11) {
+            cpfInput?.classList.add('invalid');
+            if (showMessage) showError('Informe o CPF do responsável que acompanhou a vistoria com 11 dígitos, ou deixe o campo em branco.');
+            cpfInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return false;
           }
           const inicio = value('eventoInicio');
@@ -5162,6 +5236,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
              .replace(/\.(\d{3})(\d)/, '.$1-$2');
         event.target.value = v;
         if (cpfCopiadoDoIdentificador && digits(v) !== cpfCopiadoDoIdentificador) cpfCopiadoDoIdentificador = '';
+        if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
       }
 
 
@@ -5380,8 +5455,14 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             syncResponsibleAddress();
           }
           telefoneResponsavelAssociado = digits(item.telefone);
-          esconderResponsavelLookupResultados_();
-          showResponsavelLookupStatus_(`Dados recuperados da planilha para ${item.nomeResponsavel || 'o responsável selecionado'}. Confira antes de registrar.`, 'success');
+          cpfResponsavelAssociado = digits(item.cpf);
+          if (ehEventoDeclaratorio_()) {
+            esconderResponsavelCpfLookupResultados_();
+            showResponsavelCpfLookupStatus_(`Dados recuperados da planilha para ${item.nomeResponsavel || 'o responsável selecionado'}. Confira antes de registrar.`, 'success');
+          } else {
+            esconderResponsavelLookupResultados_();
+            showResponsavelLookupStatus_(`Dados recuperados da planilha para ${item.nomeResponsavel || 'o responsável selecionado'}. Confira antes de registrar.`, 'success');
+          }
           scheduleDraftSave();
         } finally {
           preenchendoResponsavelLookup = false;
@@ -5418,6 +5499,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
 
       async function consultarResponsavelPorTelefone_() {
+        if (ehEventoDeclaratorio_()) return;
         if (!telefoneInput || preenchendoResponsavelLookup) return;
         const telefone = digits(telefoneInput.value);
         if (![10, 11].includes(telefone.length)) {
@@ -5461,6 +5543,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
 
       function agendarConsultaResponsavelPorTelefone_() {
+        if (ehEventoDeclaratorio_()) return;
         if (preenchendoResponsavelLookup) return;
         clearTimeout(responsavelLookupTimer);
         responsavelLookupSequencia += 1;
@@ -5478,6 +5561,127 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         }
 
         responsavelLookupTimer = setTimeout(consultarResponsavelPorTelefone_, 550);
+      }
+
+
+      function showResponsavelCpfLookupStatus_(message, type = 'info') {
+        if (!responsavelCpfLookupStatus) return;
+        responsavelCpfLookupStatus.hidden = false;
+        responsavelCpfLookupStatus.className = 'lookup-status show ' + type;
+        responsavelCpfLookupStatus.textContent = message;
+      }
+
+      function clearResponsavelCpfLookupStatus_() {
+        if (!responsavelCpfLookupStatus) return;
+        responsavelCpfLookupStatus.className = 'lookup-status';
+        responsavelCpfLookupStatus.textContent = '';
+        responsavelCpfLookupStatus.hidden = !ehEventoDeclaratorio_();
+      }
+
+      function esconderResponsavelCpfLookupResultados_() {
+        responsaveisCpfLookupAtual = [];
+        if (!responsavelCpfLookupResultados) return;
+        responsavelCpfLookupResultados.innerHTML = '';
+        responsavelCpfLookupResultados.classList.remove('show');
+        responsavelCpfLookupResultados.hidden = true;
+      }
+
+      function limparDadosResponsavelExcetoCpf_() {
+        const campos = [
+          'responsavel', 'nomeResponsavel', 'rg', 'mae', 'nascimento', 'profissao',
+          'estadoCivil', 'escolaridade', 'telefone', 'email', 'enderecoResponsavel'
+        ];
+        preenchendoResponsavelLookup = true;
+        try {
+          campos.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = '';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          telefoneResponsavelAssociado = '';
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+      }
+
+      function renderizarResponsaveisEncontradosCpf_(itens) {
+        if (!responsavelCpfLookupResultados) return;
+        responsaveisCpfLookupAtual = Array.isArray(itens) ? itens : [];
+        responsavelCpfLookupResultados.innerHTML = '';
+        responsaveisCpfLookupAtual.forEach((item, index) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'responsavel-lookup-option';
+          btn.dataset.responsavelCpfIndex = String(index);
+          const info = document.createElement('span');
+          const nome = document.createElement('strong');
+          nome.textContent = item.nomeResponsavel || 'Responsável sem nome';
+          const detalhes = document.createElement('small');
+          detalhes.textContent = [item.telefone ? formatarTelefoneTela_(item.telefone) : '', item.responsavel || ''].filter(Boolean).join(' • ') || 'Dados existentes na planilha';
+          info.append(nome, detalhes);
+          const acao = document.createElement('span');
+          acao.className = 'lookup-select-label';
+          acao.textContent = 'Selecionar';
+          btn.append(info, acao);
+          responsavelCpfLookupResultados.appendChild(btn);
+        });
+        responsavelCpfLookupResultados.hidden = responsaveisCpfLookupAtual.length === 0;
+        responsavelCpfLookupResultados.classList.toggle('show', responsaveisCpfLookupAtual.length > 0);
+      }
+
+      async function consultarResponsavelPorCpf_() {
+        if (!ehEventoDeclaratorio_() || !cpfInput || preenchendoResponsavelLookup) return;
+        const cpf = digits(cpfInput.value);
+        if (cpf.length !== 11) {
+          esconderResponsavelCpfLookupResultados_();
+          clearResponsavelCpfLookupStatus_();
+          return;
+        }
+        if (!navigator.onLine) {
+          esconderResponsavelCpfLookupResultados_();
+          showResponsavelCpfLookupStatus_('Sem internet. A busca pelo CPF fica disponível quando a conexão voltar.', 'info');
+          return;
+        }
+        const sequencia = ++responsavelCpfLookupSequencia;
+        esconderResponsavelCpfLookupResultados_();
+        showResponsavelCpfLookupStatus_('Procurando este CPF nos responsáveis já registrados...', 'info');
+        try {
+          const result = await apiRequest('config', { consulta: 'responsavel_cpf', cpf }, 30000);
+          if (sequencia !== responsavelCpfLookupSequencia || digits(cpfInput.value) !== cpf || !ehEventoDeclaratorio_()) return;
+          const itens = Array.isArray(result?.itens) ? result.itens : [];
+          if (!itens.length) {
+            cpfResponsavelAssociado = cpf;
+            showResponsavelCpfLookupStatus_('CPF não encontrado na planilha. Continue preenchendo os dados da pessoa que acompanhou a vistoria.', 'info');
+            return;
+          }
+          if (itens.length === 1) {
+            aplicarResponsavelEncontrado_(itens[0]);
+            return;
+          }
+          renderizarResponsaveisEncontradosCpf_(itens);
+          showResponsavelCpfLookupStatus_(`Foram encontrados ${itens.length} registros para este CPF. Escolha o cadastro correto.`, 'info');
+        } catch (error) {
+          if (sequencia !== responsavelCpfLookupSequencia || digits(cpfInput.value) !== cpf) return;
+          showResponsavelCpfLookupStatus_(error?.message || 'Não foi possível consultar este CPF agora. Continue o preenchimento manualmente.', 'error');
+        }
+      }
+
+      function agendarConsultaResponsavelPorCpf_() {
+        if (!ehEventoDeclaratorio_() || preenchendoResponsavelLookup) return;
+        clearTimeout(responsavelCpfLookupTimer);
+        responsavelCpfLookupSequencia += 1;
+        const cpf = digits(cpfInput?.value || '');
+        if (cpf.length !== 11) {
+          esconderResponsavelCpfLookupResultados_();
+          clearResponsavelCpfLookupStatus_();
+          return;
+        }
+        if (cpfResponsavelAssociado && cpfResponsavelAssociado !== cpf) {
+          limparDadosResponsavelExcetoCpf_();
+          cpfResponsavelAssociado = '';
+        }
+        responsavelCpfLookupTimer = setTimeout(consultarResponsavelPorCpf_, 500);
       }
 
 
@@ -6055,6 +6259,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         responsavelLookupSequencia += 1;
         telefoneResponsavelAssociado = '';
         esconderResponsavelLookupResultados_();
+        clearTimeout(responsavelCpfLookupTimer);
+        responsavelCpfLookupSequencia += 1;
+        cpfResponsavelAssociado = '';
+        esconderResponsavelCpfLookupResultados_();
+        clearResponsavelCpfLookupStatus_();
         clearTimeout(estabelecimentoLookupTimer);
         estabelecimentoLookupSequencia += 1;
         esconderHistoricoEstabelecimento_();
@@ -6113,9 +6322,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ['Público estimado', payload?.eventoPublicoEstimado || '—'],
           ['Organizador', payload?.eventoOrganizador || '—'],
           ['CPF/CNPJ do organizador', payload?.eventoOrganizadorDocumento || '—'],
-          ['Telefone', payload?.eventoTelefoneOrganizador || '—'],
+          ['Telefone do organizador', payload?.eventoTelefoneOrganizador || '—'],
           ['Cidade', payload?.cidade || '—'],
           ['Local do evento', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || '—'],
+          ['Responsável que acompanhou', payload?.nomeResponsavel || '—'],
+          ['CPF do responsável', payload?.cpf ? formatarCpfTela_(payload.cpf) : '—'],
+          ['Telefone do responsável', payload?.telefone || '—'],
+          ['Vínculo / função', payload?.responsavel || '—'],
           ['Demanda', 'Eventos declaratórios'],
           ['Categoria da meta', 'Eventos declaratórios'],
           ['Tipo de vistoria', payload?.tipoVistoria || '—'],
@@ -8044,8 +8257,22 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       document.getElementById('demandaPrincipal')?.addEventListener('input', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
       document.getElementById('demandaPrincipal')?.addEventListener('change', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
       eventoDeclaracaoNumeroInput?.addEventListener('input', event => { event.target.value = String(event.target.value || '').toUpperCase().replace(/\s+/g, ''); });
-      eventoOrganizadorDocumentoInput?.addEventListener('input', event => { event.target.value = formatarDocumentoEvento_(event.target.value); });
-      eventoTelefoneOrganizadorInput?.addEventListener('input', event => { event.target.value = formatarTelefoneEvento_(event.target.value); });
+      eventoOrganizadorDocumentoInput?.addEventListener('input', event => {
+        event.target.value = formatarDocumentoEvento_(event.target.value);
+        atualizarDisponibilidadeResponsavelOrganizadorEvento_();
+        if (eventoResponsavelEhOrganizadorCheck?.checked) sincronizarResponsavelComOrganizadorEvento_();
+      });
+      eventoTelefoneOrganizadorInput?.addEventListener('input', event => {
+        event.target.value = formatarTelefoneEvento_(event.target.value);
+        if (eventoResponsavelEhOrganizadorCheck?.checked) sincronizarResponsavelComOrganizadorEvento_();
+      });
+      document.getElementById('eventoOrganizador')?.addEventListener('input', () => {
+        if (eventoResponsavelEhOrganizadorCheck?.checked) sincronizarResponsavelComOrganizadorEvento_();
+      });
+      eventoResponsavelEhOrganizadorCheck?.addEventListener('change', () => {
+        if (eventoResponsavelEhOrganizadorCheck.checked) sincronizarResponsavelComOrganizadorEvento_();
+        scheduleDraftSave();
+      });
       citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
@@ -8165,6 +8392,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const indice = Number(botao.dataset.responsavelIndex);
         if (!Number.isInteger(indice) || !responsaveisLookupAtual[indice]) return;
         aplicarResponsavelEncontrado_(responsaveisLookupAtual[indice]);
+      });
+      responsavelCpfLookupResultados?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-responsavel-cpf-index]');
+        if (!botao) return;
+        const indice = Number(botao.dataset.responsavelCpfIndex);
+        if (!Number.isInteger(indice) || !responsaveisCpfLookupAtual[indice]) return;
+        aplicarResponsavelEncontrado_(responsaveisCpfLookupAtual[indice]);
       });
       ocupacaoInput.addEventListener('focus', () => pesquisarOcupacoes(ocupacaoInput.value));
       ocupacaoInput.addEventListener('input', () => {
