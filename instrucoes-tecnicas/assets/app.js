@@ -139,16 +139,32 @@
   }
 
   const visualPages = {
+    1: [77,78,79],
     3: [65,89,90,91,92,93,94],
     10: [27,28],
-    15: [26,27,28,29,30,31,32],
+    15: [17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32],
+    17: [18,21,23,24,27,30],
+    23: [47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67],
+    28: [5],
+    29: [5,6,7],
     33: [21,26,45,46,50,51,52,54,55,66,67,69],
+    35: [23,27,28],
+    38: [6,8],
+    39: [14,15,16,17],
     41: [69,70,71]
   };
   const visualPagesOpen = {
+    1: [77,78,79],
     3: [89,90,91,92,93,94],
     10: [27,28],
-    15: [26,27,28,29,30,31,32]
+    15: [17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32],
+    17: [18,21,23,24,27,30],
+    23: [47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67],
+    28: [5],
+    29: [5,6,7],
+    35: [27,28],
+    38: [6,8],
+    39: [14,15,16,17]
   };
   for (const page of (visualPages[it] || [])) {
     const sec = document.querySelector(`.pdf-page[data-page="${page}"]`);
@@ -160,6 +176,9 @@
     let rotulo = `Ver visual fiel da página ${page}`;
     if (it === 41 && [69,70,71].includes(page)) rotulo = `Ver equações com formatação fiel — página ${page}`;
     if (it === 3 && page === 65) rotulo = 'Ver memorial de avaliação de risco com estrutura fiel';
+    if (it === 17 && [18,21,23,24,27,30].includes(page)) rotulo = `Ver esquema/tabela de hidrantes — página ${page}`;
+    if (it === 23 && page >= 47 && page <= 67) rotulo = `Ver figura técnica de GLP — página ${page}`;
+    if (it === 38 && [6,8].includes(page)) rotulo = `Ver quadro/tabela de CMAR — página ${page}`;
     details.innerHTML = `<summary>${rotulo}</summary><div class="technical-page-visual-inner"><p>Reprodução visual incorporada ao acervo para preservar a estrutura técnica, sem anexar o PDF e sem alterar o texto normativo pesquisável.</p><img loading="lazy" decoding="async" src="../assets/visual/it-${String(it).padStart(2,'0')}-p${num}.webp" alt="Visual fiel da página ${page} da IT ${String(it).padStart(2,'0')}"></div>`;
     sec.appendChild(details);
   }
