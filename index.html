@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.87">
+  <link rel="stylesheet" href="styles.css?v=23.9.89">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -356,7 +356,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 15/08/2026 — V23.9.87.</div>
+        <div class="system-manual-revision">Última revisão: 15/08/2026 — V23.9.89.</div>
       </div>
     </section>
   </div>
@@ -411,8 +411,9 @@
           <h3>1. Situação do licenciamento</h3>
           <p>Depois de escolher a cidade, informe separadamente a <strong>situação do AVCB/CLCB</strong> e se o local <strong>possui PSCIP</strong>.</p>
           <ul>
-            <li><strong>Fiscalização + Não possui AVCB/CLCB:</strong> o sistema define <strong>Autuado</strong> automaticamente, mesmo que já exista PSCIP.</li>
+            <li><strong>Fiscalização comum + Não possui AVCB/CLCB:</strong> o sistema define <strong>Autuado</strong> automaticamente, mesmo que já exista PSCIP. Essa automação não é aplicada à <strong>Vistoria Acessória</strong>.</li>
             <li><strong>Possui AVCB ou CLCB:</strong> o vistoriador registra o resultado constatado na vistoria.</li>
+            <li><strong>AVCB/CLCB vencido:</strong> na fiscalização comum, o sistema define <strong>Autuado</strong> automaticamente.</li>
             <li><strong>Possui PSCIP:</strong> ao marcar Sim, aparece o campo <strong>Nº do PSCIP</strong>; o número pode consultar dados históricos da planilha.</li>
             <li><strong>Dispensado de licenciamento:</strong> não há autuação automática; o resultado depende da avaliação do vistoriador.</li>
           </ul>
@@ -448,6 +449,7 @@
           <ul>
             <li><strong>Autuado:</strong> fiscalização inicial com irregularidade.</li>
             <li><strong>Advertência:</strong> evolução administrativa que o vistoriador registra no app após conferir a situação no INFOSCIP Fiscalização.</li>
+            <li><strong>Vistoria Acessória:</strong> continua sendo Vistoria de Fiscalização, com <strong>Demanda = Vistoria Acessória</strong>, e exige vínculo com o PF anterior de local já autuado.</li>
             <li><strong>Vistoria de Liberação:</strong> o resultado pretendido é <strong>Liberado</strong> ou <strong>Notificado</strong>. Se a liberação depender de conferência/quitação de multa, o app registra a pendência sem considerar o local Liberado.</li>
             <li><strong>Regularizado:</strong> pendência de fiscalização encerrada, desde que não exista multa em aberto.</li>
             <li><strong>Liberado:</strong> fluxo de liberação concluído.</li>
@@ -757,6 +759,7 @@
                 <option value="">Selecione</option>
                 <option value="possui">Possui AVCB ou CLCB</option>
                 <option value="nao_possui">Não possui</option>
+                <option value="vencido">AVCB/CLCB vencido</option>
                 <option value="dispensado">Dispensado de licenciamento</option>
               </select>
               <div class="hint">A situação do AVCB/CLCB é independente da existência de PSCIP. Se não possuir AVCB/CLCB, a sanção continua sendo Autuado, mesmo quando houver PSCIP.</div>
@@ -771,7 +774,7 @@
               <div class="hint">Informe separadamente se já existe Processo de Segurança Contra Incêndio e Pânico.</div>
             </div>
             <div class="field wide licensing-pscip-field" id="pscipLicenciamentoWrap" hidden aria-hidden="true">
-              <label class="required" for="pscip">Nº do PSCIP</label>
+              <label class="required" for="pscip" id="pscipLabel">Nº do PSCIP</label>
               <input id="pscip" name="pscip" autocomplete="off" value="PRJ" placeholder="PRJ...">
               <div class="hint">Ao informar o número, o aplicativo consulta registros anteriores da planilha e pode oferecer dados já existentes para conferência.</div>
               <div class="lookup-status" id="pscipLookupStatus" role="status" aria-live="polite"></div>
@@ -782,6 +785,11 @@
                 </div>
                 <div id="pscipHistoryResults"></div>
               </div>
+            </div>
+            <div class="field half" id="situacaoPscipWrap" hidden>
+              <label for="situacaoPscip">Situação atual do PSCIP no INFOSCIP</label>
+              <input id="situacaoPscip" name="situacaoPscip" autocomplete="off" placeholder="Ex.: Aprovado em análise">
+              <div class="hint">Usado no histórico de fiscalização quando o local possui PSCIP, mas ainda não possui AVCB/CLCB.</div>
             </div>
           </div>
         </div>
@@ -1054,11 +1062,51 @@
               </select>
               <div class="hint">Quando o resultado for Liberado, esta informação define o relatório padrão para o REDS.</div>
             </div>
+            <div class="field wide" id="tipoLiberacaoWrap" hidden>
+              <label class="required" for="tipoLiberacao">Tipo da vistoria de liberação</label>
+              <select id="tipoLiberacao" name="tipoLiberacao">
+                <option value="final">Final</option>
+                <option value="parcial">Parcial</option>
+              </select>
+              <div class="hint">Na liberação parcial, informe exatamente a área/trecho liberado para o histórico do REDS.</div>
+            </div>
+            <div class="field half" id="liberacaoParcialDescricaoWrap" hidden>
+              <label class="required" for="liberacaoParcialDescricao">Área/trecho liberado</label>
+              <input id="liberacaoParcialDescricao" name="liberacaoParcialDescricao" autocomplete="off" placeholder="Ex.: A ÁREA TÉRREA">
+            </div>
+            <div class="field half" id="liberacaoParcialAreaWrap" hidden>
+              <label class="required" for="liberacaoParcialArea">Área liberada parcialmente (m²)</label>
+              <input id="liberacaoParcialArea" name="liberacaoParcialArea" inputmode="decimal" autocomplete="off" placeholder="Ex.: 517,88">
+            </div>
             <div class="field">
-              <label for="pf">Nº do PF</label>
+              <label id="processPfLabel" for="pf">Nº do PF</label>
               <input id="pf" name="pf" placeholder="Nº do PF">
               <div class="lookup-status" id="processPfLookupStatus" role="status" aria-live="polite"></div>
               <div class="establishment-history-results pf-history-results" id="processPfLookupResults" hidden></div>
+            </div>
+            <div class="field wide acessoria-flow-card" id="vistoriaAcessoriaWrap" hidden>
+              <div class="acessoria-flow-head"><strong>🔁 Vistoria Acessória</strong><span>Retorno vinculado a processo fiscalizatório anterior</span></div>
+              <div class="hint">Esta demanda somente pode ser concluída após localizar e usar um PF de local anteriormente autuado.</div>
+              <div class="lookup-status show info" id="acessoriaVinculoStatus">Informe o Nº do PF, CNPJ/CPF, PSCIP ou endereço para localizar o processo anterior.</div>
+              <div class="grid acessoria-flow-grid">
+                <div class="field half">
+                  <label class="required" for="acessoriaResultado">As irregularidades apontadas no processo foram sanadas?</label>
+                  <select id="acessoriaResultado" name="acessoriaResultado">
+                    <option value="">Selecione</option>
+                    <option value="sanadas">Sim — irregularidades sanadas</option>
+                    <option value="nao_sanadas">Não — irregularidades persistem</option>
+                  </select>
+                </div>
+                <div class="field half" id="acessoriaTipoLicencaWrap" hidden>
+                  <label class="required" for="acessoriaTipoLicenca">Documento de licenciamento</label>
+                  <select id="acessoriaTipoLicenca" name="acessoriaTipoLicenca">
+                    <option value="">Selecione</option>
+                    <option value="CLCB">CLCB</option>
+                    <option value="AVCB">AVCB</option>
+                  </select>
+                </div>
+              </div>
+              <div class="hint" id="acessoriaResultadoHint">Se as irregularidades persistirem, o app registra a nova vistoria vinculada ao PF anterior sem emitir nova autuação automaticamente.</div>
             </div>
             <div class="field wide process-closure-notice" id="processClosureNotice" hidden aria-live="polite"></div>
             <div class="field">
@@ -1070,6 +1118,11 @@
               <label class="required" for="vistoriadorResponsavel">Vistoriador responsável</label>
               <select id="vistoriadorResponsavel" name="vistoriadorResponsavel"><option value="">Selecione</option></select>
               <div class="hint">Identifica quem ficou responsável pela vistoria. Não altera permissões do aplicativo.</div>
+            </div>
+            <div class="field" id="dduProtocolWrap" hidden>
+              <label class="required" for="dduProtocol">Protocolo DDU</label>
+              <input id="dduProtocol" name="dduProtocol" autocomplete="off" placeholder="Ex.: 87124072618">
+              <div class="hint">Preenchido automaticamente quando a fiscalização é iniciada a partir de uma demanda DDU.</div>
             </div>
             <div class="field">
               <label for="reds">REDS</label>
@@ -1642,9 +1695,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.87"></script>
-  <script src="ocupacoes.js?v=23.9.87"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.87"></script>
-  <script src="app.js?v=23.9.87"></script>
+  <script src="config.js?v=23.9.89"></script>
+  <script src="ocupacoes.js?v=23.9.89"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.89"></script>
+  <script src="app.js?v=23.9.89"></script>
 </body>
 </html>

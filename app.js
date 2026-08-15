@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.87';
+      const APP_VERSION = '23.9.89';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -35,7 +35,7 @@
           cidade: ['Viçosa','Cajuri','Canaã','Araponga','Coimbra','Ervália','Paula Cândido','Pedra do Anta','Porto Firme','Presidente Bernardes','São Geraldo','São Miguel do Anta','Teixeiras','Outro'],
           sancao: ['Autuado','Advertência','Notificado','Regularizado','Liberado','Pendente — multa em aberto','Pendente — conferir multa no INFOSCIP'],
           tipoVistoria: [], natureza: [],
-          demandaPrincipal: ['Alerta Vermelho','Liberação','Iniciativa','Eventos declaratórios'],
+          demandaPrincipal: ['Alerta Vermelho','DDU','Liberação','Iniciativa','Eventos declaratórios','Vistoria Acessória'],
           categoriaMeta: ['', 'Brigada','CLCB','Renovação AVCB','Eventos declaratórios','Nível de risco III'],
           ocupacao: [], responsavel: [], profissao: [], estadoCivil: [], escolaridade: [],
           enderecoCorrespondencia: ['O Mesmo']
@@ -550,11 +550,20 @@
       const pscipLookupStatus = document.getElementById('pscipLookupStatus');
       const pscipHistoryPanel = document.getElementById('pscipHistoryPanel');
       const pscipHistoryResults = document.getElementById('pscipHistoryResults');
+      const pscipLabel = document.getElementById('pscipLabel');
+      const situacaoPscipWrap = document.getElementById('situacaoPscipWrap');
+      const situacaoPscipInput = document.getElementById('situacaoPscip');
       const sancaoSelect = document.getElementById('sancao');
       const situacaoMultaInfoscipSelect = document.getElementById('situacaoMultaInfoscip');
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
       const pendenciaDocumentalWrap = document.getElementById('pendenciaDocumentalWrap');
       const pendenciaDocumentalSelect = document.getElementById('pendenciaDocumental');
+      const tipoLiberacaoWrap = document.getElementById('tipoLiberacaoWrap');
+      const tipoLiberacaoSelect = document.getElementById('tipoLiberacao');
+      const liberacaoParcialDescricaoWrap = document.getElementById('liberacaoParcialDescricaoWrap');
+      const liberacaoParcialDescricaoInput = document.getElementById('liberacaoParcialDescricao');
+      const liberacaoParcialAreaWrap = document.getElementById('liberacaoParcialAreaWrap');
+      const liberacaoParcialAreaInput = document.getElementById('liberacaoParcialArea');
       const tipoVistoriaInput = document.getElementById('tipoVistoria');
       const tipoVistoriaSecao = document.getElementById('tipoVistoriaSecao');
       const vistoriadorResponsavelSelect = document.getElementById('vistoriadorResponsavel');
@@ -654,8 +663,17 @@
       const preparePfLookupStatus = document.getElementById('preparePfLookupStatus');
       const preparePfLookupResults = document.getElementById('preparePfLookupResults');
       const processPfInput = document.getElementById('pf');
+      const processPfLabel = document.getElementById('processPfLabel');
       const processPfLookupStatus = document.getElementById('processPfLookupStatus');
       const processPfLookupResults = document.getElementById('processPfLookupResults');
+      const vistoriaAcessoriaWrap = document.getElementById('vistoriaAcessoriaWrap');
+      const acessoriaVinculoStatus = document.getElementById('acessoriaVinculoStatus');
+      const acessoriaResultadoSelect = document.getElementById('acessoriaResultado');
+      const acessoriaResultadoHint = document.getElementById('acessoriaResultadoHint');
+      const acessoriaTipoLicencaWrap = document.getElementById('acessoriaTipoLicencaWrap');
+      const acessoriaTipoLicencaSelect = document.getElementById('acessoriaTipoLicenca');
+      const dduProtocolWrap = document.getElementById('dduProtocolWrap');
+      const dduProtocolInput = document.getElementById('dduProtocol');
       const priorProcessAlert = document.getElementById('priorProcessAlert');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
@@ -702,6 +720,8 @@
       let filtroPreparacoes = 'todas';
       let preparacaoEmUsoId = '';
       let dduEmUsoId = '';
+      let dduEmUsoNumero = '';
+      let processoAcessoriaVinculado = null;
       let ddusAtivos = [];
       let metasMensaisAtual = null;
       let metasCarregando = false;
@@ -2693,6 +2713,20 @@ O RESPONSÁVEL FOI ORIENTADO A MANTER, EM CONDIÇÕES PERMANENTES DE USO, O SIST
 
 OBS.: DURANTE A VISTORIA FORAM IDENTIFICADAS PENDÊNCIAS DOCUMENTAIS, DEVIDAMENTE REGISTRADAS NO SISTEMA INFOSCIP. A EMISSÃO DO AVCB ESTÁ CONDICIONADA À REGULARIZAÇÃO DESSAS PENDÊNCIAS.`
         },
+        parcial: {
+          titulo: 'Vistoria parcial para liberação e emissão de AVCB',
+          texto: `EM ATENDIMENTO À SOLICITAÇÃO, COMPARECEMOS AO ENDEREÇO CITADO NESTE REDS PARA REALIZAÇÃO DE VISTORIA PARCIAL DE LIBERAÇÃO E EMISSÃO DE AVCB.
+
+IN LOCO, VERIFICOU-SE UMA EDIFICAÇÃO QUE POSSUI PROCESSO DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO SOB O Nº {{PSCIP}}.
+
+NO MOMENTO DA VISTORIA, A GUARNIÇÃO BM CONSTATOU QUE O SISTEMA PREVENTIVO DE COMBATE A INCÊNDIO E PÂNICO ENCONTRAVA-SE INSTALADO EM CONFORMIDADE COM O SEU REFERIDO PROCESSO.
+
+DIANTE DO EXPOSTO, E RESPALDADO NO ARTIGO 2º DA LEI ESTADUAL Nº 14.130/2001 (QUE DISPÕE SOBRE A PREVENÇÃO CONTRA INCÊNDIO E PÂNICO NO ESTADO DE MINAS GERAIS), ESTA EDIFICAÇÃO VISTORIADA FOI LIBERADA PARCIALMENTE PELO CBMMG, SOMENTE {{AREA_PARCIAL_DESC}} DE {{AREA_PARCIAL}} M², CONFORME SOLICITAÇÃO DO RESPONSÁVEL TÉCNICO NO INFOSCIP.
+
+ORIENTAMOS O RESPONSÁVEL QUE QUALQUER ALTERAÇÃO NO LAYOUT DA EDIFICAÇÃO OU NO USO E OCUPAÇÃO, QUE COMPROMETA AS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO PREVISTAS PARA A EDIFICAÇÃO, DEVERÁ SER COMUNICADA AO CBMMG COM A DEVIDA ATUALIZAÇÃO DO PSCIP.
+
+O RESPONSÁVEL FOI AINDA ORIENTADO A MANTER, EM CONDIÇÕES PERMANENTES DE USO, O SISTEMA PREVENTIVO DE COMBATE A INCÊNDIO NA EDIFICAÇÃO E, CASO DEIXE DE FAZÊ-LO, INCORRERÁ NAS SANÇÕES PREVISTAS NA LEI ESTADUAL Nº 14.130/2001.`
+        },
         notificado: {
           titulo: 'Notificado em vistoria de liberação',
           texto: `EM ATENDIMENTO À SOLICITAÇÃO DE VISTORIA FINAL PARA EMISSÃO DO AUTO DE VISTORIA DO CORPO DE BOMBEIROS (AVCB), DESLOCAMOS ATÉ O ENDEREÇO INFORMADO NESTE REDS. NO LOCAL TRATA-SE DE EDIFICAÇÃO VINCULADA AO PSCIP Nº {{PSCIP}}.
@@ -2706,6 +2740,52 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       });
 
       const RELATORIOS_REDS_FISCALIZACAO = Object.freeze({
+        ddu: {
+          titulo: 'DDU — fiscalização autuada',
+          texto: `EM ATENDIMENTO AO DISQUE DENÚNCIA UNIFICADO (DDU), PROTOCOLO: {{DDU}}, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE VISTORIA DE FISCALIZAÇÃO VINCULADA AO PROCESSO FISCALIZATÓRIO Nº {{PF}}, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES (NÃO POSSUI AVCB), CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
+
+O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
+        },
+        brigadaVencida: {
+          titulo: 'Fiscalização — brigada vencida',
+          texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES (NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO), AS QUAIS FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
+
+O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
+        },
+        avcbVencido: {
+          titulo: 'Fiscalização — AVCB vencido',
+          texto: `EM AÇÃO FISCALIZADORA, FOI REALIZADA VISTORIA NO ENDEREÇO MENCIONADO NESTE RELATÓRIO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA IT 45/2025.
+
+DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO FUNCIONA SEM AVCB VÁLIDO JUNTO AO CBMMG, UMA VEZ QUE O AVCB SE ENCONTRA COM PRAZO DE VALIDADE EXPIRADO. A IRREGULARIDADE FOI REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, SENDO EMITIDO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}, NO SISTEMA INFOSCIP.
+
+O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
+        },
+        acessoriaLicenciado: {
+          titulo: 'Vistoria Acessória — regularizada — local possui licenciamento',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA ACESSÓRIA, CONFORME PREVISTO NO ITEM 6.4.2 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, CONSTATOU-SE QUE AS IRREGULARIDADES APONTADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}} FORAM SANADAS. A EDIFICAÇÃO POSSUI {{DOCUMENTO_LICENCA_NOME}} Nº {{PSCIP}}, E NO MOMENTO DA VISTORIA AS MEDIDAS DE SEGURANÇA SE ENCONTRAVAM EM CONFORMIDADE COM A LEGISLAÇÃO VIGENTE.`
+        },
+        acessoriaDispensado: {
+          titulo: 'Vistoria Acessória — regularizada — local dispensado de licenciamento',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA ACESSÓRIA, CONFORME PREVISTO NO ITEM 6.4.2 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, CONSTATOU-SE QUE AS IRREGULARIDADES APONTADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}} FORAM SANADAS. A EDIFICAÇÃO ENQUADRA-SE COMO DISPENSADA DE LICENCIAMENTO JUNTO AO CBMMG E POSSUI AS MEDIDAS DE SEGURANÇA EM CONFORMIDADE COM A LEGISLAÇÃO VIGENTE.`
+        },
+        comPscipSemAvcb: {
+          titulo: 'Fiscalização — Autuado — com PSCIP — sem AVCB',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, CONFORME PREVISTO NO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, VINCULADA AO PROCESSO FISCALIZATÓRIO Nº {{PF}}, CONSTATAMOS UMA EDIFICAÇÃO COM OCUPAÇÕES/DIVISÕES {{OCUPACAO}}, COM ÁREA TOTAL CONSTRUÍDA DE {{AREA}} M².
+
+VERIFICAMOS IN LOCO QUE A EDIFICAÇÃO POSSUI PSCIP Nº {{PSCIP}}, COM A SITUAÇÃO ATUAL DE {{SITUACAO_PSCIP}}; CONTUDO AINDA NÃO POSSUI O AVCB (AUTO DE VISTORIA DO CORPO DE BOMBEIROS), CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
+
+O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
+        },
         eventoDeclaratorioConforme: {
           titulo: 'Fiscalização — evento declaratório conforme',
           texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, CONFORME PREVISTO NO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
@@ -2722,33 +2802,17 @@ PARA DÚVIDAS OU ESCLARECIMENTOS EM RELAÇÃO AO PROCEDIMENTO DURANTE A VISTORIA
           titulo: 'Fiscalização — irregularidade / autuação',
           texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
-DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES{{PSCIP_TRECHO}}, AS QUAIS FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA.{{AUTO_PARAGRAFO}}
+DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES, AS QUAIS FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
 
-O RESPONSÁVEL FOI CIENTIFICADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DA EDIFICAÇÃO.`
+O RESPONSÁVEL FOI CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
         },
         semAvcb: {
           titulo: 'Fiscalização — sem AVCB/CLCB',
           texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
-DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES QUANTO ÀS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO. AS IRREGULARIDADES FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.{{AUTO_PARAGRAFO}}
+DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES QUANTO ÀS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO. AS IRREGULARIDADES FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.
 
 O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DA EDIFICAÇÃO JUNTO AO CBMMG.`
-        },
-        comPscipSemAvcb: {
-          titulo: 'Fiscalização — possui PSCIP, mas não possui AVCB',
-          texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO.
-
-DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO POSSUI PSCIP Nº {{PSCIP}}, PORÉM AINDA NÃO POSSUI AVCB. A IRREGULARIDADE FOI REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.{{AUTO_PARAGRAFO}}
-
-O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DA EDIFICAÇÃO JUNTO AO CBMMG.`
-        },
-        avcbVencido: {
-          titulo: 'Fiscalização — AVCB vencido',
-          texto: `EM AÇÃO FISCALIZADORA, FOI REALIZADA VISTORIA NO ENDEREÇO MENCIONADO NESTE RELATÓRIO, NOS TERMOS DA LEGISLAÇÃO DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO.
-
-DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO FUNCIONA SEM AVCB VÁLIDO JUNTO AO CBMMG, UMA VEZ QUE O AVCB/PSCIP Nº {{PSCIP}} ENCONTRA-SE COM PRAZO DE VALIDADE EXPIRADO. A IRREGULARIDADE FOI REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.{{AUTO_PARAGRAFO}}
-
-O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
         },
         regularizado: {
           titulo: 'Fiscalização — regularizado com AVCB/CLCB',
@@ -2782,8 +2846,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function modeloRelatorioRedsLiberacao_(registro, situacao) {
         const n = normalize(situacao);
-        if (n === normalize('Notificado')) return RELATORIOS_REDS_LIBERACAO.notificado;
+        const tipoLiberacao = normalize(valorCampoFicha_(registro, 'Tipo da liberação'));
+        const parcial = tipoLiberacao === normalize('Parcial');
+        if (n === normalize('Notificado')) return parcial ? null : RELATORIOS_REDS_LIBERACAO.notificado;
         if (n !== normalize('Liberado')) return null;
+        if (parcial) return RELATORIOS_REDS_LIBERACAO.parcial;
         const pendencia = normalize(valorCampoFicha_(registro, 'Pendência documental'));
         return pendencia === normalize('Sim') ? RELATORIOS_REDS_LIBERACAO.liberadoPendencia : RELATORIOS_REDS_LIBERACAO.liberado;
       }
@@ -2791,10 +2858,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function sugestaoModeloFiscalizacao_(registro, situacao) {
         const n = normalize(situacao);
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
-        if (demanda.includes(normalize('Eventos declaratórios')) && n === normalize('Regularizado')) return 'eventoDeclaratorioConforme';
         const projeto = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        const licenciamento = normalize(valorCampoFicha_(registro, 'Situação do licenciamento'));
+        const acessoria = demanda.includes(normalize('Vistoria Acessória'));
+        if (acessoria) {
+          if (n !== normalize('Regularizado')) return '';
+          return [normalize('dispensado'), normalize('Dispensado de licenciamento')].includes(licenciamento) ? 'acessoriaDispensado' : 'acessoriaLicenciado';
+        }
+        if (demanda.includes(normalize('Eventos declaratórios')) && n === normalize('Regularizado')) return 'eventoDeclaratorioConforme';
+        if (n === normalize('Autuado')) {
+          if (demanda.includes(normalize('DDU')) && [normalize('nao_possui'), normalize('Não possui')].includes(licenciamento)) return 'ddu';
+          if (demanda.includes(normalize('Brigada'))) return 'brigadaVencida';
+          if ([normalize('vencido'), normalize('AVCB/CLCB vencido')].includes(licenciamento)) return 'avcbVencido';
+          if ([normalize('nao_possui'), normalize('Não possui')].includes(licenciamento) && projeto) return 'comPscipSemAvcb';
+          if ([normalize('nao_possui'), normalize('Não possui')].includes(licenciamento)) return 'semAvcb';
+          return 'irregular';
+        }
         if (n === normalize('Regularizado')) return projeto ? 'regularizado' : 'dispensado';
-        return projeto ? 'comPscipSemAvcb' : 'semAvcb';
+        return 'irregular';
       }
 
       function preencherSelectModelosReds_(ehLiberacao, registro, situacao) {
@@ -2806,24 +2887,39 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (label) label.hidden = true;
           return '';
         }
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const ehEventoDeclaratorio = demanda.includes(normalize('Eventos declaratórios'));
+        const ehAcessoria = demanda.includes(normalize('Vistoria Acessória'));
+        const opcoes = [
+          ...(ehAcessoria ? [
+            ['acessoriaLicenciado', 'Vistoria Acessória — regularizada — com licenciamento'],
+            ['acessoriaDispensado', 'Vistoria Acessória — regularizada — dispensado de licenciamento']
+          ] : []),
+          ...(ehEventoDeclaratorio ? [['eventoDeclaratorioConforme', 'Fiscalização — evento declaratório conforme']] : []),
+          ...(!ehAcessoria ? [
+            ['ddu', 'DDU — fiscalização autuada'],
+            ['brigadaVencida', 'Fiscalização — brigada vencida'],
+            ['avcbVencido', 'Fiscalização — AVCB vencido'],
+            ['comPscipSemAvcb', 'Fiscalização — Autuado — com PSCIP — sem AVCB'],
+            ['irregular', 'Fiscalização — irregularidade / autuação'],
+            ['semAvcb', 'Fiscalização — sem AVCB/CLCB'],
+            ['regularizado', 'Fiscalização — regularizado com AVCB/CLCB'],
+            ['dispensado', 'Fiscalização — dispensado de licenciamento / regular'],
+            ['localFechado', 'Fiscalização — local fechado / vistoria não realizada']
+          ] : [])
+        ];
+        if (!opcoes.length) {
+          recordRedsModelSelect.hidden = true;
+          if (label) label.hidden = true;
+          return '';
+        }
         recordRedsModelSelect.hidden = false;
         if (label) label.hidden = false;
-        const ehEventoDeclaratorio = normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Eventos declaratórios'));
-        const opcoes = [
-          ...(ehEventoDeclaratorio ? [['eventoDeclaratorioConforme', 'Fiscalização — evento declaratório conforme']] : []),
-          ['irregular', 'Fiscalização — irregularidade / autuação'],
-          ['semAvcb', 'Fiscalização — sem AVCB/CLCB'],
-          ['comPscipSemAvcb', 'Fiscalização — possui PSCIP, mas não possui AVCB'],
-          ['avcbVencido', 'Fiscalização — AVCB vencido'],
-          ['regularizado', 'Fiscalização — regularizado com AVCB/CLCB'],
-          ['dispensado', 'Fiscalização — dispensado de licenciamento / regular'],
-          ['localFechado', 'Fiscalização — local fechado / vistoria não realizada']
-        ];
         opcoes.forEach(([valor, rotulo]) => {
           const option = document.createElement('option'); option.value = valor; option.textContent = rotulo; recordRedsModelSelect.appendChild(option);
         });
         const sugerido = sugestaoModeloFiscalizacao_(registro, situacao);
-        recordRedsModelSelect.value = RELATORIOS_REDS_FISCALIZACAO[sugerido] ? sugerido : 'irregular';
+        recordRedsModelSelect.value = RELATORIOS_REDS_FISCALIZACAO[sugerido] ? sugerido : opcoes[0][0];
         return recordRedsModelSelect.value;
       }
 
@@ -2831,23 +2927,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
         const pf = valorCampoFicha_(registro, 'Nº do PF') || 'NÃO INFORMADO';
         const numeroAuto = String(recordAutoNumberInput?.value || valorCampoFicha_(registro, 'Nº do Auto') || '').trim();
-        const situacao = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção'));
-        const ehAutuado = situacao === normalize('Autuado');
-
-        // V23.9.64 — padrão oficial do histórico/REDS para Fiscalização + Autuado.
-        // Se o Nº do Auto ainda não existir no encerramento, preserva espaço para preenchimento posterior.
-        if (ehAutuado) {
-          const autoExibicao = numeroAuto || '________________________';
-          return `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
-
-DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES, AS QUAIS FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº ${pf}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${autoExibicao}.
-
-O RESPONSÁVEL FOI CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`;
-        }
-
-        const autoParagrafo = numeroAuto ? `
-
-POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAuto}, VINCULADO AO PROCESSO FISCALIZATÓRIO.` : '';
+        const autoExibicao = numeroAuto || '________________________';
         const pscipTrecho = pscip ? `, VINCULADA AO PSCIP Nº ${pscip}` : '';
         const licenca = pscip ? `AVCB/CLCB Nº ${pscip}` : 'LICENCIAMENTO VÁLIDO';
         const eventoRisco = String(valorCampoFicha_(registro, 'Classificação do evento') || 'RISCO NÃO INFORMADO').toUpperCase();
@@ -2855,12 +2935,23 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const eventoNome = String(valorCampoFicha_(registro, 'Nome do evento') || 'NÃO INFORMADO').toUpperCase();
         const eventoOrganizador = String(valorCampoFicha_(registro, 'Organizador do evento') || 'NÃO INFORMADO').toUpperCase();
         const eventoDocumento = valorCampoFicha_(registro, 'CPF/CNPJ do organizador') || 'NÃO INFORMADO';
+        const ddu = valorCampoFicha_(registro, 'Nº DDU') || 'NÃO INFORMADO';
+        const ocupacao = String(valorCampoFicha_(registro, 'Ocupação') || 'NÃO INFORMADO').replace(/\s*\|\s*/g, ', ').toUpperCase();
+        const area = valorCampoFicha_(registro, 'Área m²') || 'NÃO INFORMADA';
+        const situacaoPscip = String(valorCampoFicha_(registro, 'Situação atual do PSCIP') || 'NÃO INFORMADA').toUpperCase();
+        const tipoLicenca = String(valorCampoFicha_(registro, 'Documento de licenciamento da acessória') || 'CLCB').toUpperCase();
+        const documentoLicencaNome = tipoLicenca === 'AVCB' ? 'AUTO DE VISTORIA DO CORPO DE BOMBEIROS (AVCB)' : 'CERTIFICADO DE LICENCIAMENTO DO CORPO DE BOMBEIROS (CLCB)';
         return modelo.texto
           .replaceAll('{{PSCIP}}', pscip || 'NÃO INFORMADO')
           .replaceAll('{{PF}}', pf)
-          .replaceAll('{{AUTO_PARAGRAFO}}', autoParagrafo)
+          .replaceAll('{{AUTO}}', autoExibicao)
+          .replaceAll('{{DDU}}', ddu)
           .replaceAll('{{PSCIP_TRECHO}}', pscipTrecho)
           .replaceAll('{{LICENCA}}', licenca)
+          .replaceAll('{{OCUPACAO}}', ocupacao)
+          .replaceAll('{{AREA}}', area)
+          .replaceAll('{{SITUACAO_PSCIP}}', situacaoPscip)
+          .replaceAll('{{DOCUMENTO_LICENCA_NOME}}', documentoLicencaNome)
           .replaceAll('{{EVENTO_RISCO}}', eventoRisco)
           .replaceAll('{{EVENTO_DECLARACAO}}', eventoDeclaracao)
           .replaceAll('{{EVENTO_NOME}}', eventoNome)
@@ -2875,7 +2966,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const situacao = registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção');
         if (tipo.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao))) return;
         const chaveModelo = recordRedsModelSelect?.value || sugestaoModeloFiscalizacao_(registro, situacao);
-        const modelo = RELATORIOS_REDS_FISCALIZACAO[chaveModelo] || RELATORIOS_REDS_FISCALIZACAO.irregular;
+        const modelo = RELATORIOS_REDS_FISCALIZACAO[chaveModelo];
+        if (!modelo) {
+          recordRedsReportPanel.hidden = true;
+          recordRedsReportText.value = '';
+          return;
+        }
         recordRedsReportModel.textContent = `${modelo.titulo} — confira o texto antes de copiar.`;
         recordRedsReportText.value = montarTextoRedsFiscalizacao_(modelo, registro);
       }
@@ -2887,23 +2983,32 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const ehLiberacao = tipo.includes('liberacao') || demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao));
         const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
-
-        if (recordAutoNumberWrap) recordAutoNumberWrap.hidden = ehLiberacao;
-        if (recordAutoNumberInput) recordAutoNumberInput.value = ehLiberacao ? '' : valorCampoFicha_(registro, 'Nº do Auto');
-        if (recordAutoNumberStatus) recordAutoNumberStatus.textContent = '';
-
+        const acessoria = demanda.includes(normalize('Vistoria Acessória'));
+        if (recordAutoNumberInput) recordAutoNumberInput.value = ehLiberacao || acessoria ? '' : valorCampoFicha_(registro, 'Nº do Auto');
+        if (recordAutoNumberWrap) recordAutoNumberWrap.hidden = ehLiberacao || acessoria;
+        if (recordAutoNumberSaveBtn) recordAutoNumberSaveBtn.hidden = ehLiberacao || acessoria;
         if (ehLiberacao) {
           const modelo = modeloRelatorioRedsLiberacao_(registro, situacao);
-          if (!modelo || !pscip) {
+          if (!modelo) {
             recordRedsReportPanel.hidden = true;
             recordRedsReportText.value = '';
             return;
           }
           preencherSelectModelosReds_(true, registro, situacao);
+          const areaDesc = String(valorCampoFicha_(registro, 'Área/trecho liberado') || 'A ÁREA INFORMADA').toUpperCase();
+          const areaParcial = valorCampoFicha_(registro, 'Área liberada parcialmente (m²)') || 'NÃO INFORMADA';
           recordRedsReportModel.textContent = modelo.titulo;
-          recordRedsReportText.value = modelo.texto.replaceAll('{{PSCIP}}', pscip);
+          recordRedsReportText.value = modelo.texto
+            .replaceAll('{{PSCIP}}', pscip || 'NÃO INFORMADO')
+            .replaceAll('{{AREA_PARCIAL_DESC}}', areaDesc)
+            .replaceAll('{{AREA_PARCIAL}}', areaParcial);
         } else {
-          preencherSelectModelosReds_(false, registro, situacao);
+          const escolhido = preencherSelectModelosReds_(false, registro, situacao);
+          if (!escolhido) {
+            recordRedsReportPanel.hidden = true;
+            recordRedsReportText.value = '';
+            return;
+          }
           atualizarTextoRelatorioRedsFiscalizacao_();
         }
         recordRedsReportPanel.hidden = false;
@@ -3256,6 +3361,15 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ['Nº PSCIP', valorCampoFicha_(registro, 'Nº do PSCIP / Projeto')],
           ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
           ['Demanda', valorCampoFicha_(registro, 'Demanda')],
+          ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
+          ['Situação atual do PSCIP', valorCampoFicha_(registro, 'Situação atual do PSCIP')],
+          ['Nº DDU', valorCampoFicha_(registro, 'Nº DDU')],
+          ['Resultado da vistoria acessória', valorCampoFicha_(registro, 'Resultado da vistoria acessória')],
+          ['Situação anterior do PF', valorCampoFicha_(registro, 'Situação anterior do PF')],
+          ['Documento de licenciamento', valorCampoFicha_(registro, 'Documento de licenciamento da acessória')],
+          ['Tipo da liberação', valorCampoFicha_(registro, 'Tipo da liberação')],
+          ['Área/trecho liberado', valorCampoFicha_(registro, 'Área/trecho liberado')],
+          ['Área liberada parcialmente (m²)', valorCampoFicha_(registro, 'Área liberada parcialmente (m²)')],
           ['Tipo de vistoria', valorCampoFicha_(registro, 'Tipo de vistoria')],
           ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
           ['REDS', valorCampoFicha_(registro, 'REDS')],
@@ -3900,6 +4014,97 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         return ehFluxoFiscalizacao_() && normalize(value('demandaPrincipal')) === normalize('Eventos declaratórios');
       }
 
+      function ehVistoriaAcessoria_() {
+        return ehFluxoFiscalizacao_() && normalize(value('demandaPrincipal')) === normalize('Vistoria Acessória');
+      }
+
+      function ehDemandaDdu_() {
+        return ehFluxoFiscalizacao_() && normalize(value('demandaPrincipal')) === normalize('DDU');
+      }
+
+      function sincronizarTipoLiberacao_() {
+        const liberacao = ehFluxoLiberacao_();
+        if (tipoLiberacaoWrap) tipoLiberacaoWrap.hidden = !liberacao;
+        if (!liberacao) {
+          if (tipoLiberacaoSelect) tipoLiberacaoSelect.value = 'final';
+          if (liberacaoParcialDescricaoWrap) liberacaoParcialDescricaoWrap.hidden = true;
+          if (liberacaoParcialAreaWrap) liberacaoParcialAreaWrap.hidden = true;
+          return;
+        }
+        if (tipoLiberacaoSelect && !tipoLiberacaoSelect.value) tipoLiberacaoSelect.value = 'final';
+        const parcial = normalize(tipoLiberacaoSelect?.value) === normalize('parcial');
+        if (liberacaoParcialDescricaoWrap) liberacaoParcialDescricaoWrap.hidden = !parcial;
+        if (liberacaoParcialAreaWrap) liberacaoParcialAreaWrap.hidden = !parcial;
+        if (!parcial) {
+          if (liberacaoParcialDescricaoInput) liberacaoParcialDescricaoInput.value = '';
+          if (liberacaoParcialAreaInput) liberacaoParcialAreaInput.value = '';
+        }
+      }
+
+      function atualizarVinculoAcessoria_() {
+        if (!acessoriaVinculoStatus) return;
+        if (!ehVistoriaAcessoria_()) {
+          acessoriaVinculoStatus.textContent = '';
+          acessoriaVinculoStatus.className = 'lookup-status';
+          return;
+        }
+        const pf = String(processPfInput?.value || '').trim();
+        const vinculado = processoAcessoriaVinculado && pf && String(processoAcessoriaVinculado.pf || '').trim() === pf;
+        if (!vinculado) {
+          acessoriaVinculoStatus.textContent = 'Localize e selecione um processo fiscalizatório anterior de local já autuado.';
+          acessoriaVinculoStatus.className = 'lookup-status show info';
+          return;
+        }
+        const c = processoAcessoriaVinculado;
+        const auto = c.numeroAuto ? ` • Auto ${c.numeroAuto}` : '';
+        acessoriaVinculoStatus.textContent = `PF ${c.pf} vinculado • situação atual: ${c.sancao || 'não informada'}${auto}`;
+        acessoriaVinculoStatus.className = 'lookup-status show success';
+      }
+
+      function sincronizarVistoriaAcessoria_() {
+        const acessoria = ehVistoriaAcessoria_();
+        if (vistoriaAcessoriaWrap) vistoriaAcessoriaWrap.hidden = !acessoria;
+        if (pscipLabel) pscipLabel.textContent = acessoria ? 'Nº do PSCIP / licenciamento' : 'Nº do PSCIP';
+        if (processPfLabel) processPfLabel.textContent = acessoria ? 'Nº do PF anterior' : 'Nº do PF';
+        if (!acessoria) {
+          processoAcessoriaVinculado = null;
+          if (acessoriaResultadoSelect) acessoriaResultadoSelect.value = '';
+          if (acessoriaTipoLicencaSelect) acessoriaTipoLicencaSelect.value = '';
+          if (acessoriaTipoLicencaWrap) acessoriaTipoLicencaWrap.hidden = true;
+          atualizarVinculoAcessoria_();
+          return;
+        }
+        const resultado = normalize(acessoriaResultadoSelect?.value || '');
+        const sanadas = resultado === normalize('sanadas');
+        const naoSanadas = resultado === normalize('nao_sanadas');
+        const possuiLicenca = value('licenciamento') === 'possui';
+        if (acessoriaTipoLicencaWrap) acessoriaTipoLicencaWrap.hidden = !(sanadas && possuiLicenca);
+        if (!(sanadas && possuiLicenca) && acessoriaTipoLicencaSelect) acessoriaTipoLicencaSelect.value = '';
+        if (sancaoSelect) {
+          sancaoSelect.disabled = true;
+          if (sanadas) sancaoSelect.value = 'Regularizado';
+          else if (naoSanadas && processoAcessoriaVinculado?.sancao) {
+            const atual = String(processoAcessoriaVinculado.sancao || '').trim();
+            if (atual && !Array.from(sancaoSelect.options).some(op => normalize(op.value) === normalize(atual))) {
+              const op = document.createElement('option'); op.value = atual; op.textContent = atual; sancaoSelect.appendChild(op);
+            }
+            sancaoSelect.value = atual;
+          } else sancaoSelect.value = '';
+        }
+        if (acessoriaResultadoHint) acessoriaResultadoHint.textContent = naoSanadas
+          ? 'As irregularidades persistem: o registro ficará vinculado ao PF anterior e não será gerada nova autuação automaticamente.'
+          : 'Quando as irregularidades forem sanadas, a situação final só será Regularizado se não houver multa em aberto no INFOSCIP.';
+        atualizarVinculoAcessoria_();
+      }
+
+      function sincronizarDemandasEspeciais_() {
+        const ddu = ehDemandaDdu_();
+        if (dduProtocolWrap) dduProtocolWrap.hidden = !ddu;
+        if (ddu && dduProtocolInput && !dduProtocolInput.value && dduEmUsoNumero) dduProtocolInput.value = dduEmUsoNumero;
+        sincronizarVistoriaAcessoria_();
+        sincronizarTipoLiberacao_();
+      }
+
       function formatarDocumentoEvento_(valor) {
         const d = digits(valor || '').slice(0, 14);
         if (d.length <= 11) {
@@ -4035,6 +4240,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           agendarConsultaProcessoPf_('form', 100);
         }
         atualizarConsultaTecnicaContextual_();
+        sincronizarDemandasEspeciais_();
         if (!opcoes.silencioso) scheduleDraftSave();
       }
 
@@ -4128,6 +4334,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           opcoes = ['Liberado', 'Notificado'];
         } else if (fluxo === 'fiscalizacao' && ehEventoDeclaratorio_()) {
           opcoes = ['Regularizado', 'Autuado'];
+        } else if (fluxo === 'fiscalizacao' && ehVistoriaAcessoria_()) {
+          opcoes = ['Regularizado'];
+          const anterior = String(processoAcessoriaVinculado?.sancao || '').trim();
+          if (anterior && !opcoes.some(v => normalize(v) === normalize(anterior))) opcoes.unshift(anterior);
         } else if (fluxo === 'fiscalizacao') {
           opcoes = (sancoesConfiguradas || []).filter(v => {
             const n = normalize(v);
@@ -4142,6 +4352,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         }
         fillSelect('sancao', opcoes, fluxo ? 'Selecione' : 'Escolha primeiro o tipo de vistoria');
         if (atual && opcoes.some(v => normalize(v) === normalize(atual))) sancaoSelect.value = atual;
+        if (ehVistoriaAcessoria_()) sincronizarVistoriaAcessoria_();
       }
 
       function aplicarFluxoVistoria_(fluxo, opcoes = {}) {
@@ -4701,6 +4912,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
 
       function buildPayload() {
         const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const acessoria = ehVistoriaAcessoria_();
         let sancaoPretendida = value('sancao');
         // V23.9.75 — defesa adicional para rascunhos/estados antigos do navegador:
         // no fluxo de Liberação, resultados próprios da Fiscalização nunca podem ser enviados.
@@ -4719,6 +4931,9 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           _appDispositivo: nomeDispositivo_(),
           _appPreparacaoId: preparacaoEmUsoId,
           _appDduId: dduEmUsoId,
+          _appDduNumero: value('dduProtocol') || dduEmUsoNumero,
+          _appAcessoriaPfVinculado: acessoria ? String(processoAcessoriaVinculado?.pf || '') : '',
+          _appAcessoriaSituacaoAnterior: acessoria ? String(processoAcessoriaVinculado?.sancao || '') : '',
           _appVersao: APP_VERSION,
           vistoriadorResponsavel: value('vistoriadorResponsavel'),
           cidade: cityValue() || 'Viçosa',
@@ -4727,12 +4942,21 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           cnpj: eventoDeclaratorio ? '' : value('cnpj'),
           _appIdentificadorTipo: eventoDeclaratorio ? '' : tipoIdentificador_(value('cnpj')) ,
           _appLicenciamento: eventoDeclaratorio ? '' : value('licenciamento'),
+          situacaoLicenciamento: eventoDeclaratorio ? '' : value('licenciamento'),
           _appPossuiPscip: eventoDeclaratorio ? '' : value('possuiPscip'),
+          situacaoPscip: eventoDeclaratorio ? '' : value('situacaoPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           _appSancaoPretendida: sancaoPretendida,
           sancao: eventoDeclaratorio ? sancaoPretendida : situacaoFinalPorMulta_(sancaoPretendida, situacaoMultaInfoscip),
           situacaoMultaInfoscip: eventoDeclaratorio ? '' : situacaoMultaInfoscip,
           pendenciaDocumental: value('pendenciaDocumental'),
+          tipoLiberacao: ehFluxoLiberacao_() ? (value('tipoLiberacao') || 'final') : '',
+          liberacaoParcialDescricao: ehFluxoLiberacao_() && normalize(value('tipoLiberacao')) === normalize('parcial') ? value('liberacaoParcialDescricao') : '',
+          liberacaoParcialArea: ehFluxoLiberacao_() && normalize(value('tipoLiberacao')) === normalize('parcial') ? value('liberacaoParcialArea') : '',
+          acessoriaResultado: acessoria ? value('acessoriaResultado') : '',
+          acessoriaTipoLicenca: acessoria ? value('acessoriaTipoLicenca') : '',
+          acessoriaSituacaoAnterior: acessoria ? String(processoAcessoriaVinculado?.sancao || '') : '',
+          dduProtocol: ehDemandaDdu_() ? (value('dduProtocol') || dduEmUsoNumero) : '',
           pscip: eventoDeclaratorio ? '' : (value('possuiPscip') === 'sim' ? normalizarPscipExibicao_(value('pscip'), true) : ''),
           pf: value('pf'),
           tipoVistoria: value('tipoVistoria'),
@@ -4816,6 +5040,50 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           missing.push('Nº do PSCIP');
           first = first || elPscip;
         }
+        if (ehFluxoFiscalizacao_() && !eventoDeclaratorio && value('licenciamento') === 'nao_possui' && value('possuiPscip') === 'sim' && !String(value('situacaoPscip') || '').trim()) {
+          situacaoPscipInput?.classList.add('invalid');
+          missing.push('Situação atual do PSCIP no INFOSCIP');
+          first = first || situacaoPscipInput;
+        }
+        if (ehDemandaDdu_() && !String(value('dduProtocol') || '').trim()) {
+          dduProtocolInput?.classList.add('invalid');
+          missing.push('Protocolo DDU');
+          first = first || dduProtocolInput;
+        }
+        if (ehFluxoLiberacao_() && normalize(value('tipoLiberacao')) === normalize('parcial')) {
+          if (!String(value('liberacaoParcialDescricao') || '').trim()) {
+            liberacaoParcialDescricaoInput?.classList.add('invalid'); missing.push('Área/trecho liberado'); first = first || liberacaoParcialDescricaoInput;
+          }
+          const areaParcial = numeroAreaM2_(value('liberacaoParcialArea'));
+          if (!String(value('liberacaoParcialArea') || '').trim() || !Number.isFinite(areaParcial) || areaParcial <= 0) {
+            liberacaoParcialAreaInput?.classList.add('invalid'); missing.push('Área liberada parcialmente (m²)'); first = first || liberacaoParcialAreaInput;
+          }
+        }
+        if (ehVistoriaAcessoria_()) {
+          const pfAtual = String(value('pf') || '').trim();
+          const vinculoOk = processoAcessoriaVinculado && pfAtual && String(processoAcessoriaVinculado.pf || '').trim() === pfAtual;
+          if (!pfAtual) { processPfInput?.classList.add('invalid'); missing.push('Nº do PF anterior'); first = first || processPfInput; }
+          if (!vinculoOk) {
+            if (showMessage) showError('Vistoria Acessória exige selecionar um processo fiscalizatório anterior de local já autuado. Use a busca do PF antes de concluir.');
+            processPfInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+          const resultadoAcessoria = normalize(value('acessoriaResultado'));
+          if (!resultadoAcessoria) { acessoriaResultadoSelect?.classList.add('invalid'); missing.push('Resultado da Vistoria Acessória'); first = first || acessoriaResultadoSelect; }
+          if (resultadoAcessoria === normalize('sanadas')) {
+            const lic = value('licenciamento');
+            if (!['possui','dispensado'].includes(lic)) {
+              licenciamentoSelect?.classList.add('invalid');
+              if (showMessage) showError('Para concluir a Vistoria Acessória com irregularidades sanadas, informe licenciamento válido ou dispensado de licenciamento.');
+              licenciamentoSelect?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              return false;
+            }
+            if (lic === 'possui') {
+              if (!String(value('acessoriaTipoLicenca') || '').trim()) { acessoriaTipoLicencaSelect?.classList.add('invalid'); missing.push('Documento de licenciamento'); first = first || acessoriaTipoLicencaSelect; }
+              if (normalizarPscipTela_(value('pscip')).length <= 3) { pscipInput?.classList.add('invalid'); missing.push('Nº do PSCIP / licenciamento'); first = first || pscipInput; }
+            }
+          }
+        }
         checks.forEach(([id, label]) => {
           const el = document.getElementById(id);
           if (!el || !String(el.value || '').trim()) {
@@ -4897,8 +5165,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       function syncLicenciamento() {
         const situacao = value('licenciamento');
         const naoPossui = situacao === 'nao_possui';
+        const vencido = situacao === 'vencido';
         const liberacao = ehFluxoLiberacao_();
         const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const acessoria = ehVistoriaAcessoria_();
 
         if (eventoDeclaratorio) {
           if (sancaoSelect) sancaoSelect.disabled = false;
@@ -4917,14 +5187,24 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           sancaoDefinidaAutomaticamente = false;
           sancaoAntesDoAutomatico = '';
           if (sancaoAutomaticaHint) sancaoAutomaticaHint.hidden = true;
-        } else if (naoPossui) {
+        } else if (acessoria) {
+          sancaoDefinidaAutomaticamente = false;
+          sancaoAntesDoAutomatico = '';
+          if (sancaoAutomaticaHint) sancaoAutomaticaHint.hidden = true;
+          sincronizarVistoriaAcessoria_();
+        } else if (naoPossui || vencido) {
           if (!sancaoDefinidaAutomaticamente) sancaoAntesDoAutomatico = value('sancao');
           sancaoDefinidaAutomaticamente = true;
           if (sancaoSelect) {
             sancaoSelect.value = 'Autuado';
             sancaoSelect.disabled = true;
           }
-          if (sancaoAutomaticaHint) sancaoAutomaticaHint.hidden = false;
+          if (sancaoAutomaticaHint) {
+            sancaoAutomaticaHint.hidden = false;
+            sancaoAutomaticaHint.textContent = vencido
+              ? 'Autuado definido automaticamente porque foi informado que o AVCB/CLCB está vencido.'
+              : 'Autuado definido automaticamente porque foi informado que o local não possui AVCB ou CLCB.';
+          }
         } else {
           if (sancaoSelect) sancaoSelect.disabled = false;
           if (sancaoDefinidaAutomaticamente && sancaoSelect) {
@@ -4942,6 +5222,9 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
 
       function syncPscip_() {
         const possui = value('possuiPscip') === 'sim';
+        const mostrarSituacao = ehFluxoFiscalizacao_() && !ehEventoDeclaratorio_() && possui;
+        if (situacaoPscipWrap) situacaoPscipWrap.hidden = !mostrarSituacao;
+        if (!mostrarSituacao && situacaoPscipInput) situacaoPscipInput.value = '';
         if (pscipLicenciamentoWrap) {
           pscipLicenciamentoWrap.hidden = !possui;
           pscipLicenciamentoWrap.classList.toggle('is-visible', possui);
@@ -4960,6 +5243,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             normalizarPscipInput_(false);
           }
         }
+        if (ehVistoriaAcessoria_()) sincronizarVistoriaAcessoria_();
         agendarConsultaEncerramentoFiscal_();
       }
 
@@ -5892,23 +6176,27 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         return {
           identificador: digits(value('cnpj')),
           pscip: value('pscip'),
+          pf: value('pf'),
           cidade: cityValue(),
           endereco: value('endereco'),
           numero: value('numero'),
-          eventoDeclaratorio: false
+          eventoDeclaratorio: false,
+          vistoriaAcessoria: ehVistoriaAcessoria_()
         };
       }
 
       function chaveFiltrosProcessoPf_(f) {
-        return [f.eventoDeclaratorio ? 'evento' : 'processo', digits(f.identificador || ''), normalizarPscipTela_(f.pscip || ''), normalize(f.cidade || ''), normalize(f.endereco || ''), normalize(f.numero || '')].join('|');
+        const modo = f.eventoDeclaratorio ? 'evento' : (f.vistoriaAcessoria ? 'acessoria' : 'processo');
+        return [modo, digits(f.identificador || ''), normalizarPscipTela_(f.pscip || ''), normalize(f.pf || ''), normalize(f.cidade || ''), normalize(f.endereco || ''), normalize(f.numero || '')].join('|');
       }
 
       function filtrosSuficientesProcessoPf_(f) {
         const d = digits(f.identificador || '');
         const docOk = d.length === 11 || d.length === 14;
         const pscipOk = normalizarPscipTela_(f.pscip || '').length > 3;
+        const pfOk = String(f.pf || '').trim().length >= 5;
         const enderecoOk = !!(String(f.cidade || '').trim() && String(f.endereco || '').trim() && String(f.numero || '').trim());
-        return docOk || pscipOk || enderecoOk;
+        return docOk || pscipOk || pfOk || enderecoOk;
       }
 
       function textoPrazoProcessoAnterior_(item) {
@@ -6003,8 +6291,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (prepare) preparePfAutoAtual = input.value;
         else {
           processoPfAutoAtual = input.value;
+          if (ehVistoriaAcessoria_()) processoAcessoriaVinculado = { ...candidato };
           const demais = processoPfCandidatos.filter(item => String(item?.pf || '') !== String(candidato.pf || ''));
           renderizarAlertaProcessoAnterior_([candidato, ...demais]);
+          atualizarOpcoesSancaoPorFluxo_();
+          sincronizarVistoriaAcessoria_();
         }
         input.dispatchEvent(new Event('input', { bubbles: true }));
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
@@ -6040,13 +6331,16 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           return;
         }
         if (!candidatos.length) {
+          if (!prepare && ehVistoriaAcessoria_()) { processoAcessoriaVinculado = null; sincronizarVistoriaAcessoria_(); }
           resultados.innerHTML = '';
           resultados.hidden = true;
           const input = prepare ? preparePfInput : processPfInput;
           const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
           if (input && autoAtual && String(input.value || '').trim() === autoAtual) input.value = '';
           if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
-          if (status) { status.textContent = 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.'; status.className = 'lookup-status show info'; }
+          if (status) { status.textContent = (!prepare && ehVistoriaAcessoria_())
+            ? 'Nenhum processo fiscalizatório anterior autuado e ainda aberto foi localizado pelos dados informados.'
+            : 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.'; status.className = 'lookup-status show info'; }
           return;
         }
         if (candidatos.length === 1) {
@@ -6080,7 +6374,9 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (status) {
           status.textContent = (!prepare && ehEventoDeclaratorio_())
             ? 'Verificando histórico de eventos declaratórios pelo endereço do evento...'
-            : 'Verificando processo anterior por CNPJ/CPF, PSCIP e endereço...';
+            : (!prepare && ehVistoriaAcessoria_())
+              ? 'Localizando processo fiscalizatório anterior de local já autuado...'
+              : 'Verificando processo anterior por CNPJ/CPF, PSCIP e endereço...';
           status.className = 'lookup-status show info';
         }
         try {
@@ -6230,12 +6526,15 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           }
           const p = draft.payload;
           preparacaoEmUsoId = String(p._appPreparacaoId || '');
+          dduEmUsoId = String(p._appDduId || '');
+          dduEmUsoNumero = String(p._appDduNumero || p.dduProtocol || '');
+          processoAcessoriaVinculado = p._appAcessoriaPfVinculado ? { pf: String(p._appAcessoriaPfVinculado), sancao: String(p._appAcessoriaSituacaoAnterior || p.acessoriaSituacaoAnterior || '') } : null;
           aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
           currentRecordId = String(draft.recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
           sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
           if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
           if (possuiPscipSelect) possuiPscipSelect.value = String(p._appPossuiPscip || (p.pscip ? 'sim' : ''));
-          sancaoDefinidaAutomaticamente = String(p._appLicenciamento || '') === 'nao_possui';
+          sancaoDefinidaAutomaticamente = ['nao_possui','vencido'].includes(String(p._appLicenciamento || '')) && normalize(p.demandaPrincipal) !== normalize('Vistoria Acessória');
           const cityOptions = Array.from(citySelect.options).map(o => o.value);
           if (cityOptions.includes(p.cidade)) {
             citySelect.value = p.cidade;
@@ -6261,6 +6560,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           if (tipoId === 'cnpj') cnpjAssociadoDadosEmpresa = digits(value('cnpj'));
           telefoneResponsavelAssociado = digits(value('telefone'));
           syncNotificado();
+          sincronizarDemandasEspeciais_();
           atualizarVerificacaoMetasFiscalizacao_();
           if (preparacaoEmUsoId) setTimeout(() => rolarParaFormularioProgramado_(), 0);
           appStatus.textContent = 'Rascunho anterior recuperado.';
@@ -6271,6 +6571,8 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         restaurarPainelProgramadas_(false);
         preparacaoEmUsoId = '';
         dduEmUsoId = '';
+        dduEmUsoNumero = '';
+        processoAcessoriaVinculado = null;
         form.reset();
         localStorage.removeItem(draftKeyAtual_());
         currentRecordId = criarIdRegistro();
@@ -6282,11 +6584,13 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (possuiPscipSelect) possuiPscipSelect.value = '';
         aplicarFluxoVistoria_('', { silencioso: true });
         if (pendenciaDocumentalSelect) pendenciaDocumentalSelect.value = '';
+        if (tipoLiberacaoSelect) tipoLiberacaoSelect.value = 'final';
         if (situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
         syncPendenciaDocumental_();
         syncOtherCity();
         syncLicenciamento();
         syncPscip_();
+        sincronizarDemandasEspeciais_();
         document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
         document.getElementById('enderecoResponsavel').readOnly = false;
         document.getElementById('enderecoResponsavel').style.background = '';
@@ -6344,6 +6648,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       function textoLicenciamentoRevisao_(valor) {
         if (valor === 'possui') return 'Possui AVCB ou CLCB';
         if (valor === 'nao_possui') return 'Não possui';
+        if (valor === 'vencido') return 'AVCB/CLCB vencido';
         if (valor === 'dispensado') return 'Dispensado de licenciamento';
         return valor || '—';
       }
@@ -6387,6 +6692,19 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
           ['Possui PSCIP?', payload?._appPossuiPscip === 'sim' ? 'Sim' : (payload?._appPossuiPscip === 'nao' ? 'Não' : '—')],
           ['Nº PSCIP', payload?.pscip || '—'],
+          ['Situação atual do PSCIP', payload?.situacaoPscip || '—'],
+          ...(normalize(payload?.demandaPrincipal || '') === normalize('DDU') ? [['Protocolo DDU', payload?.dduProtocol || '—']] : []),
+          ...(normalize(payload?.demandaPrincipal || '') === normalize('Vistoria Acessória') ? [
+            ['PF vinculado', payload?._appAcessoriaPfVinculado || payload?.pf || '—'],
+            ['Situação anterior do PF', payload?.acessoriaSituacaoAnterior || '—'],
+            ['Resultado da Vistoria Acessória', payload?.acessoriaResultado === 'sanadas' ? 'Irregularidades sanadas' : (payload?.acessoriaResultado === 'nao_sanadas' ? 'Irregularidades persistem' : '—')],
+            ['Documento de licenciamento', payload?.acessoriaTipoLicenca || '—']
+          ] : []),
+          ...(normalize(payload?.tipoLiberacao || '') === normalize('parcial') ? [
+            ['Tipo da liberação', 'Parcial'],
+            ['Área/trecho liberado', payload?.liberacaoParcialDescricao || '—'],
+            ['Área liberada parcialmente', payload?.liberacaoParcialArea ? `${payload.liberacaoParcialArea} m²` : '—']
+          ] : []),
           ['Área da edificação', payload?.area ? `${payload.area} m²` : '—'],
           ['Demanda', [payload?.demandaPrincipal, categoriaMetaComAreaParaExibicao_(payload)].filter(Boolean).join(' | ') || '—'],
           ['Verificação de meta por área', normalize(payload?.tipoVistoria || '').includes('fiscalizacao')
@@ -7530,7 +7848,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         }catch(e){if(dduRegisterError){dduRegisterError.textContent=e?.message||'Não foi possível cadastrar o DDU.';dduRegisterError.hidden=false;}}
         finally{dduRegisterSaveBtn.disabled=false;dduRegisterSaveBtn.textContent='Salvar DDU';}
       }
-      function iniciarDdu_(item){ if(!item)return; dduEmUsoId=String(item.id||''); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v}; set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} agendarConsultaProcessoPf_('form',180); appStatus.textContent='DDU carregado. Complete os dados da fiscalização.'; }
+      function iniciarDdu_(item){ if(!item)return; dduEmUsoId=String(item.id||''); dduEmUsoNumero=String(item.numeroDdu||'').trim(); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v}; set('demandaPrincipal','DDU'); set('dduProtocol',dduEmUsoNumero); set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} aplicarModoEventoDeclaratorio_({silencioso:true}); sincronizarDemandasEspeciais_(); agendarConsultaProcessoPf_('form',180); appStatus.textContent='DDU carregado. Complete os dados da fiscalização.'; }
 
       function abrirModalPreparacao_(opcoes = {}) {
         fecharMenuMais_();
@@ -8295,8 +8613,8 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
-      document.getElementById('demandaPrincipal')?.addEventListener('input', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
-      document.getElementById('demandaPrincipal')?.addEventListener('change', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
+      document.getElementById('demandaPrincipal')?.addEventListener('input', () => { aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 250); });
+      document.getElementById('demandaPrincipal')?.addEventListener('change', () => { aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 100); });
       categoriaMetaSelect?.addEventListener('change', atualizarConsultaTecnicaContextual_);
       consultaTecnicaSecao?.addEventListener('click', event => {
         const link = event.target.closest('a[data-it-context-link]');
@@ -8323,6 +8641,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
+      tipoLiberacaoSelect?.addEventListener('change', () => { sincronizarTipoLiberacao_(); scheduleDraftSave(); });
+      acessoriaResultadoSelect?.addEventListener('change', () => { atualizarOpcoesSancaoPorFluxo_(); sincronizarVistoriaAcessoria_(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
+      acessoriaTipoLicencaSelect?.addEventListener('change', scheduleDraftSave);
+      dduProtocolInput?.addEventListener('input', scheduleDraftSave);
+      situacaoPscipInput?.addEventListener('input', scheduleDraftSave);
       possuiPscipSelect?.addEventListener('change', () => { syncPscip_(); scheduleDraftSave(); });
       possuiPscipSelect?.addEventListener('input', () => { syncPscip_(); scheduleDraftSave(); });
       pscipInput?.addEventListener('input', () => {
@@ -8339,6 +8662,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       });
       pscipInput?.addEventListener('input', () => agendarConsultaProcessoPf_('form'));
       pscipInput?.addEventListener('blur', () => agendarConsultaProcessoPf_('form', 100));
+      processPfInput?.addEventListener('input', () => {
+        if (ehVistoriaAcessoria_() && processoAcessoriaVinculado && String(processPfInput.value || '').trim() !== String(processoAcessoriaVinculado.pf || '').trim()) {
+          processoAcessoriaVinculado = null;
+          sincronizarVistoriaAcessoria_();
+        }
+      });
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       pendenciaDocumentalSelect?.addEventListener('change', scheduleDraftSave);
       situacaoMultaInfoscipSelect?.addEventListener('change', () => { scheduleDraftSave(); agendarConsultaEncerramentoFiscal_(); });
@@ -8394,7 +8723,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       ['cnpj','endereco','numero','pf','demandaPrincipal'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', agendarConsultaEncerramentoFiscal_);
       });
-      ['cnpj','endereco','numero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('form')));
+      ['cnpj','endereco','numero','pf'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('form')));
       citySelect?.addEventListener('change', agendarConsultaEncerramentoFiscal_);
       citySelect?.addEventListener('change', () => agendarConsultaProcessoPf_('form'));
       [processPfLookupResults, preparePfLookupResults].forEach(container => container?.addEventListener('click', event => {
