@@ -22,7 +22,7 @@
  const input=document.getElementById('inDocSearch'),status=document.getElementById('searchStatus'),clear=document.getElementById('clearSearch'),content=document.querySelector('.it-content');let hits=[],cur=-1,timer;
  function unmark(){content?.querySelectorAll('mark.search-hit').forEach(m=>m.replaceWith(document.createTextNode(m.textContent)));content?.normalize();hits=[];cur=-1}
  function mark(){if(!content||!input)return;unmark();const q=input.value.trim();if(q.length<2){status.textContent='Digite pelo menos 2 caracteres para pesquisar.';return}const needle=q.toLocaleLowerCase('pt-BR');const walker=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode(n){if(!n.nodeValue.trim()||n.parentElement.closest('script,style,mark'))return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT}});const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);nodes.forEach(node=>{let txt=node.nodeValue,low=txt.toLocaleLowerCase('pt-BR'),start=0,idx,frag=document.createDocumentFragment(),found=false;while((idx=low.indexOf(needle,start))>=0){found=true;frag.append(txt.slice(start,idx));const m=document.createElement('mark');m.className='search-hit';m.textContent=txt.slice(idx,idx+q.length);frag.append(m);start=idx+q.length}if(found){frag.append(txt.slice(start));node.replaceWith(frag)}});hits=[...content.querySelectorAll('mark.search-hit')];status.textContent=hits.length?`${hits.length} ocorrência${hits.length===1?'':'s'} encontrada${hits.length===1?'':'s'}. Enter avança; Shift + Enter volta.`:'Nenhuma ocorrência encontrada.';if(hits.length){cur=0;focusHit()}}
- function focusHit(){hits.forEach(x=>x.classList.remove('current'));if(cur>=0&&hits[cur]){hits[cur].classList.add('current');const hiddenSource=hits[cur].closest('.visual-source-hidden-v2387');const page=hiddenSource?.closest('.pdf-page');const visual=page?.querySelector('.visual-primary-v2387,.faithful-table-visuals-v2387,.faithful-table-visuals,.technical-page-visual');(visual||hits[cur]).scrollIntoView({behavior:'smooth',block:'center'});status.textContent=`Ocorrência ${cur+1} de ${hits.length}. Enter avança; Shift + Enter volta.`}}
+ function focusHit(){hits.forEach(x=>x.classList.remove('current'));if(cur>=0&&hits[cur]){hits[cur].classList.add('current');hits[cur].scrollIntoView({behavior:'smooth',block:'center'});status.textContent=`Ocorrência ${cur+1} de ${hits.length}. Enter avança; Shift + Enter volta.`}}
  if(input){input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(mark,220)});input.addEventListener('keydown',e=>{if(e.key==='Enter'&&hits.length){e.preventDefault();cur=(cur+(e.shiftKey?-1:1)+hits.length)%hits.length;focusHit()}});clear?.addEventListener('click',()=>{input.value='';unmark();status.textContent='Digite um termo para localizar dentro desta IT.';input.focus()});document.querySelectorAll('[data-focus-search]').forEach(b=>b.addEventListener('click',()=>{input.focus();input.scrollIntoView({behavior:'smooth',block:'center'})}))}
  const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const id=e.target.id;document.querySelectorAll('.toc-item').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id))}})},{rootMargin:'-20% 0px -70% 0px'});document.querySelectorAll('.doc-heading[id]').forEach(h=>observer.observe(h));
 })();
@@ -400,182 +400,56 @@
 })();
 
 
-// GPV V23.9.87 — apresentação limpa de tabelas, desenhos, gráficos, esquemas e fórmulas.
-// O HTML normativo permanece intacto. O texto extraído é apenas ocultado visualmente quando
-// uma reprodução fiel carregou com sucesso; se o visual falhar, o texto original permanece visível.
+// GPV V23.9.88 — identidade visual das ITs (somente apresentação).
 (()=>{
-  const HIDDEN='visual-source-hidden-v2387';
-  const cleanText=value=>(value||'').replace(/\s+/g,' ').trim();
-  const pageText=el=>cleanText(el?.textContent||'');
-  const isFooter=text=>/^\d+\s*\/\s*\d+\b/.test(cleanText(text));
-  const isTableHeading=text=>/^(?:tabela|quadro)\b/i.test(cleanText(text));
-  const isAnnex=text=>/^(?:anexo|ap[eê]ndice)\b/i.test(cleanText(text));
-  const isSectionStart=text=>{
-    const t=cleanText(text);
-    if(!t||isFooter(t)) return false;
-    return /^(?:\d+(?:\.\d+){1,}\.?\s+|\d+\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]|[A-Z]\.?\d+(?:\.\d+)*\s+)/i.test(t);
+  const VISUALS = window.IT_VISUALS || {
+    1:{icon:'📁',topic:'Procedimentos'},2:{icon:'📘',topic:'Terminologia'},3:{icon:'🗂️',topic:'PSCIP'},4:{icon:'🚒',topic:'Viaturas'},5:{icon:'🧱',topic:'Isolamento'},6:{icon:'🏗️',topic:'Estrutural'},7:{icon:'🧩',topic:'Compartimentação'},8:{icon:'🚪',topic:'Saídas'},9:{icon:'🔥',topic:'Carga de incêndio'},10:{icon:'🌀',topic:'Pressurização'},11:{icon:'📋',topic:'Plano'},12:{icon:'👨‍🚒',topic:'Brigada'},13:{icon:'💡',topic:'Iluminação'},14:{icon:'🚨',topic:'Detecção'},15:{icon:'🪧',topic:'Sinalização'},16:{icon:'🧯',topic:'Extintores'},17:{icon:'🚰',topic:'Hidrantes'},18:{icon:'🚿',topic:'Chuveiros'},19:{icon:'❄️',topic:'Resfriamento'},20:{icon:'🫧',topic:'Espuma'},21:{icon:'🧪',topic:'Gases'},22:{icon:'🛢️',topic:'Inflamáveis'},23:{icon:'🔥',topic:'GLP'},24:{icon:'⛽',topic:'Gás natural'},25:{icon:'🎆',topic:'Pirotecnia'},26:{icon:'🚁',topic:'Heliponto'},27:{icon:'☣️',topic:'Perigosos'},28:{icon:'🛖',topic:'Cobertura'},29:{icon:'💧',topic:'Hidrante público'},30:{icon:'⚡',topic:'Elétricas'},31:{icon:'📦',topic:'Contêineres'},32:{icon:'🍳',topic:'Cozinhas'},33:{icon:'🎪',topic:'Eventos'},34:{icon:'🪪',topic:'Cadastro'},35:{icon:'🏛️',topic:'Patrimônio'},36:{icon:'⚡',topic:'SPDA'},37:{icon:'🏟️',topic:'Centros esportivos'},38:{icon:'🧱',topic:'CMAR'},39:{icon:'🥁',topic:'Vias públicas'},40:{icon:'🛠️',topic:'Adequação'},41:{icon:'🌫️',topic:'Fumaça'},42:{icon:'🔒',topic:'Restrição'},43:{icon:'🌾',topic:'Silos'},44:{icon:'🚜',topic:'Agronegócio'},45:{icon:'📝',topic:'Fiscalização'}
   };
-  const looksTableish=text=>{
-    const t=cleanText(text);
-    if(!t||isFooter(t)||t.length>180) return false;
-    if(!/[.!?](?:\s|$)/.test(t) && t.length<=125) return true;
-    const tokens=t.match(/\bX\b|\d+(?:[.,]\d+)?|[-–—]/gi)||[];
-    const words=t.split(/\s+/).filter(Boolean).length;
-    return tokens.length>=4 && words<=12 && t.length<=180;
-  };
-  const hideSource=el=>{
-    if(!el||el.classList.contains(HIDDEN)) return;
-    el.classList.add(HIDDEN);
-    el.setAttribute('aria-hidden','true');
-  };
-  const showSource=el=>{
-    if(!el) return;
-    el.classList.remove(HIDDEN);
-    el.removeAttribute('aria-hidden');
-  };
-  const onceImageReady=(img,onReady,onFail)=>{
-    if(!img){onFail?.();return;}
-    if(img.complete){
-      if(img.naturalWidth>0) onReady(img); else onFail?.(img);
-      return;
+  window.IT_VISUALS = VISUALS;
+  const currentMatch = document.title.match(/^IT\s+(\d+)/i);
+  const currentIt = currentMatch ? Number(currentMatch[1]) : 0;
+  const visual = VISUALS[currentIt] || null;
+  const mkChip = (v, extra='') => `<span class="it-visual-chip ${extra}"><span class="it-visual-chip-icon" aria-hidden="true">${v.icon}</span><span class="it-visual-chip-text">${v.topic}</span></span>`;
+
+  if (visual) {
+    const hero = document.querySelector('.hero.compact');
+    if (hero && !hero.querySelector('.it-visual-hero')) {
+      const meta = document.createElement('div');
+      meta.className = 'it-visual-hero';
+      meta.innerHTML = `<div class="it-visual-badge"><span class="it-visual-emoji" aria-hidden="true">${visual.icon}</span></div><div class="it-visual-copy"><strong>Consulta rápida da IT ${String(currentIt).padStart(2,'0')}</strong><small>${visual.topic}</small></div>`;
+      const eyebrow = hero.querySelector('.eyebrow');
+      if (eyebrow) eyebrow.insertAdjacentElement('afterend', meta);
+      else hero.prepend(meta);
     }
-    img.addEventListener('load',()=>onReady(img),{once:true});
-    img.addEventListener('error',()=>onFail?.(img),{once:true});
-  };
-  const makeSingleTableWrap=(sourceWrap,figure,pageNum)=>{
-    const wrap=document.createElement('section');
-    wrap.className='faithful-table-visuals faithful-table-visuals-v2387';
-    wrap.setAttribute('data-faithful-table-visuals-v2387','');
-    wrap.setAttribute('aria-label',`Tabela ou quadro da página ${pageNum}`);
-    const head=sourceWrap.querySelector('.faithful-table-heading');
-    if(head) wrap.appendChild(head.cloneNode(true));
-    wrap.appendChild(figure);
-    return wrap;
-  };
-  const hideRange=(elements,start,end)=>{
-    for(let i=start;i<end&&i<elements.length;i++) hideSource(elements[i]);
-  };
-  const blockEnd=(elements,start,nextHeadingIndex=-1)=>{
-    for(let i=start+1;i<elements.length;i++){
-      if(nextHeadingIndex>=0 && i>=nextHeadingIndex) return i;
-      const t=pageText(elements[i]);
-      if(isFooter(t)||isSectionStart(t)) return i;
+    const sideHead = document.querySelector('.side-head');
+    if (sideHead && !sideHead.querySelector('.it-side-chip')) {
+      const side = document.createElement('div');
+      side.className = 'it-side-chip';
+      side.innerHTML = mkChip(visual,'is-side');
+      const number = sideHead.querySelector('.it-number');
+      if (number) number.insertAdjacentElement('afterend', side);
+      else sideHead.prepend(side);
     }
-    return elements.length;
-  };
-
-  document.querySelectorAll('.pdf-page').forEach(sec=>{
-    const content=sec.querySelector('.page-content');
-    if(!content) return;
-
-    // Figuras/desenhos/fórmulas das fases visuais são reproduções integrais da página.
-    // Só substituem a camada textual depois que a imagem estiver realmente disponível.
-    const fullVisuals=[...sec.querySelectorAll('.technical-page-visual')];
-    if(fullVisuals.length){
-      const primary=sec.querySelector('.technical-page-visual-v2385')||fullVisuals[0];
-      const img=primary?.querySelector('img');
-      onceImageReady(img,()=>{
-        hideSource(content);
-        primary.open=true;
-        primary.classList.add('visual-primary-v2387');
-        primary.removeAttribute('hidden');
-        fullVisuals.forEach(other=>{if(other!==primary) other.hidden=true;});
-        const tables=sec.querySelector('.faithful-table-visuals');
-        if(tables) tables.hidden=true;
-        sec.classList.add('visual-page-v2387');
-      },()=>{
-        showSource(content);
-        primary?.classList.remove('visual-primary-v2387');
-      });
-      return;
+    const current = document.querySelector('.top-current');
+    if (current && !current.querySelector('.top-current-icon')) {
+      current.innerHTML = `<span class="top-current-icon" aria-hidden="true">${visual.icon}</span><span>${current.textContent}</span>`;
     }
+  }
 
-    const tableWrap=sec.querySelector('.faithful-table-visuals');
-    if(!tableWrap) return;
-    const figures=[...tableWrap.querySelectorAll('.faithful-table-figure')];
-    const imgs=figures.map(f=>f.querySelector('img')).filter(Boolean);
-    if(!imgs.length) return;
-
-    // Espera pelo primeiro recurso antes de ocultar qualquer texto; isso mantém fallback seguro.
-    onceImageReady(imgs[0],firstImg=>{
-      const elements=[...content.children];
-      const headings=elements
-        .map((el,index)=>({el,index,text:pageText(el)}))
-        .filter(item=>isTableHeading(item.text));
-      const firstText=elements.length?pageText(elements[0]):'';
-      const pageImage=imgs.some(img=>/-pagina\.webp(?:$|\?)/i.test(img.getAttribute('src')||''));
-      const ratio=firstImg.naturalWidth?firstImg.naturalHeight/firstImg.naturalWidth:0;
-
-      // Página inteira, anexo/formulário ou estrutura tabular dominante: o visual fiel substitui
-      // apenas a apresentação. O texto continua no DOM, invisível, para pesquisa/fallback.
-      const firstSectionIndex=elements.findIndex(el=>isSectionStart(pageText(el)));
-      if(pageImage || (!headings.length && ratio>=1.0 && (firstSectionIndex<0 || isAnnex(firstText)))){
-        hideSource(content);
-        tableWrap.classList.add('faithful-table-visuals-v2387','visual-primary-v2387');
-        sec.insertBefore(tableWrap,content);
-        sec.classList.add('visual-page-v2387');
-        return;
-      }
-
-      if(headings.length){
-        // Quando há pelo menos um visual para cada título de Tabela/Quadro, posiciona cada
-        // reprodução exatamente onde o respectivo bloco textual começava.
-        if(headings.length>=figures.length && figures.length>0){
-          const originalHead=tableWrap.querySelector('.faithful-table-heading');
-          figures.slice().forEach((figure,i)=>{
-            const heading=headings[i];
-            if(!heading) return;
-            const single=makeSingleTableWrap(tableWrap,figure,sec.dataset.page||'');
-            content.insertBefore(single,heading.el);
-            const nextHeading=headings[i+1]?.index ?? -1;
-            const end=blockEnd(elements,heading.index,nextHeading);
-            hideRange(elements,heading.index,end);
-          });
-          tableWrap.remove();
-          return;
-        }
-
-        // Uma tabela grande pode ter sido dividida em várias imagens. Mantém as partes juntas
-        // na posição do primeiro título e oculta apenas o bloco tabular extraído.
-        const first=headings[0];
-        content.insertBefore(tableWrap,first.el);
-        tableWrap.classList.add('faithful-table-visuals-v2387');
-        const lastHeading=headings[headings.length-1].index;
-        let end=elements.length;
-        for(let i=lastHeading+1;i<elements.length;i++){
-          const t=pageText(elements[i]);
-          if(isFooter(t)||isSectionStart(t)){end=i;break;}
-        }
-        hideRange(elements,first.index,end);
-        return;
-      }
-
-      // Tabelas de continuação e formulários nem sempre repetem a palavra "Tabela".
-      // Procura a maior sequência de linhas com aparência tabular e substitui só essa sequência.
-      let bestStart=-1,bestEnd=-1,currentStart=-1;
-      for(let i=0;i<elements.length;i++){
-        const t=pageText(elements[i]);
-        const ok=!isFooter(t)&&!isSectionStart(t)&&!isAnnex(t)&&looksTableish(t);
-        if(ok && currentStart<0) currentStart=i;
-        if((!ok || i===elements.length-1) && currentStart>=0){
-          const currentEnd=ok&&i===elements.length-1?i+1:i;
-          if(currentEnd-currentStart>bestEnd-bestStart){bestStart=currentStart;bestEnd=currentEnd;}
-          currentStart=-1;
-        }
-      }
-      const bestLen=bestStart>=0?bestEnd-bestStart:0;
-      if(bestStart>=0 && (bestLen>=3 || (bestStart===0 && bestLen>=2))){
-        content.insertBefore(tableWrap,elements[bestStart]);
-        tableWrap.classList.add('faithful-table-visuals-v2387');
-        hideRange(elements,bestStart,bestEnd);
-        return;
-      }
-
-      // Se não houver evidência suficiente de que a detecção representa uma tabela real,
-      // evita mostrar um recorte redundante/falso-positivo sobre texto normativo normal.
-      tableWrap.hidden=true;
-    },()=>{
-      tableWrap.hidden=true;
+  const decorateQuickItems = () => {
+    document.querySelectorAll('.quick-it-item').forEach(a => {
+      if (a.querySelector('.quick-it-icon')) return;
+      const txt = a.querySelector('.quick-it-num')?.textContent || '';
+      const m = txt.match(/(\d+)/);
+      const it = m ? Number(m[1]) : 0;
+      const v = VISUALS[it] || {icon:'📘',topic:'IT'};
+      const num = a.querySelector('.quick-it-num');
+      if (num) num.insertAdjacentHTML('afterbegin', `<span class="quick-it-icon" aria-hidden="true">${v.icon}</span>`);
+      const title = a.querySelector('.quick-it-title');
+      if (title && !title.querySelector('.quick-it-topic')) title.insertAdjacentHTML('beforeend', `<small class="quick-it-topic">${v.topic}</small>`);
     });
-  });
+  };
+  decorateQuickItems();
+  const obs = new MutationObserver(()=>decorateQuickItems());
+  obs.observe(document.body,{childList:true,subtree:true});
 })();
