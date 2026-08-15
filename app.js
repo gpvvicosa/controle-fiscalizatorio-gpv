@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.90';
+      const APP_VERSION = '23.9.91';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -715,6 +715,7 @@
 
       let appConfig = {};
       let sancoesConfiguradas = [];
+      let demandasConfiguradas = [];
       let usuariosAtivosApp = [];
       let preparacoesVistoria = [];
       let filtroPreparacoes = 'todas';
@@ -3953,9 +3954,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function populateOptions(op) {
         fillCity(op.cidade);
         sancoesConfiguradas = (op.sancao || []).filter(v => normalize(v) !== normalize('Advertência'));
+        demandasConfiguradas = (op.demandaPrincipal || []).filter(Boolean);
+        atualizarOpcoesDemandaPorFluxo_();
         atualizarOpcoesSancaoPorFluxo_();
         fillDatalist('dlNatureza', op.natureza);
-        fillDatalist('dlDemanda', op.demandaPrincipal);
         fillSelect('categoriaMeta', (op.categoriaMeta || []).filter(Boolean), 'Nenhuma / não se aplica');
         atualizarVerificacaoMetasFiscalizacao_();
         ocupacoesExistentes = Array.from(new Set(
@@ -4020,6 +4022,33 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function ehDemandaDdu_() {
         return ehFluxoFiscalizacao_() && normalize(value('demandaPrincipal')) === normalize('DDU');
+      }
+
+      function demandasPermitidasFiscalizacao_() {
+        const opcoes = (demandasConfiguradas || []).filter(Boolean).slice();
+        ['Eventos declaratórios', 'Vistoria Acessória'].forEach(obrigatoria => {
+          if (!opcoes.some(valor => normalize(valor) === normalize(obrigatoria))) opcoes.push(obrigatoria);
+        });
+        return opcoes.filter(valor => normalize(valor) !== normalize('Liberação'));
+      }
+
+      function atualizarOpcoesDemandaPorFluxo_() {
+        const demanda = document.getElementById('demandaPrincipal');
+        const fluxo = fluxoVistoriaAtual_();
+        let opcoes = (demandasConfiguradas || []).filter(Boolean);
+
+        if (fluxo === 'fiscalizacao') opcoes = demandasPermitidasFiscalizacao_();
+        else if (fluxo === 'liberacao') opcoes = ['Liberação'];
+
+        fillDatalist('dlDemanda', opcoes);
+        if (!demanda) return;
+
+        const atual = normalize(demanda.value);
+        if (fluxo === 'liberacao') {
+          demanda.value = 'Liberação';
+        } else if (fluxo === 'fiscalizacao' && atual === normalize('Liberação')) {
+          demanda.value = '';
+        }
       }
 
       function sincronizarTipoLiberacao_() {
@@ -4373,6 +4402,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? 'Fluxo selecionado: Vistoria de Liberação — resultado pretendido: Liberado ou Notificado. Pendências de multa impedem a liberação.'
             : (f === 'fiscalizacao' ? 'Fluxo selecionado: Vistoria de Fiscalização.' : '');
         }
+        atualizarOpcoesDemandaPorFluxo_();
         atualizarOpcoesSancaoPorFluxo_();
         if (licenciamentoFieldWrap) licenciamentoFieldWrap.hidden = f === 'liberacao';
         if (possuiPscipFieldWrap) possuiPscipFieldWrap.hidden = f === 'liberacao';
