@@ -139,15 +139,28 @@
   }
 
   const visualPages = {
-    33: [21,26,45,46,50,51,52,54,55,66,67,69]
+    3: [65,89,90,91,92,93,94],
+    10: [27,28],
+    15: [26,27,28,29,30,31,32],
+    33: [21,26,45,46,50,51,52,54,55,66,67,69],
+    41: [69,70,71]
+  };
+  const visualPagesOpen = {
+    3: [89,90,91,92,93,94],
+    10: [27,28],
+    15: [26,27,28,29,30,31,32]
   };
   for (const page of (visualPages[it] || [])) {
     const sec = document.querySelector(`.pdf-page[data-page="${page}"]`);
     if (!sec || sec.querySelector('.technical-page-visual')) continue;
     const details = document.createElement('details');
     details.className = 'technical-page-visual';
+    if ((visualPagesOpen[it] || []).includes(page)) details.open = true;
     const num = String(page).padStart(2,'0');
-    details.innerHTML = `<summary>Ver visual fiel da página ${page}</summary><div class="technical-page-visual-inner"><p>Imagem otimizada da página original, incorporada ao acervo sem anexar o PDF.</p><img loading="lazy" decoding="async" src="../assets/visual/it-${String(it).padStart(2,'0')}-p${num}.webp" alt="Visual fiel da página ${page} da IT ${String(it).padStart(2,'0')}"></div>`;
+    let rotulo = `Ver visual fiel da página ${page}`;
+    if (it === 41 && [69,70,71].includes(page)) rotulo = `Ver equações com formatação fiel — página ${page}`;
+    if (it === 3 && page === 65) rotulo = 'Ver memorial de avaliação de risco com estrutura fiel';
+    details.innerHTML = `<summary>${rotulo}</summary><div class="technical-page-visual-inner"><p>Reprodução visual incorporada ao acervo para preservar a estrutura técnica, sem anexar o PDF e sem alterar o texto normativo pesquisável.</p><img loading="lazy" decoding="async" src="../assets/visual/it-${String(it).padStart(2,'0')}-p${num}.webp" alt="Visual fiel da página ${page} da IT ${String(it).padStart(2,'0')}"></div>`;
     sec.appendChild(details);
   }
 })();

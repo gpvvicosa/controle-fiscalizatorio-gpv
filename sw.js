@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-80-acervo-its-fase1';
-const VERSION = '23.9.80';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-81-acervo-its-fase2-visuais';
+const VERSION = '23.9.81';
 
 const CORE_SHELL = [
   './',
@@ -27,6 +27,25 @@ const OPTIONAL_SHELL = [
   './instrucoes-tecnicas/assets/portal.js',
   './instrucoes-tecnicas/assets/search-index.js',
   './instrucoes-tecnicas/assets/style.css',
+  './instrucoes-tecnicas/assets/visual/it-03-p65.webp',
+  './instrucoes-tecnicas/assets/visual/it-03-p89.webp',
+  './instrucoes-tecnicas/assets/visual/it-03-p90.webp',
+  './instrucoes-tecnicas/assets/visual/it-03-p91.webp',
+  './instrucoes-tecnicas/assets/visual/it-03-p92.webp',
+  './instrucoes-tecnicas/assets/visual/it-03-p93.webp',
+  './instrucoes-tecnicas/assets/visual/it-03-p94.webp',
+  './instrucoes-tecnicas/assets/visual/it-10-p27.webp',
+  './instrucoes-tecnicas/assets/visual/it-10-p28.webp',
+  './instrucoes-tecnicas/assets/visual/it-15-p26.webp',
+  './instrucoes-tecnicas/assets/visual/it-15-p27.webp',
+  './instrucoes-tecnicas/assets/visual/it-15-p28.webp',
+  './instrucoes-tecnicas/assets/visual/it-15-p29.webp',
+  './instrucoes-tecnicas/assets/visual/it-15-p30.webp',
+  './instrucoes-tecnicas/assets/visual/it-15-p31.webp',
+  './instrucoes-tecnicas/assets/visual/it-15-p32.webp',
+  './instrucoes-tecnicas/assets/visual/it-41-p69.webp',
+  './instrucoes-tecnicas/assets/visual/it-41-p70.webp',
+  './instrucoes-tecnicas/assets/visual/it-41-p71.webp',
   './instrucoes-tecnicas/assets/visual/it-33-p21.webp',
   './instrucoes-tecnicas/assets/visual/it-33-p26.webp',
   './instrucoes-tecnicas/assets/visual/it-33-p45.webp',
