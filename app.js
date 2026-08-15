@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.76';
+      const APP_VERSION = '23.9.78';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -35,7 +35,7 @@
           cidade: ['Viçosa','Cajuri','Canaã','Araponga','Coimbra','Ervália','Paula Cândido','Pedra do Anta','Porto Firme','Presidente Bernardes','São Geraldo','São Miguel do Anta','Teixeiras','Outro'],
           sancao: ['Autuado','Advertência','Notificado','Regularizado','Liberado','Pendente — multa em aberto','Pendente — conferir multa no INFOSCIP'],
           tipoVistoria: [], natureza: [],
-          demandaPrincipal: ['Alerta Vermelho','Liberação','Iniciativa'],
+          demandaPrincipal: ['Alerta Vermelho','Liberação','Iniciativa','Eventos declaratórios'],
           categoriaMeta: ['', 'Brigada','CLCB','Renovação AVCB','Eventos declaratórios','Nível de risco III'],
           ocupacao: [], responsavel: [], profissao: [], estadoCivil: [], escolaridade: [],
           enderecoCorrespondencia: ['O Mesmo']
@@ -299,7 +299,11 @@
           }
           return result;
         } catch (error) {
-          if (error?.name === 'AbortError') throw new Error('A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.');
+          if (error?.name === 'AbortError') {
+            const timeoutError = new Error('A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.');
+            timeoutError.code = 'REQUEST_TIMEOUT';
+            throw timeoutError;
+          }
           throw error;
         } finally {
           clearTimeout(timer);
@@ -558,6 +562,22 @@
       const areaInput = document.getElementById('area');
       const areaLabel = document.getElementById('areaLabel');
       const areaMetaStatus = document.getElementById('areaMetaStatus');
+      const eventosDeclaratoriosSecao = document.getElementById('eventosDeclaratoriosSecao');
+      const demandaFiscalizacaoWrap = document.getElementById('demandaFiscalizacaoWrap');
+      const estabelecimentoDocumentoWrap = document.getElementById('estabelecimentoDocumentoWrap');
+      const nomeFantasiaWrap = document.getElementById('nomeFantasiaWrap');
+      const razaoSocialWrap = document.getElementById('razaoSocialWrap');
+      const enderecoCorrespondenciaWrap = document.getElementById('enderecoCorrespondenciaWrap');
+      const estabelecimentoTitulo = document.getElementById('estabelecimentoTitulo');
+      const estabelecimentoDescricao = document.getElementById('estabelecimentoDescricao');
+      const responsavelSecao = document.getElementById('responsavelSecao');
+      const edificacaoSecao = document.getElementById('edificacao');
+      const situacaoMultaInfoscipWrap = document.getElementById('situacaoMultaInfoscipWrap');
+      const categoriaMetaWrap = document.getElementById('categoriaMetaWrap');
+      const eventoDeclaracaoNumeroInput = document.getElementById('eventoDeclaracaoNumero');
+      const eventoClassificacaoSelect = document.getElementById('eventoClassificacao');
+      const eventoOrganizadorDocumentoInput = document.getElementById('eventoOrganizadorDocumento');
+      const eventoTelefoneOrganizadorInput = document.getElementById('eventoTelefoneOrganizador');
       const notificacoesLiberacaoSecao = document.getElementById('notificacoesLiberacaoSecao');
       const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
       const notificacoesLiberacaoResumo = document.getElementById('notificacoesLiberacaoResumo');
@@ -2668,6 +2688,18 @@ PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº
       });
 
       const RELATORIOS_REDS_FISCALIZACAO = Object.freeze({
+        eventoDeclaratorioConforme: {
+          titulo: 'Fiscalização — evento declaratório conforme',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, CONFORME PREVISTO NO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+NO LOCAL, CONSTATOU-SE UM EVENTO DE {{EVENTO_RISCO}} – Nº {{EVENTO_DECLARACAO}}, INTITULADO {{EVENTO_NOME}}, ORGANIZADO POR {{EVENTO_ORGANIZADOR}}, CPF/CNPJ Nº {{EVENTO_DOCUMENTO}}.
+
+IN LOCO, VERIFICAMOS QUE O LOCAL ONDE SERÁ REALIZADO O EVENTO ESTÁ DE ACORDO COM A DECLARAÇÃO REALIZADA VIA INFOSCIP. O RESPONSÁVEL PELO EVENTO TEVE CIÊNCIA DE QUE DEVERÁ MANTER AS MEDIDAS DE PREVENÇÃO E COMBATE A INCÊNDIO E PÂNICO DO REFERIDO EVENTO EM PERMANENTES CONDIÇÕES DE USO, BEM COMO TODAS AS SAÍDAS DE EMERGÊNCIA DESTRANCADAS E DESOBSTRUÍDAS DURANTE TODA A REALIZAÇÃO DO EVENTO.
+
+O RESPONSÁVEL FOI INFORMADO, TAMBÉM, DE QUE DEVERÁ RESPEITAR A CAPACIDADE MÁXIMA DE PÚBLICO INFORMADA NA DECLARAÇÃO EMITIDA NO INFOSCIP E, CASO DEIXE DE FAZÊ-LO, ESTARÁ SUJEITO ÀS MEDIDAS E SANÇÕES PREVISTAS NA LEI ESTADUAL Nº 14.130/2001, NO DECRETO ESTADUAL Nº 47.998/2020 E NA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+PARA DÚVIDAS OU ESCLARECIMENTOS EM RELAÇÃO AO PROCEDIMENTO DURANTE A VISTORIA, O GRUPAMENTO DE PREVENÇÃO E VISTORIA DO 3º PELOTÃO BM/VIÇOSA FICA SEDIADO NA CASA Nº 38, VILA GIANNETTI – UFV – CENTRO, VIÇOSA – MG. TEL.: (31) 3612-3894. E-MAIL: VICOSA.GPV@BOMBEIROS.MG.GOV.BR.`
+        },
         irregular: {
           titulo: 'Fiscalização — irregularidade / autuação',
           texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
@@ -2740,6 +2772,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function sugestaoModeloFiscalizacao_(registro, situacao) {
         const n = normalize(situacao);
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        if (demanda.includes(normalize('Eventos declaratórios')) && n === normalize('Regularizado')) return 'eventoDeclaratorioConforme';
         const projeto = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
         if (n === normalize('Regularizado')) return projeto ? 'regularizado' : 'dispensado';
         return projeto ? 'comPscipSemAvcb' : 'semAvcb';
@@ -2756,7 +2790,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         recordRedsModelSelect.hidden = false;
         if (label) label.hidden = false;
+        const ehEventoDeclaratorio = normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Eventos declaratórios'));
         const opcoes = [
+          ...(ehEventoDeclaratorio ? [['eventoDeclaratorioConforme', 'Fiscalização — evento declaratório conforme']] : []),
           ['irregular', 'Fiscalização — irregularidade / autuação'],
           ['semAvcb', 'Fiscalização — sem AVCB/CLCB'],
           ['comPscipSemAvcb', 'Fiscalização — possui PSCIP, mas não possui AVCB'],
@@ -2796,12 +2832,22 @@ O RESPONSÁVEL FOI CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA
 POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAuto}, VINCULADO AO PROCESSO FISCALIZATÓRIO.` : '';
         const pscipTrecho = pscip ? `, VINCULADA AO PSCIP Nº ${pscip}` : '';
         const licenca = pscip ? `AVCB/CLCB Nº ${pscip}` : 'LICENCIAMENTO VÁLIDO';
+        const eventoRisco = String(valorCampoFicha_(registro, 'Classificação do evento') || 'RISCO NÃO INFORMADO').toUpperCase();
+        const eventoDeclaracao = valorCampoFicha_(registro, 'Nº da declaração INFOSCIP') || 'NÃO INFORMADO';
+        const eventoNome = String(valorCampoFicha_(registro, 'Nome do evento') || 'NÃO INFORMADO').toUpperCase();
+        const eventoOrganizador = String(valorCampoFicha_(registro, 'Organizador do evento') || 'NÃO INFORMADO').toUpperCase();
+        const eventoDocumento = valorCampoFicha_(registro, 'CPF/CNPJ do organizador') || 'NÃO INFORMADO';
         return modelo.texto
           .replaceAll('{{PSCIP}}', pscip || 'NÃO INFORMADO')
           .replaceAll('{{PF}}', pf)
           .replaceAll('{{AUTO_PARAGRAFO}}', autoParagrafo)
           .replaceAll('{{PSCIP_TRECHO}}', pscipTrecho)
-          .replaceAll('{{LICENCA}}', licenca);
+          .replaceAll('{{LICENCA}}', licenca)
+          .replaceAll('{{EVENTO_RISCO}}', eventoRisco)
+          .replaceAll('{{EVENTO_DECLARACAO}}', eventoDeclaracao)
+          .replaceAll('{{EVENTO_NOME}}', eventoNome)
+          .replaceAll('{{EVENTO_ORGANIZADOR}}', eventoOrganizador)
+          .replaceAll('{{EVENTO_DOCUMENTO}}', eventoDocumento);
       }
 
       function atualizarTextoRelatorioRedsFiscalizacao_() {
@@ -3072,6 +3118,40 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (recordStatusUpdateSaveBtn) recordStatusUpdateSaveBtn.disabled = false;
       }
 
+      function situacaoEsperadaAposConferencia_(novaSituacao, situacaoMultaInfoscip) {
+        const nova = String(novaSituacao || '').trim();
+        const multa = normalizarSituacaoMultaInfoscip_(situacaoMultaInfoscip || 'Não conferido');
+        if (['Liberado', 'Regularizado'].some(v => normalize(v) === normalize(nova))) {
+          if (multa === 'Possui multa em aberto') return 'Pendente — multa em aberto';
+          if (multa !== 'Não possui multa em aberto') return 'Pendente — conferir multa no INFOSCIP';
+        }
+        return nova;
+      }
+
+      function atualizacaoSituacaoConfirmadaNaFicha_(registro, novaSituacao, situacaoMultaInfoscip) {
+        if (!registro) return false;
+        const esperada = situacaoEsperadaAposConferencia_(novaSituacao, situacaoMultaInfoscip);
+        const atual = String(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '').trim();
+        if (normalize(atual) !== normalize(esperada)) return false;
+        const multaAtual = normalizarSituacaoMultaInfoscip_(valorCampoFicha_(registro, 'Situação de multa no INFOSCIP'));
+        return multaAtual === normalizarSituacaoMultaInfoscip_(situacaoMultaInfoscip);
+      }
+
+      async function verificarAtualizacaoSituacaoAposTimeout_(chave, linhaHint, novaSituacao, situacaoMultaInfoscip) {
+        // O AbortController encerra apenas a espera no navegador; o Apps Script pode
+        // concluir a gravação logo depois. Antes de sugerir uma nova tentativa,
+        // consultamos a Ficha para evitar duplicidade de auditoria.
+        await new Promise(resolve => setTimeout(resolve, 1800));
+        try {
+          const registro = await consultarRegistroComRetry_(chave, linhaHint, true);
+          if (atualizacaoSituacaoConfirmadaNaFicha_(registro, novaSituacao, situacaoMultaInfoscip)) {
+            gravarCacheFicha_(chave, registro);
+            return registro;
+          }
+        } catch (e) {}
+        return null;
+      }
+
       async function salvarAtualizacaoSituacaoInfoscip_() {
         if (!recordStatusRegistroAtual || !recordsState.chaveSelecionada) return;
         const novaSituacao = String(recordStatusUpdateSelect?.value || '').trim();
@@ -3096,9 +3176,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           recordStatusUpdateMessage.textContent = 'Salvando atualização...';
           recordStatusUpdateMessage.className = 'record-status-update-message';
         }
+
+        const chave = recordsState.chaveSelecionada;
+        const linhaHint = Number(recordsState.linhaSelecionada || recordStatusRegistroAtual?.linhaAtual || 0);
+
         try {
-          const chave = recordsState.chaveSelecionada;
-          const linhaHint = Number(recordsState.linhaSelecionada || recordStatusRegistroAtual?.linhaAtual || 0);
           const resposta = await apiRequest('config', {
             consulta: 'situacao_atualizar',
             chave,
@@ -3107,14 +3189,33 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             situacaoMultaInfoscip,
             confirmadoInfoscip: true,
             dispositivo: nomeDispositivo_()
-          }, 30000);
+          }, 55000);
+
           fecharAtualizacaoSituacaoInfoscip_();
           limparCachesConsulta_();
           appStatus.textContent = `Situação atualizada para ${resposta?.situacaoAtual || novaSituacao} após conferência no INFOSCIP.`;
           await abrirDetalheRegistro_(chave, Number(resposta?.linha || linhaHint));
           if (document.body.classList.contains('records-mode')) void carregarRegistros_(false);
         } catch (erro) {
-          if (recordStatusUpdateMessage) {
+          if (erro?.code === 'REQUEST_TIMEOUT') {
+            if (recordStatusUpdateMessage) {
+              recordStatusUpdateMessage.textContent = 'A confirmação está demorando. Verificando se a atualização já foi concluída...';
+              recordStatusUpdateMessage.className = 'record-status-update-message';
+            }
+            const confirmada = await verificarAtualizacaoSituacaoAposTimeout_(chave, linhaHint, novaSituacao, situacaoMultaInfoscip);
+            if (confirmada) {
+              fecharAtualizacaoSituacaoInfoscip_();
+              limparCachesConsulta_();
+              appStatus.textContent = `Situação atualizada para ${confirmada?.situacaoAtual || novaSituacao} após conferência no INFOSCIP.`;
+              await abrirDetalheRegistro_(chave, Number(confirmada?.linhaAtual || linhaHint));
+              if (document.body.classList.contains('records-mode')) void carregarRegistros_(false);
+              return;
+            }
+            if (recordStatusUpdateMessage) {
+              recordStatusUpdateMessage.textContent = 'Não foi possível confirmar a atualização. Feche e reabra a Ficha antes de tentar novamente.';
+              recordStatusUpdateMessage.className = 'record-status-update-message error';
+            }
+          } else if (recordStatusUpdateMessage) {
             recordStatusUpdateMessage.textContent = erro?.message || 'Não foi possível atualizar a situação.';
             recordStatusUpdateMessage.className = 'record-status-update-message error';
           }
@@ -3164,10 +3265,22 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ['E-mail', valorCampoFicha_(registro, 'E-mail')],
           ['Endereço do responsável', valorCampoFicha_(registro, 'Endereço do responsável')]
         ];
+        const eventoDeclaratorio = [
+          ['Nº da declaração INFOSCIP', valorCampoFicha_(registro, 'Nº da declaração INFOSCIP')],
+          ['Classificação do evento', valorCampoFicha_(registro, 'Classificação do evento')],
+          ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento')],
+          ['Início', valorCampoFicha_(registro, 'Início do evento')],
+          ['Término', valorCampoFicha_(registro, 'Término do evento')],
+          ['Público estimado', valorCampoFicha_(registro, 'Público estimado')],
+          ['Organizador', valorCampoFicha_(registro, 'Organizador do evento')],
+          ['CPF/CNPJ do organizador', valorCampoFicha_(registro, 'CPF/CNPJ do organizador')],
+          ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
+        ];
 
         recordDetailGroups.innerHTML =
           montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary') +
           montarGrupoFicha_('Processo', processo) +
+          montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
           montarGrupoFicha_('Local', local) +
           montarGrupoFicha_('Responsável', responsavel);
 
@@ -3762,6 +3875,65 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       function ehFluxoLiberacao_() { return fluxoVistoriaAtual_() === 'liberacao'; }
       function ehFluxoFiscalizacao_() { return fluxoVistoriaAtual_() === 'fiscalizacao'; }
 
+
+      function ehEventoDeclaratorio_() {
+        return ehFluxoFiscalizacao_() && normalize(value('demandaPrincipal')) === normalize('Eventos declaratórios');
+      }
+
+      function formatarDocumentoEvento_(valor) {
+        const d = digits(valor || '').slice(0, 14);
+        if (d.length <= 11) {
+          return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        }
+        return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+      }
+
+      function formatarTelefoneEvento_(valor) {
+        let d = digits(valor || '').slice(0, 11);
+        if (d.length <= 10) return d.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2');
+        return d.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+      }
+
+      function aplicarModoEventoDeclaratorio_(opcoes = {}) {
+        const fluxo = fluxoVistoriaAtual_();
+        const evento = fluxo === 'fiscalizacao' && normalize(value('demandaPrincipal')) === normalize('Eventos declaratórios');
+        if (eventosDeclaratoriosSecao) eventosDeclaratoriosSecao.hidden = !evento;
+        if (demandaFiscalizacaoWrap) demandaFiscalizacaoWrap.hidden = fluxo === 'liberacao' || !fluxo;
+        if (licenciamentoFieldWrap) licenciamentoFieldWrap.hidden = fluxo === 'liberacao' || evento;
+        if (possuiPscipFieldWrap) possuiPscipFieldWrap.hidden = fluxo === 'liberacao' || evento;
+
+        if (estabelecimentoDocumentoWrap) estabelecimentoDocumentoWrap.hidden = evento;
+        if (nomeFantasiaWrap) nomeFantasiaWrap.hidden = evento;
+        if (razaoSocialWrap) razaoSocialWrap.hidden = evento;
+        if (enderecoCorrespondenciaWrap) enderecoCorrespondenciaWrap.hidden = evento;
+        if (responsavelSecao) responsavelSecao.hidden = evento || !fluxo;
+        if (edificacaoSecao) edificacaoSecao.hidden = evento || !fluxo;
+        if (situacaoMultaInfoscipWrap) situacaoMultaInfoscipWrap.hidden = evento;
+        if (categoriaMetaWrap) categoriaMetaWrap.hidden = evento;
+
+        if (estabelecimentoTitulo) estabelecimentoTitulo.textContent = evento ? '3. Local do evento' : '2. Identificação e dados do estabelecimento';
+        if (estabelecimentoDescricao) estabelecimentoDescricao.textContent = evento
+          ? 'Informe o endereço real onde o evento será realizado. Este endereço é a principal referência para localizar o histórico do local.'
+          : 'Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente.';
+
+        if (categoriaMetaSelect) {
+          categoriaMetaSelect.disabled = evento;
+          if (evento) categoriaMetaSelect.value = 'Eventos declaratórios';
+          else if (normalize(categoriaMetaSelect.value) === normalize('Eventos declaratórios') && normalize(value('demandaPrincipal')) !== normalize('Eventos declaratórios')) categoriaMetaSelect.value = '';
+        }
+        if (evento && situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
+
+        atualizarOpcoesSancaoPorFluxo_();
+        if (evento && sancaoSelect && !['Regularizado','Autuado'].some(v => normalize(v) === normalize(sancaoSelect.value))) sancaoSelect.value = '';
+        atualizarVerificacaoMetasFiscalizacao_();
+        syncLicenciamento();
+        if (evento) {
+          esconderAvisoEncerramentoFiscal_();
+          agendarConsultaProcessoPf_('form', 100);
+        }
+        if (!opcoes.silencioso) scheduleDraftSave();
+      }
+
       function numeroAreaM2_(valor) {
         let texto = String(valor == null ? '' : valor).trim().replace(/\s+/g, '');
         if (!texto) return NaN;
@@ -3798,9 +3970,15 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
 
       function atualizarVerificacaoMetasFiscalizacao_() {
-        const fiscalizacao = ehFluxoFiscalizacao_();
+        const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const fiscalizacao = ehFluxoFiscalizacao_() && !eventoDeclaratorio;
         if (areaInput) areaInput.required = fiscalizacao;
         areaLabel?.classList.toggle('required', fiscalizacao);
+        if (eventoDeclaratorio) {
+          if (areaMetaStatus) { areaMetaStatus.className = 'lookup-status'; areaMetaStatus.textContent = ''; }
+          if (categoriaMetaSelect) { categoriaMetaSelect.value = 'Eventos declaratórios'; categoriaMetaSelect.disabled = true; }
+          return;
+        }
 
         if (categoriaMetaSelect) {
           const opcaoNivel3 = Array.from(categoriaMetaSelect.options || []).find(op => normalize(op.value) === normalize('Nível de risco III'));
@@ -3844,6 +4022,8 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         let opcoes = [];
         if (fluxo === 'liberacao') {
           opcoes = ['Liberado', 'Notificado'];
+        } else if (fluxo === 'fiscalizacao' && ehEventoDeclaratorio_()) {
+          opcoes = ['Regularizado', 'Autuado'];
         } else if (fluxo === 'fiscalizacao') {
           opcoes = (sancoesConfiguradas || []).filter(v => {
             const n = normalize(v);
@@ -3886,10 +4066,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           if (possuiPscipSelect) possuiPscipSelect.value = 'sim';
           syncPscip_();
           const demanda = document.getElementById('demandaPrincipal');
-          if (demanda && (!demanda.value || normalize(demanda.value) === normalize('Fiscalização'))) demanda.value = 'Liberação';
+          if (demanda && (!demanda.value || [normalize('Fiscalização'), normalize('Eventos declaratórios')].includes(normalize(demanda.value)))) demanda.value = 'Liberação';
         } else {
           syncLicenciamento();
         }
+        aplicarModoEventoDeclaratorio_({ silencioso: true });
         syncNotificado();
         atualizarVerificacaoMetasFiscalizacao_();
         if (!opcoes.silencioso && f) {
@@ -4415,6 +4596,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
 
       function buildPayload() {
+        const eventoDeclaratorio = ehEventoDeclaratorio_();
         let sancaoPretendida = value('sancao');
         // V23.9.75 — defesa adicional para rascunhos/estados antigos do navegador:
         // no fluxo de Liberação, resultados próprios da Fiscalização nunca podem ser enviados.
@@ -4436,46 +4618,55 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           _appVersao: APP_VERSION,
           vistoriadorResponsavel: value('vistoriadorResponsavel'),
           cidade: cityValue() || 'Viçosa',
-          nomeFantasia: value('nomeFantasia'),
-          razaoSocial: value('razaoSocial'),
-          cnpj: value('cnpj'),
-          _appIdentificadorTipo: tipoIdentificador_(value('cnpj')),
-          _appLicenciamento: value('licenciamento'),
-          _appPossuiPscip: value('possuiPscip'),
+          nomeFantasia: eventoDeclaratorio ? value('eventoNome') : value('nomeFantasia'),
+          razaoSocial: eventoDeclaratorio ? '' : value('razaoSocial'),
+          cnpj: eventoDeclaratorio ? '' : value('cnpj'),
+          _appIdentificadorTipo: eventoDeclaratorio ? '' : tipoIdentificador_(value('cnpj')) ,
+          _appLicenciamento: eventoDeclaratorio ? '' : value('licenciamento'),
+          _appPossuiPscip: eventoDeclaratorio ? '' : value('possuiPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           _appSancaoPretendida: sancaoPretendida,
-          sancao: situacaoFinalPorMulta_(sancaoPretendida, situacaoMultaInfoscip),
-          situacaoMultaInfoscip,
+          sancao: eventoDeclaratorio ? sancaoPretendida : situacaoFinalPorMulta_(sancaoPretendida, situacaoMultaInfoscip),
+          situacaoMultaInfoscip: eventoDeclaratorio ? '' : situacaoMultaInfoscip,
           pendenciaDocumental: value('pendenciaDocumental'),
-          pscip: value('possuiPscip') === 'sim' ? normalizarPscipExibicao_(value('pscip'), true) : '',
+          pscip: eventoDeclaratorio ? '' : (value('possuiPscip') === 'sim' ? normalizarPscipExibicao_(value('pscip'), true) : ''),
           pf: value('pf'),
           tipoVistoria: value('tipoVistoria'),
           reds: value('reds'),
           natureza: value('natureza'),
-          enderecoCorrespondencia: value('enderecoCorrespondencia'),
+          enderecoCorrespondencia: eventoDeclaratorio ? '' : value('enderecoCorrespondencia'),
           endereco: value('endereco'),
           numero: value('numero'),
           complemento: value('complemento'),
           bairro: value('bairro'),
-          demandaPrincipal: value('demandaPrincipal'),
-          categoriaMeta: value('categoriaMeta'),
+          demandaPrincipal: eventoDeclaratorio ? 'Eventos declaratórios' : value('demandaPrincipal'),
+          categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : value('categoriaMeta'),
           resim: value('resim'),
-          area: value('area'),
-          pavimentos: value('pavimentos'),
-          altura: value('altura'),
-          ocupacao: ocupacaoTextoFinal(),
-          responsavel: value('responsavel'),
-          nomeResponsavel: value('nomeResponsavel'),
-          rg: value('rg'),
-          cpf: value('cpf') || (tipoIdentificador_(value('cnpj')) === 'cpf' ? value('cnpj') : ''),
-          mae: value('mae'),
-          nascimento: value('nascimento'),
-          profissao: value('profissao'),
-          estadoCivil: value('estadoCivil'),
-          escolaridade: value('escolaridade'),
-          telefone: value('telefone'),
-          email: value('email'),
-          enderecoResponsavel: value('enderecoResponsavel'),
+          area: eventoDeclaratorio ? '' : value('area'),
+          pavimentos: eventoDeclaratorio ? '' : value('pavimentos'),
+          altura: eventoDeclaratorio ? '' : value('altura'),
+          ocupacao: eventoDeclaratorio ? '' : ocupacaoTextoFinal(),
+          responsavel: eventoDeclaratorio ? '' : value('responsavel'),
+          nomeResponsavel: eventoDeclaratorio ? '' : value('nomeResponsavel'),
+          rg: eventoDeclaratorio ? '' : value('rg'),
+          cpf: eventoDeclaratorio ? '' : (value('cpf') || (tipoIdentificador_(value('cnpj')) === 'cpf' ? value('cnpj') : '')) ,
+          mae: eventoDeclaratorio ? '' : value('mae'),
+          nascimento: eventoDeclaratorio ? '' : value('nascimento'),
+          profissao: eventoDeclaratorio ? '' : value('profissao'),
+          estadoCivil: eventoDeclaratorio ? '' : value('estadoCivil'),
+          escolaridade: eventoDeclaratorio ? '' : value('escolaridade'),
+          telefone: eventoDeclaratorio ? '' : value('telefone'),
+          email: eventoDeclaratorio ? '' : value('email'),
+          enderecoResponsavel: eventoDeclaratorio ? '' : value('enderecoResponsavel'),
+          eventoDeclaracaoNumero: eventoDeclaratorio ? value('eventoDeclaracaoNumero').toUpperCase() : '',
+          eventoClassificacao: eventoDeclaratorio ? value('eventoClassificacao') : '',
+          eventoNome: eventoDeclaratorio ? value('eventoNome') : '',
+          eventoInicio: eventoDeclaratorio ? value('eventoInicio') : '',
+          eventoTermino: eventoDeclaratorio ? value('eventoTermino') : '',
+          eventoPublicoEstimado: eventoDeclaratorio ? value('eventoPublicoEstimado') : '',
+          eventoOrganizador: eventoDeclaratorio ? value('eventoOrganizador') : '',
+          eventoOrganizadorDocumento: eventoDeclaratorio ? value('eventoOrganizadorDocumento') : '',
+          eventoTelefoneOrganizador: eventoDeclaratorio ? value('eventoTelefoneOrganizador') : '',
           notificacoesLiberacao: ehFluxoLiberacao_() ? serializarNotificacoesLiberacao_() : ''
         };
       }
@@ -4488,16 +4679,21 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
 
       function validateRequired(showMessage = true) {
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+        const eventoDeclaratorio = ehEventoDeclaratorio_();
         const checks = [
           ['tipoVistoria', 'Tipo de vistoria'],
           ['sancao', 'Situação / resultado'],
-          ...(ehFluxoLiberacao_() ? [] : [['licenciamento', 'Situação do licenciamento'], ['possuiPscip', 'Possui PSCIP?']]),
-          ...(ehFluxoFiscalizacao_() ? [['area', 'Área da edificação (m²)']] : []),
           ['vistoriadorResponsavel', 'Vistoriador responsável'],
-          ['cnpj', 'CNPJ ou CPF'],
-          ['endereco', 'Endereço'],
-          ['nomeResponsavel', 'Nome do responsável'],
-          ['mae', 'Mãe']
+          ['endereco', eventoDeclaratorio ? 'Endereço do evento' : 'Endereço'],
+          ...(eventoDeclaratorio
+            ? [['eventoDeclaracaoNumero', 'Nº da declaração INFOSCIP']]
+            : [
+                ...(ehFluxoLiberacao_() ? [] : [['licenciamento', 'Situação do licenciamento'], ['possuiPscip', 'Possui PSCIP?']]),
+                ...(ehFluxoFiscalizacao_() ? [['area', 'Área da edificação (m²)']] : []),
+                ['cnpj', 'CNPJ ou CPF'],
+                ['nomeResponsavel', 'Nome do responsável'],
+                ['mae', 'Mãe']
+              ])
         ];
         const missing = [];
         let first = null;
@@ -4506,7 +4702,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           missing.push('Pendência documental');
           first = first || pendenciaDocumentalSelect;
         }
-        if (value('possuiPscip') === 'sim' && normalizarPscipTela_(value('pscip')).length <= 3) {
+        if (!eventoDeclaratorio && value('possuiPscip') === 'sim' && normalizarPscipTela_(value('pscip')).length <= 3) {
           const elPscip = document.getElementById('pscip');
           if (elPscip) elPscip.classList.add('invalid');
           missing.push('Nº do PSCIP');
@@ -4514,10 +4710,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         }
         checks.forEach(([id, label]) => {
           const el = document.getElementById(id);
-          if (!String(el.value || '').trim()) {
+          if (!el || !String(el.value || '').trim()) {
             missing.push(label);
-            el.classList.add('invalid');
-            if (!first) first = el;
+            if (el) el.classList.add('invalid');
+            if (!first && el) first = el;
           }
         });
         if (citySelect.value === 'Outro' && !value('outraCidade')) {
@@ -4525,26 +4721,41 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           otherCity.classList.add('invalid');
           if (!first) first = otherCity;
         }
-        if (ehFluxoFiscalizacao_() && value('area')) {
+        if (ehFluxoFiscalizacao_() && !eventoDeclaratorio && value('area')) {
           const area = numeroAreaM2_(value('area'));
           if (!Number.isFinite(area) || area <= 0) {
             if (areaInput) areaInput.classList.add('invalid');
             if (showMessage) showError('Informe uma área válida da edificação em metros quadrados.');
-            if (areaInput) {
-              openParentDetails(areaInput);
-              areaInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            if (areaInput) { openParentDetails(areaInput); areaInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             return false;
           }
         }
-        const identificador = digits(value('cnpj'));
-        if (identificador && ![11, 14].includes(identificador.length)) {
-          const el = document.getElementById('cnpj');
-          el.classList.add('invalid');
-          if (showMessage) showError('Informe um CNPJ com 14 dígitos ou um CPF com 11 dígitos.');
-          openParentDetails(el);
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return false;
+        if (!eventoDeclaratorio) {
+          const identificador = digits(value('cnpj'));
+          if (identificador && ![11, 14].includes(identificador.length)) {
+            const el = document.getElementById('cnpj');
+            el.classList.add('invalid');
+            if (showMessage) showError('Informe um CNPJ com 14 dígitos ou um CPF com 11 dígitos.');
+            openParentDetails(el);
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+        } else {
+          const documentoOrganizador = digits(value('eventoOrganizadorDocumento'));
+          if (documentoOrganizador && ![11, 14].includes(documentoOrganizador.length)) {
+            eventoOrganizadorDocumentoInput?.classList.add('invalid');
+            if (showMessage) showError('Informe o CPF/CNPJ do organizador com 11 ou 14 dígitos, ou deixe o campo em branco.');
+            eventoOrganizadorDocumentoInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+          const inicio = value('eventoInicio');
+          const termino = value('eventoTermino');
+          if (inicio && termino && new Date(termino).getTime() < new Date(inicio).getTime()) {
+            document.getElementById('eventoTermino')?.classList.add('invalid');
+            if (showMessage) showError('O término do evento não pode ser anterior ao início.');
+            document.getElementById('eventoTermino')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
         }
         if (missing.length) {
           if (showMessage) showError('Preencha os campos obrigatórios: ' + missing.join(', ') + '.');
@@ -4572,6 +4783,17 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const situacao = value('licenciamento');
         const naoPossui = situacao === 'nao_possui';
         const liberacao = ehFluxoLiberacao_();
+        const eventoDeclaratorio = ehEventoDeclaratorio_();
+
+        if (eventoDeclaratorio) {
+          if (sancaoSelect) sancaoSelect.disabled = false;
+          sancaoDefinidaAutomaticamente = false;
+          sancaoAntesDoAutomatico = '';
+          if (sancaoAutomaticaHint) sancaoAutomaticaHint.hidden = true;
+          syncNotificado();
+          esconderAvisoEncerramentoFiscal_();
+          return;
+        }
 
         // Em vistoria de liberação, a constatação final é exclusivamente Liberado/Notificado.
         // A regra de autuação automática por ausência de AVCB/CLCB pertence somente ao fluxo fiscalizatório.
@@ -5412,17 +5634,28 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
             numero: g('prepareNumero')
           };
         }
+        if (ehEventoDeclaratorio_()) {
+          return {
+            identificador: '',
+            pscip: '',
+            cidade: cityValue(),
+            endereco: value('endereco'),
+            numero: value('numero'),
+            eventoDeclaratorio: true
+          };
+        }
         return {
           identificador: digits(value('cnpj')),
           pscip: value('pscip'),
           cidade: cityValue(),
           endereco: value('endereco'),
-          numero: value('numero')
+          numero: value('numero'),
+          eventoDeclaratorio: false
         };
       }
 
       function chaveFiltrosProcessoPf_(f) {
-        return [digits(f.identificador || ''), normalizarPscipTela_(f.pscip || ''), normalize(f.cidade || ''), normalize(f.endereco || ''), normalize(f.numero || '')].join('|');
+        return [f.eventoDeclaratorio ? 'evento' : 'processo', digits(f.identificador || ''), normalizarPscipTela_(f.pscip || ''), normalize(f.cidade || ''), normalize(f.endereco || ''), normalize(f.numero || '')].join('|');
       }
 
       function filtrosSuficientesProcessoPf_(f) {
@@ -5452,13 +5685,34 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           return;
         }
         const principal = lista[0];
+        const historicoEvento = Boolean(principal.eventoDeclaratorio);
         const situacaoMulta = String(principal.situacaoMultaInfoscip || 'Não conferido').trim() || 'Não conferido';
         const prazo = textoPrazoProcessoAnterior_(principal);
         const endereco = [principal.endereco, principal.numero, principal.bairro, principal.cidade].filter(Boolean).join(', ');
-        const titulo = principal.estabelecimento || 'Processo fiscalizatório localizado';
+        const titulo = principal.estabelecimento || (historicoEvento ? 'Evento anteriormente fiscalizado' : 'Processo fiscalizatório localizado');
         const criterio = principal.criterio || 'Histórico compatível';
-        const alertaForte = Boolean(principal.aberto) || normalize(prazo).includes('multa') || normalize(prazo).includes('prazo');
+        const alertaForte = !historicoEvento && (Boolean(principal.aberto) || normalize(prazo).includes('multa') || normalize(prazo).includes('prazo'));
         priorProcessAlert.classList.toggle('is-critical', alertaForte);
+        if (historicoEvento) {
+          priorProcessAlert.innerHTML = `
+            <div class="prior-process-alert-head">
+              <div><span>📍 Histórico de evento neste endereço</span><strong>${escapeHtml(titulo)}</strong></div>
+              <span class="prior-process-match">Mesmo endereço</span>
+            </div>
+            <div class="prior-process-alert-grid">
+              <div><span>Declaração</span><strong>${escapeHtml(principal.declaracao || '—')}</strong></div>
+              <div><span>Situação</span><strong>${escapeHtml(principal.sancao || '—')}</strong></div>
+              <div><span>Última fiscalização</span><strong>${escapeHtml(principal.carimbo || '—')}</strong></div>
+              <div><span>Tipo</span><strong>${escapeHtml(principal.classificacaoEvento || 'Evento declaratório')}</strong></div>
+            </div>
+            ${endereco ? `<div class="prior-process-address">${escapeHtml(endereco)}</div>` : ''}
+            <div class="prior-process-alert-actions">
+              <span>${lista.length > 1 ? `${lista.length} eventos declaratórios anteriores encontrados neste endereço.` : 'Há evento declaratório anterior registrado neste endereço.'}</span>
+              ${principal.chave ? `<button type="button" class="btn btn-secondary prior-process-open-btn" data-open-prior-record="${escapeAttr(principal.chave)}" data-record-line="${Number(principal.linha || 0)}">Abrir Ficha</button>` : ''}
+            </div>`;
+          priorProcessAlert.hidden = false;
+          return;
+        }
         priorProcessAlert.innerHTML = `
           <div class="prior-process-alert-head">
             <div><span>⚠ Processo fiscalizatório existente</span><strong>${escapeHtml(titulo)}</strong></div>
@@ -5529,6 +5783,17 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           renderizarAlertaProcessoAnterior_(candidatos);
         }
         if (!resultados) return;
+        if (!prepare && ehEventoDeclaratorio_()) {
+          resultados.innerHTML = '';
+          resultados.hidden = true;
+          if (status) {
+            status.textContent = candidatos.length
+              ? `${candidatos.length} evento(s) declaratório(s) anterior(es) localizado(s) neste endereço.`
+              : 'Nenhum evento declaratório anterior localizado neste endereço.';
+            status.className = `lookup-status show ${candidatos.length ? 'success' : 'info'}`;
+          }
+          return;
+        }
         if (!candidatos.length) {
           resultados.innerHTML = '';
           resultados.hidden = true;
@@ -5567,7 +5832,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const seq = prepare ? ++preparePfLookupSequencia : ++processoPfLookupSequencia;
         const chave = chaveFiltrosProcessoPf_(filtros);
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
-        if (status) { status.textContent = 'Verificando processo anterior por CNPJ/CPF, PSCIP e endereço...'; status.className = 'lookup-status show info'; }
+        if (status) {
+          status.textContent = (!prepare && ehEventoDeclaratorio_())
+            ? 'Verificando histórico de eventos declaratórios pelo endereço do evento...'
+            : 'Verificando processo anterior por CNPJ/CPF, PSCIP e endereço...';
+          status.className = 'lookup-status show info';
+        }
         try {
           const resposta = await apiRequest('config', { consulta:'processo_pf', filtros }, 10000);
           if ((prepare ? preparePfLookupSequencia : processoPfLookupSequencia) !== seq) return;
@@ -5594,6 +5864,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       }
 
       function situacaoAtualPodeEncerrarFiscalizacao_() {
+        if (ehEventoDeclaratorio_()) return false;
         const final = situacaoFinalPorMulta_(value('sancao'), value('situacaoMultaInfoscip'));
         const n = normalize(final);
         return n === normalize('Regularizado') || n === normalize('Liberado');
@@ -5626,6 +5897,10 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
 
       async function consultarEncerramentoFiscal_(payload = null) {
         const dados = payload || buildPayload();
+        if (normalize(dados?.demandaPrincipal || '').includes(normalize('Eventos declaratórios'))) {
+          esconderAvisoEncerramentoFiscal_();
+          return null;
+        }
         const n = normalize(String(dados?.sancao || value('sancao')));
         const pode = n === normalize('Regularizado') || n === normalize('Liberado');
         if (!navigator.onLine || !pode) {
@@ -5828,7 +6103,27 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         const idFormatado = identificador.length === 14
           ? formatarCnpjTela_(identificador)
           : (identificador.length === 11 ? formatarCpfTela_(identificador) : identificador);
-        const itens = [
+        const eventoDeclaratorio = normalize(payload?.demandaPrincipal || '').includes(normalize('Eventos declaratórios'));
+        const itens = eventoDeclaratorio ? [
+          ['Nº da declaração INFOSCIP', payload?.eventoDeclaracaoNumero || '—'],
+          ['Classificação', payload?.eventoClassificacao || '—'],
+          ['Nome do evento', payload?.eventoNome || '—'],
+          ['Início', payload?.eventoInicio || '—'],
+          ['Término', payload?.eventoTermino || '—'],
+          ['Público estimado', payload?.eventoPublicoEstimado || '—'],
+          ['Organizador', payload?.eventoOrganizador || '—'],
+          ['CPF/CNPJ do organizador', payload?.eventoOrganizadorDocumento || '—'],
+          ['Telefone', payload?.eventoTelefoneOrganizador || '—'],
+          ['Cidade', payload?.cidade || '—'],
+          ['Local do evento', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || '—'],
+          ['Demanda', 'Eventos declaratórios'],
+          ['Categoria da meta', 'Eventos declaratórios'],
+          ['Tipo de vistoria', payload?.tipoVistoria || '—'],
+          ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
+          [usuarioPodeOperar_() ? 'Situação final registrada' : 'Situação ao final do treinamento', payload?.sancao || '—'],
+          ['Nº PF', payload?.pf || '—'],
+          [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
+        ] : [
           ['Estabelecimento', payload?.nomeFantasia || payload?.razaoSocial || '—'],
           ['CNPJ / CPF', idFormatado || '—'],
           ['Cidade', payload?.cidade || '—'],
@@ -5852,6 +6147,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           ['Nº PF', payload?.pf || '—'],
           [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
         ];
+
 
         const duplicados = Array.isArray(duplicidade?.encontrados) ? duplicidade.encontrados : [];
         const avisoDuplicidade = duplicidade?.duplicado && duplicados.length
@@ -7745,6 +8041,11 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
+      document.getElementById('demandaPrincipal')?.addEventListener('input', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
+      document.getElementById('demandaPrincipal')?.addEventListener('change', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
+      eventoDeclaracaoNumeroInput?.addEventListener('input', event => { event.target.value = String(event.target.value || '').toUpperCase().replace(/\s+/g, ''); });
+      eventoOrganizadorDocumentoInput?.addEventListener('input', event => { event.target.value = formatarDocumentoEvento_(event.target.value); });
+      eventoTelefoneOrganizadorInput?.addEventListener('input', event => { event.target.value = formatarTelefoneEvento_(event.target.value); });
       citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });

@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.76">
+  <link rel="stylesheet" href="styles.css?v=23.9.78">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -727,8 +727,14 @@
                 <input id="outraCidade" placeholder="Digite a cidade">
               </div>
             </div>
+            <div class="field half" id="demandaFiscalizacaoWrap">
+              <label for="demandaPrincipal">Demanda</label>
+              <input id="demandaPrincipal" name="demandaPrincipal" list="dlDemanda" placeholder="Selecione ou digite">
+              <datalist id="dlDemanda"></datalist>
+              <div class="hint">Em Fiscalização, selecione <strong>Eventos declaratórios</strong> para abrir o fluxo específico de eventos de risco mínimo, baixo ou médio.</div>
+            </div>
             <div class="field half">
-              <div class="sequence-note"><strong>Próximo passo:</strong> informe a situação do licenciamento. A cidade escolhida aqui não será alterada pela consulta automática.</div>
+              <div class="sequence-note" id="proximoPassoCidade"><strong>Próximo passo:</strong> escolha a demanda. Para eventos declaratórios, o formulário será ajustado automaticamente e não exigirá PSCIP ou licenciamento.</div>
             </div>
             <div class="field half" id="licenciamentoFieldWrap">
               <label class="required" for="licenciamento">Situação do licenciamento</label>
@@ -766,17 +772,75 @@
         </div>
       </section>
 
-      <section class="section vistoria-flow-section" id="estabelecimento" hidden>
+
+      <section class="section vistoria-flow-section" id="eventosDeclaratoriosSecao" hidden>
         <div class="section-head">
-          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5L12 3v18M12 8h8v13M7.5 8h1M7.5 11.5h1M7.5 15h1M15.5 11h1M15.5 14.5h1M15.5 18h1M2.5 21h19"/></svg></div>
+          <div class="section-icon" aria-hidden="true">🎪</div>
           <div class="head-text">
-            <h2>2. Identificação e dados do estabelecimento</h2>
-            <p>Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente.</p>
+            <h2>2. Evento declaratório</h2>
+            <p>Dados da declaração emitida no INFOSCIP para evento temporário de risco mínimo, baixo ou médio.</p>
           </div>
         </div>
         <div class="section-body">
           <div class="grid">
+            <div class="field half">
+              <label class="required" for="eventoDeclaracaoNumero">Nº da declaração INFOSCIP</label>
+              <input id="eventoDeclaracaoNumero" name="eventoDeclaracaoNumero" autocomplete="off" placeholder="Ex.: 2026RME09669">
+              <div class="hint">Identifica esta declaração específica. O histórico do local é pesquisado pelo endereço do evento.</div>
+            </div>
+            <div class="field half">
+              <label for="eventoClassificacao">Classificação do evento</label>
+              <select id="eventoClassificacao" name="eventoClassificacao">
+                <option value="">Selecione</option>
+                <option value="Risco mínimo">Risco mínimo</option>
+                <option value="Risco baixo">Risco baixo</option>
+                <option value="Risco médio">Risco médio</option>
+              </select>
+            </div>
             <div class="field wide">
+              <label for="eventoNome">Nome do evento</label>
+              <input id="eventoNome" name="eventoNome" autocomplete="off" placeholder="Nome informado na declaração">
+            </div>
+            <div class="field half">
+              <label for="eventoInicio">Data e horário de início</label>
+              <input id="eventoInicio" name="eventoInicio" type="datetime-local">
+            </div>
+            <div class="field half">
+              <label for="eventoTermino">Data e horário de término</label>
+              <input id="eventoTermino" name="eventoTermino" type="datetime-local">
+            </div>
+            <div class="field half">
+              <label for="eventoPublicoEstimado">Público estimado</label>
+              <input id="eventoPublicoEstimado" name="eventoPublicoEstimado" inputmode="numeric" autocomplete="off" placeholder="Ex.: 4000">
+            </div>
+            <div class="field wide">
+              <label for="eventoOrganizador">Organizador</label>
+              <input id="eventoOrganizador" name="eventoOrganizador" autocomplete="off" placeholder="Nome do organizador ou razão social">
+            </div>
+            <div class="field half">
+              <label for="eventoOrganizadorDocumento">CPF/CNPJ do organizador</label>
+              <input id="eventoOrganizadorDocumento" name="eventoOrganizadorDocumento" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="CPF ou CNPJ do organizador">
+              <div class="hint">Usado como dado do organizador, não como chave principal do local fiscalizado.</div>
+            </div>
+            <div class="field half">
+              <label for="eventoTelefoneOrganizador">Telefone</label>
+              <input id="eventoTelefoneOrganizador" name="eventoTelefoneOrganizador" inputmode="tel" autocomplete="off" placeholder="(31) 99999-9999">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section vistoria-flow-section" id="estabelecimento" hidden>
+        <div class="section-head">
+          <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5L12 3v18M12 8h8v13M7.5 8h1M7.5 11.5h1M7.5 15h1M15.5 11h1M15.5 14.5h1M15.5 18h1M2.5 21h19"/></svg></div>
+          <div class="head-text">
+            <h2 id="estabelecimentoTitulo">2. Identificação e dados do estabelecimento</h2>
+            <p id="estabelecimentoDescricao">Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="grid">
+            <div class="field wide" id="estabelecimentoDocumentoWrap">
               <label class="required" for="cnpj" id="identificadorLabel">CNPJ ou CPF</label>
               <div class="input-action">
                 <input id="cnpj" name="cnpj" inputmode="numeric" autocomplete="off" placeholder="Digite somente os números" maxlength="18" aria-describedby="cnpjStatus">
@@ -791,11 +855,11 @@
               </div>
             </div>
             <div class="field wide prior-process-alert" id="priorProcessAlert" hidden aria-live="polite"></div>
-            <div class="field half">
+            <div class="field half" id="nomeFantasiaWrap">
               <label for="nomeFantasia">Nome Fantasia</label>
               <input id="nomeFantasia" name="nomeFantasia" autocomplete="off" placeholder="Nome conhecido do estabelecimento">
             </div>
-            <div class="field half">
+            <div class="field half" id="razaoSocialWrap">
               <label for="razaoSocial">Razão Social</label>
               <input id="razaoSocial" name="razaoSocial" autocomplete="off" placeholder="Razão Social">
             </div>
@@ -815,7 +879,7 @@
               <label for="bairro">Bairro</label>
               <input id="bairro" name="bairro" autocomplete="off" placeholder="Bairro">
             </div>
-            <div class="field wide">
+            <div class="field wide" id="enderecoCorrespondenciaWrap">
               <label for="enderecoCorrespondencia">Endereço para correspondência</label>
               <input id="enderecoCorrespondencia" name="enderecoCorrespondencia" list="dlEnderecoCorrespondencia" placeholder="Ex.: O Mesmo">
               <datalist id="dlEnderecoCorrespondencia"></datalist>
@@ -915,7 +979,7 @@
               <div class="hint licensing-auto-note" id="sancaoAutomaticaHint" hidden>Autuado definido automaticamente porque foi informado que o local não possui AVCB ou CLCB.</div>
               <div class="hint">Autuado é a única sanção aplicada diretamente na vistoria. As demais evoluções administrativas são atualizadas na Ficha após conferência no INFOSCIP.</div>
             </div>
-            <div class="field">
+            <div class="field" id="situacaoMultaInfoscipWrap">
               <label class="required" for="situacaoMultaInfoscip">Situação de multa no INFOSCIP</label>
               <select id="situacaoMultaInfoscip" name="situacaoMultaInfoscip">
                 <option value="Não conferido">Não conferido</option>
@@ -959,12 +1023,7 @@
               <input id="natureza" name="natureza" list="dlNatureza" placeholder="Selecione ou digite">
               <datalist id="dlNatureza"></datalist>
             </div>
-            <div class="field">
-              <label for="demandaPrincipal">Demanda</label>
-              <input id="demandaPrincipal" name="demandaPrincipal" list="dlDemanda" placeholder="Selecione ou digite">
-              <datalist id="dlDemanda"></datalist>
-            </div>
-            <div class="field">
+            <div class="field" id="categoriaMetaWrap">
               <label for="categoriaMeta">Categoria da meta</label>
               <select id="categoriaMeta" name="categoriaMeta"><option value="">Nenhuma / não se aplica</option></select>
               <div class="hint">Nas fiscalizações, o enquadramento em Nível de risco III é automático pela área: acima de 930 m². Se houver outra categoria de meta aplicável, selecione-a normalmente.</div>
@@ -1526,9 +1585,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.76"></script>
-  <script src="ocupacoes.js?v=23.9.76"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.76"></script>
-  <script src="app.js?v=23.9.76"></script>
+  <script src="config.js?v=23.9.78"></script>
+  <script src="ocupacoes.js?v=23.9.78"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.78"></script>
+  <script src="app.js?v=23.9.78"></script>
 </body>
 </html>
