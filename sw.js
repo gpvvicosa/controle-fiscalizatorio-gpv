@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-83-indice-navegacao-rapida-its';
-const VERSION = '23.9.83';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260814-v23-9-84-todas-tabelas-its';
+const VERSION = '23.9.84';
 
 const CORE_SHELL = [
   './',
