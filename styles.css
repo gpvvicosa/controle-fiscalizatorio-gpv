@@ -8614,3 +8614,75 @@ body.access-geral #draftStatus { color: #6b6262; }
 
 /* GPV V23.9.90 — DDU só aparece quando houver pendência confirmada. */
 #dduSummaryCard[hidden] { display: none !important; }
+
+
+/* =============================================================================
+   V23.9.93 — Navegação mobile com ícones por área + status OK sem check isolado
+   - Mantém alertas de sincronização pendente/offline visíveis.
+   - Quando tudo está sincronizado, oculta o selo ✓ para liberar espaço vertical.
+   - Painel, Vistoria e Mais recebem identidade cromática própria no mobile.
+   ============================================================================= */
+@media (max-width: 820px) {
+  /* O check isolado de "Tudo sincronizado" não agrega ação operacional no mobile. */
+  .sync-summary.is-ok {
+    display: none !important;
+  }
+
+  /* Todos os três ícones permanecem coloridos, inclusive quando inativos. */
+  #recordsTabBtn .app-view-icon {
+    color: #15803d !important;
+    background: linear-gradient(145deg, #f1fbf5, #e5f6eb) !important;
+    border-color: #bfe4cb !important;
+    box-shadow: 0 3px 9px rgba(21,128,61,.10), inset 0 1px 0 rgba(255,255,255,.88) !important;
+  }
+  #formTabBtn .app-view-icon {
+    color: #b42318 !important;
+    background: linear-gradient(145deg, #fff5f4, #fde8e7) !important;
+    border-color: #f2c2be !important;
+    box-shadow: 0 3px 9px rgba(180,35,24,.10), inset 0 1px 0 rgba(255,255,255,.88) !important;
+  }
+  #navMoreMenuBtn .app-view-icon {
+    color: #1d4ed8 !important;
+    background: linear-gradient(145deg, #f4f7ff, #e8efff) !important;
+    border-color: #c7d5fb !important;
+    box-shadow: 0 3px 9px rgba(29,78,216,.10), inset 0 1px 0 rgba(255,255,255,.88) !important;
+  }
+
+  /* A área ativa continua evidente sem apagar a cor das demais. */
+  #recordsTabBtn.active .app-view-icon {
+    color: #fff !important;
+    background: linear-gradient(145deg, #22a25a, #15713d) !important;
+    border-color: #15713d !important;
+    box-shadow: 0 5px 12px rgba(21,128,61,.24), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  }
+  #formTabBtn.active .app-view-icon {
+    color: #fff !important;
+    background: linear-gradient(145deg, #c72128, #941319) !important;
+    border-color: #a7191f !important;
+    box-shadow: 0 5px 12px rgba(167,25,31,.24), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  }
+  #navMoreMenuBtn[aria-expanded="true"] .app-view-icon {
+    color: #fff !important;
+    background: linear-gradient(145deg, #3569e6, #1d4ed8) !important;
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 5px 12px rgba(29,78,216,.22), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  }
+
+  /* O rótulo/linha da área ativa acompanha a cor do respectivo ícone. */
+  #recordsTabBtn.active {
+    color: #15803d !important;
+    border-color: #cce8d5 !important;
+  }
+  #recordsTabBtn.active::after {
+    background: #15803d !important;
+  }
+  #formTabBtn.active {
+    color: #a7191f !important;
+  }
+  #formTabBtn.active::after {
+    background: #a7191f !important;
+  }
+  #navMoreMenuBtn[aria-expanded="true"] {
+    color: #1d4ed8 !important;
+  }
+}
