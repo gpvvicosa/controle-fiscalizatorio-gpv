@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260815-v23-9-91-demandas-fiscalizacao';
-const VERSION = '23.9.91';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260815-v23-9-92-pet-atalhos';
+const VERSION = '23.9.92';
 
 const CORE_SHELL = [
   './',

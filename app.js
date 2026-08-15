@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.91';
+      const APP_VERSION = '23.9.92';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -35,7 +35,7 @@
           cidade: ['Viçosa','Cajuri','Canaã','Araponga','Coimbra','Ervália','Paula Cândido','Pedra do Anta','Porto Firme','Presidente Bernardes','São Geraldo','São Miguel do Anta','Teixeiras','Outro'],
           sancao: ['Autuado','Advertência','Notificado','Regularizado','Liberado','Pendente — multa em aberto','Pendente — conferir multa no INFOSCIP'],
           tipoVistoria: [], natureza: [],
-          demandaPrincipal: ['Alerta Vermelho','DDU','Liberação','Iniciativa','Eventos declaratórios','Vistoria Acessória'],
+          demandaPrincipal: ['Alerta Vermelho','DDU','Liberação','Iniciativa','PET','Eventos declaratórios','Vistoria Acessória'],
           categoriaMeta: ['', 'Brigada','CLCB','Renovação AVCB','Eventos declaratórios','Nível de risco III'],
           ocupacao: [], responsavel: [], profissao: [], estadoCivil: [], escolaridade: [],
           enderecoCorrespondencia: ['O Mesmo']
@@ -4024,12 +4024,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return ehFluxoFiscalizacao_() && normalize(value('demandaPrincipal')) === normalize('DDU');
       }
 
+      function ehPet_() {
+        return normalize(value('demandaPrincipal')) === normalize('PET');
+      }
+
       function demandasPermitidasFiscalizacao_() {
         const opcoes = (demandasConfiguradas || []).filter(Boolean).slice();
-        ['Eventos declaratórios', 'Vistoria Acessória'].forEach(obrigatoria => {
+        ['PET', 'Eventos declaratórios', 'Vistoria Acessória'].forEach(obrigatoria => {
           if (!opcoes.some(valor => normalize(valor) === normalize(obrigatoria))) opcoes.push(obrigatoria);
         });
         return opcoes.filter(valor => normalize(valor) !== normalize('Liberação'));
+      }
+
+      function demandasPermitidasLiberacao_() {
+        return ['Liberação', 'PET'];
+      }
+
+      function atualizarHintDemandaPorFluxo_() {
+        const hint = document.getElementById('demandaFluxoHint');
+        if (!hint) return;
+        const fluxo = fluxoVistoriaAtual_();
+        const pet = ehPet_();
+        if (fluxo === 'liberacao') {
+          hint.innerHTML = pet
+            ? '<strong>PET:</strong> Projeto de Evento Temporário. É um evento temporário que não se enquadra como Evento declaratório e seu fluxo inicial normal é Vistoria de Liberação.'
+            : 'Para Projeto de Evento Temporário, selecione <strong>PET</strong>. PET não deve ser tratado como Evento declaratório e normalmente inicia por Vistoria de Liberação.';
+        } else if (fluxo === 'fiscalizacao') {
+          hint.innerHTML = pet
+            ? '<strong>PET:</strong> use Fiscalização quando se tratar de fiscalização de um Projeto de Evento Temporário já existente. O fluxo inicial normal do PET é Vistoria de Liberação.'
+            : 'Em Fiscalização, selecione <strong>Eventos declaratórios</strong> apenas para o fluxo específico desses eventos. Para fiscalizar um PET já existente, selecione <strong>PET</strong>.';
+        } else {
+          hint.textContent = 'Escolha primeiro o tipo de vistoria.';
+        }
       }
 
       function atualizarOpcoesDemandaPorFluxo_() {
@@ -4038,17 +4064,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         let opcoes = (demandasConfiguradas || []).filter(Boolean);
 
         if (fluxo === 'fiscalizacao') opcoes = demandasPermitidasFiscalizacao_();
-        else if (fluxo === 'liberacao') opcoes = ['Liberação'];
+        else if (fluxo === 'liberacao') opcoes = demandasPermitidasLiberacao_();
 
         fillDatalist('dlDemanda', opcoes);
-        if (!demanda) return;
+        if (!demanda) {
+          atualizarHintDemandaPorFluxo_();
+          return;
+        }
 
         const atual = normalize(demanda.value);
         if (fluxo === 'liberacao') {
-          demanda.value = 'Liberação';
+          const pet = atual === normalize('PET');
+          demanda.value = pet ? 'PET' : 'Liberação';
         } else if (fluxo === 'fiscalizacao' && atual === normalize('Liberação')) {
           demanda.value = '';
         }
+        atualizarHintDemandaPorFluxo_();
       }
 
       function sincronizarTipoLiberacao_() {
@@ -4215,7 +4246,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const fluxo = fluxoVistoriaAtual_();
         const evento = fluxo === 'fiscalizacao' && normalize(value('demandaPrincipal')) === normalize('Eventos declaratórios');
         if (eventosDeclaratoriosSecao) eventosDeclaratoriosSecao.hidden = !evento;
-        if (demandaFiscalizacaoWrap) demandaFiscalizacaoWrap.hidden = fluxo === 'liberacao' || !fluxo;
+        if (demandaFiscalizacaoWrap) demandaFiscalizacaoWrap.hidden = !fluxo;
         if (licenciamentoFieldWrap) licenciamentoFieldWrap.hidden = fluxo === 'liberacao' || evento;
         if (possuiPscipFieldWrap) possuiPscipFieldWrap.hidden = fluxo === 'liberacao' || evento;
 
@@ -8681,8 +8712,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
-      document.getElementById('demandaPrincipal')?.addEventListener('input', () => { aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 250); });
-      document.getElementById('demandaPrincipal')?.addEventListener('change', () => { aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 100); });
+      document.getElementById('demandaPrincipal')?.addEventListener('input', () => { atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 250); });
+      document.getElementById('demandaPrincipal')?.addEventListener('change', () => { if (ehFluxoLiberacao_()) atualizarOpcoesDemandaPorFluxo_(); atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 100); });
       categoriaMetaSelect?.addEventListener('change', atualizarConsultaTecnicaContextual_);
       consultaTecnicaSecao?.addEventListener('click', event => {
         const link = event.target.closest('a[data-it-context-link]');

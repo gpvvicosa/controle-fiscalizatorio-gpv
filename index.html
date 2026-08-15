@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.91">
+  <link rel="stylesheet" href="styles.css?v=23.9.92">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -143,7 +143,7 @@
           <span>Planilha</span>
         </a>
         <button class="dashboard-header-action" id="dashboardNewInspectionBtn" type="button">
-          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3.8h6V5M9 10h6M9 14h6M9 18h4"/></svg>
           <span>Vistorias</span>
         </button>
         <button class="dashboard-header-action" id="dashboardMoreMenuBtn" type="button" aria-label="Abrir mais opções" aria-expanded="false" aria-controls="appMoreMenu">
@@ -267,6 +267,7 @@
           <p>Escolha Vistoria de Fiscalização ou Vistoria de Liberação e preencha os dados solicitados pelo fluxo.</p>
           <p>Durante o cadastro, o app procura processo anterior na ordem: <strong>CNPJ/CPF → Nº do PSCIP → endereço completo</strong>. Quando houver histórico, apresenta situação, PF, última vistoria, prazo e atalho para a Ficha.</p>
           <p>Na Fiscalização comum, a área é obrigatória; acima de 930 m² a categoria Nível de risco III é considerada automaticamente. Em Eventos declaratórios, o fluxo usa os dados próprios da declaração INFOSCIP e o endereço real do evento, sem exigir Nº do PSCIP ou área da edificação.</p>
+          <p><strong>PET — Projeto de Evento Temporário:</strong> quando o evento temporário não se enquadrar como Evento declaratório, selecione PET. O fluxo inicial normal é Vistoria de Liberação; posteriormente, um PET já existente também pode ser objeto de Vistoria de Fiscalização.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
@@ -356,7 +357,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 15/08/2026 — V23.9.91.</div>
+        <div class="system-manual-revision">Última revisão: 15/08/2026 — V23.9.92.</div>
       </div>
     </section>
   </div>
@@ -749,10 +750,10 @@
               <label for="demandaPrincipal">Demanda</label>
               <input id="demandaPrincipal" name="demandaPrincipal" list="dlDemanda" placeholder="Selecione ou digite">
               <datalist id="dlDemanda"></datalist>
-              <div class="hint">Em Fiscalização, selecione <strong>Eventos declaratórios</strong> para abrir o fluxo específico de eventos de risco mínimo, baixo ou médio.</div>
+              <div class="hint" id="demandaFluxoHint">Em Fiscalização, selecione <strong>Eventos declaratórios</strong> apenas para o fluxo específico desses eventos. Para fiscalizar um PET já existente, selecione <strong>PET</strong>.</div>
             </div>
             <div class="field half">
-              <div class="sequence-note" id="proximoPassoCidade"><strong>Próximo passo:</strong> escolha a demanda. Para eventos declaratórios, o formulário será ajustado automaticamente e não exigirá PSCIP ou licenciamento.</div>
+              <div class="sequence-note" id="proximoPassoCidade"><strong>Próximo passo:</strong> escolha a demanda. PET inicia normalmente por Vistoria de Liberação e não se confunde com Eventos declaratórios. No fluxo de Eventos declaratórios, o formulário será ajustado automaticamente e não exigirá PSCIP ou licenciamento.</div>
             </div>
             <div class="field half" id="licenciamentoFieldWrap">
               <label class="required" for="licenciamento">Situação do licenciamento</label>
@@ -1696,9 +1697,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.91"></script>
-  <script src="ocupacoes.js?v=23.9.91"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.91"></script>
-  <script src="app.js?v=23.9.91"></script>
+  <script src="config.js?v=23.9.92"></script>
+  <script src="ocupacoes.js?v=23.9.92"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.92"></script>
+  <script src="app.js?v=23.9.92"></script>
 </body>
 </html>

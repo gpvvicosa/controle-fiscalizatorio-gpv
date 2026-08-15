@@ -2512,6 +2512,41 @@ body.detail-open { overflow: hidden; }
   .dashboard-header-action:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.5); }
   .dashboard-header-action .ui-icon { width: 18px; height: 18px; }
 
+  /* V23.9.92 — atalhos do cabeçalho com identificação visual própria. */
+  body.records-mode #dashboardSheetHeaderLink {
+    background: #157347;
+    border-color: #248a5c;
+    color: #fff;
+  }
+  body.records-mode #dashboardSheetHeaderLink:hover {
+    background: #11623c;
+    border-color: #39a773;
+  }
+  body.records-mode #dashboardNewInspectionBtn {
+    background: #1d4ed8;
+    border-color: #3b6ee8;
+    color: #fff;
+  }
+  body.records-mode #dashboardNewInspectionBtn:hover {
+    background: #1e40af;
+    border-color: #5b82ef;
+  }
+  body.records-mode #dashboardMoreMenuBtn {
+    background: #4b5563;
+    border-color: #667085;
+    color: #fff;
+  }
+  body.records-mode #dashboardMoreMenuBtn:hover {
+    background: #374151;
+    border-color: #7b8492;
+  }
+  body.records-mode #dashboardSheetHeaderLink .ui-icon,
+  body.records-mode #dashboardNewInspectionBtn .ui-icon,
+  body.records-mode #dashboardMoreMenuBtn .ui-icon {
+    color: #fff;
+    stroke: currentColor;
+  }
+
   body.records-mode .page {
     width: 100%;
     max-width: none;
@@ -4635,17 +4670,17 @@ body.release-flow-active:not(.records-mode) .connection-banner.connection-online
     width: 490px;
   }
 
-  /* Mais no desktop: mantém o mesmo padrão translúcido do restante do cabeçalho. */
+  /* V23.9.92 — Mais usa fundo grafite para diferenciar os três atalhos. */
   body.records-mode #dashboardMoreMenuBtn {
-    border-color: rgba(255,255,255,.30) !important;
-    background: rgba(116,0,4,.12) !important;
+    border-color: #667085 !important;
+    background: #4b5563 !important;
     color: #fff !important;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.035) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06) !important;
   }
   body.records-mode #dashboardMoreMenuBtn:hover,
   body.records-mode #dashboardMoreMenuBtn[aria-expanded="true"] {
-    background: rgba(255,255,255,.11) !important;
-    border-color: rgba(255,255,255,.55) !important;
+    background: #374151 !important;
+    border-color: #7b8492 !important;
     color: #fff !important;
   }
 
