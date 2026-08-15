@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.85">
+  <link rel="stylesheet" href="styles.css?v=23.9.86">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -350,12 +350,13 @@
           <p>O menu <strong>Mais → Instruções Técnicas CBMMG</strong> abre o acervo técnico pesquisável no próprio PWA.</p>
           <p>O texto normativo das ITs é preservado sem reescrita. A apresentação em HTML facilita pesquisa, índice e leitura no celular. Recursos visuais técnicos são incorporados sem necessidade de anexar os PDFs ao aplicativo.</p>
           <p>O acervo possui <strong>Índice rápido</strong> para acesso direto às 45 ITs. Durante a leitura de uma IT, os comandos <strong>Consultar outras ITs</strong> e <strong>Tela inicial</strong> permitem trocar de instrução ou retornar ao início do acervo sem percorrer várias telas.</p>
+          <p>Durante uma vistoria, a seção <strong>Consulta técnica rápida</strong> apresenta atalhos contextuais: Eventos Declaratórios prioriza IT 33 e IT 45; Fiscalização prioriza IT 45; Liberação prioriza IT 01. Também há acesso às medidas de segurança mais consultadas e ao índice completo. O rascunho é salvo antes da navegação.</p>
           <p>A fase 4 acrescenta reprodução visual fiel das <strong>tabelas e quadros das 45 ITs</strong>, obtida diretamente dos documentos originais, sem incluir PDFs no aplicativo e sem modificar o texto normativo pesquisável.</p>
           <p>A IT 33 — Eventos Temporários possui reconstrução estruturada dos Quadros 01 e 02 e visual fiel das páginas que contêm figuras, esquemas e formulários relevantes. As fases 2 e 3 ampliam a preservação visual para conteúdos técnicos da IT 01 (modelos de documentos), IT 15 (sinalização), IT 17 (hidrantes e mangotinhos), IT 23 (GLP), IT 28 (coberturas combustíveis), IT 29 (hidrante público), IT 35 (patrimônio cultural), IT 38 (CMAR), IT 39 (manifestações em vias públicas), além das ITs 03, 10 e 41 já tratadas, sem alterar o texto normativo.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 14/08/2026 — V23.9.85.</div>
+        <div class="system-manual-revision">Última revisão: 15/08/2026 — V23.9.86.</div>
       </div>
     </section>
   </div>
@@ -848,6 +849,38 @@
               <div class="hint" id="eventoResponsavelEhOrganizadorHint">Disponível quando o organizador estiver identificado por CPF.</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="section vistoria-flow-section technical-consult-section" id="consultaTecnicaSecao" hidden>
+        <div class="section-head">
+          <div class="section-icon" aria-hidden="true">📚</div>
+          <div class="head-text">
+            <h2>Consulta técnica rápida</h2>
+            <p id="consultaTecnicaDescricao">Acesse as Instruções Técnicas relacionadas à vistoria sem sair do acervo do GPV.</p>
+          </div>
+        </div>
+        <div class="section-body technical-consult-body">
+          <div class="technical-consult-group">
+            <strong class="technical-consult-label">Relacionadas a esta vistoria</strong>
+            <div class="technical-it-grid" id="consultaTecnicaRelacionadas"></div>
+          </div>
+          <details class="technical-consult-more">
+            <summary>Medidas de segurança mais consultadas</summary>
+            <div class="technical-it-grid technical-it-grid-common">
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-08.html"><span class="technical-it-number">IT 08</span><span class="technical-it-copy"><strong>Saídas de Emergência</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-12.html"><span class="technical-it-number">IT 12</span><span class="technical-it-copy"><strong>Brigada de Incêndio</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-13.html"><span class="technical-it-number">IT 13</span><span class="technical-it-copy"><strong>Iluminação de Emergência</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-14.html"><span class="technical-it-number">IT 14</span><span class="technical-it-copy"><strong>Detecção e Alarme</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-15.html"><span class="technical-it-number">IT 15</span><span class="technical-it-copy"><strong>Sinalização de Emergência</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-16.html"><span class="technical-it-number">IT 16</span><span class="technical-it-copy"><strong>Extintores de Incêndio</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-17.html"><span class="technical-it-number">IT 17</span><span class="technical-it-copy"><strong>Hidrantes e Mangotinhos</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-18.html"><span class="technical-it-number">IT 18</span><span class="technical-it-copy"><strong>Chuveiros Automáticos</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+              <a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-23.html"><span class="technical-it-number">IT 23</span><span class="technical-it-copy"><strong>GLP</strong></span><span class="technical-it-arrow" aria-hidden="true">›</span></a>
+            </div>
+          </details>
+          <a class="technical-consult-all" data-it-context-link href="instrucoes-tecnicas/index.html">☰ Consultar todas as Instruções Técnicas</a>
+          <div class="hint">Antes de abrir uma IT, o app preserva automaticamente o rascunho da vistoria. Use o botão Voltar para retornar ao preenchimento.</div>
         </div>
       </section>
 
@@ -1609,9 +1642,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.85"></script>
-  <script src="ocupacoes.js?v=23.9.85"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.85"></script>
-  <script src="app.js?v=23.9.85"></script>
+  <script src="config.js?v=23.9.86"></script>
+  <script src="ocupacoes.js?v=23.9.86"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.86"></script>
+  <script src="app.js?v=23.9.86"></script>
 </body>
 </html>

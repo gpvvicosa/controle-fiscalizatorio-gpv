@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.85';
+      const APP_VERSION = '23.9.86';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -563,6 +563,9 @@
       const areaLabel = document.getElementById('areaLabel');
       const areaMetaStatus = document.getElementById('areaMetaStatus');
       const eventosDeclaratoriosSecao = document.getElementById('eventosDeclaratoriosSecao');
+      const consultaTecnicaSecao = document.getElementById('consultaTecnicaSecao');
+      const consultaTecnicaDescricao = document.getElementById('consultaTecnicaDescricao');
+      const consultaTecnicaRelacionadas = document.getElementById('consultaTecnicaRelacionadas');
       const demandaFiscalizacaoWrap = document.getElementById('demandaFiscalizacaoWrap');
       const estabelecimentoDocumentoWrap = document.getElementById('estabelecimentoDocumentoWrap');
       const nomeFantasiaWrap = document.getElementById('nomeFantasiaWrap');
@@ -3937,6 +3940,43 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
         if (disponivel && eventoResponsavelEhOrganizadorCheck.checked) sincronizarResponsavelComOrganizadorEvento_();
       }
 
+      function linkItContextual_(numero, titulo, subtitulo = '') {
+        const n = String(numero).padStart(2, '0');
+        const extra = subtitulo ? `<small>${escapeHtml(subtitulo)}</small>` : '';
+        return `<a class="technical-it-shortcut" data-it-context-link href="instrucoes-tecnicas/its/it-${n}.html" aria-label="Abrir IT ${n} — ${escapeAttr(titulo)}">
+          <span class="technical-it-number">IT ${n}</span>
+          <span class="technical-it-copy"><strong>${escapeHtml(titulo)}</strong>${extra}</span>
+          <span class="technical-it-arrow" aria-hidden="true">›</span>
+        </a>`;
+      }
+
+      function atualizarConsultaTecnicaContextual_() {
+        if (!consultaTecnicaSecao || !consultaTecnicaRelacionadas) return;
+        const fluxo = fluxoVistoriaAtual_();
+        const evento = fluxo === 'fiscalizacao' && ehEventoDeclaratorio_();
+        consultaTecnicaSecao.hidden = !fluxo;
+        if (!fluxo) return;
+
+        const itens = [];
+        if (evento) {
+          itens.push([33, 'Eventos Temporários', 'Requisitos próprios dos eventos temporários']);
+          itens.push([45, 'Fiscalização', 'Fiscalização em eventos temporários']);
+          if (consultaTecnicaDescricao) consultaTecnicaDescricao.textContent = 'Atalhos relacionados ao evento declaratório atual. A consulta não altera o preenchimento da vistoria.';
+        } else if (fluxo === 'fiscalizacao') {
+          itens.push([45, 'Fiscalização', 'Procedimentos de fiscalização']);
+          if (consultaTecnicaDescricao) consultaTecnicaDescricao.textContent = 'Acesso rápido à norma de fiscalização e às medidas de segurança mais consultadas em campo.';
+        } else {
+          itens.push([1, 'Procedimentos Administrativos', 'Consulta durante a vistoria de liberação']);
+          if (consultaTecnicaDescricao) consultaTecnicaDescricao.textContent = 'Acesso rápido aos procedimentos administrativos e às medidas de segurança mais consultadas durante a liberação.';
+        }
+
+        const categoria = normalize(value('categoriaMeta'));
+        if (categoria.includes(normalize('Brigada')) && !itens.some(item => item[0] === 12)) {
+          itens.push([12, 'Brigada de Incêndio', 'Categoria informada nesta vistoria']);
+        }
+        consultaTecnicaRelacionadas.innerHTML = itens.map(item => linkItContextual_(...item)).join('');
+      }
+
       function aplicarModoEventoDeclaratorio_(opcoes = {}) {
         const fluxo = fluxoVistoriaAtual_();
         const evento = fluxo === 'fiscalizacao' && normalize(value('demandaPrincipal')) === normalize('Eventos declaratórios');
@@ -3994,6 +4034,7 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
           esconderAvisoEncerramentoFiscal_();
           agendarConsultaProcessoPf_('form', 100);
         }
+        atualizarConsultaTecnicaContextual_();
         if (!opcoes.silencioso) scheduleDraftSave();
       }
 
@@ -8256,6 +8297,12 @@ POSTERIORMENTE, FOI INFORMADO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${numeroAu
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       document.getElementById('demandaPrincipal')?.addEventListener('input', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
       document.getElementById('demandaPrincipal')?.addEventListener('change', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
+      categoriaMetaSelect?.addEventListener('change', atualizarConsultaTecnicaContextual_);
+      consultaTecnicaSecao?.addEventListener('click', event => {
+        const link = event.target.closest('a[data-it-context-link]');
+        if (!link) return;
+        try { saveDraft(); } catch (e) {}
+      });
       eventoDeclaracaoNumeroInput?.addEventListener('input', event => { event.target.value = String(event.target.value || '').toUpperCase().replace(/\s+/g, ''); });
       eventoOrganizadorDocumentoInput?.addEventListener('input', event => {
         event.target.value = formatarDocumentoEvento_(event.target.value);

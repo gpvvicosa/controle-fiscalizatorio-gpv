@@ -8535,3 +8535,37 @@ body.system-manual-open {
 .access-guidance-card p { margin: 0 0 18px; color: #554a4b; line-height: 1.55; }
 .access-guidance-card .btn { width: 100%; min-height: 46px; }
 body.access-geral #draftStatus { color: #6b6262; }
+
+
+/* =============================================================================
+   V23.9.86 — consulta técnica contextual durante a vistoria
+   ============================================================================= */
+.technical-consult-section {
+  border-color: #dce7df;
+  background: linear-gradient(180deg, #fbfefc 0%, #ffffff 100%);
+}
+.technical-consult-body { display: grid; gap: 14px; }
+.technical-consult-group { display: grid; gap: 8px; }
+.technical-consult-label { color: #31533c; font-size: .84rem; }
+.technical-it-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
+.technical-it-shortcut {
+  min-width: 0; display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 9px;
+  min-height: 58px; padding: 10px 11px; border: 1px solid #d8e4db; border-radius: 12px;
+  background: #fff; color: #263a2c; text-decoration: none; box-shadow: 0 2px 8px rgba(33,65,43,.045);
+}
+.technical-it-shortcut:hover,.technical-it-shortcut:focus-visible { border-color: #7ca18a; background: #f8fcf9; outline: none; }
+.technical-it-number { flex: 0 0 auto; border-radius: 8px; background: #e8f3eb; color: #246038; padding: 6px 7px; font-size: .73rem; font-weight: 900; white-space: nowrap; }
+.technical-it-copy { min-width: 0; display: grid; gap: 2px; }
+.technical-it-copy strong { font-size: .83rem; line-height: 1.25; overflow-wrap: anywhere; }
+.technical-it-copy small { color: #6a756d; font-size: .72rem; line-height: 1.3; }
+.technical-it-arrow { color: #688674; font-size: 1.35rem; line-height: 1; }
+.technical-consult-more { border: 1px solid #e1e8e3; border-radius: 12px; background: #fafcfb; overflow: hidden; }
+.technical-consult-more > summary { cursor: pointer; padding: 11px 12px; color: #365342; font-size: .84rem; font-weight: 800; }
+.technical-consult-more[open] > summary { border-bottom: 1px solid #e6ece8; }
+.technical-it-grid-common { padding: 10px; }
+.technical-consult-all { display: flex; align-items: center; justify-content: center; min-height: 43px; padding: 9px 12px; border-radius: 11px; background: #315f40; color: #fff; text-decoration: none; font-size: .84rem; font-weight: 800; }
+.technical-consult-all:hover,.technical-consult-all:focus-visible { background: #274f35; outline: none; }
+@media (max-width: 700px) {
+  .technical-it-grid { grid-template-columns: 1fr; }
+  .technical-it-shortcut { min-height: 54px; }
+}
