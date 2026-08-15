@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.89';
+      const APP_VERSION = '23.9.90';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -6567,6 +6567,43 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } catch (e) {}
       }
 
+      function rascunhoEmAndamento_() {
+        if (!usuarioPodeOperar_()) return false;
+        try {
+          const raw = localStorage.getItem(draftKeyAtual_());
+          if (!raw) return false;
+          const draft = JSON.parse(raw);
+          const p = draft && draft.payload ? draft.payload : null;
+          if (!p) return false;
+          if (Date.now() - Number(draft.savedAt || 0) > 1000 * 60 * 60 * 24 * 3) return false;
+          const campos = [
+            'tipoVistoria','nomeFantasia','razaoSocial','cnpj','pf','reds','endereco','numero','bairro',
+            'demandaPrincipal','sancao','responsavel','nomeResponsavel','cpf','telefone','pscip','ocupacao',
+            'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado',
+            '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
+          ];
+          if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
+          const notificacoes = String(p.notificacoesLiberacao || '').trim();
+          return !!(notificacoes && notificacoes !== '[]');
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function prepararFormularioNovaVistoria_(origem = 'Nova vistoria') {
+        if (rascunhoEmAndamento_()) {
+          const confirmar = window.confirm(
+            'Existe uma vistoria em preenchimento neste aparelho.\n\n' +
+            'Ao iniciar uma nova vistoria, o rascunho atual será apagado.\n\n' +
+            'OK = iniciar nova vistoria\nCancelar = continuar o preenchimento atual'
+          );
+          if (!confirmar) return false;
+        }
+        resetForm();
+        if (appStatus) appStatus.textContent = `${origem}: formulário limpo e pronto para um novo preenchimento.`;
+        return true;
+      }
+
       function resetForm() {
         restaurarPainelProgramadas_(false);
         preparacaoEmUsoId = '';
@@ -7848,7 +7885,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }catch(e){if(dduRegisterError){dduRegisterError.textContent=e?.message||'Não foi possível cadastrar o DDU.';dduRegisterError.hidden=false;}}
         finally{dduRegisterSaveBtn.disabled=false;dduRegisterSaveBtn.textContent='Salvar DDU';}
       }
-      function iniciarDdu_(item){ if(!item)return; dduEmUsoId=String(item.id||''); dduEmUsoNumero=String(item.numeroDdu||'').trim(); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v}; set('demandaPrincipal','DDU'); set('dduProtocol',dduEmUsoNumero); set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} aplicarModoEventoDeclaratorio_({silencioso:true}); sincronizarDemandasEspeciais_(); agendarConsultaProcessoPf_('form',180); appStatus.textContent='DDU carregado. Complete os dados da fiscalização.'; }
+      function iniciarDdu_(item){ if(!item)return; if(!prepararFormularioNovaVistoria_('DDU')) return; dduEmUsoId=String(item.id||''); dduEmUsoNumero=String(item.numeroDdu||'').trim(); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v}; set('demandaPrincipal','DDU'); set('dduProtocol',dduEmUsoNumero); set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} aplicarModoEventoDeclaratorio_({silencioso:true}); sincronizarDemandasEspeciais_(); agendarConsultaProcessoPf_('form',180); scheduleDraftSave(); appStatus.textContent='DDU carregado em formulário limpo. Complete os dados da fiscalização.'; }
 
       function abrirModalPreparacao_(opcoes = {}) {
         fecharMenuMais_();
@@ -8356,6 +8393,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function aplicarPreparacaoAoFormulario_(item) {
         if (!item) return;
+        if (!prepararFormularioNovaVistoria_('Vistoria programada')) return;
         preparacaoEmUsoId = String(item.id || '');
         aplicarFluxoVistoria_(item.tipoPreparacao === 'liberacao' ? 'liberacao' : 'fiscalizacao', { silencioso: true });
         const set = (id, valor) => { const el = document.getElementById(id); if (el && valor != null && String(valor) !== '') el.value = String(valor); };
@@ -8824,7 +8862,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
-      dashboardNewInspectionBtn?.addEventListener('click', mostrarVistaFormulario_);
+      dashboardNewInspectionBtn?.addEventListener('click', async () => {
+        if (!prepararFormularioNovaVistoria_('Nova vistoria')) return;
+        await mostrarVistaFormulario_();
+      });
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false));
       recordsClearFiltersBtn?.addEventListener('click', () => {

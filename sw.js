@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260815-v23-9-89-historicos-acessoria';
-const VERSION = '23.9.89';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260815-v23-9-90-formulario-limpo-ddu-dinamico';
+const VERSION = '23.9.90';
 
 const CORE_SHELL = [
   './',

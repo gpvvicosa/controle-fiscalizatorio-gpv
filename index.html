@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.89">
+  <link rel="stylesheet" href="styles.css?v=23.9.90">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -356,7 +356,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 15/08/2026 — V23.9.89.</div>
+        <div class="system-manual-revision">Última revisão: 15/08/2026 — V23.9.90.</div>
       </div>
     </section>
   </div>
@@ -431,7 +431,8 @@
           <div class="tutorial-step-icon">📶</div>
           <h3>3. Online e offline</h3>
           <p>A faixa estreita de conexão ocupa a largura da página: <strong>verde forte com indicador em movimento</strong> significa conexão disponível; <strong>vermelha forte pulsante</strong> significa que o aparelho está sem internet.</p>
-          <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho. Se você registrar uma vistoria sem sinal, ela permanece segura na fila offline e será enviada quando a conexão voltar.</p>
+          <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho. Ao usar <strong>Nova vistoria</strong>, o sistema inicia um formulário limpo; se existir um rascunho realmente em andamento, pede confirmação antes de apagá-lo. Se você registrar uma vistoria sem sinal, ela permanece segura na fila offline e será enviada quando a conexão voltar.</p>
+          <p class="tutorial-note"><strong>DDU:</strong> o atalho na área de Vistoria aparece somente quando existir pelo menos uma demanda DDU pendente. Ao iniciar um DDU ou uma Vistoria Programada, o formulário é limpo antes de receber os dados daquele atendimento.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="4">
           <div class="tutorial-step-icon">🖥️</div>
@@ -1695,9 +1696,9 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.89"></script>
-  <script src="ocupacoes.js?v=23.9.89"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.89"></script>
-  <script src="app.js?v=23.9.89"></script>
+  <script src="config.js?v=23.9.90"></script>
+  <script src="ocupacoes.js?v=23.9.90"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.90"></script>
+  <script src="app.js?v=23.9.90"></script>
 </body>
 </html>
