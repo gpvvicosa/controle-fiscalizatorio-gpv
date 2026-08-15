@@ -183,3 +183,144 @@
     sec.appendChild(details);
   }
 })();
+
+
+// GPV V23.9.83 — índice e navegação rápida entre ITs.
+// Este bloco atua somente na navegação do acervo; não altera .page-content nem o texto normativo.
+(()=>{
+  const FALLBACK_ITS = [{"it":1,"title":"PROCEDIMENTOS ADMINISTRATIVOS","revoked":false,"file":"its/it-01.html"},{"it":2,"title":"TERMINOLOGIA DE PROTEÇÃO CONTRA INCÊNDIO E PÂNICO","revoked":false,"file":"its/it-02.html"},{"it":3,"title":"COMPOSIÇÃO DO PROCESSO DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO (PSCIP)","revoked":false,"file":"its/it-03.html"},{"it":4,"title":"ACESSO DE VIATURAS NAS EDIFICAÇÕES E ÁREAS DE RISCO","revoked":false,"file":"its/it-04.html"},{"it":5,"title":"SEPARAÇÃO ENTRE EDIFICAÇÕES (ISOLAMENTO DE RISCO)","revoked":false,"file":"its/it-05.html"},{"it":6,"title":"SEGURANÇA ESTRUTURAL DAS EDIFICAÇÕES","revoked":false,"file":"its/it-06.html"},{"it":7,"title":"COMPARTIMENTAÇÃO HORIZONTAL E COMPARTIMENTAÇÃO VERTICAL","revoked":false,"file":"its/it-07.html"},{"it":8,"title":"SAÍDAS DE EMERGÊNCIA EM EDIFICAÇÕES","revoked":false,"file":"its/it-08.html"},{"it":9,"title":"CARGA DE INCÊNDIO NAS EDIFICAÇÕES E ESPAÇOS DESTINADOS AO USO COLETIVO","revoked":false,"file":"its/it-09.html"},{"it":10,"title":"PRESSURIZAÇÃO DE ESCADA DE SEGURANÇA","revoked":false,"file":"its/it-10.html"},{"it":11,"title":"PLANO DE INTERVENÇÃO DE INCÊNDIO","revoked":false,"file":"its/it-11.html"},{"it":12,"title":"BRIGADA DE INCÊNDIO","revoked":false,"file":"its/it-12.html"},{"it":13,"title":"ILUMINAÇÃO DE EMERGÊNCIA","revoked":false,"file":"its/it-13.html"},{"it":14,"title":"SISTEMAS DE DETECÇÃO E ALARME DE INCÊNDIO","revoked":false,"file":"its/it-14.html"},{"it":15,"title":"SINALIZAÇÃO DE EMERGÊNCIA","revoked":false,"file":"its/it-15.html"},{"it":16,"title":"SISTEMA DE PROTEÇÃO POR EXTINTORES DE INCÊNDIO","revoked":false,"file":"its/it-16.html"},{"it":17,"title":"SISTEMA DE HIDRANTES E MANGOTINHOS PARA COMBATE A INCÊNDIO","revoked":false,"file":"its/it-17.html"},{"it":18,"title":"SISTEMA DE CHUVEIROS AUTOMÁTICOS","revoked":false,"file":"its/it-18.html"},{"it":19,"title":"SISTEMA DE RESFRIAMENTO PARA LÍQUIDOS E GASES","revoked":true,"file":"its/it-19.html"},{"it":20,"title":"SISTEMA DE PROTEÇÃO POR ESPUMA","revoked":true,"file":"its/it-20.html"},{"it":21,"title":"SISTEMA FIXO DE GASES PARA COMBATE A INCÊNDIO","revoked":false,"file":"its/it-21.html"},{"it":22,"title":"ARMAZENAMENTO DE LÍQUIDOS INFLAMÁVEIS E COMBUSTÍVEIS","revoked":false,"file":"its/it-22.html"},{"it":23,"title":"MANIPULAÇÃO, ARMAZENAMENTO, COMERCIALIZAÇÃO E UTILIZAÇÃO DE GÁS LIQUEFEITO DE PETRÓLEO (GLP)","revoked":false,"file":"its/it-23.html"},{"it":24,"title":"COMERCIALIZAÇÃO, DISTRIBUIÇÃO E UTILIZAÇÃO DE GÁS NATURAL","revoked":false,"file":"its/it-24.html"},{"it":25,"title":"FOGOS DE ARTIFÍCIO E PIROTECNIA","revoked":false,"file":"its/it-25.html"},{"it":26,"title":"HELIPONTO E HELIPORTO","revoked":false,"file":"its/it-26.html"},{"it":27,"title":"MEDIDAS DE SEGURANÇA PARA PRODUTOS PERIGOSOS","revoked":false,"file":"its/it-27.html"},{"it":28,"title":"COBERTURA DE SAPÉ, PIAÇAVA E SIMILARES","revoked":false,"file":"its/it-28.html"},{"it":29,"title":"HIDRANTE PÚBLICO","revoked":false,"file":"its/it-29.html"},{"it":30,"title":"INSTALAÇÕES E EQUIPAMENTOS ELÉTRICOS","revoked":false,"file":"its/it-30.html"},{"it":31,"title":"PÁTIO DE CONTÊINERES","revoked":false,"file":"its/it-31.html"},{"it":32,"title":"PROTEÇÃO CONTRA INCÊNDIO EM COZINHAS PROFISSIONAIS","revoked":false,"file":"its/it-32.html"},{"it":33,"title":"EVENTOS TEMPORÁRIOS","revoked":false,"file":"its/it-33.html"},{"it":34,"title":"CADASTRAMENTO DE EMPRESAS RESPONSÁVEIS TÉCNICOS","revoked":false,"file":"its/it-34.html"},{"it":35,"title":"SEGURANÇA CONTRA INCÊNDIO EM EDIFICAÇÕES QUE COMPÕEM O PATRIMÔNIO CULTURAL","revoked":false,"file":"its/it-35.html"},{"it":36,"title":"SISTEMA DE PROTEÇÃO CONTRA DESCARGAS ATMOSFÉRICAS","revoked":true,"file":"its/it-36.html"},{"it":37,"title":"CENTROS ESPORTIVOS E DE EXIBIÇÃO: REQUISITOS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO","revoked":false,"file":"its/it-37.html"},{"it":38,"title":"CONTROLE DE MATERIAIS DE ACABAMENTO E DE REVESTIMENTO (CMAR)","revoked":false,"file":"its/it-38.html"},{"it":39,"title":"BLOCOS DE CARNAVAL E OUTRAS MANIFESTAÇÕES CULTURAIS EM VIAS PÚBLICAS","revoked":false,"file":"its/it-39.html"},{"it":40,"title":"ADEQUAÇÃO DE MEDIDAS DE SEGURANÇA PARA EDIFICAÇÕES","revoked":false,"file":"its/it-40.html"},{"it":41,"title":"CONTROLE DE FUMAÇA","revoked":false,"file":"its/it-41.html"},{"it":42,"title":"ESTABELECIMENTOS DESTINADOS À RESTRIÇÃO DE LIBERDADE","revoked":false,"file":"its/it-42.html"},{"it":43,"title":"ARMAZENAGEM EM SILOS","revoked":false,"file":"its/it-43.html"},{"it":44,"title":"EDIFICAÇÕES E INSTALAÇÕES DE AGRONEGÓCIO","revoked":false,"file":"its/it-44.html"},{"it":45,"title":"FISCALIZAÇÃO EM EDIFICAÇÕES, ESPAÇOS DESTINADOS AO USO COLETIVO E EVENTOS TEMPORÁRIOS","revoked":false,"file":"its/it-45.html"}];
+  const its = Array.isArray(window.ITS) && window.ITS.length ? window.ITS : FALLBACK_ITS;
+  if (!its.length || document.querySelector('[data-quick-its-overlay]')) return;
+
+  const isReader = document.body.classList.contains('it-page') || !!document.querySelector('.it-content');
+  const hrefFor = item => isReader ? `it-${String(item.it).padStart(2,'0')}.html` : item.file;
+  const homeHref = isReader ? '../index.html' : 'index.html';
+  const currentMatch = document.title.match(/^IT\s+(\d+)/i);
+  const currentIt = currentMatch ? Number(currentMatch[1]) : 0;
+  const favoriteNums = [45,33,12,15,16,17];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'quick-its-overlay';
+  overlay.hidden = true;
+  overlay.setAttribute('data-quick-its-overlay','');
+  overlay.innerHTML = `
+    <div class="quick-its-backdrop" data-quick-its-close></div>
+    <aside class="quick-its-panel" role="dialog" aria-modal="true" aria-labelledby="quickItsTitle">
+      <header class="quick-its-head">
+        <div><span class="quick-its-kicker">ACESSO RÁPIDO</span><h2 id="quickItsTitle">Consultar outras ITs</h2></div>
+        <button type="button" class="quick-its-close" data-quick-its-close aria-label="Fechar índice rápido">×</button>
+      </header>
+      <div class="quick-its-home-row">
+        <a class="quick-its-home" href="${homeHref}">🏠 Tela inicial do acervo</a>
+      </div>
+      <div class="quick-its-search-wrap">
+        <label for="quickItsSearch">Buscar IT</label>
+        <input id="quickItsSearch" type="search" inputmode="search" autocomplete="off" placeholder="Número ou assunto: 45, eventos, hidrantes...">
+      </div>
+      <section class="quick-its-favorites" aria-labelledby="quickItsFavTitle">
+        <h3 id="quickItsFavTitle">Acessos frequentes</h3>
+        <div class="quick-its-fav-grid"></div>
+      </section>
+      <section class="quick-its-all" aria-labelledby="quickItsAllTitle">
+        <div class="quick-its-section-head"><h3 id="quickItsAllTitle">Todas as Instruções Técnicas</h3><span>${its.length} ITs</span></div>
+        <div class="quick-its-list"></div>
+        <p class="quick-its-empty" hidden>Nenhuma IT encontrada para esse termo.</p>
+      </section>
+    </aside>`;
+  document.body.appendChild(overlay);
+
+  const panel = overlay.querySelector('.quick-its-panel');
+  const search = overlay.querySelector('#quickItsSearch');
+  const list = overlay.querySelector('.quick-its-list');
+  const fav = overlay.querySelector('.quick-its-fav-grid');
+  const empty = overlay.querySelector('.quick-its-empty');
+  let previousFocus = null;
+
+  const normalize = value => (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const itemHtml = item => {
+    const current = currentIt === Number(item.it);
+    const revoked = item.revoked ? '<span class="quick-it-revoked">REVOGADA</span>' : '';
+    const currentBadge = current ? '<span class="quick-it-current">ABERTA</span>' : '';
+    return `<a class="quick-it-item${current?' is-current':''}" href="${hrefFor(item)}" data-quick-search="${String(item.it).padStart(2,'0')} ${item.title}">
+      <span class="quick-it-num">IT ${String(item.it).padStart(2,'0')}</span>
+      <span class="quick-it-title">${item.title}</span>
+      <span class="quick-it-badges">${currentBadge}${revoked}</span>
+    </a>`;
+  };
+
+  fav.innerHTML = favoriteNums.map(num => its.find(x => Number(x.it) === num)).filter(Boolean).map(itemHtml).join('');
+  list.innerHTML = its.map(itemHtml).join('');
+
+  const filter = () => {
+    const q = normalize(search.value);
+    let visible = 0;
+    list.querySelectorAll('.quick-it-item').forEach(a => {
+      const show = !q || normalize(a.dataset.quickSearch).includes(q);
+      a.hidden = !show;
+      if (show) visible++;
+    });
+    empty.hidden = visible !== 0;
+  };
+  search.addEventListener('input', filter);
+
+  const open = () => {
+    previousFocus = document.activeElement;
+    overlay.hidden = false;
+    document.documentElement.classList.add('quick-its-open');
+    requestAnimationFrame(()=>overlay.classList.add('is-open'));
+    search.value = '';
+    filter();
+    setTimeout(()=>search.focus(), 80);
+  };
+  const close = () => {
+    overlay.classList.remove('is-open');
+    document.documentElement.classList.remove('quick-its-open');
+    setTimeout(()=>{overlay.hidden = true; previousFocus?.focus?.();}, 180);
+  };
+  overlay.querySelectorAll('[data-quick-its-close]').forEach(el=>el.addEventListener('click', close));
+  document.addEventListener('keydown', e=>{if(e.key==='Escape' && !overlay.hidden){e.preventDefault();close();}});
+  panel.addEventListener('keydown', e=>{
+    if(e.key!=='Tab') return;
+    const focusable=[...panel.querySelectorAll('a[href],button:not([disabled]),input:not([disabled])')].filter(el=>!el.hidden && el.offsetParent!==null);
+    if(!focusable.length) return;
+    const first=focusable[0], last=focusable[focusable.length-1];
+    if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}
+  });
+
+  // Acesso rápido no cabeçalho, tanto na tela inicial quanto dentro de qualquer IT.
+  const topActions = document.querySelector('.top-actions');
+  if (topActions) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-btn quick-its-trigger';
+    btn.setAttribute('data-quick-its-trigger','');
+    btn.innerHTML = isReader ? '<span aria-hidden="true">📚</span><span class="quick-trigger-label">Outras ITs</span>' : '<span aria-hidden="true">☰</span><span class="quick-trigger-label">Índice rápido</span>';
+    btn.title = isReader ? 'Consultar outras Instruções Técnicas' : 'Abrir índice rápido das Instruções Técnicas';
+    btn.addEventListener('click', open);
+    const theme = topActions.querySelector('[data-theme-toggle]');
+    topActions.insertBefore(btn, theme || null);
+  }
+
+  // Em uma IT individual, torna explícita a volta à tela inicial do acervo.
+  if (isReader) {
+    const home = document.querySelector('.top-actions .home-btn');
+    if (home) {
+      home.textContent = '🏠 Tela inicial';
+      home.title = 'Voltar à tela inicial das Instruções Técnicas';
+    }
+
+    // Atalho persistente no rodapé móvel para trocar de IT sem sair da leitura.
+    const mobileNav = document.querySelector('.mobile-nav');
+    if (mobileNav && !mobileNav.querySelector('[data-mobile-other-its]')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('data-mobile-other-its','');
+      btn.innerHTML = '<strong>▦</strong>ITs';
+      btn.title = 'Consultar outras ITs';
+      btn.addEventListener('click', open);
+      const sectionIndex = mobileNav.querySelector('[data-open-sidebar]');
+      mobileNav.insertBefore(btn, sectionIndex || mobileNav.children[1] || null);
+    }
+  }
+})();
