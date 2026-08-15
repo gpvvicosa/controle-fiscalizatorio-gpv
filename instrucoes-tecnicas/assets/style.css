@@ -88,3 +88,15 @@ button,input{font:inherit}.topbar{height:var(--topbar);position:sticky;top:0;z-i
 .faithful-table-figure figcaption{margin-top:7px;font-size:10.5px;line-height:1.45;color:var(--muted,#667085)}
 html[data-theme="dark"] .faithful-table-scroll{background:#fff}
 @media(max-width:700px){.faithful-table-visuals{margin:14px 8px 20px;border-radius:11px}.faithful-table-heading{padding:10px}.faithful-table-heading strong{font-size:11.5px}.faithful-table-heading small{font-size:9.5px}.faithful-table-figure{padding:8px}.faithful-table-scroll img{min-width:680px}.faithful-table-figure figcaption{font-size:9.5px}}
+
+
+/* GPV V23.9.85 — ampliação dos visuais técnicos, sem alteração do texto normativo. */
+.technical-page-visual-v2385 img{cursor:zoom-in}
+.technical-page-visual-v2385 img:focus{outline:3px solid rgba(15,118,110,.28);outline-offset:3px}
+.technical-visual-open{overflow:hidden}
+.technical-visual-overlay[hidden]{display:none!important}
+.technical-visual-overlay{position:fixed;inset:0;z-index:99999;background:rgba(3,8,18,.92);display:flex;align-items:center;justify-content:center;padding:48px 18px 18px}
+.technical-visual-overlay-stage{width:100%;height:100%;overflow:auto;display:flex;align-items:flex-start;justify-content:center;-webkit-overflow-scrolling:touch}
+.technical-visual-overlay-stage img{display:block;max-width:none;width:auto;min-width:min(1050px,100%);height:auto;background:#fff;box-shadow:0 20px 70px rgba(0,0,0,.38)}
+.technical-visual-overlay-close{position:fixed;right:14px;top:12px;z-index:2;width:40px;height:40px;border:1px solid rgba(255,255,255,.35);border-radius:12px;background:rgba(15,23,42,.88);color:#fff;font-size:28px;line-height:1;cursor:pointer}
+@media(max-width:700px){.technical-visual-overlay{padding:54px 4px 8px}.technical-visual-overlay-stage{justify-content:flex-start}.technical-visual-overlay-stage img{min-width:980px}.technical-visual-overlay-close{right:8px;top:8px}}
