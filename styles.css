@@ -8686,3 +8686,66 @@ body.access-geral #draftStatus { color: #6b6262; }
     color: #1d4ed8 !important;
   }
 }
+
+
+/* =========================================================
+   V23.9.94 — Formulário de vistoria mais limpo + maior contraste
+   no seletor móvel padronizado.
+   - Remove os textos auxiliares permanentes e subtítulos explicativos do formulário.
+   - Mantém labels, campos, avisos dinâmicos, validações e status.
+   - Reforça a legibilidade das opções em todos os seletores móveis.
+   ========================================================= */
+#vistoriaForm .hint,
+#vistoriaForm .sequence-note,
+#vistoriaForm .section-head .head-text > p {
+  display: none !important;
+}
+
+@media (max-width: 820px), (pointer: coarse) {
+  .mobile-choice-option {
+    color: #111827;
+    font-weight: 650;
+  }
+
+  .mobile-choice-option-text {
+    color: inherit;
+    font-size: 14px;
+    font-weight: inherit;
+  }
+
+  .mobile-choice-option small {
+    color: #475467;
+    font-weight: 600;
+  }
+
+  .mobile-choice-option.is-selected {
+    color: #173f6f;
+    font-weight: 850;
+  }
+
+  .mobile-choice-check {
+    color: #475467;
+  }
+
+  .mobile-choice-option.is-selected .mobile-choice-check {
+    color: #245b96;
+  }
+
+  .mobile-choice-head span {
+    color: #475467;
+  }
+
+  .mobile-choice-head h2 {
+    color: #111827;
+  }
+
+  .mobile-choice-search {
+    color: #111827 !important;
+    font-weight: 600;
+  }
+
+  .mobile-choice-search::placeholder {
+    color: #667085;
+    opacity: 1;
+  }
+}
