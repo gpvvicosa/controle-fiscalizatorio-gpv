@@ -100,3 +100,30 @@ html[data-theme="dark"] .faithful-table-scroll{background:#fff}
 .technical-visual-overlay-stage img{display:block;max-width:none;width:auto;min-width:min(1050px,100%);height:auto;background:#fff;box-shadow:0 20px 70px rgba(0,0,0,.38)}
 .technical-visual-overlay-close{position:fixed;right:14px;top:12px;z-index:2;width:40px;height:40px;border:1px solid rgba(255,255,255,.35);border-radius:12px;background:rgba(15,23,42,.88);color:#fff;font-size:28px;line-height:1;cursor:pointer}
 @media(max-width:700px){.technical-visual-overlay{padding:54px 4px 8px}.technical-visual-overlay-stage{justify-content:flex-start}.technical-visual-overlay-stage img{min-width:980px}.technical-visual-overlay-close{right:8px;top:8px}}
+
+
+/* GPV V23.9.87 — fonte textual preservada para busca/fallback, sem duplicação visual. */
+.visual-source-hidden-v2387{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0 0 0 0)!important;
+  clip-path:inset(50%)!important;
+  white-space:nowrap!important;
+  border:0!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+.visual-page-v2387>.faithful-table-visuals-v2387,
+.visual-page-v2387>.visual-primary-v2387{margin-top:14px;margin-bottom:18px}
+.visual-primary-v2387[open]>.technical-page-visual-inner>p{display:none}
+.visual-primary-v2387[open]>.technical-page-visual-inner{padding-top:10px}
+.faithful-table-visuals-v2387{scroll-margin-top:92px}
+.faithful-table-visuals-v2387[hidden],.technical-page-visual[hidden]{display:none!important}
+@media(max-width:700px){
+  .visual-page-v2387>.faithful-table-visuals-v2387,
+  .visual-page-v2387>.visual-primary-v2387{margin-top:10px;margin-bottom:14px}
+}
