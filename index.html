@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.98">
+  <link rel="stylesheet" href="styles.css?v=23.9.99">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1702,6 +1702,25 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.94"></script>
-  <script src="app.js?v=23.9.98"></script>
+  <script src="app.js?v=23.9.99"></script>
+
+  <div id="cancelFillModal" class="cancel-fill-modal" hidden>
+    <section class="cancel-fill-dialog" role="dialog" aria-modal="true" aria-labelledby="cancelFillTitle">
+      <button id="cancelFillCloseBtn" class="cancel-fill-close" type="button" aria-label="Fechar">×</button>
+      <div class="cancel-fill-icon" aria-hidden="true">!</div>
+      <h2 id="cancelFillTitle">Cancelar preenchimento?</h2>
+      <p>O preenchimento iniciado de <strong id="cancelFillName">esta vistoria</strong> será cancelado.</p>
+      <div class="cancel-fill-info">
+        <strong>A vistoria programada será mantida.</strong>
+        <span>Ela continuará disponível e poderá ser iniciada novamente na data prevista.</span>
+      </div>
+      <p class="cancel-fill-warning">Os dados lançados somente neste preenchimento serão excluídos.</p>
+      <div class="cancel-fill-actions">
+        <button id="cancelFillBackBtn" type="button" class="btn btn-secondary">Voltar</button>
+        <button id="cancelFillConfirmBtn" type="button" class="btn btn-danger">Cancelar preenchimento</button>
+      </div>
+    </section>
+  </div>
+
 </body>
 </html>

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-98-cancel-fill';
-const VERSION = '23.9.98';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-99-irregularidades';
+const VERSION = '23.9.99';
 
 const CORE_SHELL = [
   './',

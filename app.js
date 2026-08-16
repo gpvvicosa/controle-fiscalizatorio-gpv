@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.98';
+      const APP_VERSION = '23.9.99';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -4743,7 +4743,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                     </label>
                   </div>
                   <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}">
-                    <strong>${item.statusTecnico === 'sugerido' ? 'Sugestão técnica preparada' : 'Análise técnica'}</strong>
+                    <strong>${item.statusTecnico === 'sugerido' ? 'Pré-análise técnica preparada' : 'Análise técnica'}</strong>
                     <span>${item.statusTecnico === 'sugerido' ? escapeHtml(item.textoTecnico) : 'Necessita conferência normativa. O sistema não identificou fundamento seguro automaticamente.'}</span>
                     ${item.autorNome ? `<small>Lançado por ${escapeHtml(item.autorNome)}</small>` : ''}
                   </div>
@@ -4902,34 +4902,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         const candidatos = flattenNotificacoesLiberacao_(true);
         if (!candidatos.length) {
-          if (mostrarMensagem) showError('Para concluir a vistoria de liberação como Notificado, registre ao menos uma irregularidade no Rascunho das notificações.');
+          if (mostrarMensagem) showError('Para concluir a vistoria de liberação como Notificado, registre ao menos uma irregularidade.');
           notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           return false;
         }
 
-        const faltantes = [];
-        let primeiro = null;
-        candidatos.forEach(({ local, irregularidade }, indice) => {
-          const verificar = (campo, rotulo, seletor) => {
-            if (String(campo || '').trim()) return;
-            faltantes.push(`Notificação ${indice + 1}: ${rotulo}`);
-            const el = notificacoesLiberacaoLista?.querySelector(seletor);
-            if (el) {
-              el.classList.add('notification-field-invalid');
-              primeiro = primeiro || el;
-            }
-          };
-          verificar(local.tipoLocal, 'Tipo do Local', `[data-notification-field="tipoLocal"][data-notification-local-id="${CSS.escape(local.id)}"]`);
-          verificar(local.complemento, 'Complemento', `[data-notification-field="complemento"][data-notification-local-id="${CSS.escape(local.id)}"]`);
-          verificar(irregularidade.tipoIrregularidade, 'Tipo de Irregularidade', `[data-notification-field="tipoIrregularidade"][data-notification-irregularity-id="${CSS.escape(irregularidade.id)}"]`);
-          verificar(irregularidade.itemIrregular, 'Item Irregular', `[data-notification-field="itemIrregular"][data-notification-irregularity-id="${CSS.escape(irregularidade.id)}"]`);
-          verificar(irregularidade.descricao, 'Descrição', `[data-notification-field="descricao"][data-notification-irregularity-id="${CSS.escape(irregularidade.id)}"]`);
-        });
-
-        if (faltantes.length) {
-          if (mostrarMensagem) showError(`Complete o rascunho antes de concluir como Notificado: ${faltantes.slice(0, 5).join('; ')}${faltantes.length > 5 ? '...' : ''}.`);
-          primeiro?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          focarCampoCompatEscolhaMovel_(primeiro);
+        // V23.9.99: no campo, basta a descrição objetiva. Tipo/local/item podem ser
+        // complementados posteriormente no Pelotão sem bloquear o encerramento.
+        const comDescricao = candidatos.filter(({ irregularidade }) => String(irregularidade?.descricao || irregularidade?.itemIrregular || '').trim());
+        if (!comDescricao.length) {
+          if (mostrarMensagem) showError('Informe ao menos uma descrição objetiva da irregularidade constatada.');
+          notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           return false;
         }
         return true;
@@ -7109,12 +7092,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         saveDraft();
 
-        const notificacoesConferidas = await mostrarConferenciaNotificacoes_();
-        if (!notificacoesConferidas) {
-          appStatus.textContent = 'Revise as notificações e conclua novamente quando estiverem conferidas.';
-          return;
-        }
-
+        // V23.9.99: a revisão técnica não interrompe mais o encerramento em campo.
+        // Texto original e pré-análise técnica seguem juntos para revisão posterior.
         const payload = buildPayload();
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
@@ -8636,10 +8615,47 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }));
       }
 
+      function confirmarCancelamentoPreenchimento_(titulo) {
+        return new Promise(resolve => {
+          const modal = document.getElementById('cancelFillModal');
+          const nome = document.getElementById('cancelFillName');
+          const voltar = document.getElementById('cancelFillBackBtn');
+          const confirmar = document.getElementById('cancelFillConfirmBtn');
+          const fechar = document.getElementById('cancelFillCloseBtn');
+          if (!modal || !voltar || !confirmar) return resolve(false);
+          if (nome) nome.textContent = String(titulo || 'esta vistoria');
+          modal.hidden = false;
+          document.body.classList.add('review-open');
+          let finalizado = false;
+          const encerrar = resultado => {
+            if (finalizado) return;
+            finalizado = true;
+            modal.hidden = true;
+            document.body.classList.remove('review-open');
+            voltar.removeEventListener('click', onVoltar);
+            confirmar.removeEventListener('click', onConfirmar);
+            fechar?.removeEventListener('click', onVoltar);
+            modal.removeEventListener('click', onFundo);
+            document.removeEventListener('keydown', onKey);
+            resolve(resultado);
+          };
+          const onVoltar = () => encerrar(false);
+          const onConfirmar = () => encerrar(true);
+          const onFundo = e => { if (e.target === modal) onVoltar(); };
+          const onKey = e => { if (e.key === 'Escape') onVoltar(); };
+          voltar.addEventListener('click', onVoltar);
+          confirmar.addEventListener('click', onConfirmar);
+          fechar?.addEventListener('click', onVoltar);
+          modal.addEventListener('click', onFundo);
+          document.addEventListener('keydown', onKey);
+          setTimeout(() => voltar.focus(), 30);
+        });
+      }
+
       async function cancelarPreenchimentoPreparacao_(item) {
         if (!item?.vistoriaIniciada || !item?.rascunhoId) return;
         const titulo = item.nomeFantasia || item.razaoSocial || item.endereco || 'esta vistoria';
-        const confirmar = window.confirm(`Cancelar o preenchimento iniciado de "${titulo}"?\n\nA vistoria continuará programada e poderá ser iniciada novamente.`);
+        const confirmar = await confirmarCancelamentoPreenchimento_(titulo);
         if (!confirmar) return;
         if (!navigator.onLine) {
           appStatus.textContent = 'É necessária internet para cancelar um preenchimento compartilhado.';
@@ -9374,7 +9390,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.98', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
