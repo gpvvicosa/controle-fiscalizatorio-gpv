@@ -8813,3 +8813,204 @@ button,.btn{touch-action:manipulation}
     z-index:8;
   }
 }
+
+
+/* V23.9.99 — seletor de entrada da Vistoria de Liberação (hotfix K) */
+.inspection-start-choice-overlay{
+  position:fixed;
+  inset:0;
+  z-index:14000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(17,24,39,.60);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.inspection-start-choice-overlay[hidden]{display:none!important}
+body.inspection-start-choice-open{overflow:hidden}
+
+.inspection-start-choice-card{
+  width:min(560px,100%);
+  overflow:hidden;
+  border:1px solid rgba(153,27,27,.14);
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 28px 80px rgba(15,23,42,.30);
+  color:#172033;
+}
+.inspection-start-choice-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:24px 24px 18px;
+  border-bottom:1px solid #eceff3;
+}
+.inspection-start-choice-kicker{
+  display:block;
+  margin-bottom:5px;
+  color:#991b1b;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.inspection-start-choice-head h2{
+  margin:0;
+  color:#172033;
+  font-size:24px;
+  line-height:1.18;
+}
+.inspection-start-choice-head p{
+  margin:9px 0 0;
+  color:#64748b;
+  font-size:14px;
+  line-height:1.45;
+}
+.inspection-start-choice-close{
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  padding:0;
+  border:1px solid #e2e8f0;
+  border-radius:50%;
+  background:#f8fafc;
+  color:#475569;
+  font-size:27px;
+  line-height:1;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.inspection-start-choice-close:disabled{opacity:.45;cursor:default}
+
+.inspection-start-choice-options{
+  display:grid;
+  gap:12px;
+  padding:20px 24px 8px;
+}
+.inspection-start-choice-option{
+  position:relative;
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:4px!important;
+  width:100%;
+  min-height:76px;
+  padding:15px 18px!important;
+  text-align:left!important;
+  border:1px solid #dbe2ea!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  color:#172033!important;
+  box-shadow:none!important;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.inspection-start-choice-option:hover{
+  border-color:#c7d0db!important;
+  background:#f8fafc!important;
+}
+.inspection-start-choice-option.is-primary{
+  border-color:rgba(153,27,27,.26)!important;
+  background:#fffafa!important;
+}
+.inspection-start-choice-option.is-primary:hover{
+  border-color:rgba(153,27,27,.45)!important;
+  background:#fff5f5!important;
+}
+.inspection-start-choice-option strong{
+  display:block;
+  color:inherit;
+  font-size:16px;
+  font-weight:850;
+  line-height:1.2;
+}
+.inspection-start-choice-option small{
+  display:block;
+  color:#64748b;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.35;
+}
+.inspection-start-choice-option:disabled{
+  cursor:default;
+  opacity:.52;
+}
+.inspection-start-choice-option.is-loading{
+  opacity:1;
+  padding-right:54px!important;
+}
+.inspection-start-choice-option.is-loading::after{
+  content:"";
+  position:absolute;
+  right:20px;
+  top:50%;
+  width:18px;
+  height:18px;
+  margin-top:-9px;
+  border:2px solid rgba(153,27,27,.22);
+  border-top-color:#991b1b;
+  border-radius:50%;
+  animation:inspectionStartChoiceSpin .75s linear infinite;
+}
+@keyframes inspectionStartChoiceSpin{to{transform:rotate(360deg)}}
+
+.inspection-start-choice-foot{
+  margin:0;
+  padding:12px 24px 20px;
+  color:#7c8798;
+  font-size:11px;
+  line-height:1.4;
+}
+
+@media(max-width:640px){
+  .inspection-start-choice-overlay{
+    align-items:flex-end;
+    padding:0;
+  }
+  .inspection-start-choice-card{
+    width:100%;
+    max-height:88dvh;
+    border-radius:24px 24px 0 0;
+    border-bottom:0;
+    padding-bottom:max(8px,env(safe-area-inset-bottom));
+  }
+  .inspection-start-choice-card::before{
+    content:"";
+    display:block;
+    width:42px;
+    height:4px;
+    margin:10px auto 0;
+    border-radius:999px;
+    background:#d5dbe3;
+  }
+  .inspection-start-choice-head{
+    padding:18px 20px 16px;
+  }
+  .inspection-start-choice-head h2{
+    font-size:21px;
+  }
+  .inspection-start-choice-head p{
+    font-size:13px;
+  }
+  .inspection-start-choice-close{
+    width:40px;
+    height:40px;
+  }
+  .inspection-start-choice-options{
+    gap:10px;
+    padding:16px 20px 6px;
+  }
+  .inspection-start-choice-option{
+    min-height:72px;
+    padding:14px 16px!important;
+  }
+  .inspection-start-choice-option strong{font-size:15px}
+  .inspection-start-choice-option small{font-size:12px}
+  .inspection-start-choice-foot{
+    padding:10px 20px 16px;
+  }
+}

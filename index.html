@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99f">
+  <link rel="stylesheet" href="styles.css?v=23.9.99k">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1702,30 +1702,35 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99j"></script>
+  <script src="app.js?v=23.9.99k"></script>
 
   </div>
   
-  <div id="inspectionStartChoiceModal" class="review-modal" hidden>
-    <div class="review-card inspection-start-choice-card" role="dialog" aria-modal="true" aria-labelledby="inspectionStartChoiceTitle">
-      <div class="review-head">
+  <div id="inspectionStartChoiceModal" class="inspection-start-choice-overlay" hidden>
+    <section class="inspection-start-choice-card" role="dialog" aria-modal="true" aria-labelledby="inspectionStartChoiceTitle" aria-describedby="inspectionStartChoiceDescription">
+      <div class="inspection-start-choice-head">
         <div>
-          <h3 id="inspectionStartChoiceTitle">Por onde deseja começar?</h3>
-          <p>A vistoria e o rascunho são os mesmos nas duas opções.</p>
+          <span class="inspection-start-choice-kicker">Vistoria de Liberação</span>
+          <h2 id="inspectionStartChoiceTitle">Por onde deseja começar?</h2>
+          <p id="inspectionStartChoiceDescription">Escolha apenas o ponto de entrada. A vistoria e o rascunho permanecem os mesmos.</p>
         </div>
-        <button id="inspectionStartChoiceClose" class="review-close" type="button" aria-label="Fechar">×</button>
+        <button id="inspectionStartChoiceClose" class="inspection-start-choice-close" type="button" aria-label="Voltar para Vistorias Programadas">×</button>
       </div>
-      <div class="inspection-start-choice-actions">
-        <button id="inspectionStartFormBtn" class="btn btn-primary" type="button">
-          Iniciar preenchimento
+
+      <div class="inspection-start-choice-options">
+        <button id="inspectionStartFormBtn" class="inspection-start-choice-option is-primary" type="button">
+          <strong>Iniciar preenchimento</strong>
           <small>Começar pelos dados da vistoria</small>
         </button>
-        <button id="inspectionStartNotificationsBtn" class="btn btn-secondary" type="button">
-          Lançar notificações
-          <small>Ir direto às irregularidades</small>
+        <button id="inspectionStartNotificationsBtn" class="inspection-start-choice-option" type="button">
+          <strong>Lançar notificações</strong>
+          <small>Ir direto ao registro das irregularidades</small>
         </button>
       </div>
-    </div>
+
+      <p class="inspection-start-choice-foot">Você poderá acessar as notificações ou o restante do formulário a qualquer momento.</p>
+    </section>
+  </div>
   </div>
 
   <div id="cancelFillModal" class="cancel-fill-modal" hidden>

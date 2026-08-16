@@ -9221,6 +9221,30 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
 
+      function resetarEstadoEscolhaInicioVistoria_() {
+        const modal = document.getElementById('inspectionStartChoiceModal');
+        const fechar = document.getElementById('inspectionStartChoiceClose');
+        const formBtn = document.getElementById('inspectionStartFormBtn');
+        const notifBtn = document.getElementById('inspectionStartNotificationsBtn');
+
+        [formBtn, notifBtn].forEach(btn => {
+          if (!btn) return;
+          btn.disabled = false;
+          btn.classList.remove('is-loading');
+          const strong = btn.querySelector('strong');
+          if (strong) strong.textContent = btn === formBtn ? 'Iniciar preenchimento' : 'Lançar notificações';
+        });
+        if (fechar) fechar.disabled = false;
+        if (modal) modal.removeAttribute('data-loading');
+      }
+
+      function fecharEscolhaInicioVistoria_() {
+        const modal = document.getElementById('inspectionStartChoiceModal');
+        if (modal) modal.hidden = true;
+        document.body.classList.remove('inspection-start-choice-open');
+        resetarEstadoEscolhaInicioVistoria_();
+      }
+
       function escolherInicioVistoriaProgramada_() {
         return new Promise(resolve => {
           const modal = document.getElementById('inspectionStartChoiceModal');
@@ -9229,31 +9253,50 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const notifBtn = document.getElementById('inspectionStartNotificationsBtn');
           if (!modal || !formBtn || !notifBtn) return resolve('form');
 
-          const listaEstavaAberta = Boolean(programmedListModal && !programmedListModal.hidden);
-          if (listaEstavaAberta) programmedListModal.hidden = true;
-
+          resetarEstadoEscolhaInicioVistoria_();
           modal.hidden = false;
-          document.body.classList.add('review-open');
-          let finalizado = false;
+          document.body.classList.add('inspection-start-choice-open');
 
-          const concluir = escolha => {
-            if (finalizado) return;
-            finalizado = true;
-            modal.hidden = true;
-            document.body.classList.remove('review-open');
+          let finalizado = false;
+          const limparEventos = () => {
             fechar?.removeEventListener('click', cancelar);
             formBtn.removeEventListener('click', iniciarForm);
             notifBtn.removeEventListener('click', iniciarNotif);
             modal.removeEventListener('click', clicarFundo);
             document.removeEventListener('keydown', tecla);
-            if (!escolha && listaEstavaAberta && programmedListModal) programmedListModal.hidden = false;
-            resolve(escolha || '');
           };
+          const concluir = escolha => {
+            if (finalizado) return;
+            finalizado = true;
+            limparEventos();
+
+            if (!escolha) {
+              fecharEscolhaInicioVistoria_();
+              resolve('');
+              return;
+            }
+
+            modal.dataset.loading = '1';
+            formBtn.disabled = true;
+            notifBtn.disabled = true;
+            if (fechar) fechar.disabled = true;
+
+            const escolhido = escolha === 'notificacoes' ? notifBtn : formBtn;
+            escolhido.classList.add('is-loading');
+            const titulo = escolhido.querySelector('strong');
+            if (titulo) titulo.textContent = 'Abrindo vistoria...';
+            resolve(escolha);
+          };
+
           const cancelar = () => concluir('');
           const iniciarForm = () => concluir('form');
           const iniciarNotif = () => concluir('notificacoes');
-          const clicarFundo = e => { if (e.target === modal) cancelar(); };
-          const tecla = e => { if (e.key === 'Escape') cancelar(); };
+          const clicarFundo = event => {
+            if (event.target === modal && modal.dataset.loading !== '1') cancelar();
+          };
+          const tecla = event => {
+            if (event.key === 'Escape' && modal.dataset.loading !== '1') cancelar();
+          };
 
           fechar?.addEventListener('click', cancelar);
           formBtn.addEventListener('click', iniciarForm);
@@ -9281,20 +9324,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const escolha = ehLiberacao ? await escolherInicioVistoriaProgramada_() : 'form';
         if (!escolha) return;
 
-        await aplicarPreparacaoAoFormulario_(item);
+        let carregou = false;
+        try {
+          carregou = await aplicarPreparacaoAoFormulario_(item);
+        } finally {
+          if (ehLiberacao) fecharEscolhaInicioVistoria_();
+        }
+
+        if (!carregou) {
+          if (programmedListModal) programmedListModal.hidden = false;
+          return;
+        }
 
         if (escolha === 'notificacoes') {
-          setTimeout(rolarParaNotificacoesProgramadas_, 120);
-        } else {
-          setTimeout(() => {
-            const cidade = document.getElementById('cidadeSecao');
-            try { cidade?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
-          }, 80);
+          setTimeout(rolarParaNotificacoesProgramadas_, 140);
         }
       }
 
       async function aplicarPreparacaoAoFormulario_(item) {
-        if (!item) return;
+        if (!item) return false;
 
         // V23.9.97: se a programação já foi iniciada em qualquer aparelho,
         // abre o rascunho compartilhado em vez de criar outra vistoria.
@@ -9313,14 +9361,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             saveDraft();
             rolarParaFormularioProgramado_();
             appStatus.textContent = `Vistoria em andamento carregada${detalhe.atualizadoPor ? ` — última atualização: ${detalhe.atualizadoPor}` : ''}.`;
-            return;
+            return true;
           } catch (erro) {
             appStatus.textContent = erro?.message || 'Não foi possível carregar a vistoria em andamento.';
-            return;
+            return false;
           }
         }
 
-        if (!prepararFormularioNovaVistoria_('Vistoria programada')) return;
+        if (!prepararFormularioNovaVistoria_('Vistoria programada')) return false;
         preparacaoEmUsoId = String(item.id || '');
         atualizarBotaoCancelarPreenchimentoTopo_();
         aplicarFluxoVistoria_(item.tipoPreparacao === 'liberacao' ? 'liberacao' : 'fiscalizacao', { silencioso: true });
@@ -9347,6 +9395,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConsultaProcessoPf_('form', 180);
         rolarParaFormularioProgramado_();
         appStatus.textContent = `Vistoria programada carregada${item.vistoriadorResponsavel ? ` — responsável: ${item.vistoriadorResponsavel}` : ''}.`;
+        return true;
       }
 
       async function loadInitialData() {
@@ -10067,7 +10116,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99j', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99k', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
