@@ -8771,3 +8771,16 @@ body.access-geral #draftStatus { color: #6b6262; }
 .cancel-fill-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 .cancel-fill-actions .btn{min-height:46px}
 @media(max-width:600px){.cancel-fill-dialog{padding:24px 20px;border-radius:22px}.cancel-fill-actions{display:grid;grid-template-columns:1fr}.cancel-fill-actions .btn{width:100%}}
+
+/* V23.9.99 consolidada — estado de salvamento e conclusão parcial */
+.notification-irregularity-title{display:flex;flex-direction:column;gap:4px}
+.notification-save-state{font-size:.78rem;font-weight:700;opacity:.92}
+.notification-save-state[data-state="saving"]{opacity:.78}
+.notification-save-state[data-state="offline"]{font-weight:700}
+.notification-technical-suggestion{margin-top:12px}
+.success-screen.partial-success #whatsappOrientacoesBtn,
+.success-screen.partial-success #recordsSuccessBtn,
+.success-screen.partial-success #newRecordBtn,
+.success-screen.partial-success #whatsappOrientacoesNote{display:none!important}
+.success-screen.partial-success .success-actions{grid-template-columns:1fr!important}
+.success-screen.partial-success #closeSuccessBtn{width:100%}

@@ -1743,6 +1743,11 @@
       }
 
       function mostrarSucesso(titulo, mensagem) {
+        if (titulo !== 'Vistoria concluída parcialmente') {
+          successScreen.classList.remove('partial-success');
+          const closeBtn = document.getElementById('closeSuccessBtn');
+          if (closeBtn) closeBtn.textContent = 'Continuar nesta tela';
+        }
         successTitle.textContent = titulo;
         document.getElementById('successText').textContent = mensagem;
         atualizarBotaoOrientacoes_();
@@ -4697,8 +4702,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, contrariando o item 6.2.1.4 da IT 01.' }
         ];
         const regra = regras.find(r => r.re.test(n));
-        if (!regra) return { texto: '', status: 'conferencia' };
-        return { texto: prefixo + regra.texto, status: 'sugerido' };
+        if (regra) return { texto: prefixo + regra.texto, status: 'sugerido' };
+
+        // V23.9.99 consolidada: gera redação técnica sem inventar IT/item.
+        // A referência normativa permanece explicitamente pendente de conferência.
+        const descricao = String(item?.descricao || item?.itemIrregular || '').trim();
+        if (!descricao) return { texto: '', status: 'conferencia' };
+        let tecnico = descricao.replace(/^(falta|faltando)\s+/i, 'Ausência de ');
+        tecnico = tecnico.charAt(0).toUpperCase() + tecnico.slice(1);
+        tecnico = tecnico.replace(/[.;,:\s]+$/, '');
+        return { texto: `${prefixo}${tecnico}.`, status: 'conferencia' };
       }
 
       function processarIrregularidadeTecnica_(local, item) {
@@ -4727,7 +4740,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 const opcoesItens = itensCategoriaNotificacao_(item.tipoIrregularidade);
                 return `<article class="notification-irregularity-card" data-notification-irregularity-card="${escapeAttr(item.id)}">
                   <div class="notification-irregularity-head">
-                    <strong>Irregularidade ${indiceItem + 1}</strong>
+                    <div class="notification-irregularity-title"><strong>Irregularidade ${indiceItem + 1}</strong><span class="notification-save-state" data-notification-save-state="${escapeAttr(item.id)}">✓ Salva neste aparelho</span></div>
                     <button type="button" data-notification-remove-irregularity="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}" aria-label="Excluir irregularidade">×</button>
                   </div>
                   <div class="notification-irregularity-fields">
@@ -4743,12 +4756,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                     </label>
                   </div>
                   <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}">
-                    <strong>${item.statusTecnico === 'sugerido' ? 'Pré-análise técnica preparada' : 'Análise técnica'}</strong>
-                    <span>${item.statusTecnico === 'sugerido' ? escapeHtml(item.textoTecnico) : 'Necessita conferência normativa. O sistema não identificou fundamento seguro automaticamente.'}</span>
+                    <strong>${item.statusTecnico === 'sugerido' ? '✓ Sugestão técnica preparada' : 'Revisão normativa necessária'}</strong>
+                    <span>${escapeHtml(item.textoTecnico || 'A redação técnica será preparada após a descrição da irregularidade.')}</span>
+                    ${item.statusTecnico === 'conferencia' ? '<small>IT/item ainda não confirmados. O sistema não inventará referência normativa.</small>' : ''}
                     ${item.autorNome ? `<small>Lançado por ${escapeHtml(item.autorNome)}</small>` : ''}
-                  </div>
-                  <div class="notification-irregularity-actions">
-                    <button class="notification-mini-btn" type="button" data-notification-copy="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}">Copiar descrição</button>
                   </div>
                 </article>`;
               }).join('')
@@ -4833,6 +4844,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const irregularidade = irregularidadeNotificacaoPorId_(local, alvo?.dataset?.notificationIrregularityId);
           if (!irregularidade) return;
           irregularidade[campo] = valor;
+          marcarIrregularidadeSalvando_(irregularidade.id);
           irregularidade.autorNome = irregularidade.autorNome || String(authState.usuario?.nome || '');
           irregularidade.autorId = irregularidade.autorId || String(authState.usuario?.id || '');
           irregularidade.atualizadoEm = new Date().toISOString();
@@ -6634,9 +6646,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         payload._appRegistroId = currentRecordId;
         try {
           await apiRequest('config', { consulta: 'rascunho_salvar', estado, payload }, 18000);
+          atualizarEstadoSalvamentoIrregularidades_('synced', '✓ Salva e sincronizada');
           if (!silencioso) appStatus.textContent = estado === 'parcial' ? 'Vistoria concluída parcialmente e sincronizada.' : 'Rascunho compartilhado sincronizado.';
           return true;
         } catch (e) {
+          atualizarEstadoSalvamentoIrregularidades_('offline', '☁ Salva — aguardando sincronização');
           if (!silencioso) appStatus.textContent = 'O rascunho continua salvo neste aparelho e será sincronizado quando houver conexão.';
           return false;
         }
@@ -6654,7 +6668,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!ok && !navigator.onLine) {
           appStatus.textContent = 'Conclusão parcial salva neste aparelho. Abra o app com internet para sincronizar antes de continuar em outro aparelho.';
         }
-        mostrarSucesso('Vistoria concluída parcialmente', 'Os dados permanecem disponíveis para continuar o preenchimento depois. Com internet, a equipe poderá abrir a mesma vistoria em outro aparelho.');
+        successScreen.classList.add('partial-success');
+        const closeBtn = document.getElementById('closeSuccessBtn');
+        if (closeBtn) closeBtn.textContent = 'Fechar';
+        mostrarSucesso(
+          'Vistoria concluída parcialmente',
+          ok
+            ? 'Dados salvos e sincronizados. A vistoria poderá ser continuada posteriormente, inclusive em outro aparelho.'
+            : 'Dados salvos neste aparelho. A sincronização ocorrerá quando houver internet.'
+        );
       }
 
       async function continuarRascunhoCompartilhado_() {
@@ -6678,6 +6700,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } catch (e) { appStatus.textContent = e?.message || 'Não foi possível carregar as vistorias compartilhadas.'; }
       }
 
+      function atualizarEstadoSalvamentoIrregularidades_(estado, texto) {
+        document.querySelectorAll('[data-notification-save-state]').forEach(el => {
+          el.dataset.state = estado;
+          el.textContent = texto;
+        });
+      }
+
+      function marcarIrregularidadeSalvando_(id) {
+        const el = document.querySelector(`[data-notification-save-state="${CSS.escape(String(id || ''))}"]`);
+        if (!el) return;
+        el.dataset.state = 'saving';
+        el.textContent = '⟳ Salvando...';
+      }
+
       function scheduleDraftSave() {
         if (!usuarioPodeOperar_()) {
           clearTimeout(saveTimer);
@@ -6697,6 +6733,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const savedAt = Date.now();
           localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt, recordId: currentRecordId, payload: buildPayload() }));
           registrarRascunhoLocal_(currentRecordId, savedAt);
+          atualizarEstadoSalvamentoIrregularidades_(navigator.onLine ? 'local' : 'offline', navigator.onLine ? '✓ Salva neste aparelho' : '☁ Salva — aguardando sincronização');
           draftStatus.textContent = '✓ Rascunho salvo';
           setTimeout(() => { draftStatus.textContent = 'Rascunho automático'; }, 1600);
         } catch (e) {}
@@ -9390,7 +9427,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99c', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
