@@ -4688,134 +4688,421 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       let baseNormativaITSCarregando_ = null;
-      function carregarBaseNormativaITS_() {
-        if (Array.isArray(window.SEARCH_INDEX) && window.SEARCH_INDEX.length) return Promise.resolve(window.SEARCH_INDEX);
+      let baseNormativaITSExata_ = [];
+
+      function indiceNormativoDisponivel_() {
+        if (Array.isArray(baseNormativaITSExata_) && baseNormativaITSExata_.length) return baseNormativaITSExata_;
+        if (Array.isArray(window.SEARCH_INDEX) && window.SEARCH_INDEX.length) return window.SEARCH_INDEX;
+        return [];
+      }
+
+      async function carregarBaseNormativaITS_() {
+        if (Array.isArray(baseNormativaITSExata_) && baseNormativaITSExata_.length) return baseNormativaITSExata_;
         if (baseNormativaITSCarregando_) return baseNormativaITSCarregando_;
-        baseNormativaITSCarregando_ = new Promise((resolve, reject) => {
-          const existente = document.querySelector('script[data-base-normativa-its]');
-          if (existente) {
-            existente.addEventListener('load', () => resolve(window.SEARCH_INDEX || []), { once:true });
-            existente.addEventListener('error', reject, { once:true });
-            return;
-          }
-          const script = document.createElement('script');
-          script.src = './instrucoes-tecnicas/assets/search-index.js?v=23.9.99';
-          script.async = true;
-          script.dataset.baseNormativaIts = '1';
-          script.onload = () => resolve(window.SEARCH_INDEX || []);
-          script.onerror = () => reject(new Error('Não foi possível carregar a base normativa das ITs.'));
-          document.head.appendChild(script);
-        }).catch(() => []);
+
+        baseNormativaITSCarregando_ = (async () => {
+          // Fonte prioritária: índice gerado exclusivamente do acervo de PDFs das ITs fornecido ao projeto.
+          try {
+            const resposta = await fetch('./base-normativa-its.json?v=23.9.99l');
+            if (resposta.ok) {
+              const dados = await resposta.json();
+              if (Array.isArray(dados?.itens) && dados.itens.length) {
+                baseNormativaITSExata_ = dados.itens.map(reg => ({
+                  it: Number(String(reg.it || '').match(/\d+/)?.[0] || 0),
+                  title: '',
+                  page: 0,
+                  section: String(reg.item || ''),
+                  text: String(reg.texto || ''),
+                  arquivo: String(reg.arquivo || ''),
+                  fonte: 'acervo-its-cbmmg-usuario'
+                })).filter(reg => reg.it && reg.section && reg.text);
+                if (baseNormativaITSExata_.length) return baseNormativaITSExata_;
+              }
+            }
+          } catch (e) {}
+
+          // Fallback de compatibilidade: índice do portal técnico já publicado no PWA.
+          if (Array.isArray(window.SEARCH_INDEX) && window.SEARCH_INDEX.length) return window.SEARCH_INDEX;
+          return await new Promise(resolve => {
+            const existente = document.querySelector('script[data-base-normativa-its]');
+            if (existente) {
+              existente.addEventListener('load', () => resolve(window.SEARCH_INDEX || []), { once:true });
+              existente.addEventListener('error', () => resolve([]), { once:true });
+              return;
+            }
+            const script = document.createElement('script');
+            script.src = './instrucoes-tecnicas/assets/search-index.js?v=23.9.99';
+            script.async = true;
+            script.dataset.baseNormativaIts = '1';
+            script.onload = () => resolve(window.SEARCH_INDEX || []);
+            script.onerror = () => resolve([]);
+            document.head.appendChild(script);
+          });
+        })().catch(() => []);
+
         return baseNormativaITSCarregando_;
       }
 
-      function itPreferencialNotificacao_(tipo) {
+      function itsPreferenciaisNotificacao_(tipo) {
         const n = normalize(tipo);
         const mapa = [
-          [/saidas? de emergencia/, 8],
-          [/brigada/, 12],
-          [/iluminacao de emergencia/, 13],
-          [/sinalizacao/, 15],
-          [/extintor/, 16],
-          [/hidrante|mangotinho/, 17],
-          [/alarme|deteccao/, 14],
-          [/glp|gas liquefeito/, 23],
-          [/instalacoes? eletricas|eletric/, 30],
-          [/evento/, 33]
+          [/acesso de viaturas/, [4]],
+          [/armazenamento de liquidos inflamaveis/, [22]],
+          [/brigada de incendio/, [12]],
+          [/cobertura de sape|piacava/, [28]],
+          [/gas natural/, [24]],
+          [/compartimentacao horizontal|compartimentacao vertical/, [7]],
+          [/controle de fumaca/, [41]],
+          [/materiais de acabamento|revestimento/, [38]],
+          [/eventos temporarios/, [33]],
+          [/fogos de artificio|pirotecnia/, [25]],
+          [/heliponto|heliporto/, [26]],
+          [/hidrante publico/, [29]],
+          [/iluminacao de emergencia/, [13]],
+          [/impossibilidades tecnicas|edificacoes existentes/, [40]],
+          [/gas liquefeito|glp/, [23]],
+          [/produtos perigosos/, [27]],
+          [/patio de conteineres/, [31]],
+          [/plano de intervencao/, [11]],
+          [/pressurizacao de escada/, [10]],
+          [/processo de seguranca.*pscip/, [1,3]],
+          [/cozinhas profissionais/, [32]],
+          [/saidas? de emergencia/, [8]],
+          [/seguranca estrutural/, [6]],
+          [/separacao entre edificacoes/, [5]],
+          [/sinalizacao de emergencia/, [15]],
+          [/chuveiros automaticos/, [18]],
+          // IT 20 consta como revogada no acervo recebido: não é usada como fundamento automático.
+          [/sistema de protecao por espuma/, []],
+          [/sistema de protecao por extintores/, [16]],
+          // IT 19 consta como revogada no acervo recebido: não é usada como fundamento automático.
+          [/sistema de resfriamento/, []],
+          [/sistema fixo de gases/, [21]],
+          [/deteccao e alarme/, [14]],
+          [/hidrantes e mangotinhos/, [17]]
         ];
-        return mapa.find(([re]) => re.test(n))?.[1] || 0;
+        return mapa.find(([re]) => re.test(n))?.[1] || [];
       }
 
-      function tokensNormativos_(texto) {
-        const stop = new Set(['para','com','sem','uma','uns','das','dos','que','por','não','nao','deve','item','irregular','sistema','edificacao','edificacoes']);
-        return normalize(texto).split(/[^a-z0-9]+/).filter(t => t.length >= 4 && !stop.has(t));
+      function itPreferencialNotificacao_(tipo) {
+        return itsPreferenciaisNotificacao_(tipo)[0] || 0;
+      }
+
+      function chaveNotificacao_(valor) {
+        return normalize(valor).replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function tokenCanonicoNormativo_(token) {
+        const t = normalize(token);
+        const mapa = {
+          fechando:'fech', fechamento:'fech', fechada:'fech', fechado:'fech', fecha:'fech', fechar:'fech',
+          corrimaos:'corrimao', guardas:'guarda',
+          extintores:'extintor', hidrantes:'hidrante', mangueiras:'mangueira',
+          luminarias:'luminaria', iluminacao:'iluminacao',
+          acionadores:'acionador', detectores:'detector', avisadores:'avisador',
+          portas:'porta', escadas:'escada', rampas:'rampa',
+          sinalizacoes:'sinalizacao', equipamentos:'equipamento',
+          certificados:'certificado', certificacao:'certificado',
+          recalques:'recalque', abrigos:'abrigo', valvulas:'valvula', engates:'engate'
+        };
+        if (mapa[t]) return mapa[t];
+        return t
+          .replace(/(coes|cao)$/,'')
+          .replace(/(mente)$/,'')
+          .replace(/(ando|endo|indo)$/,'')
+          .replace(/(ados|adas|idos|idas)$/,'')
+          .replace(/(ado|ada|ido|ida)$/,'')
+          .replace(/s$/,'');
+      }
+
+      function tokensNormativos_(texto, {descricao=false} = {}) {
+        const stop = new Set([
+          'para','com','uma','uns','umas','das','dos','que','por','deve','item','irregular','sistema','edificacao','edificacoes',
+          'outro','outros','teste','testes','situacao','local','medida','medidas','instalacao','instalado','instalada','instalados','instaladas',
+          'falta','faltando','ausencia','ausente','sem','nao','fora','prazo','vencido','vencida','vencidos','vencidas','quebrado','quebrada',
+          'funcionou','funciona','funcionando','totalmente','parcialmente','irregular','inadequado','inadequada','divergente','incorreto','incorreta'
+        ]);
+        const tokens = normalize(texto).split(/[^a-z0-9]+/).filter(Boolean);
+        const saida = [];
+        for (const original of tokens) {
+          if (original.length < 3 || stop.has(original)) continue;
+          // números ajudam apenas na descrição para localizar itens com limites explícitos.
+          if (/^\d+$/.test(original) && !descricao) continue;
+          const canon = tokenCanonicoNormativo_(original);
+          if (canon.length >= 3 && !stop.has(canon) && !saida.includes(canon)) saida.push(canon);
+        }
+        return saida;
+      }
+
+      function textoNormativoCanonico_(texto) {
+        return normalize(texto).split(/[^a-z0-9]+/).filter(Boolean).map(tokenCanonicoNormativo_).join(' ');
+      }
+
+      function impedirFundamentoAutomatico_(item) {
+        const tipo = chaveNotificacao_(item?.tipoIrregularidade || '');
+        const irregular = chaveNotificacao_(item?.itemIrregular || '');
+        const desc = chaveNotificacao_(item?.descricao || '');
+
+        // IT 12 exige a apresentação dos certificados, mas o acervo recebido não traz
+        // prazo de validade do certificado de formação do brigadista.
+        if (/brigada/.test(tipo) && /certificado/.test(irregular) && /(venc|validade|fora.*data|prazo)/.test(desc)) return true;
+
+        // A IT 13 não estabelece, por si só, uma altura máxima genérica de instalação.
+        // O item 5.5 trata de tensão quando a luminária está abaixo de 2,5 m.
+        if (/iluminacao de emergencia/.test(tipo) && /altura de instalacao da luminaria/.test(irregular)) return true;
+
+        // Teste funcional da iluminação depende também da NBR 10898, adotada pelo item 2.2 da IT 13.
+        if (/iluminacao de emergencia/.test(tipo) && /teste/.test(irregular)) return true;
+
+        // Itens genéricos não recebem referência apenas por similaridade textual. Quando houver
+        // fundamento direto, ele é tratado nas regras confirmadas acima.
+        if (/^(outros?|teste)$/.test(irregular)) return true;
+
+        // Cozinhas profissionais remete diversos requisitos à NBR 14518; descrição vaga não
+        // deve resultar em citação automática de um capítulo amplo da IT 32.
+        if (/cozinhas profissionais/.test(tipo) && /sistema de exaustao/.test(irregular)) return true;
+
+        return false;
+      }
+
+      function segmentosNormativosDoRef_(ref) {
+        const texto = String(ref?.text || '');
+        const re = /(?:^|\n)\s*((?:[A-Z]\.\d+(?:\.\d+)*|\d+(?:\.\d+)+))\s+([^\n]*)([\s\S]*?)(?=\n\s*(?:[A-Z]\.\d+(?:\.\d+)*|\d+(?:\.\d+)+)\s+|$)/g;
+        const segmentos = [];
+        let m;
+        while ((m = re.exec(texto))) {
+          segmentos.push({
+            numero: String(m[1] || '').trim(),
+            titulo: String(m[2] || '').trim(),
+            texto: `${m[2] || ''}\n${m[3] || ''}`.trim()
+          });
+        }
+        if (segmentos.length) return segmentos;
+        const secao = String(ref?.section || '').trim();
+        const numero = secao.match(/^((?:[A-Z]\.\d+(?:\.\d+)*|\d+(?:\.\d+)+))\b/i)?.[1] || '';
+        return numero ? [{numero,titulo:secao,texto}] : [];
       }
 
       function buscarFundamentoNormativo_(item) {
-        const base = Array.isArray(window.SEARCH_INDEX) ? window.SEARCH_INDEX : [];
-        if (!base.length) return null;
-        const itPref = itPreferencialNotificacao_(item?.tipoIrregularidade);
+        const base = indiceNormativoDisponivel_();
+        if (!base.length || impedirFundamentoAutomatico_(item)) return null;
+
+        const itsPreferidas = itsPreferenciaisNotificacao_(item?.tipoIrregularidade);
+        if (!itsPreferidas.length) return null;
+
         const tipoTokens = tokensNormativos_(item?.tipoIrregularidade || '');
         const itemTokens = tokensNormativos_(item?.itemIrregular || '');
-        const descTokens = tokensNormativos_(item?.descricao || '');
-        const essenciais = [...new Set([...itemTokens, ...descTokens])];
-        if (!essenciais.length) return null;
+        const descTokens = tokensNormativos_(item?.descricao || '', {descricao:true});
+        const itemGenerico = !itemTokens.length || /^(outros?|teste)$/.test(chaveNotificacao_(item?.itemIrregular || ''));
 
-        let melhor = null;
+        const candidatos = [];
         for (const ref of base) {
-          if (itPref && Number(ref.it) !== itPref) continue;
-          const texto = normalize(`${ref.section || ''} ${ref.text || ''}`);
-          let score = 0, achouDesc = 0, achouItem = 0;
-          for (const t of descTokens) if (texto.includes(t)) { score += 4; achouDesc++; }
-          for (const t of itemTokens) if (texto.includes(t)) { score += 3; achouItem++; }
-          for (const t of tipoTokens) if (texto.includes(t)) score += 1;
-          if (itPref && Number(ref.it) === itPref) score += 4;
-          if (!melhor || score > melhor.score) melhor = { ref, score, achouDesc, achouItem };
+          if (!itsPreferidas.includes(Number(ref.it))) continue;
+          const refSecao = textoNormativoCanonico_(ref.section || '');
+          for (const seg of segmentosNormativosDoRef_(ref)) {
+            const tituloCanon = textoNormativoCanonico_(seg.titulo || '');
+            const textoCanon = textoNormativoCanonico_(seg.texto || '');
+            let score = 0, itemHits = 0, descHits = 0, tipoHits = 0;
+
+            for (const t of itemTokens) {
+              if (tituloCanon.includes(t)) { score += 10; itemHits++; }
+              else if (textoCanon.includes(t)) { score += 6; itemHits++; }
+              else if (refSecao.includes(t)) score += 1;
+            }
+            for (const t of descTokens) {
+              if (tituloCanon.includes(t)) { score += 5; descHits++; }
+              else if (textoCanon.includes(t)) { score += 3; descHits++; }
+            }
+            for (const t of tipoTokens) {
+              if (tituloCanon.includes(t) || textoCanon.includes(t) || refSecao.includes(t)) { score += 1; tipoHits++; }
+            }
+            if (Number(ref.it) === itsPreferidas[0]) score += 4;
+
+            candidatos.push({ref, seg, score, itemHits, descHits, tipoHits, numero:seg.numero});
+          }
         }
+
+        candidatos.sort((a,b) => b.score - a.score);
+        const melhor = candidatos[0];
+        const segundo = candidatos[1];
         if (!melhor) return null;
 
-        // Só considera fundamento automático quando o próprio trecho normativo
-        // contém todos os conceitos relevantes da descrição e ao menos um do item.
-        const descOk = !descTokens.length || melhor.achouDesc === descTokens.length;
-        const itemOk = !itemTokens.length || melhor.achouItem >= Math.min(1, itemTokens.length);
-        if (!descOk || !itemOk || melhor.score < 10) return null;
+        const itemMinimo = itemGenerico ? 0 : Math.min(2, Math.max(1, itemTokens.length));
+        const contextoOk = melhor.itemHits >= itemMinimo && (melhor.itemHits > 0 || melhor.descHits >= 2);
+        const margem = !segundo || melhor.score - segundo.score >= 3;
+        const limiar = itemGenerico ? 15 : 18;
+        if (!contextoOk || melhor.score < limiar || !margem) return null;
 
-        const secao = String(melhor.ref.section || '').trim();
-        const m = secao.match(/^([A-Z]\.\d+(?:\.\d+)*|\d+(?:\.\d+)+|\d+)\b/);
-        const numeroItem = m ? m[1] : '';
-        if (!numeroItem) return null;
         return {
           it: Number(melhor.ref.it),
-          item: numeroItem,
+          item: melhor.numero,
           pagina: Number(melhor.ref.page || 0),
-          trecho: String(melhor.ref.text || '').trim(),
-          score: melhor.score
+          trecho: String(melhor.seg.texto || '').trim(),
+          score: melhor.score,
+          confianca: melhor.score >= 28 ? 'alta' : 'moderada'
         };
       }
 
+      function extrairNumeroMedida_(texto, unidade='m') {
+        const bruto = String(texto || '').replace(',', '.');
+        const re = unidade === 'm' ? /(\d+(?:\.\d+)?)\s*(?:m|metro|metros)\b/i : /(\d+(?:\.\d+)?)\s*(?:cm|centimetro|centimetros)\b/i;
+        const m = bruto.match(re);
+        return m ? Number(m[1]) : null;
+      }
+
+      function formatarMedidaMetro_(valor) {
+        if (!Number.isFinite(valor)) return '';
+        return valor.toLocaleString('pt-BR', {minimumFractionDigits: valor % 1 ? 2 : 2, maximumFractionDigits: 2}) + ' m';
+      }
+
       function descricaoTecnicaBasica_(item) {
-        const tipo = normalize(item?.tipoIrregularidade || '');
-        const irregular = normalize(item?.itemIrregular || '');
+        const tipoOriginal = String(item?.tipoIrregularidade || '').trim();
+        const irregularOriginal = String(item?.itemIrregular || '').trim();
         const descOriginal = String(item?.descricao || '').trim();
-        const desc = normalize(descOriginal);
+        const tipo = chaveNotificacao_(tipoOriginal);
+        const irregular = chaveNotificacao_(irregularOriginal);
+        const desc = chaveNotificacao_(descOriginal);
+        if (!descOriginal && !irregularOriginal) return '';
 
-        if (!descOriginal && !irregular) return '';
+        const faltando = /(falta|faltando|ausen|nao possui|sem\b)/.test(desc);
+        const naoFunciona = /(nao.*func|inoper|nao.*acion|nao.*acend|falh)/.test(desc);
+        const vencido = /(venc|validade.*expir|fora.*prazo|fora.*data)/.test(desc);
 
-        // Interpreta a constatação usando o contexto selecionado.
+        // SAÍDAS DE EMERGÊNCIA — IT 08
         if (/porta corta fogo/.test(irregular)) {
-          if (/nao.*fech|fecha.*parcial|nao.*total|nao.*complet/.test(desc)) {
-            return 'A porta corta-fogo não realiza o fechamento completo';
+          if (/nao.*fech.*automatic|nao.*fecha.*sozinha|sem.*fechamento.*automatic/.test(desc)) return 'A porta corta-fogo não realiza o fechamento automático';
+          if (/nao.*fech|fecha.*parcial|nao.*total|nao.*complet/.test(desc)) return 'A porta corta-fogo não realiza o fechamento completo';
+          if (/macaneta.*queb|queb.*macaneta|macaneta.*danific/.test(desc)) return 'A porta corta-fogo encontra-se com a maçaneta danificada';
+          if (/trav|calco|calcad|presa.*aberta|mantida.*aberta/.test(desc)) return 'A porta corta-fogo encontra-se impedida de permanecer fechada';
+          return `Porta corta-fogo: ${descOriginal}`.replace(/[.;,:\s]+$/, '');
+        }
+        if (/guardas? e corrimaos?/.test(irregular)) {
+          if (faltando && /corrimao/.test(desc)) return /escada/.test(desc) ? 'Ausência de corrimão na escada' : 'Ausência de corrimão';
+          if (faltando && /(guarda|guarda corpo)/.test(desc)) return 'Ausência de guarda-corpo no local com desnível';
+          const altura = extrairNumeroMedida_(descOriginal, /cm/.test(desc) ? 'cm' : 'm');
+          if (/corrimao/.test(desc) && /altura/.test(desc) && altura != null) return `Corrimão instalado em altura de ${/cm/.test(desc) ? altura.toLocaleString('pt-BR')+' cm' : formatarMedidaMetro_(altura)}`;
+          if (/(guarda|guarda corpo)/.test(desc) && /altura/.test(desc) && altura != null) return `Guarda-corpo instalado em altura de ${/cm/.test(desc) ? altura.toLocaleString('pt-BR')+' cm' : formatarMedidaMetro_(altura)}`;
+        }
+        if (/saidas? de emergencia/.test(tipo) && /porta/.test(desc) && /(abre|abrindo).*(dentro|contrario|sentido)/.test(desc)) return 'Porta integrante da rota de fuga abrindo no sentido contrário ao trânsito de saída';
+
+        // ILUMINAÇÃO DE EMERGÊNCIA — IT 13 / NBR 10898 quando aplicável
+        if (/iluminacao de emergencia/.test(tipo)) {
+          if (/altura de instalacao da luminaria/.test(irregular)) {
+            const altura = extrairNumeroMedida_(descOriginal);
+            return altura != null ? `Luminária do sistema de iluminação de emergência instalada a ${formatarMedidaMetro_(altura)} de altura` : `Altura de instalação da luminária de emergência: ${descOriginal}`.replace(/[.;,:\s]+$/,'');
           }
-          if (/nao.*automatic|nao.*sozinha|nao.*fecha.*automatic/.test(desc)) {
-            return 'A porta corta-fogo não realiza o fechamento automático';
+          if (/distancia maxima entre pontos/.test(irregular)) {
+            const distancia = extrairNumeroMedida_(descOriginal);
+            return distancia != null ? `Distância de ${formatarMedidaMetro_(distancia)} entre pontos de iluminação de emergência` : `Distanciamento entre pontos de iluminação de emergência: ${descOriginal}`.replace(/[.;,:\s]+$/,'');
           }
-          if (/macaneta.*queb|queb.*macaneta/.test(desc)) {
-            return 'A porta corta-fogo encontra-se com a maçaneta danificada';
+          if (/instalacao aparente/.test(irregular) && faltando) return 'Instalação aparente do circuito de iluminação de emergência sem tubulação e caixas de passagem metálicas ou em PVC rígido antichama';
+          if (/teste/.test(irregular) && naoFunciona) return 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento';
+          if (/certificado/.test(irregular) && faltando) return 'Ausência de comprovação de certificação dos equipamentos do sistema de iluminação de emergência';
+        }
+
+        // BRIGADA — IT 12
+        if (/brigada/.test(tipo)) {
+          if (/certificado/.test(irregular) && vencido) return 'Certificado de formação do brigadista com prazo de validade expirado';
+          if (/certificado/.test(irregular) && faltando) return 'Ausência de apresentação do certificado de formação do brigadista';
+          if (/composicao/.test(irregular) && faltando) return 'Composição da brigada de incêndio inferior à prevista para a edificação';
+        }
+
+        // EXTINTORES — IT 16
+        if (/extintor/.test(tipo)) {
+          if (vencido) return 'Extintor com prazo de validade da carga ou garantia de funcionamento expirado';
+          if (/instalacao/.test(irregular) && /(tripe|suporte).*(solto|nao.*afix|nao.*aparafus)/.test(desc)) return 'Suporte de piso do extintor não afixado ao solo';
+          if (/instalacao/.test(irregular) && faltando && /(entrada|acesso|porta)/.test(desc)) return 'Ausência de extintor próximo à entrada principal';
+          if (/instalacao/.test(irregular) && /escada/.test(desc)) return 'Extintor instalado em escada';
+          if (/instalacao/.test(irregular) && /(obstru|sem acesso|dificil acesso)/.test(desc)) return 'Extintor instalado em condição que prejudica o acesso ao equipamento';
+        }
+
+        // HIDRANTES E MANGOTINHOS — IT 17
+        if (/hidrantes? e mangotinhos?/.test(tipo)) {
+          if (/abrigo/.test(irregular) && /(tranc|chaveado)/.test(desc)) return 'Porta do abrigo do hidrante mantida trancada';
+          if (/abrigo/.test(irregular) && faltando && /(mangueira|chave|esguicho)/.test(desc)) return 'Abrigo de hidrante incompleto, com ausência de componentes obrigatórios';
+          if (/mangueiras?/.test(irregular) && faltando) return 'Ausência de mangueira de incêndio no ponto de hidrante';
+          if (/esguichos?/.test(irregular) && faltando) return 'Ausência de esguicho no ponto de hidrante';
+          if (/engates|valvulas/.test(irregular) && faltando) return 'Ausência de chave para hidrante/engate rápido no ponto de hidrante';
+          if (/recalque/.test(irregular)) {
+            if (/tampa/.test(desc) && /(sem.*vermelh|nao.*pint|cor.*difer)/.test(desc)) return 'Tampa da caixa do dispositivo de recalque sem pintura vermelha';
+            if (/(fundo|dreno|brita)/.test(desc) && faltando) return 'Caixa do dispositivo de recalque sem fundo permeável ou dreno';
+            if (/veiculo|estacionamento|garagem|circulacao/.test(desc)) return 'Dispositivo de recalque instalado em local de circulação ou passagem de veículos';
           }
         }
 
-        if (/guardas? e corrimaos?|corrimao/.test(irregular) && /(falta|ausencia|sem).*corrimao/.test(desc)) {
-          return /escada/.test(desc)
-            ? 'Ausência de corrimão na escada'
-            : 'Ausência de corrimão';
+        // DETECÇÃO E ALARME — IT 14
+        if (/deteccao e alarme/.test(tipo)) {
+          if (/teste/.test(irregular) && naoFunciona) return 'O sistema de detecção e alarme de incêndio não funcionou durante o teste';
+          if (/acionador manual/.test(irregular)) {
+            if (faltando) return 'Ausência de acionador manual de alarme de incêndio';
+            if (naoFunciona) return 'Acionador manual do sistema de alarme de incêndio inoperante';
+          }
+          if (/avisadores visuais e sonoros/.test(irregular) && naoFunciona) return 'Avisador visual e/ou sonoro do sistema de alarme de incêndio inoperante';
+          if (/central de deteccao/.test(irregular) && naoFunciona) return 'Central do sistema de detecção/alarme de incêndio inoperante';
+          if (/fonte de alimentacao/.test(irregular) && faltando) return 'Sistema de detecção e alarme sem a fonte auxiliar de alimentação exigida';
         }
 
-        if (/iluminacao de emergencia/.test(tipo) && /teste/.test(irregular) && /(nao.*func|sem.*func)/.test(desc)) {
-          return 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento';
+        // SINALIZAÇÃO — IT 15
+        if (/sinalizacao de emergencia/.test(tipo)) {
+          if (/orientacao e salvamento/.test(irregular) && faltando) return 'Ausência de sinalização de orientação e salvamento';
+          if (/equipamentos de combate/.test(irregular) && faltando) return 'Ausência de sinalização do equipamento de combate a incêndio';
+          if (/alerta/.test(irregular) && faltando) return 'Ausência de sinalização de alerta';
+          if (/proibicao/.test(irregular) && faltando) return 'Ausência de sinalização de proibição';
+          if (/complementar/.test(irregular) && faltando) return 'Ausência da sinalização complementar exigida';
+          if (/fotolum|nao.*lumines|sem.*fotolum/.test(desc)) return 'Sinalização de emergência sem característica fotoluminescente';
         }
 
-        if (/brigada/.test(tipo) && /certificado/.test(irregular) && /(venc|validade|fora.*data)/.test(desc)) {
-          return 'Certificado do brigadista com prazo de validade expirado';
+        // ACESSO DE VIATURAS — IT 04
+        if (/acesso de viaturas/.test(tipo)) {
+          if (/vias de acesso/.test(irregular) && /(obstru|bloque)/.test(desc)) return 'Via de acesso para viaturas do Corpo de Bombeiros obstruída';
+          if (/acesso ao hidrante de recalque/.test(irregular)) return `Acesso ao hidrante de recalque em condição irregular: ${descOriginal}`.replace(/[.;,:\s]+$/,'');
+          if (/vias de acesso/.test(irregular)) return `Via de acesso para viaturas em condição irregular: ${descOriginal}`.replace(/[.;,:\s]+$/,'');
         }
 
-        if (/extintor/.test(tipo) && /(venc|validade)/.test(desc)) {
-          return 'Extintor com prazo de validade vencido';
+        // PSCIP — divergências de execução
+        if (/processo de seguranca.*pscip/.test(tipo) && /erros ou falhas/.test(irregular)) {
+          return `Execução em desacordo com o PSCIP aprovado: ${descOriginal}`.replace(/[.;,:\s]+$/,'');
         }
 
-        let tecnico = descOriginal || String(item?.itemIrregular || '').trim();
-        tecnico = tecnico.replace(/^(falta|faltando)\s+/i, 'Ausência de ');
-        tecnico = tecnico.charAt(0).toUpperCase() + tecnico.slice(1);
-        return tecnico.replace(/[.;,:\s]+$/, '');
+        // GLP — redação técnica contextual, fundamento será buscado na IT 23 quando seguro.
+        if (/gas liquefeito|glp/.test(tipo)) {
+          if (/ensaio de estanqueidade/.test(irregular) && /(nao.*apresent|falta|sem)/.test(desc)) return 'Ausência de comprovação do ensaio de estanqueidade da instalação de GLP';
+          if (/central de glp/.test(irregular)) return `Central de GLP em condição irregular: ${descOriginal}`.replace(/[.;,:\s]+$/,'');
+          if (/afastamentos/.test(irregular)) return `Afastamento da instalação de GLP em desacordo com a condição verificada em vistoria: ${descOriginal}`.replace(/[.;,:\s]+$/,'');
+        }
+
+        // Outros sistemas: melhora a redação mesmo quando a referência ainda não pode ser confirmada.
+        if (/pressurizacao de escada/.test(tipo) && /teste/.test(irregular) && naoFunciona) {
+          return 'O sistema de pressurização da escada não funcionou satisfatoriamente durante o teste de aprovação';
+        }
+        if (/chuveiros automaticos/.test(tipo) && /bombas?/.test(irregular) && /(nao.*acion|nao.*part|nao.*func)/.test(desc)) {
+          return 'A bomba do sistema de chuveiros automáticos não entrou em operação durante o teste';
+        }
+        if (/controle de fumaca/.test(tipo) && /(janela|veneziana)/.test(irregular) && /(nao.*abre|trav|inoper)/.test(desc)) {
+          return 'Janela/veneziana do sistema de extração de fumaça não realiza a abertura necessária';
+        }
+        if (/separacao entre edificacoes/.test(tipo) && /distancia de separacao/.test(irregular) && /(insuf|menor|inferior)/.test(desc)) {
+          return 'Distância de separação entre edificações insuficiente para a condição verificada';
+        }
+        if (/compartimentacao horizontal|compartimentacao vertical/.test(tipo) && /compartimentacao vertical/.test(irregular) && /(abertura|passagem|shaft|duto).*(sem|falta|ausen).*(selag|corta fogo)/.test(desc)) {
+          return 'Abertura na compartimentação vertical sem selagem corta-fogo';
+        }
+        if (/eventos temporarios/.test(tipo) && /responsavel tecnico/.test(irregular) && /(nao.*apresent|sem|falta).*(art|rrt|trt)/.test(desc)) {
+          return 'Ausência de apresentação do documento de responsabilidade técnica (ART/RRT/TRT) aplicável ao evento';
+        }
+        if (/materiais de acabamento|revestimento/.test(tipo) && /teste/.test(irregular) && /(nao.*atende|classe|reacao.*fogo)/.test(desc)) {
+          return 'Material de acabamento ou revestimento sem comprovação de atendimento à classe de reação ao fogo aplicável';
+        }
+
+        // Regra genérica: usa o item selecionado para não devolver apenas frases telegráficas.
+        if (descOriginal) {
+          let tecnico = descOriginal
+            .replace(/^(falta|faltando)\s+/i, 'Ausência de ')
+            .replace(/^nao\s+funcionou\s*$/i, `${irregularOriginal || tipoOriginal} não funcionou`);
+          tecnico = tecnico.charAt(0).toUpperCase() + tecnico.slice(1);
+          return tecnico.replace(/[.;,:\s]+$/, '');
+        }
+        return irregularOriginal;
       }
 
       function reprocessarComBaseNormativa_(local, item) {
@@ -4830,47 +5117,144 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
       }
 
-      function elaborarTextoTecnicoLocal_(local, item) {
-        const bruto = [item?.tipoIrregularidade, item?.itemIrregular, item?.descricao].filter(Boolean).join(' — ');
-        const n = normalize(bruto);
-        // O local já é armazenado e exibido separadamente; não repetir na redação técnica.
-        const prefixo = '';
-        const regras = [
-          { re: /(extintor).*(vencid|validade)/, texto: 'Extintor com prazo de validade vencido, em desacordo com o item 7.2 da IT 16.' },
-          { re: /(tripe|suporte).*(nao.*(afix|aparafus)|solto)/, texto: 'Suporte de piso do extintor não afixado ao solo, em desacordo com a alínea “a” do item 5.2.2.4 da IT 16.' },
-          { re: /(porta).*(abre|abrindo).*(dentro|contrario|sentido contrario)/, texto: 'Porta integrante da rota de fuga abrindo no sentido contrário à saída, em desacordo com o item 5.5.4.1 da IT 08.' },
-          { re: /(porta corta.fogo).*(nao fecha|sem fechamento|fechamento automatico)/, texto: 'Porta corta-fogo sem fechamento automático, em desacordo com o item 5.5.4.5 da IT 08.' },
-          { re: /(recalque).*(tampa).*(vermelh|pint)/, texto: 'Tampa da caixa do dispositivo de recalque sem pintura vermelha, em desacordo com a alínea “b” do item 5.3.4 da IT 17.' },
-          { re: /(recalque).*(brita|fundo|dreno|permeavel)/, texto: 'Caixa do dispositivo de recalque sem fundo permeável ou dreno, em desacordo com a alínea “a” do item 5.3.4 da IT 17.' },
-          { re: /(hidrante).*(sem|falta|ausen).*(mangueira|chave)/, texto: 'Abrigo de hidrante incompleto, com ausência de mangueira de incêndio e/ou chave para hidrantes/engate rápido, em desacordo com o item 5.6.1.5 e a Tabela 3 da IT 17.' },
-          { re: /(veneziana).*(falta|sem|ausen)|((falta|sem|ausen).*(veneziana))/, texto: 'Abertura de ventilação da caixa da escada sem a veneziana prevista no PSCIP, em desacordo com a alínea “c” do item 5.7.8.2 da IT 08 e o item 6.2.1.4 da IT 01.' },
-          { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, em desacordo com o item 6.2.1.4 da IT 01.' },
-          // Contexto estruturado: Tipo + Item irregular + descrição curta do vistoriador.
-          // Sem referência normativa quando o item exato ainda não foi confirmado no acervo oficial.
-          { re: /(iluminacao de emergencia).*(teste).*(nao funcion|sem funcion|inoper|falh)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento, devendo ser verificado o atendimento à NBR 10898, adotada pelo item 2.2 da IT 13.' , conferencia: true },
-          { re: /(saidas? de emergencia).*(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, em desacordo com o item 5.8.2.1 da IT 08.' },
-          { re: /(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, em desacordo com o item 5.8.2.1 da IT 08.' },
-          { re: /(iluminacao de emergencia).*(teste).*(apag|nao acend|nao acion)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento, devendo ser verificado o atendimento à NBR 10898, adotada pelo item 2.2 da IT 13.' , conferencia: true },
-          { re: /(extintor).*(falta|ausen|sem).*(entrada|porta|acesso)/, texto: 'Ausência de extintor próximo à entrada, devendo ser verificado o atendimento ao item 5.2.2.9 da IT 16 e à distribuição prevista no PSCIP.' , conferencia: true },
-          { re: /(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, em desacordo com o item 5.8.2.1 da IT 08.' },
-          { re: /(porta corta.fogo).*(macaneta|fechadura|quebrad|danific)/, texto: 'Porta corta-fogo com componente de acionamento danificado, devendo ser restabelecidas suas condições adequadas de utilização e funcionamento.' , conferencia: true }
-        ];
-        const regra = regras.find(r => r.re.test(n));
-        if (regra) return { texto: prefixo + regra.texto, status: regra.conferencia ? 'conferencia' : 'sugerido' };
+      function regraNormativaConfirmada_(item) {
+        const tipo = chaveNotificacao_(item?.tipoIrregularidade || '');
+        const irregular = chaveNotificacao_(item?.itemIrregular || '');
+        const desc = chaveNotificacao_(item?.descricao || '');
 
-        // Consulta a base indexada das ITs. A referência só é promovida a fundamento
-        // quando o mesmo trecho contém os conceitos relevantes da constatação.
+        // IT 08 — Saídas de emergência
+        if (/saidas? de emergencia/.test(tipo) && /(porta corta fogo|porta)/.test(irregular + ' ' + desc)) {
+          if (/(abre|abrindo).*(dentro|contrario|sentido contrario)/.test(desc)) return {texto:'Porta integrante da rota de fuga abrindo no sentido contrário ao trânsito de saída', it:8, item:'5.5.4.1'};
+          if (/porta corta fogo/.test(irregular) && /(nao.*fecha.*automatic|nao.*fech.*automatic|sem.*fechamento.*automatic|nao.*fecha.*sozinha)/.test(desc)) return {texto:'A porta corta-fogo não realiza o fechamento automático', it:8, item:'5.5.4.5'};
+        }
+        if (/saidas? de emergencia/.test(tipo) && /guardas? e corrimaos?/.test(irregular)) {
+          if (/(falta|ausen|sem).*(corrimao)/.test(desc)) return {texto:/escada/.test(desc)?'Ausência de corrimão na escada':'Ausência de corrimão',it:8,item:'5.8.2.1'};
+          if (/(falta|ausen|sem).*(guarda|guarda corpo)/.test(desc)) return {texto:'Ausência de guarda-corpo no local com desnível',it:8,item:'5.8.1.1'};
+        }
+
+        // IT 13 — Iluminação de emergência
+        if (/iluminacao de emergencia/.test(tipo)) {
+          if (/instalacao aparente/.test(irregular) && /(falta|sem|nao possui).*(tubul|caixa)/.test(desc)) return {texto:'Instalação aparente do circuito de iluminação de emergência sem tubulação e caixas de passagem metálicas ou em PVC rígido antichama',it:13,item:'5.3'};
+          if (/distancia maxima entre pontos/.test(irregular)) {
+            const d=extrairNumeroMedida_(item?.descricao || '');
+            if (Number.isFinite(d) && d>15) return {texto:`Distância de ${formatarMedidaMetro_(d)} entre pontos de iluminação de emergência`,it:13,item:'5.4'};
+          }
+        }
+
+        // IT 12 — Brigada: o acervo confirma a obrigação de apresentação, não validade temporal do certificado.
+        if (/brigada/.test(tipo) && /certificado/.test(irregular) && /(falta|ausen|nao.*apresent|sem.*certificado)/.test(desc)) return {texto:'Ausência de apresentação do certificado de formação do brigadista',it:12,item:'C.1, alínea “b”'};
+
+        // IT 16 — Extintores
+        if (/extintor/.test(tipo)) {
+          if (/(venc|validade.*expir|fora.*prazo|fora.*data)/.test(desc)) return {texto:'Extintor com prazo de validade da carga ou garantia de funcionamento expirado',it:16,item:'7.2'};
+          if (/instalacao/.test(irregular) && /(tripe|suporte).*(nao.*afix|solto|nao.*aparafus)/.test(desc)) return {texto:'Suporte de piso do extintor não afixado ao solo',it:16,item:'5.2.2.4, alínea “a”'};
+          if (/instalacao/.test(irregular) && /(falta|ausen|sem).*(extintor).*(entrada|porta|acesso)/.test(desc)) return {texto:'Ausência de extintor próximo à entrada principal',it:16,item:'5.2.2.9'};
+          if (/instalacao/.test(irregular) && /escada/.test(desc)) return {texto:'Extintor instalado em escada',it:16,item:'5.2.2.3'};
+          if (/instalacao/.test(irregular) && /(obstru|bloquead)/.test(desc)) return {texto:'Extintor obstruído ou com acesso prejudicado',it:16,item:'5.2.1, alínea “c”'};
+        }
+
+        // IT 17 — Hidrantes e mangotinhos
+        if (/hidrantes? e mangotinhos?/.test(tipo)) {
+          if (/recalque/.test(irregular)) {
+            if (/tampa/.test(desc) && /(sem.*vermelh|nao.*pint|cor.*difer)/.test(desc)) return {texto:'Tampa da caixa do dispositivo de recalque sem pintura vermelha',it:17,item:'5.3.4, alínea “b”'};
+            if (/(fundo|dreno|brita)/.test(desc) && /(falta|sem|ausen)/.test(desc)) return {texto:'Caixa do dispositivo de recalque sem fundo permeável ou dreno',it:17,item:'5.3.4, alínea “a”'};
+            if (/circulacao|passagem.*veiculo|garagem|estacionamento/.test(desc)) return {texto:'Dispositivo de recalque instalado em local de circulação ou passagem de veículos',it:17,item:'5.3.7'};
+          }
+          if (/abrigo/.test(irregular) && /(tranc|chavead)/.test(desc)) return {texto:'Porta do abrigo do hidrante mantida trancada',it:17,item:'5.4.7'};
+          if (/(abrigo|mangueiras?|engates|valvulas|esguichos)/.test(irregular) && /(falta|ausen|sem).*(mangueira|chave|esguicho)/.test(desc)) return {texto:'Ponto de hidrante com ausência de componente obrigatório',it:17,item:'5.6.1.5 e Tabela 3'};
+        }
+
+        // IT 14 — Detecção e alarme
+        if (/deteccao e alarme/.test(tipo)) {
+          if (/fonte de alimentacao/.test(irregular) && /(falta|ausen|sem).*(bateria|nobreak|no break|fonte auxiliar)/.test(desc)) return {texto:'Sistema de detecção e alarme sem fonte auxiliar de alimentação',it:14,item:'5.3'};
+          if (/central de deteccao/.test(irregular) && /(altura|instalad)/.test(desc)) {
+            const d=extrairNumeroMedida_(item?.descricao || '');
+            if (Number.isFinite(d) && (d<1.4 || d>1.6)) return {texto:`Interface da central de detecção/alarme instalada a ${formatarMedidaMetro_(d)} do piso`,it:14,item:'5.6.3'};
+          }
+          if (/acionador manual/.test(irregular)) {
+            const d=extrairNumeroMedida_(item?.descricao || '');
+            if (Number.isFinite(d) && (d<0.9 || d>1.35)) return {texto:`Acionador manual de alarme instalado a ${formatarMedidaMetro_(d)} do piso`,it:14,item:'5.10'};
+            if (/(distancia|caminhamento).*(3[1-9]|[4-9]\d)\s*m/.test(desc)) return {texto:'Distância até o acionador manual superior a 30 m',it:14,item:'5.8'};
+          }
+        }
+
+        // IT 15 — Sinalização
+        if (/sinalizacao de emergencia/.test(tipo)) {
+          if (/orientacao e salvamento/.test(irregular) && /(falta|ausen|sem)/.test(desc)) return {texto:'Ausência de sinalização de orientação e salvamento',it:15,item:'6.1.3'};
+          if (/equipamentos de combate/.test(irregular) && /(falta|ausen|sem)/.test(desc)) return {texto:'Ausência de sinalização do equipamento de combate a incêndio',it:15,item:'6.1.4'};
+          if (/fotolum|sem.*fotolum|nao.*fotolum/.test(desc)) return {texto:'Sinalização de emergência sem característica fotoluminescente',it:15,item:'6.5.2'};
+        }
+
+        // IT 04 — Acesso de viaturas
+        if (/acesso de viaturas/.test(tipo)) {
+          if (/vias de acesso/.test(irregular)) {
+            if (/obstru|bloque/.test(desc)) return {texto:'Via de acesso para viaturas do Corpo de Bombeiros obstruída',it:4,item:'5.1.3.3'};
+            const largura=(item?.descricao||'').match(/largura[^0-9]*(\d+(?:[.,]\d+)?)/i);
+            if (largura && Number(largura[1].replace(',','.'))<6) return {texto:`Via de acesso para viaturas com largura inferior a 6,00 m`,it:4,item:'5.1.3.1'};
+            const altura=(item?.descricao||'').match(/altura[^0-9]*(\d+(?:[.,]\d+)?)/i);
+            if (altura && Number(altura[1].replace(',','.'))<4.5) return {texto:'Via de acesso para viaturas com altura livre inferior a 4,50 m',it:4,item:'5.1.3.4'};
+          }
+          if (/acesso ao hidrante de recalque/.test(irregular)) {
+            const d=extrairNumeroMedida_(item?.descricao||'');
+            if (Number.isFinite(d) && d>10) return {texto:`Hidrante de recalque instalado a ${formatarMedidaMetro_(d)} da via pública ou da via de acesso`,it:4,item:'5.1.2'};
+          }
+        }
+
+        // IT 10 — Pressurização de escada
+        if (/pressurizacao de escada/.test(tipo) && /teste/.test(irregular) && /(nao.*func|inoper|falh|nao.*acion)/.test(desc)) {
+          return {texto:'O sistema de pressurização da escada não funcionou satisfatoriamente durante o teste de aprovação',it:10,item:'5.5.1, alínea “c”'};
+        }
+
+        // IT 18 — Chuveiros automáticos
+        if (/chuveiros automaticos/.test(tipo) && /bombas?/.test(irregular) && /(nao.*acion|nao.*part|nao.*func)/.test(desc)) {
+          return {texto:'A bomba do sistema de chuveiros automáticos não entrou em operação conforme exigido',it:18,item:'5.22'};
+        }
+
+        // IT 33 — Eventos temporários
+        if (/eventos temporarios/.test(tipo) && /responsavel tecnico/.test(irregular) && /(nao.*apresent|sem|falta).*(art|rrt|trt)/.test(desc)) {
+          return {texto:'Ausência de apresentação do documento de responsabilidade técnica (ART/RRT/TRT) aplicável ao evento',it:33,item:'5.3.1.5'};
+        }
+
+        // IT 01 — divergência do PSCIP aprovado
+        if (/processo de seguranca.*pscip/.test(tipo) && /erros ou falhas/.test(irregular) && String(item?.descricao||'').trim()) return {texto:`Execução divergente do PSCIP aprovado: ${String(item.descricao).trim().replace(/[.;,:\s]+$/,'')}`,it:1,item:'6.2.1.4'};
+
+        return null;
+      }
+
+      function formatarReferenciaNormativa_(regra) {
+        if (!regra?.it || !regra?.item) return '';
+        const item = String(regra.item).trim();
+        const alinea = item.match(/^(.+?),\s*alínea\s*[“\"]?([a-z0-9]+)[”\"]?$/i);
+        if (alinea) {
+          return `em desacordo com a alínea “${alinea[2]}” do item ${alinea[1].trim()} da IT ${String(regra.it).padStart(2,'0')}`;
+        }
+        return `em desacordo com o item ${item} da IT ${String(regra.it).padStart(2,'0')}`;
+      }
+
+      function elaborarTextoTecnicoLocal_(local, item) {
         const tecnico = descricaoTecnicaBasica_(item);
-        if (!tecnico) return { texto: '', status: 'conferencia' };
+        if (!tecnico) return { texto:'', status:'conferencia', fundamento:null };
+
+        const confirmada = regraNormativaConfirmada_(item);
+        if (confirmada) {
+          return {
+            texto: `${confirmada.texto}, ${formatarReferenciaNormativa_(confirmada)}.`,
+            status: 'sugerido',
+            fundamento: {it:confirmada.it,item:confirmada.item,origem:'regra-confirmada-acervo'}
+          };
+        }
+
         const fundamento = buscarFundamentoNormativo_(item);
         if (fundamento) {
           return {
-            texto: `${prefixo}${tecnico}, em desacordo com o item ${fundamento.item} da IT ${String(fundamento.it).padStart(2,'0')}.`,
+            texto: `${tecnico}, em desacordo com o item ${fundamento.item} da IT ${String(fundamento.it).padStart(2,'0')}.`,
             status: 'sugerido',
             fundamento
           };
         }
-        return { texto: `${prefixo}${tecnico}.`, status: 'conferencia', fundamento: null };
+
+        // Mesmo sem referência segura, sempre entrega redação técnica contextualizada.
+        return { texto: `${tecnico}.`, status: 'conferencia', fundamento: null };
       }
 
       function processarIrregularidadeTecnica_(local, item) {
@@ -4879,7 +5263,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         item.textoTecnico = resultado.texto;
         item.statusTecnico = resultado.status;
         item.fundamentoNormativo = resultado.fundamento || null;
-        if (!Array.isArray(window.SEARCH_INDEX) || !window.SEARCH_INDEX.length) {
+        if (!indiceNormativoDisponivel_().length || !baseNormativaITSExata_.length) {
           reprocessarComBaseNormativa_(local, item);
         }
         item.autorNome = item.autorNome || String(authState.usuario?.nome || '');
@@ -5141,7 +5525,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                       </div>` : ''}
                   </div>
                   <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}" data-notification-technical="${escapeAttr(item.id)}">
-                    <strong>${item.statusTecnico === 'sugerido' ? '✓ Sugestão técnica preparada' : 'Referência normativa pendente'}</strong>
+                    <strong>${item.statusTecnico === 'sugerido' ? '✓ Texto técnico fundamentado' : 'Referência normativa pendente'}</strong>
                     <span data-notification-technical-text>${escapeHtml(item.textoTecnico || 'A redação técnica será preparada após a descrição da irregularidade.')}</span>
                     <small data-notification-technical-note ${item.statusTecnico === 'conferencia' ? '' : 'hidden'}></small>
                     ${item.autorNome ? `<small>Lançado por ${escapeHtml(item.autorNome)}</small>` : ''}
@@ -9072,7 +9456,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const box=document.querySelector(`[data-notification-technical="${CSS.escape(String(item.id))}"]`);
         if(!box) return;
         const titulo=box.querySelector('strong'), texto=box.querySelector('[data-notification-technical-text]'), nota=box.querySelector('[data-notification-technical-note]');
-        if(titulo) titulo.textContent=item.statusTecnico==='sugerido'?'✓ Sugestão técnica preparada':'Referência normativa pendente';
+        if(titulo) titulo.textContent=item.statusTecnico==='sugerido'?'✓ Texto técnico fundamentado':'Referência normativa pendente';
         if(texto) texto.textContent=item.textoTecnico||'A redação técnica será preparada após a descrição da irregularidade.';
         if(nota) nota.hidden=item.statusTecnico!=='conferencia';
         box.classList.toggle('needs-review',item.statusTecnico==='conferencia');
@@ -10116,7 +10500,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99k', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99l', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

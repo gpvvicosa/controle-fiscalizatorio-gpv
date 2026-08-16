@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-99-entry-k';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-99-norm-quality-l';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [
@@ -14,6 +14,7 @@ const CORE_SHELL = [
 ];
 
 const OPTIONAL_SHELL = [
+  './base-normativa-its.json?v=23.9.99l',
   './assets/cabecalho.webp',
   './assets/logo-cbmmg.png',
   `./assets/logo-gpv.png?v=${VERSION}`,
