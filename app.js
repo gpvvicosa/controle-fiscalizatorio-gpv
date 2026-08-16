@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.96';
+      const APP_VERSION = '23.9.97';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -8483,7 +8483,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ${item.arquivoDwgUrl ? `<a class="btn btn-secondary" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir arquivo</a>` : ''}
               <button type="button" class="btn btn-secondary prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
               <button type="button" class="btn btn-secondary prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
-              <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">Abrir vistoria</button>
+              <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">${item.vistoriaIniciada ? 'Continuar vistoria' : 'Abrir vistoria'}</button>
             </div>
           </article>`;
         };
@@ -8635,8 +8635,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }));
       }
 
-      function aplicarPreparacaoAoFormulario_(item) {
+      async function aplicarPreparacaoAoFormulario_(item) {
         if (!item) return;
+
+        // V23.9.97: se a programação já foi iniciada em qualquer aparelho,
+        // abre o rascunho compartilhado em vez de criar outra vistoria.
+        if (item.vistoriaIniciada && item.rascunhoId && navigator.onLine) {
+          try {
+            if (rascunhoEmAndamento_()) {
+              saveDraft();
+              await sincronizarRascunhoCompartilhado_('em_andamento', true);
+            }
+            const detalhe = await apiRequest('config', { consulta: 'rascunho', id: String(item.rascunhoId) }, 20000);
+            if (!detalhe?.payload) throw new Error('Rascunho compartilhado não encontrado.');
+            currentRecordId = String(item.rascunhoId || currentRecordId);
+            applyPayload(detalhe.payload, item.rascunhoId);
+            saveDraft();
+            rolarParaFormularioProgramado_();
+            appStatus.textContent = `Vistoria em andamento carregada${detalhe.atualizadoPor ? ` — última atualização: ${detalhe.atualizadoPor}` : ''}.`;
+            return;
+          } catch (erro) {
+            appStatus.textContent = erro?.message || 'Não foi possível carregar a vistoria em andamento.';
+            return;
+          }
+        }
+
         if (!prepararFormularioNovaVistoria_('Vistoria programada')) return;
         preparacaoEmUsoId = String(item.id || '');
         aplicarFluxoVistoria_(item.tipoPreparacao === 'liberacao' ? 'liberacao' : 'fiscalizacao', { silencioso: true });
@@ -9322,7 +9345,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.96', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.97', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
