@@ -126,6 +126,8 @@
       </div>
 
       <button id="activeInspectionCancelBtn" class="active-inspection-cancel" type="button" hidden>Cancelar preenchimento</button>
+      <button id="activeInspectionNotificationsBtn" class="active-inspection-cancel" type="button" hidden>Notificações</button>
+      <input id="notificationPhotoInput" type="file" accept="image/*" capture="environment" hidden>
 
       <div class="brand brand-dashboard" aria-label="Portal de Consulta Fiscalizatória">
         <strong>Portal de Consulta Fiscalizatória</strong>
@@ -1700,8 +1702,9 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99h"></script>
+  <script src="app.js?v=23.9.99i"></script>
 
+  <div id="inspectionStartChoiceModal" class="review-modal" hidden><div class="review-card" role="dialog" aria-modal="true"><div class="review-head"><div><h3>Por onde deseja começar?</h3><p>A vistoria é a mesma nas duas opções.</p></div><button id="inspectionStartChoiceClose" class="review-close" type="button">×</button></div><div class="review-actions"><button id="inspectionStartFormBtn" class="primary" type="button">Iniciar preenchimento</button><button id="inspectionStartNotificationsBtn" class="secondary" type="button">Lançar notificações</button></div></div></div>
   <div id="cancelFillModal" class="cancel-fill-modal" hidden>
     <section class="cancel-fill-dialog" role="dialog" aria-modal="true" aria-labelledby="cancelFillTitle">
       <button id="cancelFillCloseBtn" class="cancel-fill-close" type="button" aria-label="Fechar">×</button>

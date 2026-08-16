@@ -9360,10 +9360,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         copiarNotificacaoFicha_(botao.dataset.recordNotificationCopy);
       });
       document.getElementById('activeInspectionCancelBtn')?.addEventListener('click', cancelarPreenchimentoAtual_);
+      document.getElementById('notificationPhotoInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)enviarFotoIrregularidade_(f);e.target.value='';});
+      document.getElementById('activeInspectionNotificationsBtn')?.addEventListener('click',()=>document.getElementById('notificacoesLiberacaoCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
       notificacoesAdicionarLocalBtn?.addEventListener('click', () => {
         carregarBaseNormativaITS_();
         adicionarLocalNotificacao_(true);
       });
+      notificacoesLiberacaoLista?.addEventListener('change',event=>{const a=event.target.closest('[data-notification-field]');if(!a||!/^(tipoIrregularidade|itemIrregular)$/.test(a.dataset.notificationField||''))return;const l=notificacoesLiberacao.find(x=>String(x.id)===String(a.dataset.notificationLocalId)),i=l?.irregularidades?.find(x=>String(x.id)===String(a.dataset.notificationId));if(!i)return;const c=a.dataset.notificationField;i[c]=a.value;if(c==='tipoIrregularidade')i.itemIrregular='';processarIrregularidadeTecnica_(l,i);agendarPersistenciaNotificacoesLiberacao_();renderNotificacoesLiberacao_();});
       notificacoesLiberacaoLista?.addEventListener('input', event => {
         const alvo = event.target.closest('[data-notification-field]');
         if (alvo) atualizarCampoNotificacao_(alvo);
@@ -9721,7 +9724,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99h', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99i', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
