@@ -651,6 +651,7 @@
       const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
       const notificacoesLiberacaoResumo = document.getElementById('notificacoesLiberacaoResumo');
       const notificacoesAdicionarLocalBtn = document.getElementById('notificacoesAdicionarLocalBtn');
+      const notificacoesRevisarBtn = document.getElementById('notificacoesRevisarBtn');
       const dlNotificacaoTiposLocal = document.getElementById('dlNotificacaoTiposLocal');
       const dlNotificacaoCategorias = document.getElementById('dlNotificacaoCategorias');
       const notificationReviewModal = document.getElementById('notificationReviewModal');
@@ -659,6 +660,7 @@
       const notificationReviewAddBtn = document.getElementById('notificationReviewAddBtn');
       const notificationReviewConfirmBtn = document.getElementById('notificationReviewConfirmBtn');
       const notificationReviewSummary = document.getElementById('notificationReviewSummary');
+      const notificationReviewProgressBar = document.getElementById('notificationReviewProgressBar');
       const notificationReviewList = document.getElementById('notificationReviewList');
       const licenciamentoFieldWrap = document.getElementById('licenciamentoFieldWrap');
       const possuiPscipFieldWrap = document.getElementById('possuiPscipFieldWrap');
@@ -4539,6 +4541,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           descricao: '',
           textoTecnico: '',
           statusTecnico: 'pendente',
+          fundamentoNormativo: null,
+          fundamentosNormativos: [],
+          fotos: [],
+          decisaoRevisao: '',
+          textoFinal: '',
+          revisadoPor: '',
+          revisadoEm: '',
           autorNome: String(authState.usuario?.nome || ''),
           autorId: String(authState.usuario?.id || ''),
           atualizadoEm: new Date().toISOString()
@@ -4564,6 +4573,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           descricao: String(item?.descricao || '').slice(0, 6000),
           textoTecnico: String(item?.textoTecnico || '').slice(0, 6000),
           statusTecnico: String(item?.statusTecnico || 'pendente').slice(0, 40),
+          fundamentoNormativo: item?.fundamentoNormativo && typeof item.fundamentoNormativo === 'object' ? item.fundamentoNormativo : null,
+          fundamentosNormativos: Array.isArray(item?.fundamentosNormativos) ? item.fundamentosNormativos.slice(0, 8) : [],
+          fotos: Array.isArray(item?.fotos) ? item.fotos.slice(0, 20).map(foto => ({
+            id: String(foto?.id || foto?.fileId || '').slice(0, 200),
+            fileId: String(foto?.fileId || '').slice(0, 200),
+            nome: String(foto?.nome || '').slice(0, 300),
+            url: String(foto?.url || '').slice(0, 1500),
+            estado: String(foto?.estado || '').slice(0, 40),
+            temporaria: Boolean(foto?.temporaria),
+            manter: Boolean(foto?.manter)
+          })) : [],
+          decisaoRevisao: String(item?.decisaoRevisao || '').slice(0, 40),
+          textoFinal: String(item?.textoFinal || '').slice(0, 6000),
+          revisadoPor: String(item?.revisadoPor || '').slice(0, 100),
+          revisadoEm: String(item?.revisadoEm || ''),
           autorNome: String(item?.autorNome || '').slice(0, 100),
           autorId: String(item?.autorId || '').slice(0, 100),
           atualizadoEm: String(item?.atualizadoEm || '')
@@ -4604,6 +4628,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               descricao: String(item.descricao || '').trim(),
               textoTecnico: String(item.textoTecnico || '').trim(),
               statusTecnico: String(item.statusTecnico || 'pendente'),
+              fundamentoNormativo: item.fundamentoNormativo || null,
+              fundamentosNormativos: Array.isArray(item.fundamentosNormativos) ? item.fundamentosNormativos : [],
+              fotos: Array.isArray(item.fotos) ? item.fotos.map(foto => ({
+                id: String(foto.id || foto.fileId || ''),
+                fileId: String(foto.fileId || ''),
+                nome: String(foto.nome || ''),
+                url: String(foto.url || ''),
+                estado: String(foto.estado || ''),
+                temporaria: Boolean(foto.temporaria),
+                manter: Boolean(foto.manter)
+              })) : [],
+              decisaoRevisao: String(item.decisaoRevisao || ''),
+              textoFinal: String(item.textoFinal || '').trim(),
+              revisadoPor: String(item.revisadoPor || ''),
+              revisadoEm: String(item.revisadoEm || ''),
               autorNome: String(item.autorNome || ''),
               autorId: String(item.autorId || ''),
               atualizadoEm: String(item.atualizadoEm || '')
@@ -4703,7 +4742,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         baseNormativaITSCarregando_ = (async () => {
           // Fonte prioritária: índice gerado exclusivamente do acervo de PDFs das ITs fornecido ao projeto.
           try {
-            const resposta = await fetch('./base-normativa-its.json?v=23.9.99l');
+            const resposta = await fetch('./base-normativa-its.json?v=23.9.99m');
             if (resposta.ok) {
               const dados = await resposta.json();
               if (Array.isArray(dados?.itens) && dados.itens.length) {
@@ -5112,6 +5151,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           item.textoTecnico = atual.texto;
           item.statusTecnico = atual.status;
           item.fundamentoNormativo = atual.fundamento || null;
+          item.fundamentosNormativos = Array.isArray(atual.fundamentos)
+            ? atual.fundamentos
+            : (atual.fundamento ? [atual.fundamento] : []);
           atualizarTextoTecnicoIrregularidade_(item);
           agendarPersistenciaNotificacoesLiberacao_();
         });
@@ -5231,16 +5273,101 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return `em desacordo com o item ${item} da IT ${String(regra.it).padStart(2,'0')}`;
       }
 
+
+      function resultadoTecnicoCompostoConfirmado_(item) {
+        const tipo = chaveNotificacao_(item?.tipoIrregularidade || '');
+        const irregular = chaveNotificacao_(item?.itemIrregular || '');
+        const desc = chaveNotificacao_(item?.descricao || '');
+
+        if (/hidrantes? e mangotinhos?/.test(tipo) && /recalque/.test(irregular)) {
+          const tampa = /tampa/.test(desc) && /(sem.*vermelh|nao.*pint|cor.*difer)/.test(desc);
+          const fundo = /(fundo|dreno|brita)/.test(desc) && /(falta|sem|ausen)/.test(desc);
+          if (tampa && fundo) {
+            return {
+              texto: 'Tampa da caixa do dispositivo de recalque sem pintura vermelha e caixa sem fundo permeável ou dreno, em desacordo com as alíneas “b” e “a” do item 5.3.4 da IT 17.',
+              status: 'sugerido',
+              fundamentos: [
+                {it:17,item:'5.3.4, alínea “b”',origem:'regra-confirmada-acervo'},
+                {it:17,item:'5.3.4, alínea “a”',origem:'regra-confirmada-acervo'}
+              ]
+            };
+          }
+        }
+
+        if (/extintor/.test(tipo)) {
+          const vencido = /(venc|validade.*expir|fora.*prazo|fora.*data)/.test(desc);
+          const suporte = /(tripe|suporte).*(nao.*afix|solto|nao.*aparafus|sem.*fix)/.test(desc);
+          if (vencido && suporte) {
+            return {
+              texto: 'Extintor com prazo de validade da carga ou garantia de funcionamento expirado e suporte de piso não afixado ao solo, em desacordo com o item 7.2 e com a alínea “a” do item 5.2.2.4 da IT 16.',
+              status: 'sugerido',
+              fundamentos: [
+                {it:16,item:'7.2',origem:'regra-confirmada-acervo'},
+                {it:16,item:'5.2.2.4, alínea “a”',origem:'regra-confirmada-acervo'}
+              ]
+            };
+          }
+        }
+
+        if (/saidas? de emergencia/.test(tipo) && /porta corta fogo/.test(irregular)) {
+          const fechamento = /(nao.*fecha.*automatic|nao.*fech.*automatic|sem.*fechamento.*automatic|nao.*fecha.*sozinha)/.test(desc);
+          const macaneta = /macaneta.*(queb|danific)|(?:queb|danific).*macaneta/.test(desc);
+          if (fechamento && macaneta) {
+            return {
+              texto: 'A porta corta-fogo não realiza o fechamento automático, em desacordo com o item 5.5.4.5 da IT 08, e apresenta maçaneta danificada.',
+              status: 'conferencia',
+              fundamentos: [{it:8,item:'5.5.4.5',origem:'regra-confirmada-acervo'}]
+            };
+          }
+        }
+        return null;
+      }
+
+      function fundamentosDoItem_(item) {
+        const varios = Array.isArray(item?.fundamentosNormativos) ? item.fundamentosNormativos.filter(Boolean) : [];
+        if (varios.length) return varios;
+        return item?.fundamentoNormativo ? [item.fundamentoNormativo] : [];
+      }
+
+      function localizarTrechoFundamento_(fundamento) {
+        if (!fundamento?.it || !fundamento?.item) return null;
+        const it = Number(fundamento.it);
+        const itemAlvo = String(fundamento.item || '').split(',')[0].trim();
+        const base = indiceNormativoDisponivel_();
+        const candidato = base.find(ref =>
+          Number(ref.it) === it &&
+          String(ref.section || '').trim() === itemAlvo &&
+          String(ref.text || '').trim()
+        ) || base.find(ref =>
+          Number(ref.it) === it &&
+          String(ref.section || '').trim().startsWith(itemAlvo) &&
+          String(ref.text || '').trim()
+        );
+        if (!candidato) return null;
+        return {it, item:String(candidato.section || itemAlvo), trecho:String(candidato.text || '').trim()};
+      }
+
       function elaborarTextoTecnicoLocal_(local, item) {
         const tecnico = descricaoTecnicaBasica_(item);
-        if (!tecnico) return { texto:'', status:'conferencia', fundamento:null };
+        if (!tecnico) return { texto:'', status:'conferencia', fundamento:null, fundamentos:[] };
+
+        const composta = resultadoTecnicoCompostoConfirmado_(item);
+        if (composta) {
+          return {
+            texto: composta.texto,
+            status: composta.status,
+            fundamento: composta.fundamentos?.[0] || null,
+            fundamentos: composta.fundamentos || []
+          };
+        }
 
         const confirmada = regraNormativaConfirmada_(item);
         if (confirmada) {
           return {
             texto: `${confirmada.texto}, ${formatarReferenciaNormativa_(confirmada)}.`,
             status: 'sugerido',
-            fundamento: {it:confirmada.it,item:confirmada.item,origem:'regra-confirmada-acervo'}
+            fundamento: {it:confirmada.it,item:confirmada.item,origem:'regra-confirmada-acervo'},
+            fundamentos: [{it:confirmada.it,item:confirmada.item,origem:'regra-confirmada-acervo'}]
           };
         }
 
@@ -5249,12 +5376,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return {
             texto: `${tecnico}, em desacordo com o item ${fundamento.item} da IT ${String(fundamento.it).padStart(2,'0')}.`,
             status: 'sugerido',
-            fundamento
+            fundamento,
+            fundamentos: [fundamento]
           };
         }
 
         // Mesmo sem referência segura, sempre entrega redação técnica contextualizada.
-        return { texto: `${tecnico}.`, status: 'conferencia', fundamento: null };
+        return { texto: `${tecnico}.`, status: 'conferencia', fundamento: null, fundamentos: [] };
       }
 
       function processarIrregularidadeTecnica_(local, item) {
@@ -5263,6 +5391,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         item.textoTecnico = resultado.texto;
         item.statusTecnico = resultado.status;
         item.fundamentoNormativo = resultado.fundamento || null;
+        item.fundamentosNormativos = Array.isArray(resultado.fundamentos)
+          ? resultado.fundamentos
+          : (resultado.fundamento ? [resultado.fundamento] : []);
         if (!indiceNormativoDisponivel_().length || !baseNormativaITSExata_.length) {
           reprocessarComBaseNormativa_(local, item);
         }
@@ -5618,6 +5749,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           irregularidade.autorId = irregularidade.autorId || String(authState.usuario?.id || '');
           irregularidade.atualizadoEm = new Date().toISOString();
           if (campo === 'descricao' || campo === 'itemIrregular' || campo === 'tipoIrregularidade') {
+            irregularidade.decisaoRevisao = '';
+            irregularidade.textoFinal = '';
+            irregularidade.revisadoPor = '';
+            irregularidade.revisadoEm = '';
             processarIrregularidadeTecnica_(local, irregularidade);
             atualizarTextoTecnicoIrregularidade_(irregularidade);
           }
@@ -5716,111 +5851,291 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }, 80);
       }
 
-      function mostrarConferenciaNotificacoes_() {
-        const ehNotificado = ehFluxoLiberacao_() && normalize(value('sancao')) === normalize('Notificado');
-        if (!ehNotificado) return Promise.resolve(true);
-        if (!notificationReviewModal || !notificationReviewList || !notificationReviewConfirmBtn) return Promise.resolve(true);
+      function marcarIrregularidadeRevisada_(item, decisao, textoFinal) {
+        if (!item) return;
+        item.decisaoRevisao = String(decisao || '');
+        item.textoFinal = String(textoFinal || '').trim();
+        item.revisadoPor = String(authState.usuario?.nome || '');
+        item.revisadoEm = new Date().toISOString();
+        item.atualizadoEm = new Date().toISOString();
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+      }
 
-        const render = () => {
-          const itens = flattenNotificacoesLiberacao_(true);
-          if (notificationReviewSummary) {
-            const locais = new Set(itens.map(item => item.local.id)).size;
-            notificationReviewSummary.textContent = `${itens.length} irregularidade${itens.length === 1 ? '' : 's'} em ${locais} local${locais === 1 ? '' : 'is'}. Confira antes de continuar.`;
-          }
-          notificationReviewConfirmBtn.disabled = !itens.length;
-          notificationReviewList.innerHTML = itens.map((item, indice) => {
-            const local = item.local;
-            const irregularidade = item.irregularidade;
-            return `<article class="notification-review-item">
-              <div class="notification-review-item-head">
-                <div>
-                  <strong>${indice + 1}. ${escapeHtml([local.tipoLocal, local.complemento].filter(Boolean).join(' — ') || 'Local não informado')}</strong>
-                  <small>${escapeHtml(irregularidade.tipoIrregularidade || 'Tipo não informado')} • ${escapeHtml(irregularidade.itemIrregular || 'Item não informado')}</small>
-                </div>
-                <div class="notification-review-tools">
-                  <button type="button" data-notification-review-copy="${escapeAttr(irregularidade.id)}" data-notification-local-id="${escapeAttr(local.id)}">Copiar</button>
-                  <button type="button" data-notification-review-edit="${escapeAttr(irregularidade.id)}" data-notification-local-id="${escapeAttr(local.id)}">Editar</button>
-                  <button type="button" data-notification-review-delete="${escapeAttr(irregularidade.id)}" data-notification-local-id="${escapeAttr(local.id)}">Excluir</button>
-                </div>
-              </div>
-              <p>${escapeHtml(irregularidade.descricao || '')}</p>
-            </article>`;
-          }).join('');
+      function resumoRevisaoNotificacoes_() {
+        const itens = flattenNotificacoesLiberacao_(true);
+        const revisadas = itens.filter(({irregularidade}) => Boolean(irregularidade?.decisaoRevisao)).length;
+        const refsPendentes = itens.filter(({irregularidade}) => irregularidade?.statusTecnico !== 'sugerido').length;
+        return {
+          total: itens.length,
+          revisadas,
+          faltantes: Math.max(0, itens.length - revisadas),
+          refsPendentes,
+          percentual: itens.length ? Math.round((revisadas / itens.length) * 100) : 0
         };
+      }
 
-        render();
+      function htmlFundamentoRevisao_(item) {
+        const fundamentos = fundamentosDoItem_(item);
+        if (!fundamentos.length) {
+          return `<div class="notification-review-foundation is-pending" hidden data-review-foundation>
+            <strong>Referência normativa pendente</strong>
+            <p>O texto técnico pode ser revisado normalmente. A referência ainda não foi confirmada na base normativa disponível.</p>
+          </div>`;
+        }
+        const blocos = fundamentos.map(fundamento => {
+          const localizado = localizarTrechoFundamento_(fundamento);
+          return `<div class="notification-review-foundation-block">
+            <strong>IT ${String(fundamento.it).padStart(2,'0')} — ${escapeHtml(String(fundamento.item || ''))}</strong>
+            <p>${escapeHtml(localizado?.trecho || fundamento?.trecho || 'Trecho normativo não disponível no índice local.')}</p>
+          </div>`;
+        }).join('');
+        const parcial = item?.statusTecnico !== 'sugerido'
+          ? `<div class="notification-review-foundation-warning">Há aspecto da constatação cuja referência normativa permanece pendente.</div>`
+          : '';
+        return `<div class="notification-review-foundation" hidden data-review-foundation>${blocos}${parcial}</div>`;
+      }
+
+      function htmlFotosRevisao_(item) {
+        const fotos = Array.isArray(item?.fotos) ? item.fotos : [];
+        if (!fotos.length) return '';
+        return `<div class="notification-review-photos">
+          <strong>📷 ${fotos.length} foto${fotos.length === 1 ? '' : 's'}</strong>
+          <div>${fotos.map((foto, indice) => foto.url
+            ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Ver foto ${indice + 1}</a>`
+            : `<span>Foto ${indice + 1} — aguardando sincronização</span>`
+          ).join('')}</div>
+        </div>`;
+      }
+
+      function renderizarRevisaoTecnicaNotificacoes_() {
+        if (!notificationReviewList) return;
+        const itens = flattenNotificacoesLiberacao_(true);
+        const resumo = resumoRevisaoNotificacoes_();
+
+        if (notificationReviewSummary) {
+          const partes = [
+            `${resumo.total} notificação${resumo.total === 1 ? '' : 'ões'}`,
+            `${resumo.revisadas} revisada${resumo.revisadas === 1 ? '' : 's'}`,
+            `${resumo.faltantes} pendente${resumo.faltantes === 1 ? '' : 's'} de revisão`
+          ];
+          if (resumo.refsPendentes) {
+            partes.push(`${resumo.refsPendentes} referência${resumo.refsPendentes === 1 ? '' : 's'} normativa${resumo.refsPendentes === 1 ? '' : 's'} pendente${resumo.refsPendentes === 1 ? '' : 's'}`);
+          }
+          notificationReviewSummary.textContent = partes.join(' • ');
+        }
+        if (notificationReviewProgressBar) notificationReviewProgressBar.style.width = `${resumo.percentual}%`;
+
+        if (!itens.length) {
+          notificationReviewList.innerHTML = '<div class="notification-review-empty">Nenhuma irregularidade registrada para revisão.</div>';
+          if (notificationReviewConfirmBtn) notificationReviewConfirmBtn.disabled = true;
+          return;
+        }
+
+        const grupos = new Map();
+        itens.forEach(reg => {
+          if (!grupos.has(reg.local.id)) grupos.set(reg.local.id, []);
+          grupos.get(reg.local.id).push(reg);
+        });
+
+        notificationReviewList.innerHTML = Array.from(grupos.values()).map((grupo, indiceGrupo) => {
+          const local = grupo[0].local;
+          const nomeLocal = [local.tipoLocal, local.complemento].filter(Boolean).join(' — ') || 'Local não informado';
+          return `<section class="notification-review-location">
+            <header class="notification-review-location-head">
+              <span>Local ${indiceGrupo + 1}</span>
+              <strong>${escapeHtml(nomeLocal)}</strong>
+            </header>
+            <div class="notification-review-location-items">
+              ${grupo.map((reg, indiceItem) => {
+                const item = reg.irregularidade;
+                const decisao = String(item.decisaoRevisao || '');
+                const revisada = Boolean(decisao);
+                const statusLabel = revisada
+                  ? (decisao === 'aceita' ? 'Sugestão aceita' : decisao === 'editada' ? 'Texto editado' : 'Original mantido')
+                  : 'Pendente de revisão';
+                const statusClass = revisada ? 'is-reviewed' : 'is-pending';
+                const textoTecnico = String(item.textoTecnico || '').trim() || 'A sugestão técnica ainda não foi gerada.';
+                const finalAtual = String(item.textoFinal || '').trim();
+
+                return `<article class="notification-review-item ${statusClass}" data-review-item="${escapeAttr(item.id)}">
+                  <div class="notification-review-item-top">
+                    <div>
+                      <span class="notification-review-number">Irregularidade ${indiceItem + 1}</span>
+                      <span class="notification-review-state ${statusClass}">${statusLabel}</span>
+                    </div>
+                    ${item.autorNome ? `<small>Lançado por ${escapeHtml(item.autorNome)}</small>` : ''}
+                  </div>
+
+                  <div class="notification-review-fields-grid">
+                    <div><span>Tipo de Irregularidade</span><strong>${escapeHtml(item.tipoIrregularidade || 'Não informado')}</strong></div>
+                    <div><span>Item Irregular</span><strong>${escapeHtml(item.itemIrregular || 'Não informado')}</strong></div>
+                  </div>
+
+                  <div class="notification-review-text-block original">
+                    <span>Constatação em campo</span>
+                    <p>${escapeHtml(item.descricao || 'Sem descrição informada.')}</p>
+                  </div>
+
+                  <div class="notification-review-text-block technical ${item.statusTecnico === 'sugerido' ? 'is-grounded' : 'needs-reference'}">
+                    <div class="notification-review-text-title">
+                      <span>Texto técnico sugerido</span>
+                      <em>${item.statusTecnico === 'sugerido' ? 'Fundamentado' : 'Referência normativa pendente'}</em>
+                    </div>
+                    <p>${escapeHtml(textoTecnico)}</p>
+                  </div>
+
+                  ${finalAtual ? `<div class="notification-review-text-block final">
+                    <span>Texto selecionado para uso</span>
+                    <p>${escapeHtml(finalAtual)}</p>
+                  </div>` : ''}
+
+                  ${htmlFotosRevisao_(item)}
+                  ${htmlFundamentoRevisao_(item)}
+
+                  <div class="notification-review-edit-area" hidden data-review-edit-area>
+                    <label>Editar texto técnico
+                      <textarea data-review-edit-text>${escapeHtml(finalAtual || textoTecnico)}</textarea>
+                    </label>
+                    <div>
+                      <button type="button" data-review-edit-cancel>Cancelar edição</button>
+                      <button type="button" class="is-primary" data-review-edit-save>Salvar texto editado</button>
+                    </div>
+                  </div>
+
+                  <div class="notification-review-item-actions">
+                    <button type="button" class="is-accept" data-review-accept>Aceitar sugestão</button>
+                    <button type="button" data-review-edit>Editar</button>
+                    <button type="button" data-review-original>Manter original</button>
+                    <button type="button" data-review-foundation-toggle>Ver fundamento</button>
+                  </div>
+                </article>`;
+              }).join('')}
+            </div>
+          </section>`;
+        }).join('');
+
+        if (notificationReviewConfirmBtn) {
+          notificationReviewConfirmBtn.disabled = resumo.faltantes > 0;
+          notificationReviewConfirmBtn.title = resumo.faltantes
+            ? `Ainda há ${resumo.faltantes} irregularidade${resumo.faltantes === 1 ? '' : 's'} pendente${resumo.faltantes === 1 ? '' : 's'} de revisão.`
+            : '';
+        }
+      }
+
+      function abrirRevisaoTecnicaNotificacoes_() {
+        const itens = flattenNotificacoesLiberacao_(true);
+        if (!itens.length) {
+          appStatus.textContent = 'Adicione ao menos uma irregularidade antes de iniciar a revisão.';
+          notificacoesLiberacaoSecao?.scrollIntoView({behavior:'smooth', block:'start'});
+          return;
+        }
+        renderizarRevisaoTecnicaNotificacoes_();
         notificationReviewModal.hidden = false;
         document.body.classList.add('review-open');
-
-        return new Promise(resolve => {
-          let finalizado = false;
-
-          const encerrar = resultado => {
-            if (finalizado) return;
-            finalizado = true;
-            notificationReviewModal.hidden = true;
-            document.body.classList.remove('review-open');
-            notificationReviewConfirmBtn.removeEventListener('click', onConfirmar);
-            notificationReviewBackBtn?.removeEventListener('click', onVoltar);
-            notificationReviewCloseBtn?.removeEventListener('click', onVoltar);
-            notificationReviewAddBtn?.removeEventListener('click', onAdicionar);
-            notificationReviewList.removeEventListener('click', onLista);
-            document.removeEventListener('keydown', onKeydown);
-            resolve(resultado);
-          };
-
-          const onConfirmar = () => {
-            if (!validarNotificacoesParaNotificado_(true)) {
-              encerrar(false);
-              return;
-            }
-            encerrar(true);
-          };
-          const onVoltar = () => encerrar(false);
-          const onAdicionar = () => {
-            encerrar(false);
-            const local = adicionarLocalNotificacao_(false);
-            rolarParaNotificacao_(local?.id || '', '');
-          };
-          const onKeydown = event => { if (event.key === 'Escape') onVoltar(); };
-          const onLista = async event => {
-            const copiar = event.target.closest('[data-notification-review-copy]');
-            if (copiar) {
-              const local = localNotificacaoPorId_(copiar.dataset.notificationLocalId);
-              const irregularidade = irregularidadeNotificacaoPorId_(local, copiar.dataset.notificationReviewCopy);
-              await copiarTextoCompat_(textoNotificacaoIndividual_(local, irregularidade, false));
-              return;
-            }
-            const editar = event.target.closest('[data-notification-review-edit]');
-            if (editar) {
-              const localId = editar.dataset.notificationLocalId;
-              const irregularId = editar.dataset.notificationReviewEdit;
-              encerrar(false);
-              rolarParaNotificacao_(localId, irregularId);
-              return;
-            }
-            const excluir = event.target.closest('[data-notification-review-delete]');
-            if (excluir) {
-              const localId = excluir.dataset.notificationLocalId;
-              const irregularId = excluir.dataset.notificationReviewDelete;
-              removerIrregularidadeNotificacao_(localId, irregularId);
-              const local = localNotificacaoPorId_(localId);
-              if (local && !(local.irregularidades || []).length && !String(local.tipoLocal || '').trim() && !String(local.complemento || '').trim()) {
-                removerLocalNotificacao_(localId);
-              }
-              render();
-            }
-          };
-
-          notificationReviewConfirmBtn.addEventListener('click', onConfirmar);
-          notificationReviewBackBtn?.addEventListener('click', onVoltar);
-          notificationReviewCloseBtn?.addEventListener('click', onVoltar);
-          notificationReviewAddBtn?.addEventListener('click', onAdicionar);
-          notificationReviewList.addEventListener('click', onLista);
-          document.addEventListener('keydown', onKeydown);
-          setTimeout(() => notificationReviewConfirmBtn.focus(), 30);
-        });
+        setTimeout(() => notificationReviewCloseBtn?.focus(), 30);
       }
+
+      function fecharRevisaoTecnicaNotificacoes_() {
+        if (notificationReviewModal) notificationReviewModal.hidden = true;
+        document.body.classList.remove('review-open');
+      }
+
+      function mostrarConferenciaNotificacoes_() {
+        abrirRevisaoTecnicaNotificacoes_();
+        return Promise.resolve(false);
+      }
+
+      notificationReviewList?.addEventListener('click', event => {
+        const artigo = event.target.closest('[data-review-item]');
+        if (!artigo) return;
+        const registro = flattenNotificacoesLiberacao_(true).find(({irregularidade}) => String(irregularidade.id) === String(artigo.dataset.reviewItem));
+        const item = registro?.irregularidade;
+        if (!item) return;
+
+        const toggle = event.target.closest('[data-review-foundation-toggle]');
+        if (toggle) {
+          const box = artigo.querySelector('[data-review-foundation]');
+          if (box) {
+            box.hidden = !box.hidden;
+            toggle.textContent = box.hidden ? 'Ver fundamento' : 'Ocultar fundamento';
+          }
+          return;
+        }
+
+        if (event.target.closest('[data-review-edit]')) {
+          const area = artigo.querySelector('[data-review-edit-area]');
+          if (area) {
+            area.hidden = false;
+            const textarea = area.querySelector('[data-review-edit-text]');
+            if (textarea) {
+              textarea.value = item.textoFinal || item.textoTecnico || item.descricao || '';
+              setTimeout(() => textarea.focus(), 20);
+            }
+          }
+          return;
+        }
+
+        if (event.target.closest('[data-review-edit-cancel]')) {
+          const area = artigo.querySelector('[data-review-edit-area]');
+          if (area) area.hidden = true;
+          return;
+        }
+
+        if (event.target.closest('[data-review-edit-save]')) {
+          const textarea = artigo.querySelector('[data-review-edit-text]');
+          const texto = String(textarea?.value || '').trim();
+          if (!texto) {
+            appStatus.textContent = 'Informe o texto técnico antes de salvar a edição.';
+            textarea?.focus();
+            return;
+          }
+          marcarIrregularidadeRevisada_(item, 'editada', texto);
+          renderizarRevisaoTecnicaNotificacoes_();
+          return;
+        }
+
+        if (event.target.closest('[data-review-accept]')) {
+          const texto = String(item.textoTecnico || '').trim();
+          if (!texto) {
+            appStatus.textContent = 'A sugestão técnica ainda não está disponível para esta irregularidade.';
+            return;
+          }
+          marcarIrregularidadeRevisada_(item, 'aceita', texto);
+          renderizarRevisaoTecnicaNotificacoes_();
+          return;
+        }
+
+        if (event.target.closest('[data-review-original]')) {
+          const texto = String(item.descricao || '').trim();
+          if (!texto) {
+            appStatus.textContent = 'A constatação em campo está vazia.';
+            return;
+          }
+          marcarIrregularidadeRevisada_(item, 'original', texto);
+          renderizarRevisaoTecnicaNotificacoes_();
+        }
+      });
+
+      notificationReviewCloseBtn?.addEventListener('click', fecharRevisaoTecnicaNotificacoes_);
+      notificationReviewBackBtn?.addEventListener('click', fecharRevisaoTecnicaNotificacoes_);
+      notificationReviewModal?.addEventListener('click', event => {
+        if (event.target === notificationReviewModal) fecharRevisaoTecnicaNotificacoes_();
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && notificationReviewModal && !notificationReviewModal.hidden) fecharRevisaoTecnicaNotificacoes_();
+      });
+      notificationReviewConfirmBtn?.addEventListener('click', () => {
+        const resumo = resumoRevisaoNotificacoes_();
+        if (resumo.faltantes) {
+          appStatus.textContent = `Ainda há ${resumo.faltantes} irregularidade${resumo.faltantes === 1 ? '' : 's'} pendente${resumo.faltantes === 1 ? '' : 's'} de revisão.`;
+          return;
+        }
+        fecharRevisaoTecnicaNotificacoes_();
+        appStatus.textContent = '✓ Revisão das notificações finalizada e salva no rascunho.';
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+      });
 
       function normalizarSituacaoMultaInfoscip_(valor) {
         const n = normalize(valor || '');
@@ -10106,6 +10421,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         carregarBaseNormativaITS_();
         adicionarLocalNotificacao_(true);
       });
+      notificacoesRevisarBtn?.addEventListener('click', abrirRevisaoTecnicaNotificacoes_);
       notificacoesLiberacaoLista?.addEventListener('change',event=>{const a=event.target.closest('[data-notification-field]');if(!a||!/^(tipoIrregularidade|itemIrregular)$/.test(a.dataset.notificationField||''))return;const l=notificacoesLiberacao.find(x=>String(x.id)===String(a.dataset.notificationLocalId)),i=l?.irregularidades?.find(x=>String(x.id)===String(a.dataset.notificationId));if(!i)return;const c=a.dataset.notificationField;i[c]=a.value;if(c==='tipoIrregularidade')i.itemIrregular='';processarIrregularidadeTecnica_(l,i);agendarPersistenciaNotificacoesLiberacao_();renderNotificacoesLiberacao_();});
       notificacoesLiberacaoLista?.addEventListener('input', event => {
         const alvo = event.target.closest('[data-notification-field]');
@@ -10500,7 +10816,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99l', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99m', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
