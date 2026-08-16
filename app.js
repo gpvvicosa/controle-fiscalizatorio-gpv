@@ -4697,15 +4697,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           { re: /(porta corta.fogo).*(nao fecha|sem fechamento|fechamento automatico)/, texto: 'Porta corta-fogo sem fechamento automático, contrariando o item 5.5.4.5 da IT 08.' },
           { re: /(recalque).*(tampa).*(vermelh|pint)/, texto: 'Tampa da caixa do dispositivo de recalque sem pintura vermelha, contrariando a alínea “b” do item 5.3.4 da IT 17.' },
           { re: /(recalque).*(brita|fundo|dreno|permeavel)/, texto: 'Caixa do dispositivo de recalque sem fundo permeável ou dreno, contrariando a alínea “a” do item 5.3.4 da IT 17.' },
-          { re: /(hidrante).*(sem|falta).*(mangueira|chave)/, texto: 'Abrigo de hidrante incompleto, com ausência de mangueira e/ou chave para hidrantes/engates rápidos, contrariando o item 5.6.1.5 e a Tabela 3 da IT 17.' },
+          { re: /(hidrante).*(sem|falta|ausen).*(mangueira|chave)/, texto: 'Abrigo de hidrante incompleto, com ausência de mangueira de incêndio e/ou chave para hidrantes/engate rápido, contrariando o item 5.6.1.5 e a Tabela 3 da IT 17.' },
           { re: /(veneziana).*(falta|sem|ausen)|((falta|sem|ausen).*(veneziana))/, texto: 'Abertura de ventilação da caixa da escada sem a veneziana prevista no PSCIP, contrariando a alínea “c” do item 5.7.8.2 da IT 08 e o item 6.2.1.4 da IT 01.' },
           { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, contrariando o item 6.2.1.4 da IT 01.' },
           // Contexto estruturado: Tipo + Item irregular + descrição curta do vistoriador.
           // Sem referência normativa quando o item exato ainda não foi confirmado no acervo oficial.
-          { re: /(iluminacao de emergencia).*(teste).*(nao funcion|sem funcion|inoper|falh)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento.' , conferencia: true },
-          { re: /(saidas? de emergencia).*(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada.' , conferencia: true },
-          { re: /(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada.' , conferencia: true },
-          { re: /(iluminacao de emergencia).*(teste).*(apag|nao acend|nao acion)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento.' , conferencia: true }
+          { re: /(iluminacao de emergencia).*(teste).*(nao funcion|sem funcion|inoper|falh)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento, devendo ser verificado o atendimento à NBR 10898, adotada pelo item 2.2 da IT 13.' , conferencia: true },
+          { re: /(saidas? de emergencia).*(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, contrariando o item 5.8.2.1 da IT 08.' },
+          { re: /(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, contrariando o item 5.8.2.1 da IT 08.' },
+          { re: /(iluminacao de emergencia).*(teste).*(apag|nao acend|nao acion)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento, devendo ser verificado o atendimento à NBR 10898, adotada pelo item 2.2 da IT 13.' , conferencia: true },
+          { re: /(extintor).*(falta|ausen|sem).*(entrada|porta|acesso)/, texto: 'Ausência de extintor próximo à entrada, devendo ser verificado o atendimento ao item 5.2.2.9 da IT 16 e à distribuição prevista no PSCIP.' , conferencia: true },
+          { re: /(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, contrariando o item 5.8.2.1 da IT 08.' },
+          { re: /(porta corta.fogo).*(macaneta|fechadura|quebrad|danific)/, texto: 'Porta corta-fogo com componente de acionamento danificado, devendo ser restabelecidas suas condições adequadas de utilização e funcionamento.' , conferencia: true }
         ];
         const regra = regras.find(r => r.re.test(n));
         if (regra) return { texto: prefixo + regra.texto, status: regra.conferencia ? 'conferencia' : 'sugerido' };
@@ -9563,7 +9566,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99e', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99f', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
