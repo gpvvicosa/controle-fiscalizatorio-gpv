@@ -1153,13 +1153,13 @@
           <div class="section-icon notification-draft-icon" aria-hidden="true">📝</div>
           <div class="head-text">
             <h2>5. Rascunho das notificações</h2>
-            <p>Use durante a vistoria de liberação para registrar as irregularidades conforme forem sendo encontradas. O rascunho é salvo automaticamente neste aparelho.</p>
+            <p>Use durante a vistoria de liberação para registrar as irregularidades conforme forem sendo encontradas. O rascunho é salvo automaticamente e, quando houver internet, sincronizado com a equipe.</p>
           </div>
         </div>
         <div class="section-body notification-draft-body">
           <div class="notification-draft-notice">
             <strong>Estrutura baseada no INFOSCIP</strong>
-            <span>Local → Tipo de irregularidade → Item irregular → Descrição. Após concluir a vistoria de liberação, as anotações registradas ficam disponíveis na Ficha por 15 dias e depois são excluídas automaticamente. A fundamentação normativa continua sob conferência do vistoriador.</span>
+            <span>Local → Tipo de irregularidade → Item irregular → Descrição. Após concluir a vistoria de liberação, as anotações registradas ficam disponíveis na Ficha por 15 dias e depois são excluídas automaticamente. A análise técnica é preparada automaticamente em segundo plano. O texto original permanece preservado e a fundamentação deve ser conferida posteriormente.</span>
           </div>
           <datalist id="dlNotificacaoTiposLocal"></datalist>
           <datalist id="dlNotificacaoCategorias"></datalist>
@@ -1219,6 +1219,8 @@
     <div class="bottom-bar" id="vistoriaBottomBar" aria-label="Ações da vistoria" hidden>
       <div class="bottom-inner">
         <div class="draft" id="draftStatus">Rascunho automático</div>
+        <button class="btn btn-secondary" type="button" id="continueSharedBtn">Continuar vistoria</button>
+        <button class="btn btn-secondary" type="button" id="partialBtn">Concluir parcialmente</button>
         <button class="btn btn-secondary" type="button" id="clearBtn">Limpar</button>
         <button class="btn btn-primary" type="button" id="submitBtn">Registrar vistoria</button>
       </div>

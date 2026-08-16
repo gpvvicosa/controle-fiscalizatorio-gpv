@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.94';
+      const APP_VERSION = '23.9.95';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -3585,6 +3585,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
         enfileirarRegistro(payload);
+        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: currentRecordId }, 12000).catch(() => {});
         localStorage.removeItem(draftKeyAtual_());
         resetForm();
         mostrarSucesso(
@@ -4483,7 +4484,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           id: novoIdNotificacao_('irr'),
           tipoIrregularidade: '',
           itemIrregular: '',
-          descricao: ''
+          descricao: '',
+          textoTecnico: '',
+          statusTecnico: 'pendente',
+          autorNome: String(authState.usuario?.nome || ''),
+          autorId: String(authState.usuario?.id || ''),
+          atualizadoEm: new Date().toISOString()
         };
       }
 
@@ -4503,7 +4509,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           id: String(item?.id || novoIdNotificacao_('irr')),
           tipoIrregularidade: String(item?.tipoIrregularidade || '').slice(0, 500),
           itemIrregular: String(item?.itemIrregular || '').slice(0, 500),
-          descricao: String(item?.descricao || '').slice(0, 6000)
+          descricao: String(item?.descricao || '').slice(0, 6000),
+          textoTecnico: String(item?.textoTecnico || '').slice(0, 6000),
+          statusTecnico: String(item?.statusTecnico || 'pendente').slice(0, 40),
+          autorNome: String(item?.autorNome || '').slice(0, 100),
+          autorId: String(item?.autorId || '').slice(0, 100),
+          atualizadoEm: String(item?.atualizadoEm || '')
         }));
         return {
           id: String(entrada.id || novoIdNotificacao_('loc')),
@@ -4538,7 +4549,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             irregularidades: (local.irregularidades || []).map(item => ({
               tipoIrregularidade: String(item.tipoIrregularidade || '').trim(),
               itemIrregular: String(item.itemIrregular || '').trim(),
-              descricao: String(item.descricao || '').trim()
+              descricao: String(item.descricao || '').trim(),
+              textoTecnico: String(item.textoTecnico || '').trim(),
+              statusTecnico: String(item.statusTecnico || 'pendente'),
+              autorNome: String(item.autorNome || ''),
+              autorId: String(item.autorId || ''),
+              atualizadoEm: String(item.atualizadoEm || '')
             }))
           })));
         } catch (erro) {
@@ -4619,6 +4635,37 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           `${irregularidades.length} irregularidade${irregularidades.length === 1 ? '' : 's'} em rascunho`;
       }
 
+      function elaborarTextoTecnicoLocal_(local, item) {
+        const bruto = [item?.tipoIrregularidade, item?.itemIrregular, item?.descricao].filter(Boolean).join(' — ');
+        const n = normalize(bruto);
+        const localTxt = String(local?.complemento || local?.tipoLocal || '').trim();
+        const prefixo = localTxt ? `${localTxt}: ` : '';
+        const regras = [
+          { re: /(extintor).*(vencid|validade)/, texto: 'Extintor com prazo de validade vencido, contrariando o item 7.2 da IT 16.' },
+          { re: /(tripe|suporte).*(nao.*(afix|aparafus)|solto)/, texto: 'Suporte de piso do extintor não afixado ao solo, contrariando a alínea “a” do item 5.2.2.4 da IT 16.' },
+          { re: /(porta).*(abre|abrindo).*(dentro|contrario|sentido contrario)/, texto: 'Porta integrante da rota de fuga abrindo no sentido contrário à saída, contrariando o item 5.5.4.1 da IT 08.' },
+          { re: /(porta corta.fogo).*(nao fecha|sem fechamento|fechamento automatico)/, texto: 'Porta corta-fogo sem fechamento automático, contrariando o item 5.5.4.5 da IT 08.' },
+          { re: /(recalque).*(tampa).*(vermelh|pint)/, texto: 'Tampa da caixa do dispositivo de recalque sem pintura vermelha, contrariando a alínea “b” do item 5.3.4 da IT 17.' },
+          { re: /(recalque).*(brita|fundo|dreno|permeavel)/, texto: 'Caixa do dispositivo de recalque sem fundo permeável ou dreno, contrariando a alínea “a” do item 5.3.4 da IT 17.' },
+          { re: /(hidrante).*(sem|falta).*(mangueira|chave)/, texto: 'Abrigo de hidrante incompleto, com ausência de mangueira e/ou chave para hidrantes/engates rápidos, contrariando o item 5.6.1.5 e a Tabela 3 da IT 17.' },
+          { re: /(veneziana).*(falta|sem|ausen)|((falta|sem|ausen).*(veneziana))/, texto: 'Abertura de ventilação da caixa da escada sem a veneziana prevista no PSCIP, contrariando a alínea “c” do item 5.7.8.2 da IT 08 e o item 6.2.1.4 da IT 01.' },
+          { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, contrariando o item 6.2.1.4 da IT 01.' }
+        ];
+        const regra = regras.find(r => r.re.test(n));
+        if (!regra) return { texto: '', status: 'conferencia' };
+        return { texto: prefixo + regra.texto, status: 'sugerido' };
+      }
+
+      function processarIrregularidadeTecnica_(local, item) {
+        if (!local || !item || !String(item.descricao || item.itemIrregular || '').trim()) return;
+        const resultado = elaborarTextoTecnicoLocal_(local, item);
+        item.textoTecnico = resultado.texto;
+        item.statusTecnico = resultado.status;
+        item.autorNome = item.autorNome || String(authState.usuario?.nome || '');
+        item.autorId = item.autorId || String(authState.usuario?.id || '');
+        item.atualizadoEm = new Date().toISOString();
+      }
+
       function renderizarNotificacoesLiberacao_() {
         if (!notificacoesLiberacaoLista) return;
         if (!notificacoesLiberacaoDraft.length) {
@@ -4649,6 +4696,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                     <label class="notification-description-field">Descrição
                       <textarea data-notification-field="descricao" data-notification-local-id="${escapeAttr(local.id)}" data-notification-irregularity-id="${escapeAttr(item.id)}" placeholder="Descreva objetivamente a irregularidade constatada.">${escapeHtml(item.descricao)}</textarea>
                     </label>
+                  </div>
+                  <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}">
+                    <strong>${item.statusTecnico === 'sugerido' ? 'Sugestão técnica preparada' : 'Análise técnica'}</strong>
+                    <span>${item.statusTecnico === 'sugerido' ? escapeHtml(item.textoTecnico) : 'Necessita conferência normativa. O sistema não identificou fundamento seguro automaticamente.'}</span>
+                    ${item.autorNome ? `<small>Lançado por ${escapeHtml(item.autorNome)}</small>` : ''}
                   </div>
                   <div class="notification-irregularity-actions">
                     <button class="notification-mini-btn" type="button" data-notification-copy="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}">Copiar descrição</button>
@@ -4736,6 +4788,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const irregularidade = irregularidadeNotificacaoPorId_(local, alvo?.dataset?.notificationIrregularityId);
           if (!irregularidade) return;
           irregularidade[campo] = valor;
+          irregularidade.autorNome = irregularidade.autorNome || String(authState.usuario?.nome || '');
+          irregularidade.autorId = irregularidade.autorId || String(authState.usuario?.id || '');
+          irregularidade.atualizadoEm = new Date().toISOString();
+          if (campo === 'descricao' || campo === 'itemIrregular' || campo === 'tipoIrregularidade') processarIrregularidadeTecnica_(local, irregularidade);
           if (campo === 'tipoIrregularidade') {
             const listaId = `dlNotifItens_${irregularidade.id}`;
             const dl = document.getElementById(listaId);
@@ -6543,6 +6599,57 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConsultaResponsavelPorTelefone_();
       }
 
+      let sharedDraftSyncTimer = null;
+      async function sincronizarRascunhoCompartilhado_(estado = 'em_andamento', silencioso = true) {
+        if (!usuarioPodeOperar_() || !navigator.onLine) return false;
+        const payload = buildPayload();
+        payload._appRegistroId = currentRecordId;
+        try {
+          await apiRequest('config', { consulta: 'rascunho_salvar', estado, payload }, 18000);
+          if (!silencioso) appStatus.textContent = estado === 'parcial' ? 'Vistoria concluída parcialmente e sincronizada.' : 'Rascunho compartilhado sincronizado.';
+          return true;
+        } catch (e) {
+          if (!silencioso) appStatus.textContent = 'O rascunho continua salvo neste aparelho e será sincronizado quando houver conexão.';
+          return false;
+        }
+      }
+
+      function agendarSincronizacaoRascunhoCompartilhado_() {
+        clearTimeout(sharedDraftSyncTimer);
+        sharedDraftSyncTimer = setTimeout(() => sincronizarRascunhoCompartilhado_('em_andamento', true), 1800);
+      }
+
+      async function concluirParcialmente_() {
+        if (!usuarioPodeOperar_()) return;
+        saveDraft();
+        const ok = await sincronizarRascunhoCompartilhado_('parcial', false);
+        if (!ok && !navigator.onLine) {
+          appStatus.textContent = 'Conclusão parcial salva neste aparelho. Abra o app com internet para sincronizar antes de continuar em outro aparelho.';
+        }
+        mostrarSucesso('Vistoria concluída parcialmente', 'Os dados permanecem disponíveis para continuar o preenchimento depois. Com internet, a equipe poderá abrir a mesma vistoria em outro aparelho.');
+      }
+
+      async function continuarRascunhoCompartilhado_() {
+        if (!navigator.onLine) { appStatus.textContent = 'É necessária internet para localizar vistorias compartilhadas.'; return; }
+        try {
+          const r = await apiRequest('config', { consulta: 'rascunhos' }, 20000);
+          const lista = Array.isArray(r?.rascunhos) ? r.rascunhos : [];
+          if (!lista.length) { appStatus.textContent = 'Nenhuma vistoria em andamento ou parcialmente concluída encontrada.'; return; }
+          const linhas = lista.slice(0, 20).map((x,i) => `${i+1}. ${x.nomeFantasia || x.razaoSocial || x.endereco || 'Vistoria'} — ${x.cidade || ''} — ${x.estado === 'parcial' ? 'Parcialmente concluída' : 'Em andamento'}`);
+          const escolha = window.prompt('Digite o número da vistoria que deseja continuar:\n\n' + linhas.join('\n'));
+          const idx = Number(escolha) - 1;
+          if (!Number.isInteger(idx) || idx < 0 || idx >= lista.length) return;
+          const item = lista[idx];
+          const detalhe = await apiRequest('config', { consulta: 'rascunho', id: item.id }, 20000);
+          if (!detalhe?.payload) throw new Error('Rascunho não encontrado.');
+          currentRecordId = String(item.id || currentRecordId);
+          applyPayload(detalhe.payload, item.id);
+          saveDraft();
+          appStatus.textContent = `Vistoria compartilhada carregada${item.atualizadoPor ? ` — última atualização: ${item.atualizadoPor}` : ''}.`;
+          document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) { appStatus.textContent = e?.message || 'Não foi possível carregar as vistorias compartilhadas.'; }
+      }
+
       function scheduleDraftSave() {
         if (!usuarioPodeOperar_()) {
           clearTimeout(saveTimer);
@@ -6550,7 +6657,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         clearTimeout(saveTimer);
-        saveTimer = setTimeout(saveDraft, 350);
+        saveTimer = setTimeout(() => { saveDraft(); agendarSincronizacaoRascunhoCompartilhado_(); }, 350);
       }
 
       function saveDraft() {
@@ -6563,6 +6670,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           draftStatus.textContent = '✓ Rascunho salvo';
           setTimeout(() => { draftStatus.textContent = 'Rascunho automático'; }, 1600);
         } catch (e) {}
+      }
+
+      function applyPayload(p, recordId = '') {
+        if (!p || typeof p !== 'object') return;
+        preparacaoEmUsoId = String(p._appPreparacaoId || '');
+        dduEmUsoId = String(p._appDduId || '');
+        dduEmUsoNumero = String(p._appDduNumero || p.dduProtocol || '');
+        processoAcessoriaVinculado = p._appAcessoriaPfVinculado ? { pf: String(p._appAcessoriaPfVinculado), sancao: String(p._appAcessoriaSituacaoAnterior || p.acessoriaSituacaoAnterior || '') } : null;
+        aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
+        currentRecordId = String(recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
+        sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
+        if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
+        if (possuiPscipSelect) possuiPscipSelect.value = String(p._appPossuiPscip || (p.pscip ? 'sim' : ''));
+        const cityOptions = Array.from(citySelect.options).map(o => o.value);
+        if (cityOptions.includes(p.cidade)) citySelect.value = p.cidade;
+        else if (p.cidade) { citySelect.value = 'Outro'; otherCity.value = p.cidade; }
+        Object.entries(p).forEach(([key, val]) => {
+          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key.startsWith('_app')) return;
+          const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
+        });
+        restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
+        restaurarOcupacoesSelecionadas(p.ocupacao);
+        aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
+        if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
+        syncOtherCity(); syncLicenciamento(); syncPscip_(); syncNotificado(); sincronizarDemandasEspeciais_(); atualizarVerificacaoMetasFiscalizacao_();
       }
 
       function restoreDraft() {
@@ -6972,6 +7104,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // entra na fila do aparelho. Isso torna o botão praticamente imediato e
         // evita perda de dados caso a conexão oscile durante o envio.
         enfileirarRegistro(payload);
+        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: currentRecordId }, 12000).catch(() => {});
         localStorage.removeItem(draftKeyAtual_());
         resetForm();
 
@@ -8554,6 +8687,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       fluxoFiscalizacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('fiscalizacao'));
       fluxoLiberacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('liberacao'));
+      document.getElementById('partialBtn')?.addEventListener('click', concluirParcialmente_);
+      document.getElementById('continueSharedBtn')?.addEventListener('click', continuarRascunhoCompartilhado_);
       loggedUserBadge?.addEventListener('click', abrirPreparacoesDoUsuario_);
       loggedUserBadge?.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); abrirPreparacoesDoUsuario_(); }
