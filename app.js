@@ -6773,6 +6773,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         processoAcessoriaVinculado = p._appAcessoriaPfVinculado ? { pf: String(p._appAcessoriaPfVinculado), sancao: String(p._appAcessoriaSituacaoAnterior || p.acessoriaSituacaoAnterior || '') } : null;
         aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
         currentRecordId = String(recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
+        atualizarBotaoCancelarPreenchimentoTopo_();
         sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
         if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
         if (possuiPscipSelect) possuiPscipSelect.value = String(p._appPossuiPscip || (p.pscip ? 'sim' : ''));
@@ -6824,6 +6825,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           processoAcessoriaVinculado = p._appAcessoriaPfVinculado ? { pf: String(p._appAcessoriaPfVinculado), sancao: String(p._appAcessoriaSituacaoAnterior || p.acessoriaSituacaoAnterior || '') } : null;
           aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
           currentRecordId = String(draft.recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
+          atualizarBotaoCancelarPreenchimentoTopo_();
           sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
           if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
           if (possuiPscipSelect) possuiPscipSelect.value = String(p._appPossuiPscip || (p.pscip ? 'sim' : ''));
@@ -8697,6 +8699,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function confirmarCancelamentoPreenchimento_(titulo) {
         return new Promise(resolve => {
           const modal = document.getElementById('cancelFillModal');
+          const listaProgramadasEstavaAberta = Boolean(programmedListModal && !programmedListModal.hidden);
+          if (listaProgramadasEstavaAberta) programmedListModal.hidden = true;
           const nome = document.getElementById('cancelFillName');
           const voltar = document.getElementById('cancelFillBackBtn');
           const confirmar = document.getElementById('cancelFillConfirmBtn');
@@ -8711,6 +8715,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             finalizado = true;
             modal.hidden = true;
             document.body.classList.remove('review-open');
+            if (!resultado && listaProgramadasEstavaAberta && programmedListModal) programmedListModal.hidden = false;
             voltar.removeEventListener('click', onVoltar);
             confirmar.removeEventListener('click', onConfirmar);
             fechar?.removeEventListener('click', onVoltar);
@@ -8732,20 +8737,55 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function cancelarPreenchimentoAtual_() {
-        if(!preparacaoEmUsoId||!currentRecordId) return;
-        const titulo=value('nomeFantasia')||value('razaoSocial')||value('endereco')||'esta vistoria';
-        if(!await confirmarCancelamentoPreenchimento_(titulo)) return;
-        if(!navigator.onLine){appStatus.textContent='É necessária internet para cancelar o preenchimento compartilhado.';return;}
-        const btn=document.getElementById('activeInspectionCancelBtn');
-        if(btn){btn.disabled=true;btn.textContent='Cancelando...';}
-        try{
-          const id=String(currentRecordId);
-          await apiRequest('config',{consulta:'rascunho_cancelar',id,preparacaoId:String(preparacaoEmUsoId)},12000);
-          removerRascunhoLocal_(id); resetForm(true);
-          appStatus.textContent='Preenchimento cancelado. A vistoria programada foi mantida.';
-          carregarPreparacoesVistoria_().catch(()=>{});
-        }catch(e){appStatus.textContent=e?.message||'Não foi possível cancelar o preenchimento.';}
-        finally{if(btn){btn.disabled=false;btn.textContent='Cancelar preenchimento';}}
+        if (!preparacaoEmUsoId || !currentRecordId) return;
+        const titulo = value('nomeFantasia') || value('razaoSocial') || value('endereco') || 'esta vistoria';
+        if (!await confirmarCancelamentoPreenchimento_(titulo)) return;
+
+        if (!navigator.onLine) {
+          appStatus.textContent = 'É necessária internet para cancelar o preenchimento compartilhado.';
+          return;
+        }
+
+        const preparacaoId = String(preparacaoEmUsoId);
+        const rascunhoId = String(currentRecordId);
+        const btn = document.getElementById('activeInspectionCancelBtn');
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Cancelando...';
+        }
+
+        try {
+          await apiRequest('config', {
+            consulta: 'rascunho_cancelar',
+            id: rascunhoId,
+            preparacaoId
+          }, 12000);
+
+          removerRascunhoLocal_(rascunhoId);
+
+          preparacoesVistoria = preparacoesVistoria.map(p => {
+            if (String(p.id) !== preparacaoId) return p;
+            return { ...p, vistoriaIniciada: false, rascunhoId: '' };
+          });
+          try {
+            localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(preparacoesVistoria));
+          } catch (e) {}
+
+          resetForm(true);
+          renderizarPreparacoesVistoria_();
+          abrirListaProgramadas_(true);
+          if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.textContent = '✓ Preenchimento cancelado. A vistoria programada foi mantida e pode ser iniciada novamente.';
+          }
+          appStatus.textContent = 'Preenchimento cancelado. A vistoria programada foi mantida.';
+        } catch (e) {
+          appStatus.textContent = e?.message || 'Não foi possível cancelar o preenchimento.';
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Cancelar preenchimento';
+          }
+        }
       }
 
       async function cancelarPreenchimentoPreparacao_(item) {
@@ -8754,18 +8794,47 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const confirmar = await confirmarCancelamentoPreenchimento_(titulo);
         if (!confirmar) return;
         if (!navigator.onLine) {
-          appStatus.textContent = 'É necessária internet para cancelar um preenchimento compartilhado.';
+          if (programmedListModal) programmedListModal.hidden = false;
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'É necessária internet para cancelar um preenchimento compartilhado.';
           return;
         }
+
+        const preparacaoId = String(item.id || '');
+        const rascunhoId = String(item.rascunhoId || '');
         try {
-          appStatus.textContent = 'Cancelando preenchimento...';
-          await apiRequest('config', { consulta: 'rascunho_cancelar', id: String(item.rascunhoId), preparacaoId: String(item.id || '') }, 12000);
-          removerRascunhoLocal_(String(item.rascunhoId));
-          if (String(currentRecordId) === String(item.rascunhoId)) resetForm(true);
-          appStatus.textContent = 'Preenchimento cancelado. A vistoria permanece programada.';
-          await carregarPreparacoesVistoria_();
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Cancelando preenchimento...';
+
+          await apiRequest('config', {
+            consulta: 'rascunho_cancelar',
+            id: rascunhoId,
+            preparacaoId
+          }, 12000);
+
+          removerRascunhoLocal_(rascunhoId);
+          if (String(currentRecordId) === rascunhoId) resetForm(true);
+
+          // Atualização visual imediata: não espera uma nova consulta para o usuário saber que cancelou.
+          preparacoesVistoria = preparacoesVistoria.map(p => {
+            if (String(p.id) !== preparacaoId) return p;
+            return { ...p, vistoriaIniciada: false, rascunhoId: '' };
+          });
+          try {
+            localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(preparacoesVistoria));
+          } catch (e) {}
+
+          renderizarPreparacoesVistoria_();
+          if (programmedListModal) programmedListModal.hidden = false;
+          if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.textContent = '✓ Preenchimento cancelado. A vistoria programada foi mantida e pode ser iniciada novamente.';
+          }
+
+          // Confere o estado oficial em segundo plano, sem bloquear a interface.
+          carregarPreparacoesVistoria_().catch(() => {});
         } catch (erro) {
-          appStatus.textContent = erro?.message || 'Não foi possível cancelar o preenchimento.';
+          if (programmedListModal) programmedListModal.hidden = false;
+          if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.textContent = erro?.message || 'Não foi possível cancelar o preenchimento.';
+          }
         }
       }
 
@@ -8784,6 +8853,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (!detalhe?.payload) throw new Error('Rascunho compartilhado não encontrado.');
             currentRecordId = String(item.rascunhoId || currentRecordId);
             applyPayload(detalhe.payload, item.rascunhoId);
+            preparacaoEmUsoId = String(item.id || preparacaoEmUsoId || '');
             atualizarBotaoCancelarPreenchimentoTopo_();
             saveDraft();
             rolarParaFormularioProgramado_();
