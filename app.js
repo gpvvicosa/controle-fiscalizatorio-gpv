@@ -5,8 +5,9 @@
       const PENDING_KEY = 'appVistoriaGpvPendentesV1';
       const CONFIG_CACHE_KEY = 'appVistoriaGpvConfigPwaV1';
       const DB_NAME = 'ControleVistoriasGPV';
-      const DB_VERSION = 1;
+      const DB_VERSION = 2;
       const DB_STORE = 'pendentes';
+      const DB_PHOTO_STORE = 'fotos_pendentes';
       const API_URL = String(window.GPV_PUBLIC_CONFIG?.apiUrl || '').trim();
       const AUTH_USER_STORAGE = 'gpvVistoriasUsuarioBmV1';
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
@@ -1375,6 +1376,7 @@
           req.onupgradeneeded = () => {
             const db = req.result;
             if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE, { keyPath: 'id' });
+            if (!db.objectStoreNames.contains(DB_PHOTO_STORE)) db.createObjectStore(DB_PHOTO_STORE, { keyPath: 'id' });
           };
           req.onsuccess = () => resolve(req.result);
           req.onerror = () => reject(req.error || new Error('Não foi possível abrir o banco offline.'));
@@ -4885,6 +4887,213 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         item.atualizadoEm = new Date().toISOString();
       }
 
+
+      let fotoIrregularidadeAlvo_ = null;
+      let enviandoFilaFotos_ = false;
+
+      function comprimirFotoIrregularidade_(file) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            try {
+              const maxDim = 1280;
+              const escala = Math.min(1, maxDim / Math.max(img.width, img.height));
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.max(1, Math.round(img.width * escala));
+              canvas.height = Math.max(1, Math.round(img.height * escala));
+              canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+              URL.revokeObjectURL(url);
+              resolve(canvas.toDataURL('image/jpeg', 0.72));
+            } catch (e) {
+              URL.revokeObjectURL(url);
+              reject(e);
+            }
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a fotografia.')); };
+          img.src = url;
+        });
+      }
+
+      async function gravarFotoPendenteDb_(registro) {
+        const db = await abrirBancoOffline();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(DB_PHOTO_STORE, 'readwrite');
+          tx.objectStore(DB_PHOTO_STORE).put(registro);
+          tx.oncomplete = () => { db.close(); resolve(); };
+          tx.onerror = () => { const e = tx.error; db.close(); reject(e); };
+        });
+      }
+
+      async function listarFotosPendentesDb_() {
+        const db = await abrirBancoOffline();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(DB_PHOTO_STORE, 'readonly');
+          const req = tx.objectStore(DB_PHOTO_STORE).getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+          tx.oncomplete = () => db.close();
+        });
+      }
+
+      async function removerFotoPendenteDb_(id) {
+        const db = await abrirBancoOffline();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(DB_PHOTO_STORE, 'readwrite');
+          tx.objectStore(DB_PHOTO_STORE).delete(id);
+          tx.oncomplete = () => { db.close(); resolve(); };
+          tx.onerror = () => { const e = tx.error; db.close(); reject(e); };
+        });
+      }
+
+      function localizarFotoNoRascunho_(localId, itemId, fotoId) {
+        const local = localNotificacaoPorId_(localId);
+        const item = irregularidadeNotificacaoPorId_(local, itemId);
+        const foto = item?.fotos?.find(f => String(f.id || f.fileId) === String(fotoId));
+        return { local, item, foto };
+      }
+
+      function payloadUploadFoto_(registro) {
+        return {
+          consulta: 'foto_irregularidade_salvar',
+          dataUrl: registro.dataUrl,
+          edificacao: registro.edificacao,
+          endereco: registro.endereco,
+          pscip: registro.pscip,
+          preparacaoId: registro.preparacaoId,
+          rascunhoId: registro.rascunhoId,
+          irregularidadeId: registro.itemId,
+          dataVistoria: registro.dataVistoria
+        };
+      }
+
+      async function concluirUploadFoto_(registro, resposta) {
+        const { item } = localizarFotoNoRascunho_(registro.localId, registro.itemId, registro.id);
+        if (!item) return;
+        if (!Array.isArray(item.fotos)) item.fotos = [];
+        const indice = item.fotos.findIndex(f => String(f.id || f.fileId) === String(registro.id));
+        const fotoServidor = {
+          id: String(resposta.fileId || ''),
+          fileId: String(resposta.fileId || ''),
+          nome: String(resposta.nome || ''),
+          url: String(resposta.url || ''),
+          estado: 'sincronizada',
+          temporaria: true,
+          manter: Boolean(resposta.manter)
+        };
+        if (indice >= 0) item.fotos.splice(indice, 1, fotoServidor);
+        else item.fotos.push(fotoServidor);
+        await removerFotoPendenteDb_(registro.id).catch(() => {});
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+      }
+
+      async function enviarRegistroFotoPendente_(registro) {
+        const resposta = await apiRequest('config', payloadUploadFoto_(registro), 30000);
+        if (!resposta?.fileId) throw new Error('O servidor não confirmou o armazenamento da fotografia.');
+        await concluirUploadFoto_(registro, resposta);
+      }
+
+      async function processarFilaFotosPendentes_() {
+        if (enviandoFilaFotos_ || !navigator.onLine || !usuarioPodeOperar_()) return;
+        enviandoFilaFotos_ = true;
+        try {
+          const fila = await listarFotosPendentesDb_().catch(() => []);
+          for (const registro of fila) {
+            try { await enviarRegistroFotoPendente_(registro); }
+            catch (e) { /* mantém no IndexedDB para a próxima tentativa */ }
+          }
+        } finally {
+          enviandoFilaFotos_ = false;
+        }
+      }
+
+      async function fotografarIrregularidadeSelecionada_(file) {
+        if (!fotoIrregularidadeAlvo_ || !file) return;
+        const { localId, itemId } = fotoIrregularidadeAlvo_;
+        const local = localNotificacaoPorId_(localId);
+        const item = irregularidadeNotificacaoPorId_(local, itemId);
+        if (!item) return;
+
+        appStatus.textContent = 'Preparando fotografia...';
+        const dataUrl = await comprimirFotoIrregularidade_(file);
+        const localFotoId = `foto-local-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+        const registro = {
+          id: localFotoId,
+          localId: String(localId),
+          itemId: String(itemId),
+          dataUrl,
+          edificacao: value('nomeFantasia') || value('razaoSocial') || value('endereco') || 'Edificação',
+          endereco: value('endereco'),
+          pscip: value('pscip'),
+          preparacaoId: String(preparacaoEmUsoId || ''),
+          rascunhoId: String(currentRecordId || ''),
+          dataVistoria: value('dataVistoria') || new Date().toLocaleDateString('pt-BR'),
+          criadoEm: Date.now()
+        };
+
+        if (!Array.isArray(item.fotos)) item.fotos = [];
+        item.fotos.push({
+          id: localFotoId,
+          estado: 'pendente',
+          temporaria: true,
+          manter: false
+        });
+
+        await gravarFotoPendenteDb_(registro);
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+
+        if (navigator.onLine) {
+          appStatus.textContent = 'Enviando fotografia...';
+          try {
+            await enviarRegistroFotoPendente_(registro);
+            appStatus.textContent = '✓ Fotografia salva e vinculada à irregularidade.';
+          } catch (e) {
+            appStatus.textContent = 'Fotografia salva neste aparelho e aguardando sincronização.';
+          }
+        } else {
+          appStatus.textContent = 'Fotografia salva neste aparelho e aguardando sincronização.';
+        }
+      }
+
+      async function alterarRetencaoFoto_(localId, itemId, fileId) {
+        const { item, foto } = localizarFotoNoRascunho_(localId, itemId, fileId);
+        if (!item || !foto || !fileId || String(fileId).startsWith('foto-local-')) return;
+        const novoValor = !Boolean(foto.manter);
+        const resposta = await apiRequest('config', {
+          consulta: 'foto_irregularidade_manter',
+          fileId,
+          manter: novoValor
+        }, 15000);
+        foto.manter = Boolean(resposta?.manter);
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+      }
+
+      async function excluirFotoIrregularidade_(localId, itemId, fotoId) {
+        const { item, foto } = localizarFotoNoRascunho_(localId, itemId, fotoId);
+        if (!item || !foto) return;
+        const confirmado = window.confirm('Excluir esta fotografia da irregularidade?');
+        if (!confirmado) return;
+
+        if (String(fotoId).startsWith('foto-local-')) {
+          await removerFotoPendenteDb_(fotoId).catch(() => {});
+        } else if (navigator.onLine) {
+          await apiRequest('config', { consulta: 'foto_irregularidade_excluir', fileId: fotoId }, 15000);
+        } else {
+          appStatus.textContent = 'Conecte-se à internet para excluir uma fotografia já enviada ao Drive.';
+          return;
+        }
+
+        item.fotos = item.fotos.filter(f => String(f.id || f.fileId) !== String(fotoId));
+        renderizarNotificacoesLiberacao_();
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+      }
+
       function renderizarNotificacoesLiberacao_() {
         if (!notificacoesLiberacaoLista) return;
         if (!notificacoesLiberacaoDraft.length) {
@@ -4915,6 +5124,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                     <label class="notification-description-field">Descrição
                       <textarea data-notification-field="descricao" data-notification-local-id="${escapeAttr(local.id)}" data-notification-irregularity-id="${escapeAttr(item.id)}" placeholder="Descreva objetivamente a irregularidade constatada.">${escapeHtml(item.descricao)}</textarea>
                     </label>
+                  </div>
+                  <div class="notification-photo-tools">
+                    <button class="notification-mini-btn notification-photo-btn" type="button"
+                      data-notification-photo="${escapeAttr(item.id)}"
+                      data-notification-local-id="${escapeAttr(local.id)}">📷 Fotografar irregularidade</button>
+                    ${Array.isArray(item.fotos) && item.fotos.length ? `
+                      <div class="notification-photo-list">
+                        ${item.fotos.map((foto, indiceFoto) => `
+                          <div class="notification-photo-item ${foto.estado === 'pendente' ? 'is-pending' : ''}">
+                            <span>Foto ${indiceFoto + 1}${foto.estado === 'pendente' ? ' — aguardando envio' : ''}</span>
+                            ${foto.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Ver</a>` : ''}
+                            ${foto.fileId ? `<button type="button" data-notification-photo-keep="${escapeAttr(foto.fileId)}" data-notification-id="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}">${foto.manter ? '✓ Manter' : 'Manter'}</button>` : ''}
+                            <button type="button" data-notification-photo-delete="${escapeAttr(foto.fileId || foto.id)}" data-notification-id="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}">Excluir</button>
+                          </div>`).join('')}
+                      </div>` : ''}
                   </div>
                   <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}" data-notification-technical="${escapeAttr(item.id)}">
                     <strong>${item.statusTecnico === 'sugerido' ? '✓ Sugestão técnica preparada' : 'Referência normativa pendente'}</strong>
@@ -8836,8 +9060,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function atualizarBotaoCancelarPreenchimentoTopo_() {
-        const btn=document.getElementById('activeInspectionCancelBtn');
-        if(btn) btn.hidden=!(preparacaoEmUsoId && currentRecordId && usuarioPodeOperar_());
+        const ativo = Boolean(preparacaoEmUsoId && currentRecordId && usuarioPodeOperar_());
+        const btn = document.getElementById('activeInspectionCancelBtn');
+        const notifBtn = document.getElementById('activeInspectionNotificationsBtn');
+        if (btn) btn.hidden = !ativo;
+        if (notifBtn) notifBtn.hidden = !ativo;
       }
 
       function atualizarTextoTecnicoIrregularidade_(item) {
@@ -8993,6 +9220,79 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+
+      function escolherInicioVistoriaProgramada_() {
+        return new Promise(resolve => {
+          const modal = document.getElementById('inspectionStartChoiceModal');
+          const fechar = document.getElementById('inspectionStartChoiceClose');
+          const formBtn = document.getElementById('inspectionStartFormBtn');
+          const notifBtn = document.getElementById('inspectionStartNotificationsBtn');
+          if (!modal || !formBtn || !notifBtn) return resolve('form');
+
+          const listaEstavaAberta = Boolean(programmedListModal && !programmedListModal.hidden);
+          if (listaEstavaAberta) programmedListModal.hidden = true;
+
+          modal.hidden = false;
+          document.body.classList.add('review-open');
+          let finalizado = false;
+
+          const concluir = escolha => {
+            if (finalizado) return;
+            finalizado = true;
+            modal.hidden = true;
+            document.body.classList.remove('review-open');
+            fechar?.removeEventListener('click', cancelar);
+            formBtn.removeEventListener('click', iniciarForm);
+            notifBtn.removeEventListener('click', iniciarNotif);
+            modal.removeEventListener('click', clicarFundo);
+            document.removeEventListener('keydown', tecla);
+            if (!escolha && listaEstavaAberta && programmedListModal) programmedListModal.hidden = false;
+            resolve(escolha || '');
+          };
+          const cancelar = () => concluir('');
+          const iniciarForm = () => concluir('form');
+          const iniciarNotif = () => concluir('notificacoes');
+          const clicarFundo = e => { if (e.target === modal) cancelar(); };
+          const tecla = e => { if (e.key === 'Escape') cancelar(); };
+
+          fechar?.addEventListener('click', cancelar);
+          formBtn.addEventListener('click', iniciarForm);
+          notifBtn.addEventListener('click', iniciarNotif);
+          modal.addEventListener('click', clicarFundo);
+          document.addEventListener('keydown', tecla);
+          setTimeout(() => notifBtn.focus(), 30);
+        });
+      }
+
+      function rolarParaNotificacoesProgramadas_() {
+        const secao = document.getElementById('notificacoesLiberacaoSecao');
+        if (!secao || secao.hidden) {
+          appStatus.textContent = 'A área de notificações está disponível nas vistorias de liberação.';
+          return;
+        }
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          try { secao.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+        }));
+      }
+
+      async function abrirPreparacaoComEscolha_(item) {
+        if (!item) return;
+        const ehLiberacao = item.tipoPreparacao === 'liberacao' || normalize(item.tipoVistoria || '').includes('liberacao');
+        const escolha = ehLiberacao ? await escolherInicioVistoriaProgramada_() : 'form';
+        if (!escolha) return;
+
+        await aplicarPreparacaoAoFormulario_(item);
+
+        if (escolha === 'notificacoes') {
+          setTimeout(rolarParaNotificacoesProgramadas_, 120);
+        } else {
+          setTimeout(() => {
+            const cidade = document.getElementById('cidadeSecao');
+            try { cidade?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+          }, 80);
+        }
+      }
+
       async function aplicarPreparacaoAoFormulario_(item) {
         if (!item) return;
 
@@ -9107,6 +9407,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // A tela principal não fica mais presa ao "Carregando" aguardando essas três consultas.
         // Cada área mantém seu próprio indicador e termina a atualização em segundo plano.
         if (navigator.onLine && usuarioPodeOperar_()) {
+          setTimeout(() => { void processarFilaFotosPendentes_(); }, 2200);
           requestAnimationFrame(() => requestAnimationFrame(() => {
             Promise.allSettled([
               carregarUsuariosVistoriadores_(),
@@ -9269,7 +9570,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try { btn.blur(); } catch (e) {}
         try { document.activeElement?.blur?.(); } catch (e) {}
         const item = preparacoesVistoria.find(p => String(p.id) === String(btn.dataset.preparacaoId));
-        aplicarPreparacaoAoFormulario_(item);
+        abrirPreparacaoComEscolha_(item);
       });
       preparedInspectionsList?.addEventListener('keydown', event => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -9277,7 +9578,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!alvo) return;
         event.preventDefault();
         const item = preparacoesVistoria.find(p => String(p.id) === String(alvo.dataset.preparacaoId));
-        aplicarPreparacaoAoFormulario_(item);
+        abrirPreparacaoComEscolha_(item);
       });
 
       form.addEventListener('input', event => {
@@ -9360,8 +9661,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         copiarNotificacaoFicha_(botao.dataset.recordNotificationCopy);
       });
       document.getElementById('activeInspectionCancelBtn')?.addEventListener('click', cancelarPreenchimentoAtual_);
-      document.getElementById('notificationPhotoInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)enviarFotoIrregularidade_(f);e.target.value='';});
-      document.getElementById('activeInspectionNotificationsBtn')?.addEventListener('click',()=>document.getElementById('notificacoesLiberacaoCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
+      document.getElementById('notificationPhotoInput')?.addEventListener('change', async event => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+        try { await fotografarIrregularidadeSelecionada_(file); }
+        catch (e) { appStatus.textContent = e?.message || 'Não foi possível processar a fotografia.'; }
+      });
+      document.getElementById('activeInspectionNotificationsBtn')?.addEventListener('click', rolarParaNotificacoesProgramadas_);
       notificacoesAdicionarLocalBtn?.addEventListener('click', () => {
         carregarBaseNormativaITS_();
         adicionarLocalNotificacao_(true);
@@ -9389,6 +9696,41 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const removerIrregularidade = event.target.closest('[data-notification-remove-irregularity]');
         if (removerIrregularidade) {
           removerIrregularidadeNotificacao_(removerIrregularidade.dataset.notificationLocalId, removerIrregularidade.dataset.notificationRemoveIrregularity);
+          return;
+        }
+        const fotografar = event.target.closest('[data-notification-photo]');
+        if (fotografar) {
+          fotoIrregularidadeAlvo_ = {
+            localId: fotografar.dataset.notificationLocalId,
+            itemId: fotografar.dataset.notificationPhoto
+          };
+          document.getElementById('notificationPhotoInput')?.click();
+          return;
+        }
+        const manterFoto = event.target.closest('[data-notification-photo-keep]');
+        if (manterFoto) {
+          try {
+            await alterarRetencaoFoto_(
+              manterFoto.dataset.notificationLocalId,
+              manterFoto.dataset.notificationId,
+              manterFoto.dataset.notificationPhotoKeep
+            );
+          } catch (e) {
+            appStatus.textContent = e?.message || 'Não foi possível alterar a retenção da fotografia.';
+          }
+          return;
+        }
+        const excluirFoto = event.target.closest('[data-notification-photo-delete]');
+        if (excluirFoto) {
+          try {
+            await excluirFotoIrregularidade_(
+              excluirFoto.dataset.notificationLocalId,
+              excluirFoto.dataset.notificationId,
+              excluirFoto.dataset.notificationPhotoDelete
+            );
+          } catch (e) {
+            appStatus.textContent = e?.message || 'Não foi possível excluir a fotografia.';
+          }
           return;
         }
         const copiar = event.target.closest('[data-notification-copy]');
@@ -9689,6 +10031,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (authEnterBtn) authEnterBtn.disabled = false;
         if (authOfflineNote) authOfflineNote.hidden = true;
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
+        setTimeout(() => { void processarFilaFotosPendentes_(); }, 250);
         if (usuarioPodeOperar_()) {
           setTimeout(() => enviarPendentes(true), 650);
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
@@ -9724,7 +10067,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99i', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99j', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

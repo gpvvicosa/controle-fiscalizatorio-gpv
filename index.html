@@ -1702,9 +1702,32 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99i"></script>
+  <script src="app.js?v=23.9.99j"></script>
 
-  <div id="inspectionStartChoiceModal" class="review-modal" hidden><div class="review-card" role="dialog" aria-modal="true"><div class="review-head"><div><h3>Por onde deseja começar?</h3><p>A vistoria é a mesma nas duas opções.</p></div><button id="inspectionStartChoiceClose" class="review-close" type="button">×</button></div><div class="review-actions"><button id="inspectionStartFormBtn" class="primary" type="button">Iniciar preenchimento</button><button id="inspectionStartNotificationsBtn" class="secondary" type="button">Lançar notificações</button></div></div></div>
+  </div>
+  
+  <div id="inspectionStartChoiceModal" class="review-modal" hidden>
+    <div class="review-card inspection-start-choice-card" role="dialog" aria-modal="true" aria-labelledby="inspectionStartChoiceTitle">
+      <div class="review-head">
+        <div>
+          <h3 id="inspectionStartChoiceTitle">Por onde deseja começar?</h3>
+          <p>A vistoria e o rascunho são os mesmos nas duas opções.</p>
+        </div>
+        <button id="inspectionStartChoiceClose" class="review-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div class="inspection-start-choice-actions">
+        <button id="inspectionStartFormBtn" class="btn btn-primary" type="button">
+          Iniciar preenchimento
+          <small>Começar pelos dados da vistoria</small>
+        </button>
+        <button id="inspectionStartNotificationsBtn" class="btn btn-secondary" type="button">
+          Lançar notificações
+          <small>Ir direto às irregularidades</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="cancelFillModal" class="cancel-fill-modal" hidden>
     <section class="cancel-fill-dialog" role="dialog" aria-modal="true" aria-labelledby="cancelFillTitle">
       <button id="cancelFillCloseBtn" class="cancel-fill-close" type="button" aria-label="Fechar">×</button>
