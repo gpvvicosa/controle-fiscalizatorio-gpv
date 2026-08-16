@@ -4688,8 +4688,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function elaborarTextoTecnicoLocal_(local, item) {
         const bruto = [item?.tipoIrregularidade, item?.itemIrregular, item?.descricao].filter(Boolean).join(' — ');
         const n = normalize(bruto);
-        const localTxt = String(local?.complemento || local?.tipoLocal || '').trim();
-        const prefixo = localTxt ? `${localTxt}: ` : '';
+        // O local já é armazenado e exibido separadamente; não repetir na redação técnica.
+        const prefixo = '';
         const regras = [
           { re: /(extintor).*(vencid|validade)/, texto: 'Extintor com prazo de validade vencido, contrariando o item 7.2 da IT 16.' },
           { re: /(tripe|suporte).*(nao.*(afix|aparafus)|solto)/, texto: 'Suporte de piso do extintor não afixado ao solo, contrariando a alínea “a” do item 5.2.2.4 da IT 16.' },
@@ -4699,10 +4699,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           { re: /(recalque).*(brita|fundo|dreno|permeavel)/, texto: 'Caixa do dispositivo de recalque sem fundo permeável ou dreno, contrariando a alínea “a” do item 5.3.4 da IT 17.' },
           { re: /(hidrante).*(sem|falta).*(mangueira|chave)/, texto: 'Abrigo de hidrante incompleto, com ausência de mangueira e/ou chave para hidrantes/engates rápidos, contrariando o item 5.6.1.5 e a Tabela 3 da IT 17.' },
           { re: /(veneziana).*(falta|sem|ausen)|((falta|sem|ausen).*(veneziana))/, texto: 'Abertura de ventilação da caixa da escada sem a veneziana prevista no PSCIP, contrariando a alínea “c” do item 5.7.8.2 da IT 08 e o item 6.2.1.4 da IT 01.' },
-          { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, contrariando o item 6.2.1.4 da IT 01.' }
+          { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, contrariando o item 6.2.1.4 da IT 01.' },
+          // Contexto estruturado: Tipo + Item irregular + descrição curta do vistoriador.
+          // Sem referência normativa quando o item exato ainda não foi confirmado no acervo oficial.
+          { re: /(iluminacao de emergencia).*(teste).*(nao funcion|sem funcion|inoper|falh)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento.' , conferencia: true },
+          { re: /(saidas? de emergencia).*(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada.' , conferencia: true },
+          { re: /(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada.' , conferencia: true },
+          { re: /(iluminacao de emergencia).*(teste).*(apag|nao acend|nao acion)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento.' , conferencia: true }
         ];
         const regra = regras.find(r => r.re.test(n));
-        if (regra) return { texto: prefixo + regra.texto, status: 'sugerido' };
+        if (regra) return { texto: prefixo + regra.texto, status: regra.conferencia ? 'conferencia' : 'sugerido' };
 
         // V23.9.99 consolidada: gera redação técnica sem inventar IT/item.
         // A referência normativa permanece explicitamente pendente de conferência.
@@ -4727,7 +4733,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function renderizarNotificacoesLiberacao_() {
         if (!notificacoesLiberacaoLista) return;
         if (!notificacoesLiberacaoDraft.length) {
-          notificacoesLiberacaoLista.innerHTML = '<div class="notification-draft-notice"><strong>Rascunho vazio</strong><span>Adicione um local somente quando encontrar uma irregularidade na vistoria.</span></div>';
+          notificacoesLiberacaoLista.innerHTML = '';
           atualizarResumoNotificacoesLiberacao_();
           return;
         }
@@ -9487,7 +9493,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99d', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99e', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
