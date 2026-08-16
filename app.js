@@ -4685,6 +4685,112 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           `${irregularidades.length} irregularidade${irregularidades.length === 1 ? '' : 's'} em rascunho`;
       }
 
+      let baseNormativaITSCarregando_ = null;
+      function carregarBaseNormativaITS_() {
+        if (Array.isArray(window.SEARCH_INDEX) && window.SEARCH_INDEX.length) return Promise.resolve(window.SEARCH_INDEX);
+        if (baseNormativaITSCarregando_) return baseNormativaITSCarregando_;
+        baseNormativaITSCarregando_ = new Promise((resolve, reject) => {
+          const existente = document.querySelector('script[data-base-normativa-its]');
+          if (existente) {
+            existente.addEventListener('load', () => resolve(window.SEARCH_INDEX || []), { once:true });
+            existente.addEventListener('error', reject, { once:true });
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = './instrucoes-tecnicas/assets/search-index.js?v=23.9.99';
+          script.async = true;
+          script.dataset.baseNormativaIts = '1';
+          script.onload = () => resolve(window.SEARCH_INDEX || []);
+          script.onerror = () => reject(new Error('Não foi possível carregar a base normativa das ITs.'));
+          document.head.appendChild(script);
+        }).catch(() => []);
+        return baseNormativaITSCarregando_;
+      }
+
+      function itPreferencialNotificacao_(tipo) {
+        const n = normalize(tipo);
+        const mapa = [
+          [/saidas? de emergencia/, 8],
+          [/brigada/, 12],
+          [/iluminacao de emergencia/, 13],
+          [/sinalizacao/, 15],
+          [/extintor/, 16],
+          [/hidrante|mangotinho/, 17],
+          [/alarme|deteccao/, 14],
+          [/glp|gas liquefeito/, 23],
+          [/instalacoes? eletricas|eletric/, 30],
+          [/evento/, 33]
+        ];
+        return mapa.find(([re]) => re.test(n))?.[1] || 0;
+      }
+
+      function tokensNormativos_(texto) {
+        const stop = new Set(['para','com','sem','uma','uns','das','dos','que','por','não','nao','deve','item','irregular','sistema','edificacao','edificacoes']);
+        return normalize(texto).split(/[^a-z0-9]+/).filter(t => t.length >= 4 && !stop.has(t));
+      }
+
+      function buscarFundamentoNormativo_(item) {
+        const base = Array.isArray(window.SEARCH_INDEX) ? window.SEARCH_INDEX : [];
+        if (!base.length) return null;
+        const itPref = itPreferencialNotificacao_(item?.tipoIrregularidade);
+        const tipoTokens = tokensNormativos_(item?.tipoIrregularidade || '');
+        const itemTokens = tokensNormativos_(item?.itemIrregular || '');
+        const descTokens = tokensNormativos_(item?.descricao || '');
+        const essenciais = [...new Set([...itemTokens, ...descTokens])];
+        if (!essenciais.length) return null;
+
+        let melhor = null;
+        for (const ref of base) {
+          if (itPref && Number(ref.it) !== itPref) continue;
+          const texto = normalize(`${ref.section || ''} ${ref.text || ''}`);
+          let score = 0, achouDesc = 0, achouItem = 0;
+          for (const t of descTokens) if (texto.includes(t)) { score += 4; achouDesc++; }
+          for (const t of itemTokens) if (texto.includes(t)) { score += 3; achouItem++; }
+          for (const t of tipoTokens) if (texto.includes(t)) score += 1;
+          if (itPref && Number(ref.it) === itPref) score += 4;
+          if (!melhor || score > melhor.score) melhor = { ref, score, achouDesc, achouItem };
+        }
+        if (!melhor) return null;
+
+        // Só considera fundamento automático quando o próprio trecho normativo
+        // contém todos os conceitos relevantes da descrição e ao menos um do item.
+        const descOk = !descTokens.length || melhor.achouDesc === descTokens.length;
+        const itemOk = !itemTokens.length || melhor.achouItem >= Math.min(1, itemTokens.length);
+        if (!descOk || !itemOk || melhor.score < 10) return null;
+
+        const secao = String(melhor.ref.section || '').trim();
+        const m = secao.match(/^([A-Z]\.\d+(?:\.\d+)*|\d+(?:\.\d+)+|\d+)\b/);
+        const numeroItem = m ? m[1] : '';
+        if (!numeroItem) return null;
+        return {
+          it: Number(melhor.ref.it),
+          item: numeroItem,
+          pagina: Number(melhor.ref.page || 0),
+          trecho: String(melhor.ref.text || '').trim(),
+          score: melhor.score
+        };
+      }
+
+      function descricaoTecnicaBasica_(item) {
+        let tecnico = String(item?.descricao || item?.itemIrregular || '').trim();
+        if (!tecnico) return '';
+        tecnico = tecnico.replace(/^(falta|faltando)\s+/i, 'Ausência de ');
+        tecnico = tecnico.charAt(0).toUpperCase() + tecnico.slice(1);
+        return tecnico.replace(/[.;,:\s]+$/, '');
+      }
+
+      function reprocessarComBaseNormativa_(local, item) {
+        carregarBaseNormativaITS_().then(() => {
+          if (!item || !String(item.descricao || item.itemIrregular || '').trim()) return;
+          const atual = elaborarTextoTecnicoLocal_(local, item);
+          item.textoTecnico = atual.texto;
+          item.statusTecnico = atual.status;
+          item.fundamentoNormativo = atual.fundamento || null;
+          atualizarTextoTecnicoIrregularidade_(item);
+          agendarPersistenciaNotificacoesLiberacao_();
+        });
+      }
+
       function elaborarTextoTecnicoLocal_(local, item) {
         const bruto = [item?.tipoIrregularidade, item?.itemIrregular, item?.descricao].filter(Boolean).join(' — ');
         const n = normalize(bruto);
@@ -4713,14 +4819,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const regra = regras.find(r => r.re.test(n));
         if (regra) return { texto: prefixo + regra.texto, status: regra.conferencia ? 'conferencia' : 'sugerido' };
 
-        // V23.9.99 consolidada: gera redação técnica sem inventar IT/item.
-        // A referência normativa permanece explicitamente pendente de conferência.
-        const descricao = String(item?.descricao || item?.itemIrregular || '').trim();
-        if (!descricao) return { texto: '', status: 'conferencia' };
-        let tecnico = descricao.replace(/^(falta|faltando)\s+/i, 'Ausência de ');
-        tecnico = tecnico.charAt(0).toUpperCase() + tecnico.slice(1);
-        tecnico = tecnico.replace(/[.;,:\s]+$/, '');
-        return { texto: `${prefixo}${tecnico}.`, status: 'conferencia' };
+        // Consulta a base indexada das ITs. A referência só é promovida a fundamento
+        // quando o mesmo trecho contém os conceitos relevantes da constatação.
+        const tecnico = descricaoTecnicaBasica_(item);
+        if (!tecnico) return { texto: '', status: 'conferencia' };
+        const fundamento = buscarFundamentoNormativo_(item);
+        if (fundamento) {
+          return {
+            texto: `${prefixo}${tecnico}, contrariando o item ${fundamento.item} da IT ${String(fundamento.it).padStart(2,'0')}.`,
+            status: 'sugerido',
+            fundamento
+          };
+        }
+        return { texto: `${prefixo}${tecnico}.`, status: 'conferencia', fundamento: null };
       }
 
       function processarIrregularidadeTecnica_(local, item) {
@@ -4728,6 +4839,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const resultado = elaborarTextoTecnicoLocal_(local, item);
         item.textoTecnico = resultado.texto;
         item.statusTecnico = resultado.status;
+        item.fundamentoNormativo = resultado.fundamento || null;
+        if (!Array.isArray(window.SEARCH_INDEX) || !window.SEARCH_INDEX.length) {
+          reprocessarComBaseNormativa_(local, item);
+        }
         item.autorNome = item.autorNome || String(authState.usuario?.nome || '');
         item.autorId = item.autorId || String(authState.usuario?.id || '');
         item.atualizadoEm = new Date().toISOString();
@@ -9208,7 +9323,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         copiarNotificacaoFicha_(botao.dataset.recordNotificationCopy);
       });
       document.getElementById('activeInspectionCancelBtn')?.addEventListener('click', cancelarPreenchimentoAtual_);
-      notificacoesAdicionarLocalBtn?.addEventListener('click', () => adicionarLocalNotificacao_(true));
+      notificacoesAdicionarLocalBtn?.addEventListener('click', () => {
+        carregarBaseNormativaITS_();
+        adicionarLocalNotificacao_(true);
+      });
       notificacoesLiberacaoLista?.addEventListener('input', event => {
         const alvo = event.target.closest('[data-notification-field]');
         if (alvo) atualizarCampoNotificacao_(alvo);
@@ -9566,7 +9684,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99f', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99g', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
