@@ -4755,10 +4755,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                       <textarea data-notification-field="descricao" data-notification-local-id="${escapeAttr(local.id)}" data-notification-irregularity-id="${escapeAttr(item.id)}" placeholder="Descreva objetivamente a irregularidade constatada.">${escapeHtml(item.descricao)}</textarea>
                     </label>
                   </div>
-                  <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}">
+                  <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}" data-notification-technical="${escapeAttr(item.id)}">
                     <strong>${item.statusTecnico === 'sugerido' ? '✓ Sugestão técnica preparada' : 'Revisão normativa necessária'}</strong>
-                    <span>${escapeHtml(item.textoTecnico || 'A redação técnica será preparada após a descrição da irregularidade.')}</span>
-                    ${item.statusTecnico === 'conferencia' ? '<small>IT/item ainda não confirmados. O sistema não inventará referência normativa.</small>' : ''}
+                    <span data-notification-technical-text>${escapeHtml(item.textoTecnico || 'A redação técnica será preparada após a descrição da irregularidade.')}</span>
+                    <small data-notification-technical-note ${item.statusTecnico === 'conferencia' ? '' : 'hidden'}>IT/item ainda não confirmados. O sistema não inventará referência normativa.</small>
                     ${item.autorNome ? `<small>Lançado por ${escapeHtml(item.autorNome)}</small>` : ''}
                   </div>
                 </article>`;
@@ -4848,7 +4848,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           irregularidade.autorNome = irregularidade.autorNome || String(authState.usuario?.nome || '');
           irregularidade.autorId = irregularidade.autorId || String(authState.usuario?.id || '');
           irregularidade.atualizadoEm = new Date().toISOString();
-          if (campo === 'descricao' || campo === 'itemIrregular' || campo === 'tipoIrregularidade') processarIrregularidadeTecnica_(local, irregularidade);
+          if (campo === 'descricao' || campo === 'itemIrregular' || campo === 'tipoIrregularidade') {
+            processarIrregularidadeTecnica_(local, irregularidade);
+            atualizarTextoTecnicoIrregularidade_(irregularidade);
+          }
           if (campo === 'tipoIrregularidade') {
             const listaId = `dlNotifItens_${irregularidade.id}`;
             const dl = document.getElementById(listaId);
@@ -6656,6 +6659,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      let sharedDraftStateChecking=false;
+      async function verificarEstadoRascunhoCompartilhado_(){
+        if(sharedDraftStateChecking||!navigator.onLine||!preparacaoEmUsoId||!currentRecordId||!usuarioPodeOperar_()) return;
+        sharedDraftStateChecking=true;
+        try{
+          const r=await apiRequest('config',{consulta:'rascunho_estado',id:String(currentRecordId)},8000);
+          if(String(r?.estado||'').toLowerCase()==='cancelado'){
+            const id=String(currentRecordId); removerRascunhoLocal_(id); resetForm(true);
+            appStatus.textContent=`Este preenchimento foi cancelado${r?.atualizadoPor?` por ${r.atualizadoPor}`:' em outro aparelho'}. A vistoria programada permanece disponível.`;
+            carregarPreparacoesVistoria_().catch(()=>{});
+          }
+        }catch(e){}finally{sharedDraftStateChecking=false;}
+      }
+      setInterval(verificarEstadoRascunhoCompartilhado_,8000);
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden) verificarEstadoRascunhoCompartilhado_();});
+      window.addEventListener('focus',verificarEstadoRascunhoCompartilhado_);
+
       function agendarSincronizacaoRascunhoCompartilhado_() {
         clearTimeout(sharedDraftSyncTimer);
         sharedDraftSyncTimer = setTimeout(() => sincronizarRascunhoCompartilhado_('em_andamento', true), 1800);
@@ -8378,7 +8398,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           fecharModalPreparacao_({ restaurarContexto: false });
           limparFormularioPreparacao_();
-          await carregarPreparacoesVistoria_();
+          carregarPreparacoesVistoria_().catch(() => {});
           appStatus.textContent = eraEdicao ? 'Programação atualizada com sucesso.' : 'Vistoria cadastrada e compartilhada com a equipe.';
         } catch (erro) {
           if (prepareInspectionError) {
@@ -8652,6 +8672,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }));
       }
 
+      function atualizarBotaoCancelarPreenchimentoTopo_() {
+        const btn=document.getElementById('activeInspectionCancelBtn');
+        if(btn) btn.hidden=!(preparacaoEmUsoId && currentRecordId && usuarioPodeOperar_());
+      }
+
+      function atualizarTextoTecnicoIrregularidade_(item) {
+        if(!item?.id) return;
+        const box=document.querySelector(`[data-notification-technical="${CSS.escape(String(item.id))}"]`);
+        if(!box) return;
+        const titulo=box.querySelector('strong'), texto=box.querySelector('[data-notification-technical-text]'), nota=box.querySelector('[data-notification-technical-note]');
+        if(titulo) titulo.textContent=item.statusTecnico==='sugerido'?'✓ Sugestão técnica preparada':'Revisão normativa necessária';
+        if(texto) texto.textContent=item.textoTecnico||'A redação técnica será preparada após a descrição da irregularidade.';
+        if(nota) nota.hidden=item.statusTecnico!=='conferencia';
+        box.classList.toggle('needs-review',item.statusTecnico==='conferencia');
+      }
+
       function confirmarCancelamentoPreenchimento_(titulo) {
         return new Promise(resolve => {
           const modal = document.getElementById('cancelFillModal');
@@ -8689,6 +8725,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
       }
 
+      async function cancelarPreenchimentoAtual_() {
+        if(!preparacaoEmUsoId||!currentRecordId) return;
+        const titulo=value('nomeFantasia')||value('razaoSocial')||value('endereco')||'esta vistoria';
+        if(!await confirmarCancelamentoPreenchimento_(titulo)) return;
+        if(!navigator.onLine){appStatus.textContent='É necessária internet para cancelar o preenchimento compartilhado.';return;}
+        const btn=document.getElementById('activeInspectionCancelBtn');
+        if(btn){btn.disabled=true;btn.textContent='Cancelando...';}
+        try{
+          const id=String(currentRecordId);
+          await apiRequest('config',{consulta:'rascunho_cancelar',id,preparacaoId:String(preparacaoEmUsoId)},12000);
+          removerRascunhoLocal_(id); resetForm(true);
+          appStatus.textContent='Preenchimento cancelado. A vistoria programada foi mantida.';
+          carregarPreparacoesVistoria_().catch(()=>{});
+        }catch(e){appStatus.textContent=e?.message||'Não foi possível cancelar o preenchimento.';}
+        finally{if(btn){btn.disabled=false;btn.textContent='Cancelar preenchimento';}}
+      }
+
       async function cancelarPreenchimentoPreparacao_(item) {
         if (!item?.vistoriaIniciada || !item?.rascunhoId) return;
         const titulo = item.nomeFantasia || item.razaoSocial || item.endereco || 'esta vistoria';
@@ -8699,7 +8752,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         try {
-          await apiRequest('config', { consulta: 'rascunho_cancelar', id: String(item.rascunhoId), preparacaoId: String(item.id || '') }, 20000);
+          appStatus.textContent = 'Cancelando preenchimento...';
+          await apiRequest('config', { consulta: 'rascunho_cancelar', id: String(item.rascunhoId), preparacaoId: String(item.id || '') }, 12000);
           removerRascunhoLocal_(String(item.rascunhoId));
           if (String(currentRecordId) === String(item.rascunhoId)) resetForm(true);
           appStatus.textContent = 'Preenchimento cancelado. A vistoria permanece programada.';
@@ -8724,6 +8778,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (!detalhe?.payload) throw new Error('Rascunho compartilhado não encontrado.');
             currentRecordId = String(item.rascunhoId || currentRecordId);
             applyPayload(detalhe.payload, item.rascunhoId);
+            atualizarBotaoCancelarPreenchimentoTopo_();
             saveDraft();
             rolarParaFormularioProgramado_();
             appStatus.textContent = `Vistoria em andamento carregada${detalhe.atualizadoPor ? ` — última atualização: ${detalhe.atualizadoPor}` : ''}.`;
@@ -8736,6 +8791,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         if (!prepararFormularioNovaVistoria_('Vistoria programada')) return;
         preparacaoEmUsoId = String(item.id || '');
+        atualizarBotaoCancelarPreenchimentoTopo_();
         aplicarFluxoVistoria_(item.tipoPreparacao === 'liberacao' ? 'liberacao' : 'fiscalizacao', { silencioso: true });
         const set = (id, valor) => { const el = document.getElementById(id); if (el && valor != null && String(valor) !== '') el.value = String(valor); };
         set('vistoriadorResponsavel', item.vistoriadorResponsavel);
@@ -9072,6 +9128,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!botao) return;
         copiarNotificacaoFicha_(botao.dataset.recordNotificationCopy);
       });
+      document.getElementById('activeInspectionCancelBtn')?.addEventListener('click', cancelarPreenchimentoAtual_);
       notificacoesAdicionarLocalBtn?.addEventListener('click', () => adicionarLocalNotificacao_(true));
       notificacoesLiberacaoLista?.addEventListener('input', event => {
         const alvo = event.target.closest('[data-notification-field]');
@@ -9395,7 +9452,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (authEnterBtn) authEnterBtn.disabled = false;
         if (authOfflineNote) authOfflineNote.hidden = true;
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
-        if (usuarioPodeOperar_()) setTimeout(() => enviarPendentes(true), 650);
+        if (usuarioPodeOperar_()) {
+          setTimeout(() => enviarPendentes(true), 650);
+          setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
+        }
         if (document.body.classList.contains('records-mode')) {
           setTimeout(() => carregarRegistros_(true), 900);
         }
@@ -9427,7 +9487,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99c', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99d', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

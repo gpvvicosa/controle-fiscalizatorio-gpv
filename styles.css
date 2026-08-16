@@ -8784,3 +8784,12 @@ body.access-geral #draftStatus { color: #6b6262; }
 .success-screen.partial-success #whatsappOrientacoesNote{display:none!important}
 .success-screen.partial-success .success-actions{grid-template-columns:1fr!important}
 .success-screen.partial-success #closeSuccessBtn{width:100%}
+
+/* V23.9.99 hotfix — cancelamento compartilhado e resposta imediata */
+.active-inspection-cancel{margin-left:auto;border:1px solid #d8dde6;background:#fff;color:#6b7280;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer;touch-action:manipulation}
+.active-inspection-cancel:active{transform:scale(.97)}
+.active-inspection-cancel[hidden]{display:none!important}
+.active-inspection-cancel:disabled{opacity:.6}
+@media(min-width:768px){.active-inspection-cancel{display:none!important}}
+button,.btn{touch-action:manipulation}
+.notification-technical-suggestion [hidden]{display:none!important}
