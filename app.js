@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.97';
+      const APP_VERSION = '23.9.98';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -8483,6 +8483,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ${item.arquivoDwgUrl ? `<a class="btn btn-secondary" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir arquivo</a>` : ''}
               <button type="button" class="btn btn-secondary prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
               <button type="button" class="btn btn-secondary prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
+              ${item.vistoriaIniciada ? `<button type="button" class="btn btn-secondary prepared-cancel-fill-btn" data-preparacao-cancel-fill-id="${escapeAttr(item.id)}">Cancelar preenchimento</button>` : ''}
               <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">${item.vistoriaIniciada ? 'Continuar vistoria' : 'Abrir vistoria'}</button>
             </div>
           </article>`;
@@ -8633,6 +8634,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         requestAnimationFrame(() => requestAnimationFrame(() => {
           try { cidadeSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
         }));
+      }
+
+      async function cancelarPreenchimentoPreparacao_(item) {
+        if (!item?.vistoriaIniciada || !item?.rascunhoId) return;
+        const titulo = item.nomeFantasia || item.razaoSocial || item.endereco || 'esta vistoria';
+        const confirmar = window.confirm(`Cancelar o preenchimento iniciado de "${titulo}"?\n\nA vistoria continuará programada e poderá ser iniciada novamente.`);
+        if (!confirmar) return;
+        if (!navigator.onLine) {
+          appStatus.textContent = 'É necessária internet para cancelar um preenchimento compartilhado.';
+          return;
+        }
+        try {
+          await apiRequest('config', { consulta: 'rascunho_cancelar', id: String(item.rascunhoId), preparacaoId: String(item.id || '') }, 20000);
+          removerRascunhoLocal_(String(item.rascunhoId));
+          if (String(currentRecordId) === String(item.rascunhoId)) resetForm(true);
+          appStatus.textContent = 'Preenchimento cancelado. A vistoria permanece programada.';
+          await carregarPreparacoesVistoria_();
+        } catch (erro) {
+          appStatus.textContent = erro?.message || 'Não foi possível cancelar o preenchimento.';
+        }
       }
 
       async function aplicarPreparacaoAoFormulario_(item) {
@@ -8891,6 +8912,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           event.stopPropagation();
           const item = preparacoesVistoria.find(p => String(p.id) === String(excluir.dataset.preparacaoDeleteId));
           excluirPreparacaoVistoria_(item);
+          return;
+        }
+        const cancelarPreenchimento = event.target.closest('[data-preparacao-cancel-fill-id]');
+        if (cancelarPreenchimento) {
+          event.preventDefault();
+          event.stopPropagation();
+          const item = preparacoesVistoria.find(p => String(p.id) === String(cancelarPreenchimento.dataset.preparacaoCancelFillId));
+          cancelarPreenchimentoPreparacao_(item);
           return;
         }
         const btn = event.target.closest('[data-preparacao-id]');
@@ -9345,7 +9374,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.97', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.98', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
