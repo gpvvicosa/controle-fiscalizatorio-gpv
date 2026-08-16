@@ -13,7 +13,7 @@
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.95';
+      const APP_VERSION = '23.9.96';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -262,9 +262,54 @@
         salvarSessaoLocalBm_(null, '');
       }
 
-      function draftKeyAtual_() {
+      function draftUserId_() {
         const id = String(authState.usuario?.id || 'sem-usuario').replace(/[^A-Za-z0-9_-]/g, '');
-        return `${DRAFT_KEY}:${id || 'sem-usuario'}`;
+        return id || 'sem-usuario';
+      }
+
+      function draftIndexKey_() {
+        return `${DRAFT_KEY}:index:${draftUserId_()}`;
+      }
+
+      function draftKeyAtual_(recordId = currentRecordId) {
+        const rid = String(recordId || '').replace(/[^A-Za-z0-9_-]/g, '');
+        return `${DRAFT_KEY}:${draftUserId_()}:${rid || 'sem-registro'}`;
+      }
+
+      function lerIndiceRascunhosLocais_() {
+        try {
+          const lista = JSON.parse(localStorage.getItem(draftIndexKey_()) || '[]');
+          return Array.isArray(lista) ? lista.filter(Boolean) : [];
+        } catch (e) { return []; }
+      }
+
+      function registrarRascunhoLocal_(recordId, savedAt = Date.now()) {
+        const rid = String(recordId || '').trim();
+        if (!rid) return;
+        const lista = lerIndiceRascunhosLocais_().filter(x => String(x.id) !== rid);
+        lista.unshift({ id: rid, savedAt: Number(savedAt || Date.now()) });
+        localStorage.setItem(draftIndexKey_(), JSON.stringify(lista.slice(0, 30)));
+      }
+
+      function removerRascunhoLocal_(recordId) {
+        const rid = String(recordId || '').trim();
+        try { localStorage.removeItem(draftKeyAtual_(rid)); } catch (e) {}
+        try {
+          const lista = lerIndiceRascunhosLocais_().filter(x => String(x.id) !== rid);
+          localStorage.setItem(draftIndexKey_(), JSON.stringify(lista));
+        } catch (e) {}
+      }
+
+      function obterRascunhoLocalMaisRecente_() {
+        const limite = Date.now() - 1000 * 60 * 60 * 24 * 3;
+        for (const item of lerIndiceRascunhosLocais_()) {
+          if (Number(item.savedAt || 0) < limite) { removerRascunhoLocal_(item.id); continue; }
+          try {
+            const raw = localStorage.getItem(draftKeyAtual_(item.id));
+            if (raw) return raw;
+          } catch (e) {}
+        }
+        return '';
       }
 
       async function gatewayRequest_(action, data = {}, timeoutMs = 30000) {
@@ -3586,7 +3631,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ultimoRegistroParaOrientacoes = { ...payload };
         enfileirarRegistro(payload);
         if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: currentRecordId }, 12000).catch(() => {});
-        localStorage.removeItem(draftKeyAtual_());
+        removerRascunhoLocal_(currentRecordId);
         resetForm();
         mostrarSucesso(
           'Vistoria salva no aparelho',
@@ -6666,7 +6711,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         try {
-          localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt: Date.now(), recordId: currentRecordId, payload: buildPayload() }));
+          const savedAt = Date.now();
+          localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt, recordId: currentRecordId, payload: buildPayload() }));
+          registrarRascunhoLocal_(currentRecordId, savedAt);
           draftStatus.textContent = '✓ Rascunho salvo';
           setTimeout(() => { draftStatus.textContent = 'Rascunho automático'; }, 1600);
         } catch (e) {}
@@ -6699,14 +6746,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function restoreDraft() {
         try {
-          const chaveAtual = draftKeyAtual_();
-          let raw = localStorage.getItem(chaveAtual);
-          // Migra um eventual rascunho da V19 para o usuário atualmente identificado.
+          let raw = obterRascunhoLocalMaisRecente_();
+          // Migra eventual rascunho único das versões anteriores para o modelo multi-rascunho.
           if (!raw && authState.usuario?.id) {
-            const legado = localStorage.getItem(DRAFT_KEY);
+            const chaveLegadaUsuario = `${DRAFT_KEY}:${draftUserId_()}`;
+            const legado = localStorage.getItem(chaveLegadaUsuario) || localStorage.getItem(DRAFT_KEY);
             if (legado) {
-              raw = legado;
-              localStorage.setItem(chaveAtual, legado);
+              try {
+                const d = JSON.parse(legado);
+                const rid = String(d?.recordId || d?.payload?._appRegistroId || criarIdRegistro());
+                d.recordId = rid;
+                localStorage.setItem(draftKeyAtual_(rid), JSON.stringify(d));
+                registrarRascunhoLocal_(rid, d.savedAt || Date.now());
+                raw = JSON.stringify(d);
+              } catch (e) {}
+              localStorage.removeItem(chaveLegadaUsuario);
               localStorage.removeItem(DRAFT_KEY);
             }
           }
@@ -6714,7 +6768,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const draft = JSON.parse(raw);
           if (!draft?.payload) return;
           if (Date.now() - Number(draft.savedAt || 0) > 1000 * 60 * 60 * 24 * 3) {
-            localStorage.removeItem(draftKeyAtual_());
+            removerRascunhoLocal_(draft.recordId || draft.payload?._appRegistroId || currentRecordId);
             return;
           }
           const p = draft.payload;
@@ -6763,7 +6817,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function rascunhoEmAndamento_() {
         if (!usuarioPodeOperar_()) return false;
         try {
-          const raw = localStorage.getItem(draftKeyAtual_());
+          const raw = obterRascunhoLocalMaisRecente_();
           if (!raw) return false;
           const draft = JSON.parse(raw);
           const p = draft && draft.payload ? draft.payload : null;
@@ -6785,26 +6839,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function prepararFormularioNovaVistoria_(origem = 'Nova vistoria') {
         if (rascunhoEmAndamento_()) {
-          const confirmar = window.confirm(
-            'Existe uma vistoria em preenchimento neste aparelho.\n\n' +
-            'Ao iniciar uma nova vistoria, o rascunho atual será apagado.\n\n' +
-            'OK = iniciar nova vistoria\nCancelar = continuar o preenchimento atual'
-          );
-          if (!confirmar) return false;
+          saveDraft();
+          sincronizarRascunhoCompartilhado_('em_andamento', true).catch(() => {});
         }
-        resetForm();
-        if (appStatus) appStatus.textContent = `${origem}: formulário limpo e pronto para um novo preenchimento.`;
+        resetForm(true);
+        if (appStatus) appStatus.textContent = `${origem}: novo preenchimento iniciado. Os demais rascunhos foram preservados.`;
         return true;
       }
 
-      function resetForm() {
+      function resetForm(preservarRascunhoAtual = false) {
         restaurarPainelProgramadas_(false);
         preparacaoEmUsoId = '';
         dduEmUsoId = '';
         dduEmUsoNumero = '';
         processoAcessoriaVinculado = null;
         form.reset();
-        localStorage.removeItem(draftKeyAtual_());
+        if (!preservarRascunhoAtual) removerRascunhoLocal_(currentRecordId);
         currentRecordId = criarIdRegistro();
         citySelect.value = appConfig?.padroes?.cidade || 'Viçosa';
         otherCity.value = '';
@@ -7089,7 +7139,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!usuarioPodeOperar_()) {
           ultimoRegistroConsultaChave = '';
           ultimoRegistroParaOrientacoes = null;
-          try { localStorage.removeItem(draftKeyAtual_()); } catch (_) {}
+          try { removerRascunhoLocal_(currentRecordId); } catch (_) {}
           resetForm();
           if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
           appStatus.textContent = 'Treinamento concluído — nenhuma informação foi enviada ou registrada.';
@@ -7105,7 +7155,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // evita perda de dados caso a conexão oscile durante o envio.
         enfileirarRegistro(payload);
         if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: currentRecordId }, 12000).catch(() => {});
-        localStorage.removeItem(draftKeyAtual_());
+        removerRascunhoLocal_(currentRecordId);
         resetForm();
 
         if (!navigator.onLine) {
@@ -9272,7 +9322,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.94', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.96', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
