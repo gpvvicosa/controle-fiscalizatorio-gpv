@@ -4772,8 +4772,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function descricaoTecnicaBasica_(item) {
-        let tecnico = String(item?.descricao || item?.itemIrregular || '').trim();
-        if (!tecnico) return '';
+        const tipo = normalize(item?.tipoIrregularidade || '');
+        const irregular = normalize(item?.itemIrregular || '');
+        const descOriginal = String(item?.descricao || '').trim();
+        const desc = normalize(descOriginal);
+
+        if (!descOriginal && !irregular) return '';
+
+        // Interpreta a constatação usando o contexto selecionado.
+        if (/porta corta fogo/.test(irregular)) {
+          if (/nao.*fech|fecha.*parcial|nao.*total|nao.*complet/.test(desc)) {
+            return 'A porta corta-fogo não realiza o fechamento completo';
+          }
+          if (/nao.*automatic|nao.*sozinha|nao.*fecha.*automatic/.test(desc)) {
+            return 'A porta corta-fogo não realiza o fechamento automático';
+          }
+          if (/macaneta.*queb|queb.*macaneta/.test(desc)) {
+            return 'A porta corta-fogo encontra-se com a maçaneta danificada';
+          }
+        }
+
+        if (/guardas? e corrimaos?|corrimao/.test(irregular) && /(falta|ausencia|sem).*corrimao/.test(desc)) {
+          return /escada/.test(desc)
+            ? 'Ausência de corrimão na escada'
+            : 'Ausência de corrimão';
+        }
+
+        if (/iluminacao de emergencia/.test(tipo) && /teste/.test(irregular) && /(nao.*func|sem.*func)/.test(desc)) {
+          return 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento';
+        }
+
+        if (/brigada/.test(tipo) && /certificado/.test(irregular) && /(venc|validade|fora.*data)/.test(desc)) {
+          return 'Certificado do brigadista com prazo de validade expirado';
+        }
+
+        if (/extintor/.test(tipo) && /(venc|validade)/.test(desc)) {
+          return 'Extintor com prazo de validade vencido';
+        }
+
+        let tecnico = descOriginal || String(item?.itemIrregular || '').trim();
         tecnico = tecnico.replace(/^(falta|faltando)\s+/i, 'Ausência de ');
         tecnico = tecnico.charAt(0).toUpperCase() + tecnico.slice(1);
         return tecnico.replace(/[.;,:\s]+$/, '');
@@ -4797,23 +4834,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // O local já é armazenado e exibido separadamente; não repetir na redação técnica.
         const prefixo = '';
         const regras = [
-          { re: /(extintor).*(vencid|validade)/, texto: 'Extintor com prazo de validade vencido, contrariando o item 7.2 da IT 16.' },
-          { re: /(tripe|suporte).*(nao.*(afix|aparafus)|solto)/, texto: 'Suporte de piso do extintor não afixado ao solo, contrariando a alínea “a” do item 5.2.2.4 da IT 16.' },
-          { re: /(porta).*(abre|abrindo).*(dentro|contrario|sentido contrario)/, texto: 'Porta integrante da rota de fuga abrindo no sentido contrário à saída, contrariando o item 5.5.4.1 da IT 08.' },
-          { re: /(porta corta.fogo).*(nao fecha|sem fechamento|fechamento automatico)/, texto: 'Porta corta-fogo sem fechamento automático, contrariando o item 5.5.4.5 da IT 08.' },
-          { re: /(recalque).*(tampa).*(vermelh|pint)/, texto: 'Tampa da caixa do dispositivo de recalque sem pintura vermelha, contrariando a alínea “b” do item 5.3.4 da IT 17.' },
-          { re: /(recalque).*(brita|fundo|dreno|permeavel)/, texto: 'Caixa do dispositivo de recalque sem fundo permeável ou dreno, contrariando a alínea “a” do item 5.3.4 da IT 17.' },
-          { re: /(hidrante).*(sem|falta|ausen).*(mangueira|chave)/, texto: 'Abrigo de hidrante incompleto, com ausência de mangueira de incêndio e/ou chave para hidrantes/engate rápido, contrariando o item 5.6.1.5 e a Tabela 3 da IT 17.' },
-          { re: /(veneziana).*(falta|sem|ausen)|((falta|sem|ausen).*(veneziana))/, texto: 'Abertura de ventilação da caixa da escada sem a veneziana prevista no PSCIP, contrariando a alínea “c” do item 5.7.8.2 da IT 08 e o item 6.2.1.4 da IT 01.' },
-          { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, contrariando o item 6.2.1.4 da IT 01.' },
+          { re: /(extintor).*(vencid|validade)/, texto: 'Extintor com prazo de validade vencido, em desacordo com o item 7.2 da IT 16.' },
+          { re: /(tripe|suporte).*(nao.*(afix|aparafus)|solto)/, texto: 'Suporte de piso do extintor não afixado ao solo, em desacordo com a alínea “a” do item 5.2.2.4 da IT 16.' },
+          { re: /(porta).*(abre|abrindo).*(dentro|contrario|sentido contrario)/, texto: 'Porta integrante da rota de fuga abrindo no sentido contrário à saída, em desacordo com o item 5.5.4.1 da IT 08.' },
+          { re: /(porta corta.fogo).*(nao fecha|sem fechamento|fechamento automatico)/, texto: 'Porta corta-fogo sem fechamento automático, em desacordo com o item 5.5.4.5 da IT 08.' },
+          { re: /(recalque).*(tampa).*(vermelh|pint)/, texto: 'Tampa da caixa do dispositivo de recalque sem pintura vermelha, em desacordo com a alínea “b” do item 5.3.4 da IT 17.' },
+          { re: /(recalque).*(brita|fundo|dreno|permeavel)/, texto: 'Caixa do dispositivo de recalque sem fundo permeável ou dreno, em desacordo com a alínea “a” do item 5.3.4 da IT 17.' },
+          { re: /(hidrante).*(sem|falta|ausen).*(mangueira|chave)/, texto: 'Abrigo de hidrante incompleto, com ausência de mangueira de incêndio e/ou chave para hidrantes/engate rápido, em desacordo com o item 5.6.1.5 e a Tabela 3 da IT 17.' },
+          { re: /(veneziana).*(falta|sem|ausen)|((falta|sem|ausen).*(veneziana))/, texto: 'Abertura de ventilação da caixa da escada sem a veneziana prevista no PSCIP, em desacordo com a alínea “c” do item 5.7.8.2 da IT 08 e o item 6.2.1.4 da IT 01.' },
+          { re: /(falta|ausen).*(extintor).*(pscip|projeto|previst)|((extintor).*(falta|ausen).*(pscip|projeto|previst))/, texto: 'Ausência do extintor previsto no PSCIP, em desacordo com o item 6.2.1.4 da IT 01.' },
           // Contexto estruturado: Tipo + Item irregular + descrição curta do vistoriador.
           // Sem referência normativa quando o item exato ainda não foi confirmado no acervo oficial.
           { re: /(iluminacao de emergencia).*(teste).*(nao funcion|sem funcion|inoper|falh)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento, devendo ser verificado o atendimento à NBR 10898, adotada pelo item 2.2 da IT 13.' , conferencia: true },
-          { re: /(saidas? de emergencia).*(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, contrariando o item 5.8.2.1 da IT 08.' },
-          { re: /(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, contrariando o item 5.8.2.1 da IT 08.' },
+          { re: /(saidas? de emergencia).*(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, em desacordo com o item 5.8.2.1 da IT 08.' },
+          { re: /(guardas? e corrimaos?).*(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, em desacordo com o item 5.8.2.1 da IT 08.' },
           { re: /(iluminacao de emergencia).*(teste).*(apag|nao acend|nao acion)/, texto: 'O sistema de iluminação de emergência não funcionou durante o teste de acionamento, devendo ser verificado o atendimento à NBR 10898, adotada pelo item 2.2 da IT 13.' , conferencia: true },
           { re: /(extintor).*(falta|ausen|sem).*(entrada|porta|acesso)/, texto: 'Ausência de extintor próximo à entrada, devendo ser verificado o atendimento ao item 5.2.2.9 da IT 16 e à distribuição prevista no PSCIP.' , conferencia: true },
-          { re: /(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, contrariando o item 5.8.2.1 da IT 08.' },
+          { re: /(falta|ausen|sem).*(corrimao)/, texto: 'Ausência de corrimão na escada, em desacordo com o item 5.8.2.1 da IT 08.' },
           { re: /(porta corta.fogo).*(macaneta|fechadura|quebrad|danific)/, texto: 'Porta corta-fogo com componente de acionamento danificado, devendo ser restabelecidas suas condições adequadas de utilização e funcionamento.' , conferencia: true }
         ];
         const regra = regras.find(r => r.re.test(n));
@@ -4826,7 +4863,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const fundamento = buscarFundamentoNormativo_(item);
         if (fundamento) {
           return {
-            texto: `${prefixo}${tecnico}, contrariando o item ${fundamento.item} da IT ${String(fundamento.it).padStart(2,'0')}.`,
+            texto: `${prefixo}${tecnico}, em desacordo com o item ${fundamento.item} da IT ${String(fundamento.it).padStart(2,'0')}.`,
             status: 'sugerido',
             fundamento
           };
@@ -4880,9 +4917,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                     </label>
                   </div>
                   <div class="notification-technical-suggestion ${item.statusTecnico === 'conferencia' ? 'needs-review' : ''}" data-notification-technical="${escapeAttr(item.id)}">
-                    <strong>${item.statusTecnico === 'sugerido' ? '✓ Sugestão técnica preparada' : 'Revisão normativa necessária'}</strong>
+                    <strong>${item.statusTecnico === 'sugerido' ? '✓ Sugestão técnica preparada' : 'Referência normativa pendente'}</strong>
                     <span data-notification-technical-text>${escapeHtml(item.textoTecnico || 'A redação técnica será preparada após a descrição da irregularidade.')}</span>
-                    <small data-notification-technical-note ${item.statusTecnico === 'conferencia' ? '' : 'hidden'}>IT/item ainda não confirmados. O sistema não inventará referência normativa.</small>
+                    <small data-notification-technical-note ${item.statusTecnico === 'conferencia' ? '' : 'hidden'}></small>
                     ${item.autorNome ? `<small>Lançado por ${escapeHtml(item.autorNome)}</small>` : ''}
                   </div>
                 </article>`;
@@ -8808,7 +8845,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const box=document.querySelector(`[data-notification-technical="${CSS.escape(String(item.id))}"]`);
         if(!box) return;
         const titulo=box.querySelector('strong'), texto=box.querySelector('[data-notification-technical-text]'), nota=box.querySelector('[data-notification-technical-note]');
-        if(titulo) titulo.textContent=item.statusTecnico==='sugerido'?'✓ Sugestão técnica preparada':'Revisão normativa necessária';
+        if(titulo) titulo.textContent=item.statusTecnico==='sugerido'?'✓ Sugestão técnica preparada':'Referência normativa pendente';
         if(texto) texto.textContent=item.textoTecnico||'A redação técnica será preparada após a descrição da irregularidade.';
         if(nota) nota.hidden=item.statusTecnico!=='conferencia';
         box.classList.toggle('needs-review',item.statusTecnico==='conferencia');
@@ -9684,7 +9721,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99g', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99h', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
