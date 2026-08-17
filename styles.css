@@ -9452,3 +9452,22 @@ html.gpv-aux-entry body.gpv-aux-auth-visible .auth-gate{
   .gpv-boot-progress-modern i{animation:none!important}
   .gpv-boot-progress-modern i{width:55%;margin:0 auto}
 }
+
+
+/* V23.9.99p — splash final e fundo normal restaurado */
+html:not(.gpv-booting){
+  background:#f4f6f8;
+}
+html:not(.gpv-booting) body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode){
+  background:#f4f6f8;
+}
+.loading.show .gpv-boot-logo-modern{
+  animation:gpvBootFloatModern 1.75s ease-in-out infinite, gpvBootPulseModern 2.1s ease-in-out infinite;
+}
+.loading.show .gpv-boot-progress-modern i{
+  animation:gpvBootProgressModern 1.05s ease-in-out infinite;
+}
+@keyframes gpvBootPulseModern{
+  0%,100%{box-shadow:0 24px 54px rgba(12,0,1,.34),0 0 0 9px rgba(255,255,255,.018)}
+  50%{box-shadow:0 28px 62px rgba(12,0,1,.40),0 0 0 12px rgba(247,201,76,.055)}
+}

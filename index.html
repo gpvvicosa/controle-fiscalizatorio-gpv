@@ -34,6 +34,7 @@
   <title>Controle de Vistorias — GPV Viçosa</title>
   <script id="gpv-early-entry-route">
     (function () {
+      document.documentElement.classList.add('gpv-booting');
       try {
         var id = String(new URLSearchParams(window.location.search).get('notificacoes') || '').trim();
         if (/^[A-Za-z0-9_-]{8,160}$/.test(id)) {
@@ -42,11 +43,13 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="manifest" href="manifest.webmanifest?v=23.9.99o">
+  <link rel="manifest" href="manifest.webmanifest?v=23.9.99p">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
   <style id="gpv-critical-boot">
-    html,body{margin:0;min-height:100%;background:#52080c;font-family:Arial,Helvetica,sans-serif}
+    html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif}
+    html,body{background:#efe6dc}
+    html.gpv-booting,html.gpv-booting body{background:#52080c}
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
@@ -62,7 +65,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99o">
+  <link rel="stylesheet" href="styles.css?v=23.9.99p">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1191,7 +1194,7 @@
 
           <div class="notification-draft-footer-actions">
             <button class="btn notification-add-local-btn" id="notificacoesAdicionarLocalBtn" type="button">+ Adicionar local da irregularidade</button>
-            <button class="btn notification-share-aux-btn" id="notificacoesCompartilharAuxBtn" type="button">Compartilhar com auxiliar</button>
+            <button class="btn notification-share-aux-btn" id="notificacoesCompartilharAuxBtn" type="button">Compartilhar notificações</button>
             <button class="btn notification-review-open-btn" id="notificacoesRevisarBtn" type="button">Revisar notificações</button>
           </div>
         </div>
@@ -1713,16 +1716,53 @@
   <div class="loading show" id="loadingOverlay">
     <div class="loading-box gpv-boot-card gpv-boot-card-modern" role="status" aria-live="polite">
       <div class="gpv-boot-logo-modern" aria-hidden="true">
-        <img src="assets/icon-maskable-512.png?v=23.9.99o" width="512" height="512" alt="">
+        <img src="assets/icon-maskable-512.png?v=23.9.99p" width="512" height="512" alt="">
       </div>
       <div class="gpv-boot-copy gpv-boot-copy-modern">
         <span class="gpv-boot-kicker-modern">3º Pelotão · Viçosa</span>
         <strong>Controle Fiscalizatório GPV</strong>
-        <span id="loadingText">Preparando o aplicativo...</span>
+        <span id="loadingText">Preparando o Controle Fiscalizatório...</span>
         <div class="gpv-boot-progress-modern" aria-hidden="true"><i></i></div>
       </div>
     </div>
   </div>
+  <script id="gpv-splash-minimum-visibility">
+    (function () {
+      var overlay = document.getElementById('loadingOverlay');
+      if (!overlay) return;
+
+      var minMs = 1050;
+      var minMet = false;
+      var hideRequested = false;
+
+      function finishBootVisual() {
+        document.documentElement.classList.remove('gpv-booting');
+      }
+
+      var observer = new MutationObserver(function () {
+        if (!overlay.classList.contains('show')) {
+          if (!minMet) {
+            hideRequested = true;
+            overlay.classList.add('show');
+          } else {
+            finishBootVisual();
+          }
+        }
+      });
+
+      observer.observe(overlay, {attributes:true, attributeFilter:['class']});
+
+      window.setTimeout(function () {
+        minMet = true;
+        if (hideRequested && overlay.classList.contains('show')) {
+          overlay.classList.remove('show');
+        } else if (!overlay.classList.contains('show')) {
+          finishBootVisual();
+        }
+      }, minMs);
+    })();
+  </script>
+
   <script>
     // V23.9.12 — evita tela de carregamento infinita caso algum arquivo crítico falhe.
     window.__gpvBootWatchdog = setTimeout(function () {
@@ -1745,7 +1785,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99o"></script>
+  <script src="app.js?v=23.9.99p"></script>
 
   </div>
   

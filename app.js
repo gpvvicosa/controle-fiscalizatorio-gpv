@@ -2036,7 +2036,7 @@
           return;
         }
 
-        const textoAnterior = notificacoesCompartilharAuxBtn?.textContent || 'Compartilhar com auxiliar';
+        const textoAnterior = notificacoesCompartilharAuxBtn?.textContent || 'Compartilhar notificações';
         if (notificacoesCompartilharAuxBtn) {
           notificacoesCompartilharAuxBtn.disabled = true;
           notificacoesCompartilharAuxBtn.textContent = 'Preparando link...';
@@ -11210,7 +11210,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99o', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99p', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
