@@ -1038,6 +1038,192 @@
         return citySelect.value === 'Outro' ? value('outraCidade') : citySelect.value;
       }
 
+
+      // =========================================================================
+      // V23.9.99ac — diálogos próprios do GPV
+      // Substitui as caixas nativas de aviso, confirmação e entrada de texto do navegador.
+      // =========================================================================
+      const filaDialogosGpv_ = [];
+      let dialogoGpvAtivo_ = false;
+
+      function dialogoGpv_(opcoes = {}) {
+        return new Promise(resolve => {
+          filaDialogosGpv_.push({ opcoes: opcoes || {}, resolve });
+          executarProximoDialogoGpv_();
+        });
+      }
+
+      function executarProximoDialogoGpv_() {
+        if (dialogoGpvAtivo_ || !filaDialogosGpv_.length) return;
+
+        const modal = document.getElementById('gpvDialogModal');
+        const tituloEl = document.getElementById('gpvDialogTitle');
+        const mensagemEl = document.getElementById('gpvDialogMessage');
+        const iconEl = document.getElementById('gpvDialogIcon');
+        const inputEl = document.getElementById('gpvDialogInput');
+        const choicesEl = document.getElementById('gpvDialogChoices');
+        const cancelarBtn = document.getElementById('gpvDialogCancelBtn');
+        const confirmarBtn = document.getElementById('gpvDialogConfirmBtn');
+        const fecharBtn = document.getElementById('gpvDialogCloseBtn');
+
+        const itemFila = filaDialogosGpv_.shift();
+        const o = itemFila.opcoes || {};
+        const tipo = String(o.tipo || 'alert');
+        const tom = String(o.tom || (tipo === 'confirm' ? 'warning' : 'info'));
+
+        if (!modal || !tituloEl || !mensagemEl || !cancelarBtn || !confirmarBtn || !fecharBtn) {
+          itemFila.resolve(tipo === 'alert' ? true : null);
+          setTimeout(executarProximoDialogoGpv_, 0);
+          return;
+        }
+
+        dialogoGpvAtivo_ = true;
+        modal.dataset.tone = tom;
+        modal.dataset.type = tipo;
+        tituloEl.textContent = String(o.titulo || (tipo === 'alert' ? 'Aviso' : 'Confirmação'));
+        mensagemEl.textContent = String(o.mensagem || '');
+        iconEl.textContent = tom === 'danger' ? '!' : (tom === 'success' ? '✓' : (tom === 'warning' ? '!' : 'i'));
+
+        const ehPrompt = tipo === 'prompt';
+        const ehChoices = tipo === 'choice';
+        const ehAlert = tipo === 'alert';
+
+        if (inputEl) {
+          inputEl.hidden = !ehPrompt;
+          inputEl.value = ehPrompt ? String(o.valorInicial || '') : '';
+          inputEl.placeholder = ehPrompt ? String(o.placeholder || '') : '';
+          inputEl.maxLength = Number(o.maxLength || 120);
+          inputEl.inputMode = String(o.inputMode || 'text');
+        }
+
+        let finalizar = () => {};
+        if (choicesEl) {
+          choicesEl.innerHTML = '';
+          choicesEl.hidden = !ehChoices;
+          if (ehChoices) {
+            (Array.isArray(o.opcoes) ? o.opcoes : []).forEach(opcao => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'gpv-dialog-choice';
+              const titulo = document.createElement('strong');
+              titulo.textContent = String(opcao?.titulo || opcao?.label || '');
+              btn.appendChild(titulo);
+              if (opcao?.subtitulo) {
+                const sub = document.createElement('span');
+                sub.textContent = String(opcao.subtitulo);
+                btn.appendChild(sub);
+              }
+              btn.addEventListener('click', () => finalizar(opcao?.valor ?? opcao?.value ?? null));
+              choicesEl.appendChild(btn);
+            });
+          }
+        }
+
+        cancelarBtn.hidden = ehAlert;
+        cancelarBtn.textContent = String(o.rotuloCancelar || 'Cancelar');
+        confirmarBtn.hidden = ehChoices;
+        confirmarBtn.textContent = String(o.rotuloConfirmar || (ehAlert ? 'Entendi' : (ehPrompt ? 'Salvar' : 'Confirmar')));
+        confirmarBtn.classList.toggle('is-danger', tom === 'danger');
+
+        let encerrado = false;
+        const onKeydown = event => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            cancelar();
+          } else if (event.key === 'Enter' && ehPrompt) {
+            event.preventDefault();
+            confirmar();
+          }
+        };
+        const onOverlayClick = event => {
+          if (event.target === modal) cancelar();
+        };
+        finalizar = valor => {
+          if (encerrado) return;
+          encerrado = true;
+          document.removeEventListener('keydown', onKeydown);
+          modal.removeEventListener('click', onOverlayClick);
+          modal.hidden = true;
+          document.body.classList.remove('gpv-dialog-open');
+          dialogoGpvAtivo_ = false;
+          itemFila.resolve(valor);
+          setTimeout(executarProximoDialogoGpv_, 0);
+        };
+        const cancelar = () => finalizar(ehAlert ? true : null);
+        const confirmar = () => {
+          if (ehAlert) return finalizar(true);
+          if (ehPrompt) return finalizar(String(inputEl?.value || '').trim());
+          return finalizar(true);
+        };
+
+        cancelarBtn.onclick = cancelar;
+        confirmarBtn.onclick = confirmar;
+        fecharBtn.onclick = cancelar;
+        document.addEventListener('keydown', onKeydown);
+        modal.addEventListener('click', onOverlayClick);
+        modal.hidden = false;
+        document.body.classList.add('gpv-dialog-open');
+
+        setTimeout(() => {
+          if (ehPrompt && inputEl) {
+            inputEl.focus();
+            try { inputEl.select(); } catch (e) {}
+          } else if (ehChoices) {
+            choicesEl?.querySelector('button')?.focus();
+          } else {
+            confirmarBtn.focus();
+          }
+        }, 30);
+      }
+
+      function avisarGpv_(mensagem, titulo = 'Aviso', opcoes = {}) {
+        return dialogoGpv_({
+          tipo: 'alert',
+          titulo,
+          mensagem,
+          tom: opcoes.tom || 'info',
+          rotuloConfirmar: opcoes.rotuloConfirmar || 'Entendi'
+        });
+      }
+
+      async function confirmarGpv_(mensagem, titulo = 'Confirmar ação', opcoes = {}) {
+        const resposta = await dialogoGpv_({
+          tipo: 'confirm',
+          titulo,
+          mensagem,
+          tom: opcoes.tom || 'warning',
+          rotuloConfirmar: opcoes.rotuloConfirmar || 'Confirmar',
+          rotuloCancelar: opcoes.rotuloCancelar || 'Cancelar'
+        });
+        return resposta === true;
+      }
+
+      async function solicitarTextoGpv_(mensagem, titulo = 'Informar dado', opcoes = {}) {
+        const resposta = await dialogoGpv_({
+          tipo: 'prompt',
+          titulo,
+          mensagem,
+          tom: opcoes.tom || 'info',
+          valorInicial: opcoes.valorInicial || '',
+          placeholder: opcoes.placeholder || '',
+          maxLength: opcoes.maxLength || 120,
+          inputMode: opcoes.inputMode || 'text',
+          rotuloConfirmar: opcoes.rotuloConfirmar || 'Salvar',
+          rotuloCancelar: opcoes.rotuloCancelar || 'Cancelar'
+        });
+        return resposta == null ? null : String(resposta);
+      }
+
+      async function escolherOpcaoGpv_(mensagem, opcoes, titulo = 'Escolha uma opção') {
+        return dialogoGpv_({
+          tipo: 'choice',
+          titulo,
+          mensagem,
+          tom: 'info',
+          opcoes: Array.isArray(opcoes) ? opcoes : []
+        });
+      }
+
       function escapeHtml(v) {
         return String(v == null ? '' : v)
           .replace(/&/g, '&amp;')
@@ -1708,14 +1894,14 @@
 
       function abrirMensagemWhatsAppResponsavel_(payload = ultimoRegistroParaOrientacoes, telefoneAlternativo = '') {
         if (!navigator.onLine) {
-          alert('Sem internet no momento. A mensagem poderá ser aberta no WhatsApp quando a conexão voltar.');
+          avisarGpv_('A mensagem poderá ser aberta no WhatsApp quando a conexão voltar.', 'Sem internet', { tom: 'warning' });
           return false;
         }
 
         const dados = payload || {};
         const numero = telefoneWhatsApp_(telefoneAlternativo || dados.telefone);
         if (!numero) {
-          alert('Telefone do responsável não informado ou inválido.');
+          avisarGpv_('Informe um telefone válido do responsável antes de abrir o WhatsApp.', 'Telefone não informado', { tom: 'warning' });
           return false;
         }
 
@@ -3968,7 +4154,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function abrirRegistroSucessoNaPlanilha_() {
         if (!navigator.onLine) {
-          alert('O Painel Fiscalizatório precisa de internet. O registro continua seguro no aparelho e será sincronizado quando a conexão voltar.');
+          avisarGpv_('O registro continua seguro no aparelho e será sincronizado quando a conexão voltar.', 'Painel indisponível sem internet', { tom: 'warning' });
           return;
         }
         const p = ultimoRegistroParaOrientacoes || {};
@@ -5948,7 +6134,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function excluirFotoIrregularidade_(localId, itemId, fotoId) {
         const { item, foto } = localizarFotoNoRascunho_(localId, itemId, fotoId);
         if (!item || !foto) return;
-        const confirmado = window.confirm('Excluir esta fotografia da irregularidade?');
+        const confirmado = await confirmarGpv_(
+          'Esta fotografia será removida desta irregularidade.',
+          'Excluir fotografia?',
+          { tom: 'danger', rotuloConfirmar: 'Excluir' }
+        );
         if (!confirmado) return;
 
         if (String(fotoId).startsWith('foto-local-')) {
@@ -6918,9 +7108,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         if (!cityCheckModal || !cityCheckText || !cityCheckChangeBtn || !cityCheckKeepBtn) {
-          const alterar = window.confirm(`O CNPJ consultado está cadastrado em ${retornada}, mas a cidade selecionada é ${atual}. Deseja alterar a cidade para ${retornada}?`);
-          if (alterar) aplicarCidadeRetornadaCnpj_(retornada);
-          return Promise.resolve({ alterada: alterar, divergencia: true });
+          return confirmarGpv_(
+            `O CNPJ consultado está cadastrado em ${retornada}, mas a cidade selecionada é ${atual}.`,
+            'Cidade divergente',
+            { rotuloConfirmar: `Usar ${retornada}`, rotuloCancelar: `Manter ${atual}` }
+          ).then(alterar => {
+            if (alterar) aplicarCidadeRetornadaCnpj_(retornada);
+            return { alterada: alterar, divergencia: true };
+          });
         }
 
         cityCheckText.textContent = `O CNPJ consultado está cadastrado em ${retornada}, mas a cidade selecionada é ${atual}. Deseja alterar a cidade da vistoria para ${retornada}?`;
@@ -7212,10 +7407,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return true;
       }
 
-      function aplicarHistoricoEstabelecimento_(item) {
+      async function aplicarHistoricoEstabelecimento_(item) {
         if (!item) return;
         const nome = item.nomeFantasia || item.razaoSocial || 'este estabelecimento';
-        if (!window.confirm(`Usar os dados históricos de ${nome}? Os campos já preenchidos não serão substituídos.`)) return;
+        if (!(await confirmarGpv_(
+          `Os dados históricos de ${nome} serão usados somente nos campos que ainda estiverem vazios.`,
+          'Usar dados históricos?',
+          { rotuloConfirmar: 'Usar dados' }
+        ))) return;
 
         let alterados = 0;
         const tipoAtual = tipoIdentificador_(value('cnpj'));
@@ -8183,9 +8382,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const r = await apiRequest('config', { consulta: 'rascunhos' }, 20000);
           const lista = Array.isArray(r?.rascunhos) ? r.rascunhos : [];
           if (!lista.length) { appStatus.textContent = 'Nenhuma vistoria em andamento ou parcialmente concluída encontrada.'; return; }
-          const linhas = lista.slice(0, 20).map((x,i) => `${i+1}. ${x.nomeFantasia || x.razaoSocial || x.endereco || 'Vistoria'} — ${x.cidade || ''} — ${x.estado === 'parcial' ? 'Parcialmente concluída' : 'Em andamento'}`);
-          const escolha = window.prompt('Digite o número da vistoria que deseja continuar:\n\n' + linhas.join('\n'));
-          const idx = Number(escolha) - 1;
+          const opcoesRascunho = lista.slice(0, 20).map((x, i) => ({
+            valor: i,
+            titulo: x.nomeFantasia || x.razaoSocial || x.endereco || `Vistoria ${i + 1}`,
+            subtitulo: [x.cidade || '', x.estado === 'parcial' ? 'Parcialmente concluída' : 'Em andamento']
+              .filter(Boolean).join(' · ')
+          }));
+          const idx = await escolherOpcaoGpv_(
+            'Selecione a vistoria que deseja continuar.',
+            opcoesRascunho,
+            'Continuar vistoria'
+          );
           if (!Number.isInteger(idx) || idx < 0 || idx >= lista.length) return;
           const item = lista[idx];
           const detalhe = await apiRequest('config', { consulta: 'rascunho', id: item.id }, 20000);
@@ -8528,8 +8735,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         if (!reviewModal || !reviewList || !reviewConfirmBtn || !reviewCancelBtn) {
           const texto = itens.map(([r, v]) => `${r}: ${v}`).join('\n');
-          const confirmou = window.confirm(`${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}\n\n${usuarioPodeOperar_() ? 'Confirmar e registrar?' : 'Concluir treinamento?'}`);
-          return Promise.resolve({ confirmado: confirmou, encerrarProcesso: false, chaveProcesso: '' });
+          return confirmarGpv_(
+            `${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}`,
+            usuarioPodeOperar_() ? 'Confirmar registro' : 'Concluir treinamento',
+            { rotuloConfirmar: usuarioPodeOperar_() ? 'Confirmar e registrar' : 'Concluir' }
+          ).then(confirmado => ({ confirmado, encerrarProcesso: false, chaveProcesso: '' }));
         }
 
         reviewList.innerHTML = itens.map(([rotulo, valor]) =>
@@ -8630,7 +8840,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : 'Existem irregularidades/notificações preenchidas neste treinamento, mas o resultado está como Liberado.\n\n' +
               'Você pode continuar para conhecer a etapa de conferência. Nenhuma informação será enviada ou registrada.\n\n' +
               'Deseja continuar?';
-          const continuar = window.confirm(mensagemLiberado);
+          const continuar = await confirmarGpv_(
+            mensagemLiberado,
+            'Concluir como Liberado?',
+            { rotuloConfirmar: 'Continuar', rotuloCancelar: 'Revisar notificações' }
+          );
           if (!continuar) {
             notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             appStatus.textContent = 'Confira o rascunho das notificações antes de concluir como Liberado.';
@@ -9108,7 +9322,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ocultarTelaLoginBm_();
           if (usuarioEmTreinamento_()) await mostrarAvisoAcessoGeral_('login');
           if (result.usuario.provisorio) {
-            setTimeout(() => alert('Seu Nº BM está cadastrado provisoriamente como 1234567. Atualize-o em Mais → Gerenciar usuários quando souber o número correto.'), 250);
+            setTimeout(() => avisarGpv_('Seu Nº BM está cadastrado provisoriamente como 1234567. Atualize-o em Mais → Gerenciar usuários quando souber o número correto.', 'Nº BM provisório', { tom: 'warning' }), 250);
           }
           limparEstadoPinLogin_();
           return true;
@@ -9205,7 +9419,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         fecharMenuMais_();
         if (!usuarioPodeOperar_()) return;
         if (!navigator.onLine) {
-          alert('Conecte o aparelho à internet para gerenciar usuários.');
+          avisarGpv_('Conecte o aparelho à internet para gerenciar usuários.', 'Sem internet', { tom: 'warning' });
           return;
         }
         if (userManagerModal) userManagerModal.hidden = false;
@@ -9266,7 +9480,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function excluirUsuarioGerenciado_(id, nome) {
-        if (!id || !confirm(`Excluir ${nome || 'este usuário'} da lista de acesso?`)) return;
+        if (!id) return;
+        if (!(await confirmarGpv_(
+          `O usuário ${nome || 'selecionado'} será removido da lista de acesso.`,
+          'Excluir usuário?',
+          { tom: 'danger', rotuloConfirmar: 'Excluir' }
+        ))) return;
         try {
           const result = await apiRequest('user_delete', { userId: id }, 30000);
           renderizarListaUsuarios_(result?.usuarios || []);
@@ -9278,7 +9497,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function abrirAlterarSenha_() {
         fecharMenuMais_();
-        if (!navigator.onLine) { alert('Conecte o aparelho à internet para alterar a senha.'); return; }
+        if (!navigator.onLine) { avisarGpv_('Conecte o aparelho à internet para alterar a senha.', 'Sem internet', { tom: 'warning' }); return; }
         if (changePinMessage) changePinMessage.textContent = '';
         if (changePinCurrent) changePinCurrent.value = '';
         if (changePinNew) changePinNew.value = '';
@@ -9328,7 +9547,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function redefinirSenhaUsuario_(id, nome) {
-        if (!id || !confirm(`Redefinir a senha de ${nome || 'este usuário'}? No próximo acesso ele deverá criar uma nova senha de 6 dígitos.`)) return;
+        if (!id) return;
+        if (!(await confirmarGpv_(
+          `No próximo acesso, ${nome || 'o usuário'} deverá criar uma nova senha de 6 dígitos.`,
+          'Redefinir senha?',
+          { rotuloConfirmar: 'Redefinir senha' }
+        ))) return;
         try {
           const result = await apiRequest('user_update', { mode: 'pin_reset', userId: id }, 30000);
           invalidarCredenciaisLocaisPerfilBm_(id);
@@ -9339,13 +9563,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      function esquecerSenhaSalvaAtualBm_() {
+      async function esquecerSenhaSalvaAtualBm_() {
         fecharMenuMais_();
         const usuario = authState.usuario;
         if (!usuario?.id || !perfilTemSenhaSalvaBm_(usuario.id)) return;
-        if (!confirm(`Esquecer a senha salva de ${usuario.nome} neste aparelho? O Nº BM continuará lembrado.`)) return;
+        if (!(await confirmarGpv_(
+          `A senha salva de ${usuario.nome} será removida deste aparelho. O Nº BM continuará lembrado.`,
+          'Esquecer senha salva?',
+          { rotuloConfirmar: 'Esquecer senha' }
+        ))) return;
         apagarSenhaLocalPerfilBm_(usuario.id);
-        alert('Senha removida deste aparelho. O usuário continuará aparecendo na lista de acesso.');
+        await avisarGpv_('O usuário continuará aparecendo na lista de acesso.', 'Senha removida', { tom: 'success' });
       }
 
       function prepararSaidaUsuarioBm_() {
@@ -9365,18 +9593,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         limparEstadoPinLogin_();
       }
 
-      function trocarUsuarioBm_() {
+      async function trocarUsuarioBm_() {
         fecharMenuMais_();
-        if (!confirm('Trocar o usuário que está usando este aparelho?')) return;
+        if (!(await confirmarGpv_(
+          'A sessão atual será encerrada e você poderá escolher outro usuário deste aparelho.',
+          'Trocar usuário?',
+          { rotuloConfirmar: 'Trocar usuário' }
+        ))) return;
         prepararSaidaUsuarioBm_();
         const perfis = carregarPerfisConhecidosBm_();
         if (perfis.length) mostrarEscolhaUsuariosDispositivo_('Escolha o usuário que vai utilizar o aparelho.');
         else mostrarTelaLoginBm_();
       }
 
-      function sairUsuarioBm_() {
+      async function sairUsuarioBm_() {
         fecharMenuMais_();
-        if (!confirm('Deseja sair do aplicativo?')) return;
+        if (!(await confirmarGpv_(
+          'Sua sessão será encerrada neste aparelho. O Nº BM continuará lembrado.',
+          'Sair do aplicativo?',
+          { tom: 'danger', rotuloConfirmar: 'Sair' }
+        ))) return;
         const usuarioAnterior = authState.usuario ? { ...authState.usuario } : null;
         prepararSaidaUsuarioBm_();
 
@@ -9426,7 +9662,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function atualizarAplicativo_() {
         fecharMenuMais_();
         if (!navigator.onLine) {
-          alert('Conecte o aparelho à internet para buscar a versão mais recente do aplicativo.');
+          avisarGpv_('Conecte o aparelho à internet para buscar a versão mais recente do aplicativo.', 'Sem internet', { tom: 'warning' });
           return;
         }
 
@@ -9514,12 +9750,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         document.body.classList.remove('about-open');
       }
 
-      function definirNomeDispositivo_() {
+      async function definirNomeDispositivo_() {
         fecharMenuMais_();
         const atual = nomeDispositivo_();
-        const resposta = window.prompt(
-          'Digite um nome simples para identificar este aparelho na auditoria. Ex.: Tablet GPV 01 ou Celular Galliano.',
-          atual
+        const resposta = await solicitarTextoGpv_(
+          'Use um nome curto para reconhecer este aparelho nos registros de auditoria.',
+          'Identificar aparelho',
+          {
+            valorInicial: atual,
+            placeholder: 'Ex.: Tablet GPV 01',
+            maxLength: 60,
+            rotuloConfirmar: 'Salvar nome'
+          }
         );
         if (resposta == null) return;
         const salvo = salvarNomeDispositivo_(resposta);
@@ -9662,7 +9904,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
       async function salvarDdu_(){
-        if(!navigator.onLine){alert('É necessário estar online para cadastrar o DDU e enviar o PDF.');return;}
+        if(!navigator.onLine){avisarGpv_('É necessário estar online para cadastrar o DDU e enviar o PDF.','Sem internet',{tom:'warning'});return;}
         const prazo=document.getElementById('dduPrazo').value, endereco=document.getElementById('dduEndereco').value.trim(), cidade=document.getElementById('dduCidade').value.trim(); const file=document.getElementById('dduPdfFile').files?.[0];
         if(!prazo||!endereco||!cidade||!file){if(dduRegisterError){dduRegisterError.textContent='Preencha data limite, cidade, endereço e selecione o PDF.';dduRegisterError.hidden=false;}return;}
         try{dduRegisterSaveBtn.disabled=true;dduRegisterSaveBtn.textContent='Enviando PDF...'; const arq=await lerArquivoBase64_(file,8*1024*1024,'.pdf');
@@ -10092,7 +10334,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function excluirPreparacaoVistoria_(item) {
         if (!item?.id) return;
         const titulo = item.nomeFantasia || item.razaoSocial || item.pscip || 'esta vistoria programada';
-        const confirmar = window.confirm(`Excluir a programação de "${titulo}"?\n\nEla sairá da lista de Vistorias Programadas. Nenhuma vistoria já concluída será apagada.`);
+        const confirmar = await confirmarGpv_(
+          `A programação de "${titulo}" sairá da lista de Vistorias Programadas. Nenhuma vistoria já concluída será apagada.`,
+          'Excluir programação?',
+          { tom: 'danger', rotuloConfirmar: 'Excluir programação' }
+        );
         if (!confirmar) return;
         if (!navigator.onLine) {
           appStatus.textContent = 'É necessário estar online para excluir uma programação.';
@@ -11066,11 +11312,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!event.target.closest('.occupancy-field')) esconderResultadosOcupacao();
       });
       submitBtn.addEventListener('click', submit);
-      clearBtn.addEventListener('click', () => {
+      clearBtn.addEventListener('click', async () => {
         const mensagem = usuarioPodeOperar_()
-          ? 'Limpar todos os campos e apagar o rascunho deste aparelho?'
-          : 'Limpar todos os campos deste treinamento?';
-        if (confirm(mensagem)) resetForm();
+          ? 'Todos os campos serão limpos e o rascunho deste aparelho será apagado.'
+          : 'Todos os campos deste treinamento serão limpos.';
+        const confirmou = await confirmarGpv_(
+          mensagem,
+          usuarioPodeOperar_() ? 'Limpar vistoria?' : 'Limpar treinamento?',
+          { tom: 'danger', rotuloConfirmar: 'Limpar campos' }
+        );
+        if (confirmou) resetForm();
       });
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
       document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
@@ -11295,7 +11546,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99aa', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ac', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

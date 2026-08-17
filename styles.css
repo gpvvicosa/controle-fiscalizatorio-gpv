@@ -10488,3 +10488,69 @@ body.records-mode .records-card-cta{
   border-color:#dc2626!important;
   box-shadow:0 0 0 3px rgba(220,38,38,.10)!important;
 }
+
+
+/* =============================================================================
+   V23.9.99ac — diálogos próprios do GPV
+   ============================================================================= */
+body.gpv-dialog-open{overflow:hidden!important}
+.gpv-dialog-overlay{
+  position:fixed;inset:0;z-index:40000;display:flex;align-items:center;justify-content:center;
+  padding:18px;background:rgba(17,24,39,.52);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)
+}
+.gpv-dialog-overlay[hidden]{display:none!important}
+.gpv-dialog-card{
+  position:relative;width:min(460px,100%);max-height:min(82dvh,680px);overflow:auto;
+  border:1px solid rgba(255,255,255,.55);border-radius:22px;background:#fff;
+  box-shadow:0 28px 80px rgba(15,23,42,.30)
+}
+.gpv-dialog-handle{display:none}
+.gpv-dialog-header{display:grid;grid-template-columns:44px minmax(0,1fr) 36px;align-items:start;gap:12px;padding:19px 19px 12px}
+.gpv-dialog-icon{
+  width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:#eef5ff;color:#245f9b;
+  font-size:19px;font-weight:900;box-shadow:inset 0 0 0 1px rgba(36,95,155,.08)
+}
+.gpv-dialog-overlay[data-tone="warning"] .gpv-dialog-icon{background:#fff5db;color:#9a6500}
+.gpv-dialog-overlay[data-tone="danger"] .gpv-dialog-icon{background:#fff0f1;color:#a31520}
+.gpv-dialog-overlay[data-tone="success"] .gpv-dialog-icon{background:#eaf8ef;color:#157a3f}
+.gpv-dialog-heading h2{margin:1px 0 5px;color:#172033;font-size:18px;line-height:1.2;letter-spacing:-.015em}
+.gpv-dialog-heading p{margin:0;color:#5e6979;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.gpv-dialog-x{
+  width:34px;height:34px;display:grid;place-items:center;border:1px solid #e3e7ec;border-radius:50%;
+  background:#f8f9fb;color:#475467;font:700 23px/1 Arial,sans-serif;cursor:pointer
+}
+.gpv-dialog-content{padding:0 19px 4px}
+.gpv-dialog-input{
+  width:100%;min-height:48px;padding:11px 13px;border:1px solid #ccd3dc;border-radius:13px;background:#fff;
+  color:#172033;font:inherit;font-size:14px;outline:none
+}
+.gpv-dialog-input:focus{border-color:#a81721;box-shadow:0 0 0 3px rgba(168,23,33,.10)}
+.gpv-dialog-choices{display:grid;gap:8px;max-height:48dvh;overflow:auto;padding:2px 1px 5px}
+.gpv-dialog-choice{
+  width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:12px 13px;
+  border:1px solid #e1e6ec;border-radius:13px;background:#fff;color:#172033;text-align:left;cursor:pointer
+}
+.gpv-dialog-choice:hover,.gpv-dialog-choice:focus-visible{border-color:#d3a4a8;background:#fff8f8;outline:none}
+.gpv-dialog-choice strong{font-size:13px;line-height:1.3}
+.gpv-dialog-choice span{color:#667085;font-size:11px;line-height:1.35}
+.gpv-dialog-actions{display:flex;justify-content:flex-end;gap:9px;padding:14px 19px 19px}
+.gpv-dialog-btn{min-height:42px;padding:9px 15px;border-radius:12px;font:800 13px/1.2 Arial,sans-serif;cursor:pointer}
+.gpv-dialog-btn-secondary{border:1px solid #dde2e8;background:#f7f8fa;color:#344054}
+.gpv-dialog-btn-primary{
+  border:1px solid #8f171d;background:linear-gradient(180deg,#ad1b22,#90141a);color:#fff;
+  box-shadow:0 6px 16px rgba(144,20,26,.16)
+}
+.gpv-dialog-btn-primary.is-danger{background:linear-gradient(180deg,#ba1b24,#96151c);border-color:#96151c}
+@media(max-width:680px){
+  .gpv-dialog-overlay{align-items:flex-end;padding:0}
+  .gpv-dialog-card{width:100vw;max-height:88dvh;border:0;border-radius:24px 24px 0 0;padding-bottom:max(0px,env(safe-area-inset-bottom))}
+  .gpv-dialog-handle{display:block;width:42px;height:4px;margin:8px auto 0;border-radius:999px;background:#d8dde4}
+  .gpv-dialog-header{grid-template-columns:42px minmax(0,1fr) 36px;gap:10px;padding:14px 15px 10px}
+  .gpv-dialog-icon{width:42px;height:42px;border-radius:13px}
+  .gpv-dialog-heading h2{font-size:17px}
+  .gpv-dialog-heading p{font-size:12.5px}
+  .gpv-dialog-content{padding:0 15px 3px}
+  .gpv-dialog-actions{display:grid;grid-template-columns:1fr 1fr;padding:12px 15px 15px}
+  .gpv-dialog-overlay[data-type="alert"] .gpv-dialog-actions{grid-template-columns:1fr}
+  .gpv-dialog-btn{width:100%;min-height:46px}
+}

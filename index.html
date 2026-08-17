@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99aa">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ac">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1533,6 +1533,29 @@
     </div>
   </div>
 
+
+  <div class="gpv-dialog-overlay" id="gpvDialogModal" hidden>
+    <section class="gpv-dialog-card" role="dialog" aria-modal="true" aria-labelledby="gpvDialogTitle" aria-describedby="gpvDialogMessage">
+      <div class="gpv-dialog-handle" aria-hidden="true"></div>
+      <header class="gpv-dialog-header">
+        <span class="gpv-dialog-icon" id="gpvDialogIcon" aria-hidden="true">!</span>
+        <div class="gpv-dialog-heading">
+          <h2 id="gpvDialogTitle">Confirmação</h2>
+          <p id="gpvDialogMessage"></p>
+        </div>
+        <button class="gpv-dialog-x" id="gpvDialogCloseBtn" type="button" aria-label="Fechar">×</button>
+      </header>
+      <div class="gpv-dialog-content">
+        <input class="gpv-dialog-input" id="gpvDialogInput" type="text" autocomplete="off" hidden>
+        <div class="gpv-dialog-choices" id="gpvDialogChoices" hidden></div>
+      </div>
+      <footer class="gpv-dialog-actions">
+        <button class="gpv-dialog-btn gpv-dialog-btn-secondary" id="gpvDialogCancelBtn" type="button">Cancelar</button>
+        <button class="gpv-dialog-btn gpv-dialog-btn-primary" id="gpvDialogConfirmBtn" type="button">Confirmar</button>
+      </footer>
+    </section>
+  </div>
+
   <div class="review-overlay" id="dduListModal" hidden>
     <div class="review-card ddu-list-card" role="dialog" aria-modal="true" aria-labelledby="dduListTitle">
       <div class="review-head ddu-list-head">
@@ -1789,7 +1812,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99aa"></script>
+  <script src="app.js?v=23.9.99ac"></script>
 
   </div>
   
