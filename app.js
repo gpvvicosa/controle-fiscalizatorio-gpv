@@ -5523,7 +5523,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // IT 16 — Extintores
         if (/extintor/.test(tipo)) {
           if (/(venc|validade.*expir|fora.*prazo|fora.*data)/.test(desc)) return {texto:'Extintor com prazo de validade da carga ou garantia de funcionamento expirado',it:16,item:'7.2'};
-          if (/instalacao/.test(irregular) && /(tripe|suporte).*(nao.*afix|solto|nao.*aparafus)/.test(desc)) return {texto:'Suporte de piso do extintor não afixado ao solo',it:16,item:'5.2.2.4, alínea “a”'};
+          if (
+            /instalacao/.test(irregular) &&
+            (
+              /(tripe|suporte).*(nao.*afix|nao.*fix|solto|nao.*aparafus)/.test(desc) ||
+              /extintor.*(nao.*afix|nao.*fix|solto).*(chao|piso|solo)/.test(desc) ||
+              /(nao.*afix|nao.*fix|solto).*(chao|piso|solo).*(extintor)/.test(desc)
+            )
+          ) return {texto:'Extintor instalado sobre suporte de piso não devidamente fixado ao solo',it:16,item:'5.2.2.4, alínea “a”'};
           if (/instalacao/.test(irregular) && /(falta|ausen|sem).*(extintor).*(entrada|porta|acesso)/.test(desc)) return {texto:'Ausência de extintor próximo à entrada principal',it:16,item:'5.2.2.9'};
           if (/instalacao/.test(irregular) && /escada/.test(desc)) return {texto:'Extintor instalado em escada',it:16,item:'5.2.2.3'};
           if (/instalacao/.test(irregular) && /(obstru|bloquead)/.test(desc)) return {texto:'Extintor obstruído ou com acesso prejudicado',it:16,item:'5.2.1, alínea “c”'};
@@ -11210,7 +11217,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99p', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99r', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
