@@ -1950,15 +1950,8 @@
         }
 
         try {
-          const estado = await apiRequest('config', { consulta: 'rascunho_estado', id }, 10000);
-          const valor = String(estado?.estado || '').trim().toLowerCase();
-          if (!estado?.encontrado) throw new Error('A vistoria compartilhada não foi localizada.');
-          if (!['em_andamento','parcial'].includes(valor)) {
-            throw new Error(valor === 'cancelado'
-              ? 'Este preenchimento foi cancelado.'
-              : 'Esta vistoria já foi encerrada.');
-          }
-
+          // O endpoint "rascunho" já valida se a vistoria está ativa.
+          // Um único request reduz sensivelmente o tempo entre o link e a tela de notificações.
           const detalhe = await apiRequest('config', { consulta: 'rascunho', id }, 20000);
           if (!detalhe?.payload) throw new Error('Não foi possível carregar o rascunho compartilhado.');
 
@@ -2081,6 +2074,81 @@
             notificacoesCompartilharAuxBtn.disabled = false;
             notificacoesCompartilharAuxBtn.textContent = textoAnterior;
           }
+        }
+      }
+
+      function mostrarSplashAcessoAuxiliar_(texto = 'Abrindo notificações da vistoria...') {
+        document.documentElement.classList.add('gpv-aux-entry');
+        document.body?.classList.remove('gpv-aux-auth-visible');
+        if (loadingText) loadingText.textContent = texto;
+        loadingOverlay?.classList.add('show');
+      }
+
+      function ocultarSplashAcessoAuxiliar_() {
+        loadingOverlay?.classList.remove('show');
+      }
+
+      function prepararLoginAcessoAuxiliar_() {
+        if (!idAcessoAuxiliarNotificacoesUrl_()) return;
+        document.documentElement.classList.add('gpv-aux-entry');
+        document.body?.classList.add('gpv-aux-auth-visible');
+        // O login já está visível; só então retiramos o splash para evitar qualquer flash da home.
+        requestAnimationFrame(() => requestAnimationFrame(() => ocultarSplashAcessoAuxiliar_()));
+      }
+
+      async function carregarAcessoAuxiliarRapido_() {
+        const id = idAcessoAuxiliarNotificacoesUrl_();
+        if (!id) return false;
+
+        mostrarSplashAcessoAuxiliar_('Abrindo notificações da vistoria...');
+
+        let cached = null;
+        try { cached = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || 'null'); } catch (e) {}
+        aplicarConfig(cached || DEFAULT_CONFIG);
+        aplicarPermissoesInterface_();
+        atualizarNomeDispositivoUi_();
+        atualizarStatusConexao();
+
+        if (!usuarioPodeOperar_()) {
+          ocultarSplashAcessoAuxiliar_();
+          appStatus.textContent = 'Este link de notificações exige um usuário com perfil GPV.';
+          return false;
+        }
+
+        if (!navigator.onLine) {
+          if (loadingText) loadingText.textContent = 'Conecte-se à internet para abrir este acesso pela primeira vez.';
+          appStatus.textContent = 'O primeiro acesso ao link da vistoria precisa de conexão com a internet.';
+          return false;
+        }
+
+        try {
+          const abriu = await abrirAcessoAuxiliarNotificacoes_(id);
+          if (!abriu) {
+            if (loadingText) loadingText.textContent = 'Não foi possível abrir as notificações desta vistoria.';
+            return false;
+          }
+
+          // Só libera a tela depois que a área exclusiva de notificações já está montada.
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            ocultarSplashAcessoAuxiliar_();
+          }));
+
+          // Serviços secundários continuam em segundo plano e não atrasam o acesso.
+          if (cached && navigator.onLine) {
+            setTimeout(async () => {
+              try {
+                const data = await apiRequest('config', {}, 30000);
+                aplicarConfig(data);
+                try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+              } catch (e) {}
+            }, 2200);
+          }
+          setTimeout(() => { void processarFilaFotosPendentes_(); }, 1600);
+          return true;
+        } catch (erro) {
+          if (loadingText) loadingText.textContent = erro?.message || 'Não foi possível abrir as notificações desta vistoria.';
+          appStatus.textContent = erro?.message || 'Não foi possível abrir as notificações compartilhadas.';
+          return false;
         }
       }
 
@@ -8705,6 +8773,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function mostrarTelaLoginBm_(mensagem = '') {
+        prepararLoginAcessoAuxiliar_();
         if (!authGate) return;
         authGate.classList.add('show');
         authGate.setAttribute('aria-hidden', 'false');
@@ -8719,6 +8788,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function mostrarEscolhaUsuariosDispositivo_(mensagem = '') {
+        prepararLoginAcessoAuxiliar_();
         const perfis = carregarPerfisConhecidosBm_();
         if (!authGate) return;
         authGate.classList.add('show');
@@ -8739,9 +8809,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function ocultarTelaLoginBm_() {
         if (!authGate) return;
+        const acessoAuxiliar = Boolean(idAcessoAuxiliarNotificacoesUrl_());
+        if (acessoAuxiliar) mostrarSplashAcessoAuxiliar_('Abrindo notificações da vistoria...');
         authGate.classList.remove('show');
         authGate.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('auth-locked');
+        if (acessoAuxiliar) document.body.classList.remove('gpv-aux-auth-visible');
         if (authMessage) authMessage.textContent = '';
         if (authProfileChoice) authProfileChoice.hidden = true;
         if (authDeviceChoice) authDeviceChoice.hidden = true;
@@ -8837,7 +8910,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function carregarInicialComMotivacional_(opcoes = {}) {
         if (idAcessoAuxiliarNotificacoesUrl_()) {
-          await loadInitialData();
+          await carregarAcessoAuxiliarRapido_();
           return;
         }
         const forcar = Boolean(opcoes.forcar);
@@ -9007,7 +9080,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function inicializarAutenticacaoBm_() {
         const sessao = carregarSessaoLocalBm_();
         const perfis = carregarPerfisConhecidosBm_();
-        loadingOverlay.classList.remove('show');
+        const acessoAuxiliarId = idAcessoAuxiliarNotificacoesUrl_();
+
+        if (acessoAuxiliarId) {
+          mostrarSplashAcessoAuxiliar_('Abrindo notificações da vistoria...');
+        } else {
+          loadingOverlay.classList.remove('show');
+        }
 
         // V23.9.30: recarregar/atualizar o PWA não encerra mais uma sessão válida.
         // A sessão só é limpa por Sair/Trocar usuário ou quando a API devolve 401.
@@ -9015,12 +9094,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ocultarTelaLoginBm_();
           atualizarUsuarioLogadoUi_();
           aplicarPermissoesInterface_();
-          await loadInitialData();
+          if (acessoAuxiliarId) await carregarAcessoAuxiliarRapido_();
+          else await loadInitialData();
           return;
         }
 
-        // Sem sessão ativa, mantém o comportamento de aparelho compartilhado:
-        // lembra os perfis/Nº BM e pede a senha conforme a configuração de cada usuário.
+        // Sem sessão ativa, mostra o login antes de retirar o splash.
         if (perfis.length) mostrarEscolhaUsuariosDispositivo_();
         else mostrarTelaLoginBm_();
       }
@@ -11131,7 +11210,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99n', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99o', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

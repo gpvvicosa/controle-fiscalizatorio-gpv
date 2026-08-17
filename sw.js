@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-99-aux-link-n';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-99-splash-aux-fast-o';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [
@@ -9,7 +9,7 @@ const CORE_SHELL = [
   `./ocupacoes.js?v=${VERSION}`,
   `./notificacoes-infoscip.js?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
-  './manifest.webmanifest',
+  './manifest.webmanifest?v=23.9.99o',
   './offline.html'
 ];
 

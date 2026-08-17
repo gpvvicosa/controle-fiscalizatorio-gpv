@@ -9285,3 +9285,170 @@ body.aux-notifications-closed #notificacoesLiberacaoSecao .notification-add-loca
     border-radius:0;
   }
 }
+
+
+/* =========================================================
+   V23.9.99o — abertura moderna + acesso auxiliar sem flash
+   ========================================================= */
+.loading.show{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 18% 16%,rgba(255,187,28,.16),transparent 28%),
+    radial-gradient(circle at 83% 78%,rgba(211,33,42,.26),transparent 34%),
+    linear-gradient(145deg,#330306 0%,#650b10 48%,#250205 100%)!important;
+}
+.loading.show::before,
+.loading.show::after{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  border-radius:999px;
+  filter:blur(.2px);
+}
+.loading.show::before{
+  width:300px;height:300px;
+  left:-150px;bottom:-95px;
+  border:1px solid rgba(255,198,61,.12);
+  box-shadow:0 0 0 46px rgba(255,198,61,.025),0 0 0 92px rgba(255,198,61,.018);
+}
+.loading.show::after{
+  width:210px;height:210px;
+  right:-105px;top:-55px;
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.055);
+}
+.gpv-boot-card-modern{
+  position:relative;
+  z-index:1;
+  width:min(360px,88vw);
+  max-width:88vw!important;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+  padding:28px 22px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#fff!important;
+}
+.gpv-boot-logo-modern{
+  position:relative;
+  width:138px;
+  height:138px;
+  display:grid;
+  place-items:center;
+  border-radius:34px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,215,118,.24);
+  box-shadow:
+    0 24px 54px rgba(12,0,1,.34),
+    0 0 0 9px rgba(255,255,255,.018);
+  overflow:hidden;
+  animation:gpvBootFloatModern 2.4s ease-in-out infinite;
+}
+.gpv-boot-logo-modern::after{
+  content:"";
+  position:absolute;
+  inset:-45%;
+  background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.15) 50%,transparent 60%);
+  transform:translateX(-55%) rotate(7deg);
+  animation:gpvBootShineModern 3.2s ease-in-out infinite;
+}
+.gpv-boot-logo-modern img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:32px;
+}
+.gpv-boot-copy-modern{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+.gpv-boot-kicker-modern{
+  margin-bottom:7px;
+  color:#f7c94c;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.gpv-boot-copy-modern strong{
+  color:#fff!important;
+  font-size:20px!important;
+  line-height:1.15;
+  letter-spacing:-.01em;
+  text-shadow:0 4px 22px rgba(0,0,0,.24);
+}
+.gpv-boot-copy-modern #loadingText{
+  display:block;
+  max-width:300px;
+  margin-top:8px;
+  color:rgba(255,255,255,.76)!important;
+  font-size:12px;
+  font-weight:650;
+  line-height:1.45;
+}
+.gpv-boot-progress-modern{
+  width:min(235px,68vw);
+  height:3px;
+  margin-top:20px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+}
+.gpv-boot-progress-modern i{
+  display:block;
+  width:42%;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#d99014,#ffd35c,#f1ae24);
+  animation:gpvBootProgressModern 1.35s ease-in-out infinite;
+}
+@keyframes gpvBootProgressModern{
+  0%{transform:translateX(-115%)}
+  55%{transform:translateX(112%)}
+  100%{transform:translateX(250%)}
+}
+@keyframes gpvBootFloatModern{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
+}
+@keyframes gpvBootShineModern{
+  0%,45%{transform:translateX(-70%) rotate(7deg);opacity:0}
+  58%{opacity:1}
+  75%,100%{transform:translateX(70%) rotate(7deg);opacity:0}
+}
+
+/* O link do auxiliar nunca deixa a home aparecer antes da área exclusiva. */
+html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){
+  visibility:hidden!important;
+}
+html.gpv-aux-entry body.gpv-aux-auth-visible #authGate{
+  visibility:visible!important;
+}
+html.gpv-aux-entry body.gpv-aux-auth-visible{
+  background:#52080c!important;
+}
+html.gpv-aux-entry body.gpv-aux-auth-visible .auth-gate{
+  background:
+    radial-gradient(circle at 15% 10%,rgba(255,190,35,.10),transparent 28%),
+    linear-gradient(145deg,#350407 0%,#6b0c11 58%,#280306 100%)!important;
+}
+
+@media(max-width:640px){
+  .gpv-boot-logo-modern{width:124px;height:124px;border-radius:30px}
+  .gpv-boot-logo-modern img{border-radius:28px}
+  .gpv-boot-card-modern{gap:17px;padding:22px 18px!important}
+  .gpv-boot-copy-modern strong{font-size:18px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .gpv-boot-logo-modern,
+  .gpv-boot-logo-modern::after,
+  .gpv-boot-progress-modern i{animation:none!important}
+  .gpv-boot-progress-modern i{width:55%;margin:0 auto}
+}

@@ -1,14 +1,13 @@
 {
-  "name": "Controle Fiscalizatório — GPV Viçosa",
-  "short_name": "Vistorias GPV",
-  "description": "Registro de vistorias do GPV Viçosa com preenchimento e fila offline.",
-  "id": "./",
-  "start_url": "./?source=pwa",
+  "name": "Controle Fiscalizatório GPV Viçosa",
+  "short_name": "GPV Viçosa",
+  "description": "Controle Fiscalizatório do GPV — 3º Pelotão Viçosa.",
+  "lang": "pt-BR",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f6f8",
-  "theme_color": "#991b1b",
-  "orientation": "portrait-primary",
+  "background_color": "#52080c",
+  "theme_color": "#52080c",
   "icons": [
     {
       "src": "assets/icon-192.png",
