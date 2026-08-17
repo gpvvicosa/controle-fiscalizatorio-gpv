@@ -10554,3 +10554,25 @@ body.gpv-dialog-open{overflow:hidden!important}
   .gpv-dialog-overlay[data-type="alert"] .gpv-dialog-actions{grid-template-columns:1fr}
   .gpv-dialog-btn{width:100%;min-height:46px}
 }
+
+
+/* =============================================================================
+   V23.9.99ad — Atalho de cadastro + PSCIP/Evento Declaratório
+   ============================================================================= */
+.programmed-summary-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.programmed-summary-row[hidden]{display:none!important}
+.programmed-summary-row .programmed-summary-card{width:100%;min-width:0}
+.programmed-quick-add-btn{
+  min-width:154px;border:1px solid rgba(151,24,31,.20);border-radius:18px;padding:0 14px;
+  background:#fff7f7;color:#8f171d;display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:12px;font-weight:900;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease
+}
+.programmed-quick-add-btn:hover,.programmed-quick-add-btn:focus-visible{background:#fff0f1;border-color:rgba(151,24,31,.38);outline:none}
+.programmed-quick-add-btn:active{transform:scale(.985)}
+.programmed-quick-add-btn>span:first-child{font-size:18px;line-height:1}
+#prepareEventoDeclaracaoWrap[hidden],#preparePscipWrap[hidden]{display:none!important}
+@media(max-width:640px){
+  .programmed-summary-row{grid-template-columns:minmax(0,1fr) 48px;gap:6px}
+  .programmed-quick-add-btn{min-width:48px;width:48px;padding:0;border-radius:16px}
+  .programmed-quick-add-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+}

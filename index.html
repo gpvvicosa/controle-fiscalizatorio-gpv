@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99ac">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ad">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -732,11 +732,16 @@
               <span class="ddu-summary-copy"><strong>DDU</strong><small id="dduSummaryText">Carregando demandas...</small></span>
               <span class="ddu-summary-count" id="dduSummaryCount">—</span>
             </button>
-            <button type="button" class="programmed-summary-card" id="programmedSummaryCard" aria-label="Abrir vistorias programadas" hidden>
-              <span class="programmed-summary-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 10h6M9 14h6M9 18h4"/></svg></span>
-              <span class="programmed-summary-copy"><strong>Vistorias Programadas</strong><small id="programmedSummaryText">Carregando programações...</small></span>
-              <span class="programmed-summary-count" id="programmedSummaryCount">—</span>
-            </button>
+            <div class="programmed-summary-row" id="programmedSummaryRow" hidden>
+              <button type="button" class="programmed-summary-card" id="programmedSummaryCard" aria-label="Abrir vistorias programadas">
+                <span class="programmed-summary-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 10h6M9 14h6M9 18h4"/></svg></span>
+                <span class="programmed-summary-copy"><strong>Vistorias Programadas</strong><small id="programmedSummaryText">Carregando programações...</small></span>
+                <span class="programmed-summary-count" id="programmedSummaryCount">—</span>
+              </button>
+              <button type="button" class="programmed-quick-add-btn" id="programmedQuickAddBtn" aria-label="Cadastrar nova vistoria">
+                <span aria-hidden="true">＋</span><span class="programmed-quick-add-label">Cadastrar vistoria</span>
+              </button>
+            </div>
           </div>
           <div class="inspection-flow-grid inspection-flow-grid-after-programmed" role="group" aria-label="Tipo de vistoria">
             <button type="button" class="inspection-flow-card" id="fluxoFiscalizacaoBtn" data-fluxo-vistoria="fiscalizacao">
@@ -799,8 +804,8 @@
             </div>
             <div class="field wide licensing-pscip-field" id="pscipLicenciamentoWrap" hidden aria-hidden="true">
               <label class="required" for="pscip" id="pscipLabel">Nº do PSCIP</label>
-              <input id="pscip" name="pscip" autocomplete="off" value="PRJ" placeholder="PRJ...">
-              <div class="hint">Ao informar o número, o aplicativo consulta registros anteriores da planilha e pode oferecer dados já existentes para conferência.</div>
+              <input id="pscip" name="pscip" autocomplete="off" inputmode="numeric" maxlength="13" value="PRJ" placeholder="PRJ + 10 números">
+              <div class="hint">Padrão: PRJ seguido de exatamente 10 números. Se um AVCB completo for colado, o aplicativo identifica o Nº do Projeto antes de continuar.</div>
               <div class="lookup-status" id="pscipLookupStatus" role="status" aria-live="polite"></div>
               <div class="establishment-history-panel pscip-history-panel" id="pscipHistoryPanel" hidden>
                 <div class="establishment-history-head">
@@ -832,8 +837,8 @@
           <div class="grid">
             <div class="field half">
               <label class="required" for="eventoDeclaracaoNumero">Nº da declaração INFOSCIP</label>
-              <input id="eventoDeclaracaoNumero" name="eventoDeclaracaoNumero" autocomplete="off" placeholder="Ex.: 2026RME09669">
-              <div class="hint">Identifica esta declaração específica. O histórico do local é pesquisado pelo endereço do evento.</div>
+              <input id="eventoDeclaracaoNumero" name="eventoDeclaracaoNumero" autocomplete="off" maxlength="20" placeholder="Ex.: 2026RME09669">
+              <div class="hint">Não utiliza PRJ. O aplicativo mantém letras em maiúsculas e aceita o padrão ano + código alfabético + sequência numérica.</div>
             </div>
             <div class="field half">
               <label for="eventoClassificacao">Classificação do evento</label>
@@ -1496,7 +1501,9 @@
           <div class="field"><label id="prepareDataLabel" for="prepareData">Data prevista</label><input type="date" id="prepareData"><div class="hint" id="prepareDataHint">Obrigatória para vistoria de liberação.</div></div>
           <div class="field"><label class="required" for="prepareVistoriador">Vistoriador responsável</label><select id="prepareVistoriador"><option value="">Selecione</option></select></div>
           <div class="field"><label for="prepareCidade">Cidade</label><input id="prepareCidade" value="Viçosa"></div>
-          <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP</label><input id="preparePscip" value="PRJ" autocomplete="off"><div class="hint">Obrigatório para vistoria de liberação.</div></div>
+          <div class="field" id="prepareDemandaWrap"><label for="prepareDemanda">Demanda</label><input id="prepareDemanda" list="dlDemanda" autocomplete="off" placeholder="Selecione ou digite a demanda"><div class="hint">Para evento declaratório, selecione “Eventos declaratórios”.</div></div>
+          <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP / Projeto</label><input id="preparePscip" value="PRJ" autocomplete="off" inputmode="numeric" maxlength="13" placeholder="PRJ + 10 números"><div class="hint">Padrão: PRJ seguido de exatamente 10 números. Obrigatório para vistoria de liberação.</div></div>
+          <div class="field" id="prepareEventoDeclaracaoWrap" hidden><label class="required" for="prepareEventoDeclaracaoNumero">Nº da declaração INFOSCIP</label><input id="prepareEventoDeclaracaoNumero" autocomplete="off" maxlength="20" placeholder="Ex.: 2026RME09669"><div class="hint">Evento declaratório não utiliza PRJ. Informe o ano, as letras do código de risco e a sequência numérica.</div></div>
           <div class="field"><label for="preparePf">Nº do PF</label><input id="preparePf" autocomplete="off" placeholder="Preenchido automaticamente quando houver processo anterior"><div class="lookup-status" id="preparePfLookupStatus" role="status" aria-live="polite"></div><div class="establishment-history-results pf-history-results" id="preparePfLookupResults" hidden></div></div>
           <div class="field"><label for="prepareNomeFantasia">Nome Fantasia</label><input id="prepareNomeFantasia"></div>
           <div class="field"><label for="prepareRazaoSocial">Razão Social</label><input id="prepareRazaoSocial"></div>
@@ -1812,7 +1819,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99ac"></script>
+  <script src="app.js?v=23.9.99ad"></script>
 
   </div>
   

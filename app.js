@@ -699,9 +699,11 @@
       const prepareDwgFile = document.getElementById('prepareDwgFile');
       const prepareDwgStatus = document.getElementById('prepareDwgStatus');
 
+      const programmedSummaryRow = document.getElementById('programmedSummaryRow');
       const programmedSummaryCard = document.getElementById('programmedSummaryCard');
       const programmedSummaryText = document.getElementById('programmedSummaryText');
       const programmedSummaryCount = document.getElementById('programmedSummaryCount');
+      const programmedQuickAddBtn = document.getElementById('programmedQuickAddBtn');
       const programmedListModal = document.getElementById('programmedListModal');
       const programmedListCloseBtn = document.getElementById('programmedListCloseBtn');
 
@@ -6748,7 +6750,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           acessoriaTipoLicenca: acessoria ? value('acessoriaTipoLicenca') : '',
           acessoriaSituacaoAnterior: acessoria ? String(processoAcessoriaVinculado?.sancao || '') : '',
           dduProtocol: ehDemandaDdu_() ? (value('dduProtocol') || dduEmUsoNumero) : '',
-          pscip: eventoDeclaratorio ? '' : (value('possuiPscip') === 'sim' ? normalizarPscipExibicao_(value('pscip'), true) : ''),
+          pscip: eventoDeclaratorio ? '' : (value('possuiPscip') === 'sim' ? projetoPscipOperacional_(value('pscip')) : ''),
           pf: value('pf'),
           tipoVistoria: value('tipoVistoria'),
           reds: value('reds'),
@@ -6825,10 +6827,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           missing.push('Pendência documental');
           first = first || pendenciaDocumentalSelect;
         }
-        if (!eventoDeclaratorio && value('possuiPscip') === 'sim' && normalizarPscipTela_(value('pscip')).length <= 3) {
+        if (!eventoDeclaratorio && value('possuiPscip') === 'sim' && !pscipProjetoValido_(value('pscip'))) {
           const elPscip = document.getElementById('pscip');
           if (elPscip) elPscip.classList.add('invalid');
-          missing.push('Nº do PSCIP');
+          missing.push('Nº do PSCIP / Projeto (PRJ + 10 números)');
           first = first || elPscip;
         }
         if (ehFluxoFiscalizacao_() && !eventoDeclaratorio && value('licenciamento') === 'nao_possui' && value('possuiPscip') === 'sim' && !String(value('situacaoPscip') || '').trim()) {
@@ -6871,7 +6873,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
             if (lic === 'possui') {
               if (!String(value('acessoriaTipoLicenca') || '').trim()) { acessoriaTipoLicencaSelect?.classList.add('invalid'); missing.push('Documento de licenciamento'); first = first || acessoriaTipoLicencaSelect; }
-              if (normalizarPscipTela_(value('pscip')).length <= 3) { pscipInput?.classList.add('invalid'); missing.push('Nº do PSCIP / licenciamento'); first = first || pscipInput; }
+              if (!pscipProjetoValido_(value('pscip'))) { pscipInput?.classList.add('invalid'); missing.push('Nº do PSCIP / licenciamento (PRJ + 10 números)'); first = first || pscipInput; }
             }
           }
         }
@@ -6908,6 +6910,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             return false;
           }
         } else {
+          if (!declaracaoEventoValida_(value('eventoDeclaracaoNumero'))) {
+            eventoDeclaracaoNumeroInput?.classList.add('invalid');
+            if (showMessage) showError('Informe o Nº da declaração INFOSCIP no padrão ano + letras do código + sequência numérica. Ex.: 2026RME09669.');
+            eventoDeclaracaoNumeroInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
           const documentoOrganizador = digits(value('eventoOrganizadorDocumento'));
           if (documentoOrganizador && ![11, 14].includes(documentoOrganizador.length)) {
             eventoOrganizadorDocumentoInput?.classList.add('invalid');
@@ -7012,8 +7020,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function syncPscip_() {
-        const possui = value('possuiPscip') === 'sim';
-        const mostrarSituacao = ehFluxoFiscalizacao_() && !ehEventoDeclaratorio_() && possui;
+        const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const possui = !eventoDeclaratorio && value('possuiPscip') === 'sim';
+        const mostrarSituacao = ehFluxoFiscalizacao_() && !eventoDeclaratorio && possui;
         if (situacaoPscipWrap) situacaoPscipWrap.hidden = !mostrarSituacao;
         if (!mostrarSituacao && situacaoPscipInput) situacaoPscipInput.value = '';
         if (pscipLicenciamentoWrap) {
@@ -7853,13 +7862,86 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function normalizarPscipInput_(garantirPrefixo = false) {
         if (!pscipInput) return '';
         const antes = String(pscipInput.value || '');
-        const depois = normalizarPscipExibicao_(antes, garantirPrefixo);
+        const analise = analisarNumeroPscip_(antes);
+        const depois = analise.numeros ? `PRJ${analise.numeros.slice(0, 10)}` : (garantirPrefixo ? 'PRJ' : '');
         if (depois !== antes) pscipInput.value = depois;
         return depois;
       }
 
       function normalizarPscipTela_(valor) {
         return String(valor == null ? '' : valor).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      }
+
+      function analisarNumeroPscip_(valor) {
+        const bruto = String(valor == null ? '' : valor).trim().toUpperCase();
+        const semPrefixo = bruto.replace(/^PRJ/i, '');
+        const numeros = semPrefixo.replace(/\D/g, '');
+        return {
+          bruto,
+          numeros,
+          projeto: `PRJ${numeros.slice(0, 10)}`,
+          completo: numeros.length === 10,
+          excedente: numeros.length > 10
+        };
+      }
+
+      function projetoPscipOperacional_(valor) {
+        const analise = analisarNumeroPscip_(valor);
+        return analise.numeros ? `PRJ${analise.numeros.slice(0, 10)}` : '';
+      }
+
+      function pscipProjetoValido_(valor) {
+        return analisarNumeroPscip_(valor).numeros.length === 10;
+      }
+
+      function formatarDigitacaoPscip_(valor) {
+        const analise = analisarNumeroPscip_(valor);
+        return `PRJ${analise.numeros.slice(0, 10)}`;
+      }
+
+      function formatarDeclaracaoEvento_(valor) {
+        return String(valor == null ? '' : valor).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+      }
+
+      function declaracaoEventoValida_(valor) {
+        return /^\d{4}[A-Z]+\d+$/.test(formatarDeclaracaoEvento_(valor));
+      }
+
+      function ehEventoDeclaratorioPreparacao_() {
+        return String(document.getElementById('prepareTipo')?.value || '') === 'fiscalizacao' &&
+          normalize(document.getElementById('prepareDemanda')?.value || '') === normalize('Eventos declaratórios');
+      }
+
+      async function tratarPscipExcedente_(input, valorOriginal) {
+        if (!input) return false;
+        const analise = analisarNumeroPscip_(valorOriginal);
+        if (!analise.excedente) return false;
+        const usar = await confirmarGpv_(
+          `O número informado possui mais dígitos que o padrão do PSCIP e pode corresponder ao Nº do AVCB.\n\nNº do Projeto identificado: ${analise.projeto}`,
+          'Número maior que o padrão do PSCIP',
+          { rotuloConfirmar: 'Usar nº do Projeto', rotuloCancelar: 'Corrigir' }
+        );
+        input.value = usar ? analise.projeto : 'PRJ';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        if (!usar) setTimeout(() => { input.focus(); try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {} }, 40);
+        return true;
+      }
+
+      function instalarProtecaoPscip_(input, aoAlterar = null) {
+        if (!input || input.dataset.pscipGuard === '1') return;
+        input.dataset.pscipGuard = '1';
+        input.maxLength = 13;
+        input.addEventListener('input', event => {
+          const formatado = formatarDigitacaoPscip_(event.target.value);
+          if (event.target.value !== formatado) event.target.value = formatado;
+          if (typeof aoAlterar === 'function') aoAlterar();
+        });
+        input.addEventListener('paste', event => {
+          const texto = String(event.clipboardData?.getData('text') || '');
+          if (!analisarNumeroPscip_(texto).excedente) return;
+          event.preventDefault();
+          tratarPscipExcedente_(input, texto).catch(() => {});
+        });
       }
 
       function showPscipLookupStatus_(texto, tipo = 'info') {
@@ -7987,12 +8069,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function filtrosProcessoPf_(origem = 'form') {
         const g = id => String(document.getElementById(id)?.value || '').trim();
         if (origem === 'prepare') {
+          const evento = ehEventoDeclaratorioPreparacao_();
           return {
-            identificador: digits(g('prepareCnpj')),
-            pscip: g('preparePscip'),
+            identificador: evento ? '' : digits(g('prepareCnpj')),
+            pscip: evento ? '' : projetoPscipOperacional_(g('preparePscip')),
             cidade: g('prepareCidade'),
             endereco: g('prepareEndereco'),
-            numero: g('prepareNumero')
+            numero: g('prepareNumero'),
+            eventoDeclaratorio: evento
           };
         }
         if (ehEventoDeclaratorio_()) {
@@ -8112,28 +8196,57 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function aplicarPfLocalizado_(origem, candidato, automatico = false) {
-        if (!candidato?.pf) return;
+        if (!candidato) return;
         const prepare = origem === 'prepare';
-        const input = prepare ? preparePfInput : processPfInput;
-        if (!input) return;
-        const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
-        const atual = String(input.value || '').trim();
-        if (automatico && atual && atual !== autoAtual) return;
-        input.value = String(candidato.pf).trim();
-        if (prepare) preparePfAutoAtual = input.value;
-        else {
-          processoPfAutoAtual = input.value;
-          if (ehVistoriaAcessoria_()) processoAcessoriaVinculado = { ...candidato };
-          const demais = processoPfCandidatos.filter(item => String(item?.pf || '') !== String(candidato.pf || ''));
-          renderizarAlertaProcessoAnterior_([candidato, ...demais]);
-          atualizarOpcoesSancaoPorFluxo_();
-          sincronizarVistoriaAcessoria_();
+        const inputPf = prepare ? preparePfInput : processPfInput;
+        const pscipHistorico = candidato.pscip ? projetoPscipOperacional_(candidato.pscip) : '';
+        let pscipAplicado = false;
+
+        if (pscipHistorico && pscipProjetoValido_(pscipHistorico)) {
+          if (prepare && !ehEventoDeclaratorioPreparacao_()) {
+            const inputPscip = document.getElementById('preparePscip');
+            if (inputPscip && !pscipProjetoValido_(inputPscip.value)) {
+              inputPscip.value = pscipHistorico;
+              inputPscip.dispatchEvent(new Event('input', { bubbles: true }));
+              pscipAplicado = true;
+            }
+          } else if (!prepare && !ehEventoDeclaratorio_()) {
+            if (pscipInput && !pscipProjetoValido_(pscipInput.value)) {
+              if (possuiPscipSelect) possuiPscipSelect.value = 'sim';
+              syncPscip_();
+              pscipInput.value = pscipHistorico;
+              pscipInput.dispatchEvent(new Event('input', { bubbles: true }));
+              pscipAplicado = true;
+            }
+          }
         }
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        if (inputPf && candidato.pf) {
+          const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
+          const atual = String(inputPf.value || '').trim();
+          if (!(automatico && atual && atual !== autoAtual)) {
+            inputPf.value = String(candidato.pf).trim();
+            if (prepare) preparePfAutoAtual = inputPf.value;
+            else {
+              processoPfAutoAtual = inputPf.value;
+              if (ehVistoriaAcessoria_()) processoAcessoriaVinculado = { ...candidato };
+              const demais = processoPfCandidatos.filter(item => String(item?.pf || '') !== String(candidato.pf || ''));
+              renderizarAlertaProcessoAnterior_([candidato, ...demais]);
+              atualizarOpcoesSancaoPorFluxo_();
+              sincronizarVistoriaAcessoria_();
+            }
+            inputPf.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
         if (status) {
+          const referencias = [
+            candidato.pf ? `PF ${candidato.pf}` : '',
+            pscipHistorico && pscipProjetoValido_(pscipHistorico) ? `PSCIP ${pscipHistorico}` : ''
+          ].filter(Boolean).join(' • ');
           const ref = [candidato.criterio, candidato.estabelecimento, candidato.sancao].filter(Boolean).join(' • ');
-          status.textContent = `PF ${candidato.pf} localizado no histórico desde 01/07/2025${ref ? ` — ${ref}` : ''}.`;
+          status.textContent = `${referencias || 'Processo'} localizado no histórico desde 01/07/2025${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}.`;
           status.className = 'lookup-status show success';
         }
         const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
@@ -8151,7 +8264,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           renderizarAlertaProcessoAnterior_(candidatos);
         }
         if (!resultados) return;
-        if (!prepare && ehEventoDeclaratorio_()) {
+        if ((!prepare && ehEventoDeclaratorio_()) || (prepare && ehEventoDeclaratorioPreparacao_())) {
           resultados.innerHTML = '';
           resultados.hidden = true;
           if (status) {
@@ -8184,13 +8297,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (inputAtual && autoAtual && String(inputAtual.value || '').trim() === autoAtual && !candidatos.some(item => String(item.pf || '').trim() === autoAtual)) inputAtual.value = '';
         if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
         if (status) {
-          status.textContent = `${candidatos.length} processos compatíveis encontrados. Selecione o Nº do PF correto e confira a situação.`;
+          status.textContent = `${candidatos.length} processos compatíveis encontrados. Selecione o processo correto; PF e PSCIP serão aproveitados quando disponíveis.`;
           status.className = 'lookup-status show info';
         }
         resultados.innerHTML = candidatos.map((item,index) => {
           const endereco = [item.endereco,item.numero,item.cidade].filter(Boolean).join(', ');
+          const pscip = item.pscip ? projetoPscipOperacional_(item.pscip) : '';
+          const referencia = [item.pf ? `PF ${item.pf}` : '', pscip && pscipProjetoValido_(pscip) ? `PSCIP ${pscip}` : ''].filter(Boolean).join(' • ');
           const detalhe = [item.criterio,item.sancao,item.carimbo,endereco].filter(Boolean).join(' • ');
-          return `<div class="establishment-history-item"><div class="establishment-history-copy"><strong>PF ${escapeHtml(item.pf)}</strong><span>${escapeHtml(item.estabelecimento || 'Processo localizado')}</span><span>${escapeHtml(detalhe)}</span></div><button class="establishment-history-use" type="button" data-pf-origin="${prepare ? 'prepare' : 'form'}" data-pf-index="${index}">Usar PF</button></div>`;
+          return `<div class="establishment-history-item"><div class="establishment-history-copy"><strong>${escapeHtml(referencia || 'Processo localizado')}</strong><span>${escapeHtml(item.estabelecimento || 'Processo localizado')}</span><span>${escapeHtml(detalhe)}</span></div><button class="establishment-history-use" type="button" data-pf-origin="${prepare ? 'prepare' : 'form'}" data-pf-index="${index}">Usar processo</button></div>`;
         }).join('');
         resultados.hidden = false;
       }
@@ -8204,7 +8319,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const chave = chaveFiltrosProcessoPf_(filtros);
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
         if (status) {
-          status.textContent = (!prepare && ehEventoDeclaratorio_())
+          status.textContent = ((!prepare && ehEventoDeclaratorio_()) || (prepare && ehEventoDeclaratorioPreparacao_()))
             ? 'Verificando histórico de eventos declaratórios pelo endereço do evento...'
             : (!prepare && ehVistoriaAcessoria_())
               ? 'Localizando processo fiscalizatório anterior de local já autuado...'
@@ -8992,6 +9107,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? `<span class="logged-user-name">${escapeHtml(nome)}</span>${quantidade > 0 ? `<span class="prepared-alert-badge" aria-hidden="true">${quantidade}</span>` : ''}`
             : '';
         }
+
+        if (programmedQuickAddBtn) programmedQuickAddBtn.hidden = !usuarioPodeOperar_();
 
         if (preparedForUserNotice) {
           preparedForUserNotice.hidden = quantidade <= 0;
@@ -9794,20 +9911,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function atualizarCamposPreparacaoPorTipo_() {
         const tipoSelecionado = String(prepareTipo?.value || '');
         const liberacao = tipoSelecionado === 'liberacao';
-        const wrap = document.getElementById('preparePscipWrap');
-        if (wrap) wrap.classList.toggle('is-required-prep', liberacao);
+        const evento = ehEventoDeclaratorioPreparacao_();
+        const pscipWrap = document.getElementById('preparePscipWrap');
+        const eventoWrap = document.getElementById('prepareEventoDeclaracaoWrap');
+        const demanda = document.getElementById('prepareDemanda');
+        const pscip = document.getElementById('preparePscip');
+        const declaracao = document.getElementById('prepareEventoDeclaracaoNumero');
+
+        if (pscipWrap) {
+          pscipWrap.hidden = evento;
+          pscipWrap.classList.toggle('is-required-prep', liberacao && !evento);
+        }
+        if (eventoWrap) eventoWrap.hidden = !evento;
         const dataLabel = document.getElementById('prepareDataLabel');
         if (dataLabel) dataLabel.classList.toggle('required', liberacao);
         const dataHint = document.getElementById('prepareDataHint');
         if (dataHint) dataHint.hidden = !liberacao;
-        const input = document.getElementById('preparePscip');
-        if (liberacao && input && !String(input.value || '').trim()) input.value = 'PRJ';
+
+        if (liberacao && demanda && !String(demanda.value || '').trim()) demanda.value = 'Liberação';
+        if (evento) {
+          if (pscip) pscip.value = '';
+        } else {
+          if (pscip && !String(pscip.value || '').trim()) pscip.value = 'PRJ';
+          if (declaracao && normalize(demanda?.value || '') !== normalize('Eventos declaratórios')) declaracao.value = '';
+        }
         if (prepareDwgWrap) prepareDwgWrap.hidden = !liberacao;
       }
 
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
-        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao'].forEach(id => {
+        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
@@ -9937,7 +10070,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareData', item.dataPrevista || '');
         set('prepareVistoriador', item.vistoriadorResponsavel || '');
         set('prepareCidade', item.cidade || 'Viçosa');
-        set('preparePscip', item.pscip || 'PRJ');
+        set('prepareDemanda', item.demandaPrincipal || (item.eventoDeclaracaoNumero ? 'Eventos declaratórios' : ''));
+        set('preparePscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
+        set('prepareEventoDeclaracaoNumero', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero || ''));
         set('preparePf', item.pf || '');
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
@@ -9973,6 +10108,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function dadosPreparacaoFormulario_() {
         const g = id => String(document.getElementById(id)?.value || '').trim();
         const tipo = g('prepareTipo');
+        const eventoDeclaratorio = tipo === 'fiscalizacao' && normalize(g('prepareDemanda')) === normalize('Eventos declaratórios');
+        const pscipInformado = eventoDeclaratorio ? '' : projetoPscipOperacional_(g('preparePscip'));
         return {
           _appPreparacao: 'sim',
           _appPreparacaoEdicao: preparacaoEditandoId ? 'sim' : 'nao',
@@ -9982,8 +10119,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           dataPrevista: g('prepareData'),
           vistoriadorResponsavel: g('prepareVistoriador'),
           cidade: g('prepareCidade') || 'Viçosa',
-          _appPossuiPscip: tipo === 'liberacao' ? 'sim' : (normalizarPscipTela_(g('preparePscip')).length > 3 ? 'sim' : 'nao'),
-          pscip: normalizarPscipExibicao_(g('preparePscip'), tipo === 'liberacao'),
+          demandaPrincipal: eventoDeclaratorio ? 'Eventos declaratórios' : g('prepareDemanda'),
+          categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : '',
+          eventoDeclaracaoNumero: eventoDeclaratorio ? formatarDeclaracaoEvento_(g('prepareEventoDeclaracaoNumero')) : '',
+          _appPossuiPscip: eventoDeclaratorio ? 'nao' : (tipo === 'liberacao' ? 'sim' : (pscipProjetoValido_(pscipInformado) ? 'sim' : 'nao')),
+          pscip: eventoDeclaratorio ? '' : pscipInformado,
           pf: g('preparePf'),
           cnpj: g('prepareCnpj'),
           nomeFantasia: g('prepareNomeFantasia'),
@@ -9997,7 +10137,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           _appDispositivo: nomeDispositivo_()
         };
       }
-
 
       let cnpjPreparacaoConsultaSequencia = 0;
       let cnpjPreparacaoEmAndamento = null;
@@ -10106,10 +10245,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function salvarPreparacaoVistoria_() {
         const p = dadosPreparacaoFormulario_();
         const faltantes = [];
+        const eventoDeclaratorio = p.tipoPreparacao === 'fiscalizacao' && normalize(p.demandaPrincipal) === normalize('Eventos declaratórios');
         if (!['fiscalizacao','liberacao'].includes(p.tipoPreparacao)) faltantes.push('Tipo de vistoria');
         if (p.tipoPreparacao === 'liberacao' && !p.dataPrevista) faltantes.push('Data prevista');
         if (!p.vistoriadorResponsavel) faltantes.push('Vistoriador responsável');
-        if (p.tipoPreparacao === 'liberacao' && normalizarPscipTela_(p.pscip).length <= 3) faltantes.push('Nº do PSCIP');
+        if (p.tipoPreparacao === 'liberacao' && !pscipProjetoValido_(p.pscip)) faltantes.push('Nº do PSCIP / Projeto');
+        if (!eventoDeclaratorio && normalizarPscipTela_(p.pscip).length > 3 && !pscipProjetoValido_(p.pscip)) faltantes.push('Nº do PSCIP / Projeto válido');
+        if (eventoDeclaratorio && !p.eventoDeclaracaoNumero) faltantes.push('Nº da declaração INFOSCIP');
+        if (eventoDeclaratorio && p.eventoDeclaracaoNumero && !declaracaoEventoValida_(p.eventoDeclaracaoNumero)) faltantes.push('Nº da declaração INFOSCIP válido');
         if (faltantes.length) {
           if (prepareInspectionError) {
             prepareInspectionError.hidden = false;
@@ -10209,8 +10352,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         if (programmedInspectionsBox) programmedInspectionsBox.setAttribute('data-program-count', String(total));
+        if (programmedSummaryRow) programmedSummaryRow.hidden = total === 0;
         if (programmedSummaryCard) {
-          programmedSummaryCard.hidden = total === 0;
           programmedSummaryCard.classList.toggle('is-danger', criticas > 0);
           programmedSummaryCard.setAttribute('aria-label', total
             ? `Abrir Vistorias Programadas. ${total} pendente${total === 1 ? '' : 's'}${minhas ? `, ${minhas} para você` : ''}.`
@@ -10252,14 +10395,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         const card = item => {
           const liberacao = item.tipoPreparacao === 'liberacao';
-          const titulo = item.nomeFantasia || item.razaoSocial || item.pscip || 'Vistoria programada';
+          const eventoDeclaratorio = normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero);
+          const pscipCard = item.pscip ? projetoPscipOperacional_(item.pscip) : '';
+          const identificadorPrincipal = eventoDeclaratorio
+            ? (item.eventoDeclaracaoNumero ? `Declaração ${formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero)}` : 'Evento declaratório')
+            : (pscipCard || 'Sem PSCIP informado');
+          const titulo = item.nomeFantasia || item.razaoSocial || (eventoDeclaratorio ? item.eventoDeclaracaoNumero : pscipCard) || 'Vistoria programada';
           const endereco = [item.endereco, item.numero, item.bairro, item.cidade].filter(Boolean).join(', ');
           const prazo = classificarPrazoProgramacao_(item);
           return `<article class="prepared-card programmed-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-preparacao-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="Abrir vistoria programada: ${escapeAttr(titulo)}">
             <div class="prepared-card-main">
-              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : 'Fiscalização'}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
+              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização')}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
               <h3>${escapeHtml(titulo)}</h3>
-              <p class="prepared-identifiers">${escapeHtml(item.pscip || 'Sem PSCIP informado')}${item.pf ? ` <span aria-hidden="true">•</span> PF ${escapeHtml(item.pf)}` : ''}${item.area ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
+              <p class="prepared-identifiers">${escapeHtml(identificadorPrincipal)}${item.pf ? ` <span aria-hidden="true">•</span> PF ${escapeHtml(item.pf)}` : ''}${item.area && !eventoDeclaratorio ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
               <p class="prepared-address">${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
               <p class="prepared-inspector"><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
             </div>
@@ -10288,7 +10436,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function carregarPreparacoesVistoria_() {
         const inicioLoadingProgramadas = Date.now();
-        if (programmedSummaryCard && navigator.onLine) programmedSummaryCard.hidden = true;
+        if (programmedSummaryRow && navigator.onLine) programmedSummaryRow.hidden = true;
         const tempoMinimoLoading = 450;
         const cacheKey = 'gpv_preparacoes_cache_v1';
         let cachePreparacoes = [];
@@ -10750,7 +10898,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('bairro', item.bairro);
         set('pf', item.pf);
         set('area', item.area);
-        if (item.pscip) { if (possuiPscipSelect) possuiPscipSelect.value='sim'; set('pscip', item.pscip); syncPscip_(); }
+        const preparacaoEventoDeclaratorio = normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero);
+        if (preparacaoEventoDeclaratorio) {
+          set('demandaPrincipal', 'Eventos declaratórios');
+          aplicarModoEventoDeclaratorio_({ silencioso: true });
+          set('eventoDeclaracaoNumero', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero || ''));
+          if (possuiPscipSelect) possuiPscipSelect.value = '';
+          if (pscipInput) pscipInput.value = '';
+          syncPscip_();
+        } else if (item.pscip) {
+          if (possuiPscipSelect) possuiPscipSelect.value='sim';
+          set('pscip', projetoPscipOperacional_(item.pscip));
+          syncPscip_();
+        }
         if (item.cidade) {
           const existe = Array.from(citySelect.options).some(o => normalize(o.value) === normalize(item.cidade));
           if (existe) citySelect.value = Array.from(citySelect.options).find(o => normalize(o.value) === normalize(item.cidade)).value;
@@ -10877,6 +11037,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
+      programmedQuickAddBtn?.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        abrirModalPreparacao_();
+      });
       const acionarFechamentoProgramadas_ = event => {
         event?.preventDefault?.();
         event?.stopPropagation?.();
@@ -10899,7 +11064,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
       prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
-      document.getElementById('preparePscip')?.addEventListener('input', event => { event.target.value = String(event.target.value || '').replace(/^prj/i, 'PRJ'); agendarConsultaProcessoPf_('prepare'); });
+      document.getElementById('prepareDemanda')?.addEventListener('input', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 180); });
+      document.getElementById('prepareDemanda')?.addEventListener('change', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 100); });
+      instalarProtecaoPscip_(document.getElementById('preparePscip'), () => agendarConsultaProcessoPf_('prepare'));
+      document.getElementById('preparePscip')?.addEventListener('blur', () => {
+        const el = document.getElementById('preparePscip');
+        if (el && !ehEventoDeclaratorioPreparacao_()) el.value = formatarDigitacaoPscip_(el.value);
+        agendarConsultaProcessoPf_('prepare', 100);
+      });
+      document.getElementById('prepareEventoDeclaracaoNumero')?.addEventListener('input', event => { event.target.value = formatarDeclaracaoEvento_(event.target.value); });
       ['prepareCidade','prepareEndereco','prepareNumero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('prepare')));
       let timerConsultaCnpjPreparacao = null;
       let ultimoCnpjPreparacaoConsultado = '';
@@ -11022,7 +11195,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!link) return;
         try { saveDraft(); } catch (e) {}
       });
-      eventoDeclaracaoNumeroInput?.addEventListener('input', event => { event.target.value = String(event.target.value || '').toUpperCase().replace(/\s+/g, ''); });
+      eventoDeclaracaoNumeroInput?.addEventListener('input', event => { event.target.value = formatarDeclaracaoEvento_(event.target.value); });
       eventoOrganizadorDocumentoInput?.addEventListener('input', event => {
         event.target.value = formatarDocumentoEvento_(event.target.value);
         atualizarDisponibilidadeResponsavelOrganizadorEvento_();
@@ -11049,20 +11222,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       situacaoPscipInput?.addEventListener('input', scheduleDraftSave);
       possuiPscipSelect?.addEventListener('change', () => { syncPscip_(); scheduleDraftSave(); });
       possuiPscipSelect?.addEventListener('input', () => { syncPscip_(); scheduleDraftSave(); });
-      pscipInput?.addEventListener('input', () => {
-        const atual = String(pscipInput.value || '');
-        const corrigido = atual.replace(/^prj/i, 'PRJ');
-        if (corrigido !== atual) pscipInput.value = corrigido;
+      instalarProtecaoPscip_(pscipInput, () => {
         agendarConsultaPscip_();
+        agendarConsultaProcessoPf_('form');
         scheduleDraftSave();
       });
       pscipInput?.addEventListener('blur', () => {
         if (value('possuiPscip') === 'sim') normalizarPscipInput_(true);
         agendarConsultaPscip_();
+        agendarConsultaProcessoPf_('form', 100);
         scheduleDraftSave();
       });
-      pscipInput?.addEventListener('input', () => agendarConsultaProcessoPf_('form'));
-      pscipInput?.addEventListener('blur', () => agendarConsultaProcessoPf_('form', 100));
       processPfInput?.addEventListener('input', () => {
         if (ehVistoriaAcessoria_() && processoAcessoriaVinculado && String(processPfInput.value || '').trim() !== String(processoAcessoriaVinculado.pf || '').trim()) {
           processoAcessoriaVinculado = null;
@@ -11546,7 +11716,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ac', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ad', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
