@@ -10022,7 +10022,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           preparacoesVistoria = novasPreparacoes;
           try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
           preparedInspectionsList?.classList.remove('is-loading');
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = `${preparacoesVistoria.length} vistoria(s) programada(s) pendente(s).`;
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = preparacoesVistoria.length === 1 ? '1 vistoria pendente.' : `${preparacoesVistoria.length} vistorias pendentes.`;
           renderizarPreparacoesVistoria_();
         } catch (erro) {
           const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
@@ -10051,7 +10051,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           preparacoesVistoria = preparacoesVistoria.filter(p => String(p.id) !== String(item.id));
           try { localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(preparacoesVistoria)); } catch (e) {}
           renderizarPreparacoesVistoria_();
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = `${preparacoesVistoria.length} vistoria(s) programada(s) pendente(s).`;
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = preparacoesVistoria.length === 1 ? '1 vistoria pendente.' : `${preparacoesVistoria.length} vistorias pendentes.`;
           appStatus.textContent = 'Programação excluída.';
         } catch (erro) {
           appStatus.textContent = erro?.message || 'Não foi possível excluir a programação.';
@@ -11223,7 +11223,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99s', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99u', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

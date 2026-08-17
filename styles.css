@@ -10015,3 +10015,432 @@ body.records-mode .records-card-cta{
     font-size:12.5px!important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99u — Vistorias Programadas: visual moderno, compacto e operacional
+   ============================================================================= */
+#programmedListModal .programmed-list-card{
+  border:1px solid rgba(111,18,24,.10)!important;
+  background:#fff!important;
+  box-shadow:0 30px 90px rgba(18,24,40,.28)!important;
+}
+
+#programmedListModal .programmed-list-head{
+  padding:15px 18px 13px!important;
+  background:
+    radial-gradient(circle at 12% 0%,rgba(155,28,34,.05),transparent 34%),
+    linear-gradient(180deg,#fff 0%,#fffdfd 100%)!important;
+}
+
+#programmedListModal .programmed-modal-title-icon{
+  width:44px!important;
+  height:44px!important;
+  border-radius:14px!important;
+  color:#9f1d24!important;
+  background:linear-gradient(145deg,#fff4f4,#ffe9eb)!important;
+  box-shadow:inset 0 0 0 1px rgba(159,29,36,.08),0 6px 18px rgba(159,29,36,.07)!important;
+}
+
+#programmedListModal .programmed-list-head h2{
+  color:#182230!important;
+  font-size:1.45rem!important;
+  font-weight:850!important;
+  letter-spacing:-.025em!important;
+}
+
+#programmedListModal #preparedForUserNotice{
+  margin-top:5px!important;
+  padding:5px 10px!important;
+  border-color:#ead996!important;
+  background:#fff9df!important;
+  color:#6c5310!important;
+  font-size:.73rem!important;
+}
+
+#programmedListModal .programmed-list-close-btn{
+  width:39px!important;
+  height:39px!important;
+  background:#f7f8fa!important;
+  border-color:#e3e7ec!important;
+  color:#3f4a5a!important;
+  box-shadow:0 3px 10px rgba(15,23,42,.05)!important;
+}
+
+#programmedListModal .programmed-list-body{
+  padding:13px 16px 18px!important;
+  background:linear-gradient(180deg,#fff 0%,#fbfcfd 100%)!important;
+}
+
+#programmedListModal .programmed-list-toolbar{
+  gap:9px!important;
+  margin-bottom:10px!important;
+}
+
+#programmedListModal .prepared-inspections-filters{
+  padding:4px!important;
+  gap:4px!important;
+  border:1px solid #e6e9ee!important;
+  border-radius:14px!important;
+  background:#f4f6f8!important;
+}
+
+#programmedListModal .prepared-filter{
+  min-height:38px!important;
+  padding:7px 10px!important;
+  border-radius:10px!important;
+  color:#525d6d!important;
+  font-size:.82rem!important;
+  font-weight:750!important;
+  transition:background .16s ease,color .16s ease,box-shadow .16s ease,border-color .16s ease!important;
+}
+
+#programmedListModal .prepared-filter.is-active{
+  border-color:#e2b7ba!important;
+  background:#fff!important;
+  color:#911a20!important;
+  box-shadow:0 2px 8px rgba(15,23,42,.06)!important;
+}
+
+#programmedListModal .programmed-register-btn{
+  min-height:42px!important;
+  padding:8px 13px!important;
+  border:1px solid #e1c4c6!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#921a21!important;
+  font-size:.82rem!important;
+  font-weight:800!important;
+  box-shadow:0 3px 10px rgba(111,18,24,.05)!important;
+}
+#programmedListModal .programmed-register-btn:hover,
+#programmedListModal .programmed-register-btn:focus-visible{
+  background:#fff5f5!important;
+  border-color:#cf999d!important;
+}
+
+#programmedListModal #preparedInspectionsStatus{
+  margin:7px 2px 10px!important;
+  color:#667085!important;
+  font-size:.80rem!important;
+  line-height:1.35!important;
+}
+
+#programmedListModal .programmed-inspections-box{
+  margin:0!important;
+  padding:0!important;
+}
+
+#programmedListModal .prepared-inspections-list{
+  gap:11px!important;
+  margin-top:0!important;
+}
+
+#programmedListModal .prepared-card{
+  position:relative;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start!important;
+  gap:11px 16px!important;
+  padding:15px!important;
+  overflow:hidden;
+  border:1px solid #e3e7ec!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 7px 24px rgba(15,23,42,.045)!important;
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease!important;
+}
+#programmedListModal .prepared-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:4px;
+  background:#b9c2ce;
+}
+#programmedListModal .prepared-card.proxima::before{background:#54a66c}
+#programmedListModal .prepared-card.amanha::before{background:#52749c}
+#programmedListModal .prepared-card.hoje::before{background:#d08a00}
+#programmedListModal .prepared-card.atrasada::before{background:#b42318}
+#programmedListModal .prepared-card:hover{
+  transform:translateY(-1px)!important;
+  border-color:#d7dde5!important;
+  box-shadow:0 11px 30px rgba(15,23,42,.07)!important;
+}
+
+#programmedListModal .prepared-card-main{
+  grid-column:1 / -1;
+  min-width:0!important;
+}
+
+#programmedListModal .prepared-card-top{
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  flex-wrap:wrap!important;
+  margin-bottom:8px!important;
+}
+
+#programmedListModal .prepared-kind,
+#programmedListModal .program-deadline-badge{
+  min-height:27px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  padding:4px 9px!important;
+  border-radius:999px!important;
+  font-size:.73rem!important;
+  font-weight:850!important;
+  line-height:1!important;
+}
+
+#programmedListModal .prepared-kind.inspection{
+  border:1px solid #f0dfb9!important;
+  background:#fff7e5!important;
+  color:#735310!important;
+}
+#programmedListModal .prepared-kind.release{
+  border:1px solid #cce6d4!important;
+  background:#edf9f1!important;
+  color:#247044!important;
+}
+
+#programmedListModal .prepared-card-top>strong{
+  margin-left:auto!important;
+  color:#253044!important;
+  font-size:.91rem!important;
+  font-weight:850!important;
+  white-space:nowrap!important;
+}
+
+#programmedListModal .prepared-card h3{
+  margin:0 0 6px!important;
+  color:#172033!important;
+  font-size:1.08rem!important;
+  font-weight:850!important;
+  line-height:1.25!important;
+  letter-spacing:-.01em!important;
+}
+
+#programmedListModal .prepared-identifiers,
+#programmedListModal .prepared-address,
+#programmedListModal .prepared-inspector{
+  margin:4px 0!important;
+  color:#596475!important;
+  font-size:.84rem!important;
+  line-height:1.42!important;
+}
+
+#programmedListModal .prepared-identifiers{
+  color:#697486!important;
+  font-weight:650!important;
+}
+
+#programmedListModal .prepared-address{
+  color:#4e5969!important;
+}
+
+#programmedListModal .prepared-inspector{
+  margin-top:7px!important;
+}
+#programmedListModal .prepared-inspector b{
+  color:#455063!important;
+  font-weight:800!important;
+}
+
+#programmedListModal .prepared-card-actions{
+  grid-column:1 / -1;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(88px,.45fr) minmax(82px,.4fr)!important;
+  gap:8px!important;
+  align-items:stretch!important;
+  width:100%!important;
+  margin-top:2px!important;
+  padding-top:11px!important;
+  border-top:1px solid #eef1f4!important;
+}
+
+#programmedListModal .prepared-card-actions .btn{
+  min-height:43px!important;
+  margin:0!important;
+  padding:8px 11px!important;
+  border-radius:12px!important;
+  font-size:.80rem!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+}
+
+#programmedListModal .prepared-open-btn{
+  grid-column:1!important;
+  grid-row:1!important;
+  width:100%!important;
+  border-color:#a9171e!important;
+  background:linear-gradient(180deg,#bd1c24,#a7151c)!important;
+  color:#fff!important;
+  box-shadow:0 6px 16px rgba(167,21,28,.18)!important;
+}
+
+#programmedListModal .prepared-edit-btn{
+  grid-column:2!important;
+  grid-row:1!important;
+  border-color:#e1e5ea!important;
+  background:#f5f7f9!important;
+  color:#344054!important;
+}
+
+#programmedListModal .prepared-delete-btn{
+  grid-column:3!important;
+  grid-row:1!important;
+  border-color:transparent!important;
+  background:transparent!important;
+  color:#9a2026!important;
+}
+
+#programmedListModal .prepared-cancel-fill-btn{
+  grid-column:1 / -1!important;
+  grid-row:2!important;
+  min-height:38px!important;
+  border-color:#ead4d5!important;
+  background:#fff9f9!important;
+  color:#8c2429!important;
+}
+
+#programmedListModal .prepared-card-actions>a.btn{
+  grid-column:1 / -1!important;
+  min-height:38px!important;
+}
+
+@media (max-width:680px){
+  #programmedListModal .programmed-list-card{
+    max-height:93dvh!important;
+    border-radius:23px 23px 0 0!important;
+  }
+
+  #programmedListModal .programmed-list-head{
+    padding:14px 14px 11px!important;
+  }
+
+  #programmedListModal .programmed-list-head h2{
+    font-size:1.30rem!important;
+  }
+
+  #programmedListModal .programmed-modal-title-icon{
+    width:42px!important;
+    height:42px!important;
+  }
+
+  #programmedListModal .programmed-list-body{
+    padding:11px 12px 17px!important;
+  }
+
+  #programmedListModal .programmed-list-toolbar{
+    grid-template-columns:1fr auto!important;
+    align-items:center!important;
+    gap:8px!important;
+  }
+
+  #programmedListModal .programmed-list-toolbar .prepared-inspections-filters{
+    grid-column:1 / -1!important;
+    grid-row:1!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:3px!important;
+    padding:3px!important;
+  }
+
+  #programmedListModal .programmed-list-toolbar .prepared-filter{
+    min-height:37px!important;
+    padding:6px 4px!important;
+    font-size:.72rem!important;
+  }
+
+  #programmedListModal .programmed-register-btn{
+    grid-column:2!important;
+    grid-row:2!important;
+    width:auto!important;
+    min-height:39px!important;
+    justify-self:end!important;
+    padding:7px 11px!important;
+    font-size:.76rem!important;
+  }
+
+  #programmedListModal #preparedInspectionsStatus{
+    margin-top:2px!important;
+    font-size:.78rem!important;
+  }
+
+  #programmedListModal .prepared-card{
+    display:block!important;
+    padding:14px 14px 13px!important;
+    border-radius:17px!important;
+  }
+
+  #programmedListModal .prepared-card-top{
+    gap:6px!important;
+    margin-bottom:8px!important;
+  }
+
+  #programmedListModal .prepared-card-top>strong{
+    font-size:.87rem!important;
+  }
+
+  #programmedListModal .prepared-card h3{
+    font-size:1.05rem!important;
+  }
+
+  #programmedListModal .prepared-identifiers,
+  #programmedListModal .prepared-address,
+  #programmedListModal .prepared-inspector{
+    font-size:.82rem!important;
+  }
+
+  #programmedListModal .prepared-card-actions{
+    display:grid!important;
+    grid-template-columns:minmax(0,1.45fr) minmax(82px,.7fr) minmax(72px,.62fr)!important;
+    gap:7px!important;
+    margin-top:11px!important;
+    padding-top:10px!important;
+  }
+
+  #programmedListModal .prepared-card-actions .btn{
+    min-height:44px!important;
+    padding:8px 7px!important;
+    font-size:.78rem!important;
+  }
+
+  #programmedListModal .prepared-open-btn{
+    grid-column:1!important;
+    width:100%!important;
+  }
+
+  #programmedListModal .prepared-edit-btn{
+    grid-column:2!important;
+  }
+
+  #programmedListModal .prepared-delete-btn{
+    grid-column:3!important;
+  }
+}
+
+@media (max-width:390px){
+  #programmedListModal .programmed-list-toolbar .prepared-filter{
+    font-size:.68rem!important;
+  }
+  #programmedListModal .programmed-list-head h2{
+    font-size:1.20rem!important;
+  }
+  #programmedListModal .prepared-card-actions{
+    grid-template-columns:1fr 1fr!important;
+  }
+  #programmedListModal .prepared-open-btn{
+    grid-column:1 / -1!important;
+    grid-row:1!important;
+  }
+  #programmedListModal .prepared-edit-btn{
+    grid-column:1!important;
+    grid-row:2!important;
+  }
+  #programmedListModal .prepared-delete-btn{
+    grid-column:2!important;
+    grid-row:2!important;
+  }
+}
