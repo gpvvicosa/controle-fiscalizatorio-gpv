@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260817-v23-9-99-goals-grid-s';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260817-v23-9-99-records-readability-t';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [

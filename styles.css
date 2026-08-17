@@ -9838,3 +9838,180 @@ input[list]::-webkit-calendar-picker-indicator{
     line-height:1.15;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99t — Legibilidade da listagem do Painel
+   Aumenta fonte e contraste dos textos secundários, sem alterar o fluxo.
+   ============================================================================= */
+body.records-mode .records-status{
+  color:#46515f!important;
+  font-size:12.5px!important;
+  line-height:1.4!important;
+}
+
+body.records-mode .records-card-title{
+  color:#182230!important;
+  font-size:16px!important;
+  font-weight:850!important;
+  line-height:1.25!important;
+}
+
+body.records-mode .records-card-date{
+  color:#667085!important;
+  font-size:10.5px!important;
+  font-weight:650!important;
+  line-height:1.3!important;
+}
+
+body.records-mode .records-card-subtitle{
+  color:#566171!important;
+  font-size:12.5px!important;
+  line-height:1.35!important;
+}
+
+body.records-mode .records-card-status-row{
+  color:#566171!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+body.records-mode .records-card-status-row>span{
+  color:#566171!important;
+  font-size:12px!important;
+}
+
+body.records-mode .records-meta-item{
+  background:#f6f8fa!important;
+  padding:9px 10px!important;
+}
+
+body.records-mode .records-meta-item span{
+  color:#667085!important;
+  font-size:9.5px!important;
+  font-weight:850!important;
+  line-height:1.2!important;
+  letter-spacing:.025em!important;
+}
+
+body.records-mode .records-meta-item strong{
+  margin-top:4px!important;
+  color:#273142!important;
+  font-size:12.2px!important;
+  font-weight:750!important;
+  line-height:1.3!important;
+}
+
+body.records-mode .records-card-address{
+  color:#566171!important;
+  font-size:12.5px!important;
+  line-height:1.45!important;
+}
+
+body.records-mode .records-card-action{
+  padding:10px 11px!important;
+  background:#f7f9fb!important;
+  border-color:#dfe4ea!important;
+}
+
+body.records-mode .records-card-action span{
+  color:#667085!important;
+  font-size:9.5px!important;
+  font-weight:850!important;
+  line-height:1.25!important;
+}
+
+body.records-mode .records-card-action strong{
+  margin-top:4px!important;
+  color:#28323f!important;
+  font-size:12.5px!important;
+  font-weight:800!important;
+  line-height:1.4!important;
+}
+
+body.records-mode .records-card-action small{
+  margin-top:3px!important;
+  color:#566171!important;
+  font-size:11px!important;
+  line-height:1.4!important;
+}
+
+body.records-mode .records-card-cta{
+  color:#8f171d!important;
+  font-size:11.5px!important;
+  font-weight:850!important;
+}
+
+@media (max-width:760px){
+  body.records-mode .records-card{
+    padding:15px!important;
+  }
+
+  body.records-mode .records-card-title{
+    font-size:16px!important;
+  }
+
+  body.records-mode .records-card-date{
+    font-size:10.5px!important;
+  }
+
+  body.records-mode .records-card-subtitle{
+    margin-top:5px!important;
+    font-size:12.5px!important;
+  }
+
+  body.records-mode .records-card-status-row{
+    margin-top:10px!important;
+    gap:8px!important;
+    font-size:12px!important;
+  }
+
+  body.records-mode .records-card-meta{
+    gap:8px!important;
+    margin-top:11px!important;
+  }
+
+  body.records-mode .records-meta-item{
+    padding:10px!important;
+    border-radius:10px!important;
+  }
+
+  body.records-mode .records-meta-item span{
+    font-size:9.5px!important;
+  }
+
+  body.records-mode .records-meta-item strong{
+    font-size:12.2px!important;
+  }
+
+  body.records-mode .records-card-address{
+    margin-top:10px!important;
+    font-size:12.5px!important;
+  }
+
+  body.records-mode .records-card-action{
+    margin-top:11px!important;
+    padding:11px!important;
+  }
+
+  body.records-mode .records-card-action span{
+    font-size:9.5px!important;
+  }
+
+  body.records-mode .records-card-action strong{
+    font-size:12.5px!important;
+  }
+
+  body.records-mode .records-card-action small{
+    font-size:11px!important;
+  }
+
+  body.records-mode .records-card-cta{
+    margin-top:11px!important;
+    padding-top:10px!important;
+    font-size:11.5px!important;
+  }
+
+  body.records-mode .records-status{
+    font-size:12.5px!important;
+  }
+}
