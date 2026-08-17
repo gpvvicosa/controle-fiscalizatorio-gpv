@@ -2746,7 +2746,7 @@
             <td>${escapeHtml(item.demanda || '—')}</td>
             <td>${statusBadgeHtml_(item.sancao)}</td>
             <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
-            <td class="records-mono">${escapeHtml(item.projeto || '—')}</td>
+            <td class="records-mono">${escapeHtml(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
             <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5"/></svg>
@@ -2766,7 +2766,7 @@
             <div class="records-card-meta">
               <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(item.cidade || '—')}</strong></div>
               <div class="records-meta-item"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${escapeHtml(identificadorPainel_(item).valor)}</strong></div>
-              <div class="records-meta-item"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto || '—')}</strong></div>
+              <div class="records-meta-item"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</strong></div>
               <div class="records-meta-item"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
             </div>
             ${endereco && endereco !== '—' ? `<div class="records-card-address">${escapeHtml(endereco)}</div>` : ''}
@@ -3208,7 +3208,7 @@
         return [
           ['Situação atual', situacao || 'Sem situação'],
           ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
-          ['Nº do PSCIP', valorCampoFicha_(registro, 'Nº do PSCIP / Projeto')],
+          ['Nº do PSCIP', valorPscipOperacionalFicha_(registro)],
           ['REDS', valorCampoFicha_(registro, 'REDS')],
           ['Nº do Auto', valorCampoFicha_(registro, 'Nº do Auto')],
           ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
@@ -3234,7 +3234,7 @@
         const complementos = [
           item?.tipoVistoria,
           item?.demanda,
-          item?.projeto ? `PSCIP ${item.projeto}` : '',
+          item?.projeto ? `PSCIP ${projetoPscipOperacional_(item.projeto) || item.projeto}` : '',
           item?.pf ? `PF ${item.pf}` : '',
           item?.reds ? `REDS ${item.reds}` : ''
         ].filter(Boolean);
@@ -3349,6 +3349,14 @@ DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES 
 
 O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
         },
+        renovacaoAvcb: {
+          titulo: 'Fiscalização — Renovação AVCB',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, CONFORME PREVISTO NO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E NO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, CONSTATOU-SE UMA EDIFICAÇÃO CLASSIFICADA NA OCUPAÇÃO/DIVISÃO {{OCUPACAO}}. VERIFICOU-SE, IN LOCO, QUE A EDIFICAÇÃO POSSUI PSCIP Nº {{PSCIP}} E QUE O RESPECTIVO AUTO DE VISTORIA DO CORPO DE BOMBEIROS (AVCB) FOI RENOVADO EM {{DATA_RENOVACAO_AVCB}}.
+
+RESSALTAMOS QUE, NO MOMENTO DA VISTORIA, AS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO ENCONTRAVAM-SE DEVIDAMENTE INSTALADAS E EM CONFORMIDADE COM O PROJETO APROVADO E LIBERADO PELO CBMMG.`
+        },
         avcbVencido: {
           titulo: 'Fiscalização — AVCB vencido',
           texto: `EM AÇÃO FISCALIZADORA, FOI REALIZADA VISTORIA NO ENDEREÇO MENCIONADO NESTE RELATÓRIO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA IT 45/2025.
@@ -3451,7 +3459,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function sugestaoModeloFiscalizacao_(registro, situacao) {
         const n = normalize(situacao);
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
-        const projeto = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        const projeto = valorPscipOperacionalFicha_(registro);
         const licenciamento = normalize(valorCampoFicha_(registro, 'Situação do licenciamento'));
         const acessoria = demanda.includes(normalize('Vistoria Acessória'));
         if (acessoria) {
@@ -3459,6 +3467,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return [normalize('dispensado'), normalize('Dispensado de licenciamento')].includes(licenciamento) ? 'acessoriaDispensado' : 'acessoriaLicenciado';
         }
         if (demanda.includes(normalize('Eventos declaratórios')) && n === normalize('Regularizado')) return 'eventoDeclaratorioConforme';
+        if (demanda.includes(normalize('Renovação AVCB')) && n === normalize('Regularizado')) return 'renovacaoAvcb';
         if (n === normalize('Autuado')) {
           if (demanda.includes(normalize('DDU')) && [normalize('nao_possui'), normalize('Não possui')].includes(licenciamento)) return 'ddu';
           if (demanda.includes(normalize('Brigada'))) return 'brigadaVencida';
@@ -3483,7 +3492,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const ehEventoDeclaratorio = demanda.includes(normalize('Eventos declaratórios'));
         const ehAcessoria = demanda.includes(normalize('Vistoria Acessória'));
+        const ehRenovacaoAvcb = demanda.includes(normalize('Renovação AVCB'));
         const opcoes = [
+          ...(ehRenovacaoAvcb ? [['renovacaoAvcb', 'Fiscalização — Renovação AVCB']] : []),
           ...(ehAcessoria ? [
             ['acessoriaLicenciado', 'Vistoria Acessória — regularizada — com licenciamento'],
             ['acessoriaDispensado', 'Vistoria Acessória — regularizada — dispensado de licenciamento']
@@ -3517,7 +3528,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function montarTextoRedsFiscalizacao_(modelo, registro) {
-        const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        const pscip = valorPscipOperacionalFicha_(registro);
         const pf = valorCampoFicha_(registro, 'Nº do PF') || 'NÃO INFORMADO';
         const numeroAuto = String(recordAutoNumberInput?.value || valorCampoFicha_(registro, 'Nº do Auto') || '').trim();
         const autoExibicao = numeroAuto || '________________________';
@@ -3532,6 +3543,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const ocupacao = String(valorCampoFicha_(registro, 'Ocupação') || 'NÃO INFORMADO').replace(/\s*\|\s*/g, ', ').toUpperCase();
         const area = valorCampoFicha_(registro, 'Área m²') || 'NÃO INFORMADA';
         const situacaoPscip = String(valorCampoFicha_(registro, 'Situação atual do PSCIP') || 'NÃO INFORMADA').toUpperCase();
+        const dataRenovacaoAvcb = valorCampoFicha_(registro, 'Data de renovação do AVCB') || 'NÃO INFORMADA';
         const tipoLicenca = String(valorCampoFicha_(registro, 'Documento de licenciamento da acessória') || 'CLCB').toUpperCase();
         const documentoLicencaNome = tipoLicenca === 'AVCB' ? 'AUTO DE VISTORIA DO CORPO DE BOMBEIROS (AVCB)' : 'CERTIFICADO DE LICENCIAMENTO DO CORPO DE BOMBEIROS (CLCB)';
         return modelo.texto
@@ -3544,6 +3556,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           .replaceAll('{{OCUPACAO}}', ocupacao)
           .replaceAll('{{AREA}}', area)
           .replaceAll('{{SITUACAO_PSCIP}}', situacaoPscip)
+          .replaceAll('{{DATA_RENOVACAO_AVCB}}', dataRenovacaoAvcb)
           .replaceAll('{{DOCUMENTO_LICENCA_NOME}}', documentoLicencaNome)
           .replaceAll('{{EVENTO_RISCO}}', eventoRisco)
           .replaceAll('{{EVENTO_DECLARACAO}}', eventoDeclaracao)
@@ -3575,7 +3588,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const ehLiberacao = tipo.includes('liberacao') || demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao));
-        const pscip = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        const pscip = valorPscipOperacionalFicha_(registro);
         const acessoria = demanda.includes(normalize('Vistoria Acessória'));
         if (recordAutoNumberInput) recordAutoNumberInput.value = ehLiberacao || acessoria ? '' : valorCampoFicha_(registro, 'Nº do Auto');
         if (recordAutoNumberWrap) recordAutoNumberWrap.hidden = ehLiberacao || acessoria;
@@ -3951,9 +3964,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const rotuloIdentificador = cnpj ? 'CNPJ' : (cpfRegistro && !eventoFicha ? 'CPF' : 'CNPJ / CPF');
         const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
         const processo = [
-          ['Nº PSCIP', valorCampoFicha_(registro, 'Nº do PSCIP / Projeto')],
+          ['Nº PSCIP', valorPscipOperacionalFicha_(registro)],
           ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
           ['Demanda', valorCampoFicha_(registro, 'Demanda')],
+          ['Data de renovação do AVCB', valorCampoFicha_(registro, 'Data de renovação do AVCB')],
           ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
           ['Situação atual do PSCIP', valorCampoFicha_(registro, 'Situação atual do PSCIP')],
           ['Nº DDU', valorCampoFicha_(registro, 'Nº DDU')],
@@ -4894,6 +4908,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         atualizarConsultaTecnicaContextual_();
         sincronizarDemandasEspeciais_();
+        atualizarCampoRenovacaoAvcb_();
         if (!opcoes.silencioso) scheduleDraftSave();
       }
 
@@ -6761,6 +6776,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           complemento: value('complemento'),
           bairro: value('bairro'),
           demandaPrincipal: eventoDeclaratorio ? 'Eventos declaratórios' : value('demandaPrincipal'),
+          dataRenovacaoAvcb: ehDemandaRenovacaoAvcb_() ? formatarDataRenovacaoAvcbDigitacao_(value('dataRenovacaoAvcb')) : '',
           categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : value('categoriaMeta'),
           resim: value('resim'),
           area: eventoDeclaratorio ? '' : value('area'),
@@ -6842,6 +6858,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           dduProtocolInput?.classList.add('invalid');
           missing.push('Protocolo DDU');
           first = first || dduProtocolInput;
+        }
+        if (ehDemandaRenovacaoAvcb_()) {
+          const dataRenovacaoInput = document.getElementById('dataRenovacaoAvcb');
+          const dataRenovacao = String(dataRenovacaoInput?.value || '').trim();
+          if (!dataRenovacao || !dataRenovacaoAvcbValida_(dataRenovacao)) {
+            dataRenovacaoInput?.classList.add('invalid');
+            missing.push('Data de renovação do AVCB');
+            first = first || dataRenovacaoInput;
+          }
         }
         if (ehFluxoLiberacao_() && normalize(value('tipoLiberacao')) === normalize('parcial')) {
           if (!String(value('liberacaoParcialDescricao') || '').trim()) {
@@ -7907,6 +7932,106 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return /^\d{4}[A-Z]+\d+$/.test(formatarDeclaracaoEvento_(valor));
       }
 
+      function ehRenovacaoAvcbValor_(valor) {
+        return normalize(valor).includes(normalize('Renovação AVCB'));
+      }
+
+      function ehDemandaRenovacaoAvcb_() {
+        return ehFluxoFiscalizacao_() && !ehEventoDeclaratorio_() && ehRenovacaoAvcbValor_(value('demandaPrincipal'));
+      }
+
+      function ehRenovacaoAvcbPreparacao_() {
+        return String(document.getElementById('prepareTipo')?.value || '') === 'fiscalizacao' &&
+          ehRenovacaoAvcbValor_(document.getElementById('prepareDemanda')?.value || '');
+      }
+
+      function formatarDataRenovacaoAvcbDigitacao_(valor) {
+        const texto = String(valor || '').trim();
+        const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+
+        const d = texto.replace(/\D/g, '').slice(0, 8);
+        if (d.length <= 2) return d;
+        if (d.length <= 4) return `${d.slice(0,2)}/${d.slice(2)}`;
+        return `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`;
+      }
+
+      function dataRenovacaoAvcbValida_(valor) {
+        const texto = String(valor || '').trim();
+        const m = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!m) return false;
+        const dia = Number(m[1]);
+        const mes = Number(m[2]);
+        const ano = Number(m[3]);
+        if (ano < 1900 || mes < 1 || mes > 12 || dia < 1 || dia > 31) return false;
+        const data = new Date(ano, mes - 1, dia);
+        if (
+          data.getFullYear() !== ano ||
+          data.getMonth() !== mes - 1 ||
+          data.getDate() !== dia
+        ) return false;
+        const hoje = new Date();
+        hoje.setHours(23, 59, 59, 999);
+        return data <= hoje;
+      }
+
+      function instalarMascaraDataRenovacaoAvcb_(input, aoAlterar = null) {
+        if (!input || input.dataset.renewalDateGuard === '1') return;
+        input.dataset.renewalDateGuard = '1';
+        input.addEventListener('input', event => {
+          event.target.value = formatarDataRenovacaoAvcbDigitacao_(event.target.value);
+          event.target.setCustomValidity('');
+          event.target.classList.remove('invalid');
+          if (typeof aoAlterar === 'function') aoAlterar();
+        });
+        input.addEventListener('blur', event => {
+          const valor = String(event.target.value || '').trim();
+          if (!valor) {
+            event.target.setCustomValidity('');
+            event.target.classList.remove('invalid');
+            return;
+          }
+          const valido = dataRenovacaoAvcbValida_(valor);
+          event.target.setCustomValidity(valido ? '' : 'Informe uma data válida no formato DD/MM/AAAA.');
+          event.target.classList.toggle('invalid', !valido);
+        });
+      }
+
+      function atualizarCampoRenovacaoAvcb_() {
+        const wrap = document.getElementById('dataRenovacaoAvcbWrap');
+        const input = document.getElementById('dataRenovacaoAvcb');
+        const ativo = ehDemandaRenovacaoAvcb_();
+        if (wrap) wrap.hidden = !ativo;
+        if (input) {
+          input.required = ativo;
+          if (!ativo) {
+            input.setCustomValidity('');
+            input.classList.remove('invalid');
+          }
+        }
+        return ativo;
+      }
+
+      function atualizarCampoRenovacaoAvcbPreparacao_() {
+        const wrap = document.getElementById('prepareDataRenovacaoAvcbWrap');
+        const input = document.getElementById('prepareDataRenovacaoAvcb');
+        const ativo = ehRenovacaoAvcbPreparacao_();
+        if (wrap) wrap.hidden = !ativo;
+        if (input) {
+          input.required = ativo;
+          if (!ativo) {
+            input.setCustomValidity('');
+            input.classList.remove('invalid');
+          }
+        }
+        return ativo;
+      }
+
+      function valorPscipOperacionalFicha_(registro) {
+        const bruto = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
+        return bruto ? (projetoPscipOperacional_(bruto) || bruto) : '';
+      }
+
       function ehEventoDeclaratorioPreparacao_() {
         return String(document.getElementById('prepareTipo')?.value || '') === 'fiscalizacao' &&
           normalize(document.getElementById('prepareDemanda')?.value || '') === normalize('Eventos declaratórios');
@@ -8582,7 +8707,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         restaurarOcupacoesSelecionadas(p.ocupacao);
         aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
         if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
-        syncOtherCity(); syncLicenciamento(); syncPscip_(); syncNotificado(); sincronizarDemandasEspeciais_(); atualizarVerificacaoMetasFiscalizacao_();
+        syncOtherCity(); syncLicenciamento(); syncPscip_(); syncNotificado(); sincronizarDemandasEspeciais_(); atualizarCampoRenovacaoAvcb_(); atualizarVerificacaoMetasFiscalizacao_();
       }
 
       function restoreDraft() {
@@ -9923,6 +10048,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           pscipWrap.classList.toggle('is-required-prep', liberacao && !evento);
         }
         if (eventoWrap) eventoWrap.hidden = !evento;
+        atualizarCampoRenovacaoAvcbPreparacao_();
         const dataLabel = document.getElementById('prepareDataLabel');
         if (dataLabel) dataLabel.classList.toggle('required', liberacao);
         const dataHint = document.getElementById('prepareDataHint');
@@ -9940,7 +10066,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
-        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero'].forEach(id => {
+        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
@@ -10073,6 +10199,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareDemanda', item.demandaPrincipal || (item.eventoDeclaracaoNumero ? 'Eventos declaratórios' : ''));
         set('preparePscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
         set('prepareEventoDeclaracaoNumero', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero || ''));
+        set('prepareDataRenovacaoAvcb', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb || ''));
         set('preparePf', item.pf || '');
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
@@ -10122,6 +10249,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           demandaPrincipal: eventoDeclaratorio ? 'Eventos declaratórios' : g('prepareDemanda'),
           categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : '',
           eventoDeclaracaoNumero: eventoDeclaratorio ? formatarDeclaracaoEvento_(g('prepareEventoDeclaracaoNumero')) : '',
+          dataRenovacaoAvcb: ehRenovacaoAvcbPreparacao_() ? formatarDataRenovacaoAvcbDigitacao_(g('prepareDataRenovacaoAvcb')) : '',
           _appPossuiPscip: eventoDeclaratorio ? 'nao' : (tipo === 'liberacao' ? 'sim' : (pscipProjetoValido_(pscipInformado) ? 'sim' : 'nao')),
           pscip: eventoDeclaratorio ? '' : pscipInformado,
           pf: g('preparePf'),
@@ -10253,6 +10381,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!eventoDeclaratorio && normalizarPscipTela_(p.pscip).length > 3 && !pscipProjetoValido_(p.pscip)) faltantes.push('Nº do PSCIP / Projeto válido');
         if (eventoDeclaratorio && !p.eventoDeclaracaoNumero) faltantes.push('Nº da declaração INFOSCIP');
         if (eventoDeclaratorio && p.eventoDeclaracaoNumero && !declaracaoEventoValida_(p.eventoDeclaracaoNumero)) faltantes.push('Nº da declaração INFOSCIP válido');
+        const renovacaoAvcb = p.tipoPreparacao === 'fiscalizacao' && ehRenovacaoAvcbValor_(p.demandaPrincipal);
+        if (renovacaoAvcb && !p.dataRenovacaoAvcb) faltantes.push('Data de renovação do AVCB');
+        if (renovacaoAvcb && p.dataRenovacaoAvcb && !dataRenovacaoAvcbValida_(p.dataRenovacaoAvcb)) faltantes.push('Data de renovação do AVCB válida');
         if (faltantes.length) {
           if (prepareInspectionError) {
             prepareInspectionError.hidden = false;
@@ -10899,6 +11030,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('pf', item.pf);
         set('area', item.area);
         const preparacaoEventoDeclaratorio = normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero);
+        if (!preparacaoEventoDeclaratorio && item.demandaPrincipal) {
+          set('demandaPrincipal', item.demandaPrincipal);
+        }
         if (preparacaoEventoDeclaratorio) {
           set('demandaPrincipal', 'Eventos declaratórios');
           aplicarModoEventoDeclaratorio_({ silencioso: true });
@@ -10911,6 +11045,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           set('pscip', projetoPscipOperacional_(item.pscip));
           syncPscip_();
         }
+        if (item.dataRenovacaoAvcb) {
+          set('dataRenovacaoAvcb', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb));
+        }
+        aplicarModoEventoDeclaratorio_({ silencioso: true });
+        atualizarCampoRenovacaoAvcb_();
         if (item.cidade) {
           const existe = Array.from(citySelect.options).some(o => normalize(o.value) === normalize(item.cidade));
           if (existe) citySelect.value = Array.from(citySelect.options).find(o => normalize(o.value) === normalize(item.cidade)).value;
@@ -11073,6 +11212,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConsultaProcessoPf_('prepare', 100);
       });
       document.getElementById('prepareEventoDeclaracaoNumero')?.addEventListener('input', event => { event.target.value = formatarDeclaracaoEvento_(event.target.value); });
+      instalarMascaraDataRenovacaoAvcb_(document.getElementById('prepareDataRenovacaoAvcb'));
       ['prepareCidade','prepareEndereco','prepareNumero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('prepare')));
       let timerConsultaCnpjPreparacao = null;
       let ultimoCnpjPreparacaoConsultado = '';
@@ -11187,8 +11327,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
-      document.getElementById('demandaPrincipal')?.addEventListener('input', () => { atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 250); });
-      document.getElementById('demandaPrincipal')?.addEventListener('change', () => { if (ehFluxoLiberacao_()) atualizarOpcoesDemandaPorFluxo_(); atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); agendarConsultaProcessoPf_('form', 100); });
+      document.getElementById('demandaPrincipal')?.addEventListener('input', () => { atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); atualizarCampoRenovacaoAvcb_(); agendarConsultaProcessoPf_('form', 250); });
+      document.getElementById('demandaPrincipal')?.addEventListener('change', () => { if (ehFluxoLiberacao_()) atualizarOpcoesDemandaPorFluxo_(); atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); atualizarCampoRenovacaoAvcb_(); agendarConsultaProcessoPf_('form', 100); });
       categoriaMetaSelect?.addEventListener('change', atualizarConsultaTecnicaContextual_);
       consultaTecnicaSecao?.addEventListener('click', event => {
         const link = event.target.closest('a[data-it-context-link]');
@@ -11196,6 +11336,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try { saveDraft(); } catch (e) {}
       });
       eventoDeclaracaoNumeroInput?.addEventListener('input', event => { event.target.value = formatarDeclaracaoEvento_(event.target.value); });
+      instalarMascaraDataRenovacaoAvcb_(document.getElementById('dataRenovacaoAvcb'), scheduleDraftSave);
       eventoOrganizadorDocumentoInput?.addEventListener('input', event => {
         event.target.value = formatarDocumentoEvento_(event.target.value);
         atualizarDisponibilidadeResponsavelOrganizadorEvento_();
@@ -11716,7 +11857,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ad', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ae', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

@@ -10576,3 +10576,16 @@ body.gpv-dialog-open{overflow:hidden!important}
   .programmed-quick-add-btn{min-width:48px;width:48px;padding:0;border-radius:16px}
   .programmed-quick-add-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 }
+
+
+/* =============================================================================
+   V23.9.99ae — Renovação AVCB
+   ============================================================================= */
+#dataRenovacaoAvcbWrap[hidden],
+#prepareDataRenovacaoAvcbWrap[hidden]{display:none!important}
+
+#dataRenovacaoAvcb,
+#prepareDataRenovacaoAvcb{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.02em;
+}
