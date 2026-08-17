@@ -2643,14 +2643,20 @@
         if (dashboardGoalsProgressBar) dashboardGoalsProgressBar.style.width = `${percentual}%`;
 
         if (dashboardGoalsGrid) {
-          dashboardGoalsGrid.innerHTML = categorias.map(item => {
+          const categoriasPainel = [...categorias].sort((a, b) => {
+            const aInformativa = Number(a?.meta || 0) <= 0 ? 1 : 0;
+            const bInformativa = Number(b?.meta || 0) <= 0 ? 1 : 0;
+            return aInformativa - bInformativa;
+          });
+
+          dashboardGoalsGrid.innerHTML = categoriasPainel.map(item => {
             const meta = Number(item?.meta || 0);
             const realizado = Number(item?.realizado || 0);
             const totalReal = Number(item?.totalReal || realizado);
             const pct = meta > 0 ? Math.max(0, Math.min(100, Number(item?.percentual || 0))) : 100;
             const valor = meta > 0 ? `${realizado}/${meta}` : `${totalReal}`;
             const rodape = meta > 0
-              ? (realizado >= meta ? 'Meta atingida' : `Faltam ${Math.max(0, meta - realizado)}`)
+              ? (realizado >= meta ? '✓ Meta atingida' : `Falta${Math.max(0, meta - realizado) === 1 ? '' : 'm'} ${Math.max(0, meta - realizado)}`)
               : 'Realização informativa';
             return `<article class="dashboard-goal-item ${classeMeta_(item)}">
               <div class="dashboard-goal-item-top"><strong>${escaparHtmlMetas_(item?.nome || '')}</strong><b>${valor}</b></div>
@@ -11217,7 +11223,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99r', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99s', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

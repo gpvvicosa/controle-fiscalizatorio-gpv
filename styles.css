@@ -9626,3 +9626,215 @@ input[list]::-webkit-calendar-picker-indicator{
     background-size:19px 19px!important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99s — Painel de metas mensal mais legível no celular
+   ============================================================================= */
+.dashboard-goals{
+  padding:16px;
+  border-radius:17px;
+}
+.dashboard-goals-head{
+  gap:12px;
+  margin-bottom:11px;
+}
+.dashboard-goals-head>div{
+  min-width:0;
+}
+.dashboard-goals-kicker{
+  margin-bottom:3px;
+  font-size:9.5px;
+  letter-spacing:.10em;
+}
+.dashboard-goals h3{
+  font-size:18px;
+  line-height:1.22;
+}
+.dashboard-goals-head p{
+  margin-top:5px;
+  line-height:1.35;
+}
+.dashboard-goals-open{
+  min-height:38px;
+  padding:8px 12px;
+  border-radius:12px;
+  align-self:flex-start;
+}
+.dashboard-goals-overall{
+  grid-template-columns:auto minmax(100px,1fr) auto;
+  gap:11px;
+  padding:11px 12px;
+  margin-bottom:11px;
+  border-radius:13px;
+}
+.dashboard-goals-overall-copy strong{
+  font-size:19px;
+  line-height:1;
+}
+.dashboard-goals-overall-copy span{
+  margin-top:4px;
+  font-size:10px;
+  white-space:nowrap;
+}
+.dashboard-goals-progress{
+  height:7px;
+}
+.dashboard-goals-percent{
+  font-size:18px;
+  line-height:1;
+}
+.dashboard-goals-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+  overflow:visible;
+}
+.dashboard-goal-item{
+  min-width:0;
+  padding:11px 12px;
+  border-radius:13px;
+  box-shadow:0 2px 8px rgba(15,23,42,.025);
+}
+.dashboard-goal-item-top{
+  align-items:flex-start;
+}
+.dashboard-goal-item-top strong{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  line-height:1.25;
+  font-size:10.5px;
+}
+.dashboard-goal-item-top b{
+  flex:0 0 auto;
+  font-size:14px;
+}
+.dashboard-goal-mini-progress{
+  margin:8px 0 6px;
+}
+.dashboard-goal-item small{
+  display:block;
+  font-size:9.5px;
+  line-height:1.25;
+}
+.dashboard-goal-item.is-info{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:4px 12px;
+  padding:10px 12px;
+}
+.dashboard-goal-item.is-info .dashboard-goal-item-top{
+  display:contents;
+}
+.dashboard-goal-item.is-info .dashboard-goal-item-top strong{
+  grid-column:1;
+  grid-row:1;
+  font-size:11px;
+}
+.dashboard-goal-item.is-info .dashboard-goal-item-top b{
+  grid-column:2;
+  grid-row:1 / span 2;
+  align-self:center;
+  font-size:17px;
+  color:#315f91;
+}
+.dashboard-goal-item.is-info .dashboard-goal-mini-progress{
+  display:none;
+}
+.dashboard-goal-item.is-info small{
+  grid-column:1;
+  grid-row:2;
+  color:#60758f;
+}
+
+@media (max-width:900px){
+  .dashboard-goals{
+    margin:12px 0 14px;
+    padding:13px;
+    border-radius:16px;
+  }
+  .dashboard-goals-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:start;
+    gap:9px;
+    margin-bottom:10px;
+  }
+  .dashboard-goals h3{
+    font-size:17px;
+    line-height:1.2;
+  }
+  .dashboard-goals-head p{
+    font-size:10.5px;
+  }
+  .dashboard-goals-open{
+    min-height:35px;
+    padding:7px 9px;
+    font-size:10.5px;
+  }
+  .dashboard-goals-overall{
+    grid-template-columns:auto minmax(72px,1fr) auto;
+    gap:8px;
+    padding:10px;
+    margin-bottom:10px;
+  }
+  .dashboard-goals-overall-copy strong{
+    font-size:17px;
+  }
+  .dashboard-goals-overall-copy span{
+    font-size:9px;
+  }
+  .dashboard-goals-percent{
+    font-size:16px;
+  }
+
+  /* Substitui o antigo carrossel horizontal por grade fixa visível. */
+  .dashboard-goals-grid{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    overflow:visible!important;
+    padding-bottom:0!important;
+    scroll-snap-type:none!important;
+  }
+  .dashboard-goal-item{
+    min-width:0!important;
+    scroll-snap-align:none!important;
+    padding:10px!important;
+  }
+  .dashboard-goal-item-top strong{
+    font-size:10px!important;
+  }
+  .dashboard-goal-item.is-info{
+    grid-column:1 / -1!important;
+    padding:9px 10px!important;
+  }
+}
+
+@media (max-width:380px){
+  .dashboard-goals{
+    padding:11px;
+  }
+  .dashboard-goals-head{
+    grid-template-columns:1fr auto;
+  }
+  .dashboard-goals h3{
+    font-size:16px;
+  }
+  .dashboard-goals-open{
+    padding:7px 8px;
+  }
+  .dashboard-goals-overall{
+    grid-template-columns:auto 1fr auto;
+    gap:6px;
+    padding:9px;
+  }
+  .dashboard-goals-overall-copy span{
+    max-width:62px;
+    white-space:normal;
+    line-height:1.15;
+  }
+}
