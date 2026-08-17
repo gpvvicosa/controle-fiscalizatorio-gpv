@@ -10444,3 +10444,47 @@ body.records-mode .records-card-cta{
     grid-row:2!important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99aa — Portal: CPF/CNPJ formatados e tabela mais legível
+   ============================================================================= */
+@media (min-width:900px){
+  body.records-mode .records-table{
+    table-layout:auto!important;
+  }
+  body.records-mode .records-table th{
+    color:#344054!important;
+    font-size:10.5px!important;
+    font-weight:850!important;
+    white-space:nowrap!important;
+  }
+  body.records-mode .records-table td{
+    color:#344054!important;
+    font-size:10.5px!important;
+    line-height:1.35!important;
+    vertical-align:middle!important;
+  }
+  body.records-mode .records-table tbody tr{
+    height:44px;
+  }
+  body.records-mode .records-table th:nth-child(2),
+  body.records-mode .records-table td:nth-child(2){min-width:170px}
+  body.records-mode .records-table th:nth-child(3),
+  body.records-mode .records-table td:nth-child(3){min-width:250px;max-width:380px}
+  body.records-mode .records-table th:nth-child(5),
+  body.records-mode .records-table td:nth-child(5){min-width:145px;white-space:nowrap!important}
+  body.records-mode .records-table th:nth-child(6),
+  body.records-mode .records-table td:nth-child(6){min-width:160px}
+  body.records-mode .records-table th:nth-child(8),
+  body.records-mode .records-table td:nth-child(8){min-width:220px!important}
+}
+
+#nascimento{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.02em;
+}
+#nascimento.invalid{
+  border-color:#dc2626!important;
+  box-shadow:0 0 0 3px rgba(220,38,38,.10)!important;
+}

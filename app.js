@@ -1016,11 +1016,21 @@
         return v;
       }
 
+      function formatarDocumentoPainel_(valor) {
+        const d = digits(valor);
+        if (d.length === 11) return { rotulo: 'CPF', valor: formatarCpfTela_(d) };
+        if (d.length === 14) return { rotulo: 'CNPJ', valor: formatarCnpjTela_(d) };
+        return { rotulo: 'CNPJ / CPF', valor: String(valor || '').trim() || '—' };
+      }
+
       function identificadorPainel_(item) {
-        const cnpj = String(item?.cnpj || '').trim();
+        const principal = String(item?.cnpj || '').trim();
         const cpf = String(item?.cpf || '').trim();
-        if (cnpj) return { rotulo: 'CNPJ', valor: cnpj };
-        if (cpf) return { rotulo: 'CPF', valor: formatarCpfTela_(cpf) };
+
+        // A coluna histórica da planilha pode trazer CPF dentro de "cnpj".
+        // A quantidade de dígitos define o tipo real do documento.
+        if (principal) return formatarDocumentoPainel_(principal);
+        if (cpf) return formatarDocumentoPainel_(cpf);
         return { rotulo: 'CNPJ / CPF', valor: '—' };
       }
 
@@ -7309,13 +7319,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return String(valor || '');
       }
 
-      function normalizarDataResponsavelParaInput_(valor) {
+      function formatarDataNascimentoDigitacao_(valor) {
         const texto = String(valor || '').trim();
-        if (!texto) return '';
-        if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
-        const m = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-        return '';
+
+        // Compatibilidade com dados antigos no formato AAAA-MM-DD.
+        const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+
+        const d = digits(texto).slice(0, 8);
+        if (d.length <= 2) return d;
+        if (d.length <= 4) return `${d.slice(0,2)}/${d.slice(2)}`;
+        return `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`;
+      }
+
+      function dataNascimentoValida_(valor) {
+        const texto = String(valor || '').trim();
+        if (!texto) return true;
+
+        const m = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!m) return false;
+
+        const dia = Number(m[1]);
+        const mes = Number(m[2]);
+        const ano = Number(m[3]);
+        if (ano < 1900 || mes < 1 || mes > 12 || dia < 1 || dia > 31) return false;
+
+        const data = new Date(ano, mes - 1, dia);
+        if (
+          data.getFullYear() !== ano ||
+          data.getMonth() !== mes - 1 ||
+          data.getDate() !== dia
+        ) return false;
+
+        const hoje = new Date();
+        hoje.setHours(23, 59, 59, 999);
+        return data <= hoje;
+      }
+
+      function normalizarDataResponsavelParaInput_(valor) {
+        return formatarDataNascimentoDigitacao_(valor);
       }
 
       function setResponsibleField_(id, valor, formatter = null) {
@@ -8563,6 +8605,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function submit() {
         if (submitting || !validateRequired(true)) return;
+
+        const nascimentoAtual = document.getElementById('nascimento');
+        if (nascimentoAtual && !dataNascimentoValida_(nascimentoAtual.value)) {
+          nascimentoAtual.setCustomValidity('Informe uma data válida no formato DD/MM/AAAA.');
+          nascimentoAtual.classList.add('invalid');
+          nascimentoAtual.focus();
+          nascimentoAtual.reportValidity();
+          appStatus.textContent = 'Confira a data de nascimento do responsável.';
+          return;
+        }
+
         if (!validarNotificacoesParaNotificado_(true)) return;
 
         const liberadoComRascunho = ehFluxoLiberacao_() &&
@@ -10901,6 +10954,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
       document.getElementById('telefone').addEventListener('input', applyPhoneMask);
+
+      const nascimentoInput = document.getElementById('nascimento');
+      nascimentoInput?.addEventListener('input', event => {
+        event.target.value = formatarDataNascimentoDigitacao_(event.target.value);
+        event.target.setCustomValidity('');
+        event.target.classList.remove('invalid');
+      });
+      nascimentoInput?.addEventListener('blur', event => {
+        const valor = String(event.target.value || '').trim();
+        if (!valor) {
+          event.target.setCustomValidity('');
+          event.target.classList.remove('invalid');
+          return;
+        }
+        const valido = dataNascimentoValida_(valor);
+        event.target.setCustomValidity(valido ? '' : 'Informe uma data válida no formato DD/MM/AAAA.');
+        event.target.classList.toggle('invalid', !valido);
+        if (!valido) appStatus.textContent = 'Confira a data de nascimento do responsável.';
+      });
       ['cnpj','endereco','numero','pf','demandaPrincipal'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', agendarConsultaEncerramentoFiscal_);
       });
@@ -11223,7 +11295,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99u', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99aa', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
