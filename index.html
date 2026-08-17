@@ -48,7 +48,7 @@
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:linear-gradient(180deg,#efe6dc 0%,#f7f0e9 100%)}
     .loading-box{max-width:92vw;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 16px 42px rgba(72,38,28,.18);font-weight:700;color:#6f161a}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99m">
+  <link rel="stylesheet" href="styles.css?v=23.9.99n">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1165,8 +1165,19 @@
           <datalist id="dlNotificacaoCategorias"></datalist>
           <div class="notification-draft-summary" id="notificacoesLiberacaoResumo" hidden></div>
           <div class="notification-local-list" id="notificacoesLiberacaoLista"></div>
+          <div class="aux-notifications-context" id="auxNotificationsContext" hidden>
+            <div>
+              <span class="aux-notifications-kicker">Acesso compartilhado</span>
+              <h2>Lançamento de notificações</h2>
+              <p id="auxNotificationsBuilding">Carregando vistoria...</p>
+              <small id="auxNotificationsMeta"></small>
+            </div>
+            <button class="aux-notifications-exit" id="auxNotificationsExitBtn" type="button">Sair deste acesso</button>
+          </div>
+
           <div class="notification-draft-footer-actions">
             <button class="btn notification-add-local-btn" id="notificacoesAdicionarLocalBtn" type="button">+ Adicionar local da irregularidade</button>
+            <button class="btn notification-share-aux-btn" id="notificacoesCompartilharAuxBtn" type="button">Compartilhar com auxiliar</button>
             <button class="btn notification-review-open-btn" id="notificacoesRevisarBtn" type="button">Revisar notificações</button>
           </div>
         </div>
@@ -1545,6 +1556,37 @@
     </div>
   </div>
 
+  <div class="review-overlay aux-share-overlay" id="auxNotificationsShareModal" hidden>
+    <section class="review-card aux-share-card" role="dialog" aria-modal="true" aria-labelledby="auxNotificationsShareTitle">
+      <header class="review-header">
+        <div>
+          <span>Acesso do auxiliar</span>
+          <h2 id="auxNotificationsShareTitle">Compartilhar lançamento de notificações</h2>
+          <p>O link abre somente a área de notificações desta vistoria. O auxiliar ainda precisa entrar com o próprio Nº BM e senha.</p>
+        </div>
+        <button class="review-close" id="auxNotificationsShareCloseBtn" type="button" aria-label="Fechar">×</button>
+      </header>
+
+      <div class="aux-share-body">
+        <div class="aux-share-building" id="auxNotificationsShareBuilding"></div>
+        <label for="auxNotificationsShareLink">Link desta vistoria</label>
+        <div class="aux-share-link-row">
+          <input id="auxNotificationsShareLink" type="text" readonly autocomplete="off">
+          <button id="auxNotificationsCopyLinkBtn" type="button">Copiar link</button>
+        </div>
+        <div class="aux-share-security">
+          <strong>Acesso protegido</strong>
+          <span>O endereço identifica apenas esta vistoria. Sem autenticação de usuário GPV, as notificações não são abertas.</span>
+        </div>
+      </div>
+
+      <div class="review-actions aux-share-actions">
+        <button class="btn btn-secondary" id="auxNotificationsShareCancelBtn" type="button">Fechar</button>
+        <button class="btn btn-primary" id="auxNotificationsNativeShareBtn" type="button">Compartilhar</button>
+      </div>
+    </section>
+  </div>
+
   <div class="review-overlay notification-review-overlay" id="notificationReviewModal" hidden>
     <section class="review-card notification-review-card" role="dialog" aria-modal="true" aria-labelledby="notificationReviewTitle">
       <header class="review-header notification-review-header">
@@ -1705,7 +1747,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99m"></script>
+  <script src="app.js?v=23.9.99n"></script>
 
   </div>
   

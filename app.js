@@ -651,7 +651,19 @@
       const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
       const notificacoesLiberacaoResumo = document.getElementById('notificacoesLiberacaoResumo');
       const notificacoesAdicionarLocalBtn = document.getElementById('notificacoesAdicionarLocalBtn');
+      const notificacoesCompartilharAuxBtn = document.getElementById('notificacoesCompartilharAuxBtn');
       const notificacoesRevisarBtn = document.getElementById('notificacoesRevisarBtn');
+      const auxNotificationsContext = document.getElementById('auxNotificationsContext');
+      const auxNotificationsBuilding = document.getElementById('auxNotificationsBuilding');
+      const auxNotificationsMeta = document.getElementById('auxNotificationsMeta');
+      const auxNotificationsExitBtn = document.getElementById('auxNotificationsExitBtn');
+      const auxNotificationsShareModal = document.getElementById('auxNotificationsShareModal');
+      const auxNotificationsShareCloseBtn = document.getElementById('auxNotificationsShareCloseBtn');
+      const auxNotificationsShareCancelBtn = document.getElementById('auxNotificationsShareCancelBtn');
+      const auxNotificationsShareBuilding = document.getElementById('auxNotificationsShareBuilding');
+      const auxNotificationsShareLink = document.getElementById('auxNotificationsShareLink');
+      const auxNotificationsCopyLinkBtn = document.getElementById('auxNotificationsCopyLinkBtn');
+      const auxNotificationsNativeShareBtn = document.getElementById('auxNotificationsNativeShareBtn');
       const dlNotificacaoTiposLocal = document.getElementById('dlNotificacaoTiposLocal');
       const dlNotificacaoCategorias = document.getElementById('dlNotificacaoCategorias');
       const notificationReviewModal = document.getElementById('notificationReviewModal');
@@ -1819,8 +1831,262 @@
         } catch (e) {}
       }
 
+      const AUX_NOTIFICATIONS_QUERY = 'notificacoes';
+      let auxNotificationsActiveId = '';
+      let auxNotificationsStateTimer = null;
+
+      function idAcessoAuxiliarNotificacoesUrl_() {
+        try {
+          const id = String(new URLSearchParams(window.location.search).get(AUX_NOTIFICATIONS_QUERY) || '').trim();
+          return /^[A-Za-z0-9_-]{8,160}$/.test(id) ? id : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function urlBaseSemAcessoAuxiliar_() {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.delete(AUX_NOTIFICATIONS_QUERY);
+          url.searchParams.delete('view');
+          url.hash = '';
+          return url;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function urlAcessoAuxiliarNotificacoes_(rascunhoId) {
+        const url = urlBaseSemAcessoAuxiliar_();
+        if (!url) return '';
+        url.searchParams.set(AUX_NOTIFICATIONS_QUERY, String(rascunhoId || '').trim());
+        return url.toString();
+      }
+
+      function nomeEdificacaoAcessoAuxiliar_(payload = {}) {
+        return String(
+          payload.nomeFantasia ||
+          payload.razaoSocial ||
+          payload.nomeEvento ||
+          'Vistoria de Liberação'
+        ).trim();
+      }
+
+      function atualizarCabecalhoAcessoAuxiliar_(payload = {}, detalhe = {}) {
+        const edificio = nomeEdificacaoAcessoAuxiliar_(payload);
+        const pscip = String(payload.pscip || '').trim();
+        const endereco = [payload.endereco, payload.numero, payload.bairro].filter(Boolean).join(', ');
+        if (auxNotificationsBuilding) {
+          auxNotificationsBuilding.textContent = edificio + (pscip ? ` · ${pscip}` : '');
+        }
+        if (auxNotificationsMeta) {
+          const partes = [];
+          if (endereco) partes.push(endereco);
+          if (detalhe?.atualizadoPor) partes.push(`Última atualização: ${detalhe.atualizadoPor}`);
+          auxNotificationsMeta.textContent = partes.join(' • ');
+        }
+      }
+
+      function modoAcessoAuxiliarNotificacoesAtivo_() {
+        return Boolean(auxNotificationsActiveId && document.body.classList.contains('aux-notifications-mode'));
+      }
+
+      function encerrarMonitorAcessoAuxiliar_() {
+        if (auxNotificationsStateTimer) {
+          clearInterval(auxNotificationsStateTimer);
+          auxNotificationsStateTimer = null;
+        }
+      }
+
+      function bloquearAcessoAuxiliarEncerrado_(mensagem) {
+        document.body.classList.add('aux-notifications-closed');
+        if (auxNotificationsMeta) auxNotificationsMeta.textContent = mensagem || 'Esta vistoria não aceita mais lançamentos.';
+        notificacoesLiberacaoLista?.querySelectorAll('input,textarea,button').forEach(el => {
+          if (el.id !== 'auxNotificationsExitBtn') el.disabled = true;
+        });
+        if (notificacoesAdicionarLocalBtn) notificacoesAdicionarLocalBtn.disabled = true;
+        appStatus.textContent = mensagem || 'Esta vistoria não aceita mais lançamentos.';
+      }
+
+      async function verificarEstadoAcessoAuxiliar_() {
+        if (!auxNotificationsActiveId || !navigator.onLine || !usuarioPodeOperar_()) return;
+        try {
+          const estado = await apiRequest('config', {
+            consulta: 'rascunho_estado',
+            id: auxNotificationsActiveId
+          }, 9000);
+          const valor = String(estado?.estado || '').trim().toLowerCase();
+          if (!estado?.encontrado) {
+            bloquearAcessoAuxiliarEncerrado_('A vistoria compartilhada não foi localizada.');
+            encerrarMonitorAcessoAuxiliar_();
+            return;
+          }
+          if (!['em_andamento','parcial'].includes(valor)) {
+            const texto = valor === 'cancelado'
+              ? 'Este preenchimento foi cancelado e não aceita novos lançamentos.'
+              : 'Esta vistoria já foi encerrada e não aceita novos lançamentos.';
+            bloquearAcessoAuxiliarEncerrado_(texto);
+            encerrarMonitorAcessoAuxiliar_();
+          }
+        } catch (e) {}
+      }
+
+      function iniciarMonitorAcessoAuxiliar_() {
+        encerrarMonitorAcessoAuxiliar_();
+        auxNotificationsStateTimer = setInterval(() => { void verificarEstadoAcessoAuxiliar_(); }, 8000);
+      }
+
+      async function abrirAcessoAuxiliarNotificacoes_(rascunhoId) {
+        const id = String(rascunhoId || '').trim();
+        if (!id || !usuarioPodeOperar_()) return false;
+
+        document.body.classList.add('aux-notifications-loading');
+        appStatus.textContent = 'Abrindo notificações compartilhadas...';
+
+        if (!navigator.onLine) {
+          document.body.classList.remove('aux-notifications-loading');
+          appStatus.textContent = 'O primeiro acesso ao link da vistoria precisa de conexão com a internet.';
+          return false;
+        }
+
+        try {
+          const estado = await apiRequest('config', { consulta: 'rascunho_estado', id }, 10000);
+          const valor = String(estado?.estado || '').trim().toLowerCase();
+          if (!estado?.encontrado) throw new Error('A vistoria compartilhada não foi localizada.');
+          if (!['em_andamento','parcial'].includes(valor)) {
+            throw new Error(valor === 'cancelado'
+              ? 'Este preenchimento foi cancelado.'
+              : 'Esta vistoria já foi encerrada.');
+          }
+
+          const detalhe = await apiRequest('config', { consulta: 'rascunho', id }, 20000);
+          if (!detalhe?.payload) throw new Error('Não foi possível carregar o rascunho compartilhado.');
+
+          currentRecordId = id;
+          applyPayload(detalhe.payload, id);
+          auxNotificationsActiveId = id;
+
+          marcarAbaApp_('form');
+          notificacoesLiberacaoSecao.hidden = false;
+          if (auxNotificationsContext) auxNotificationsContext.hidden = false;
+          document.body.classList.add('aux-notifications-mode');
+          document.body.classList.remove('aux-notifications-closed');
+          atualizarCabecalhoAcessoAuxiliar_(detalhe.payload, detalhe);
+          atualizarBotaoCancelarPreenchimentoTopo_();
+          renderizarNotificacoesLiberacao_();
+          saveDraft();
+          iniciarMonitorAcessoAuxiliar_();
+
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            try { notificacoesLiberacaoSecao.scrollIntoView({ behavior: 'auto', block: 'start' }); } catch (e) {}
+          }));
+
+          appStatus.textContent = `Notificações compartilhadas abertas${detalhe.atualizadoPor ? ` — última atualização: ${detalhe.atualizadoPor}` : ''}.`;
+          return true;
+        } catch (erro) {
+          auxNotificationsActiveId = '';
+          document.body.classList.remove('aux-notifications-mode');
+          if (auxNotificationsContext) auxNotificationsContext.hidden = true;
+          appStatus.textContent = erro?.message || 'Não foi possível abrir as notificações compartilhadas.';
+          showError(erro?.message || 'Não foi possível abrir as notificações compartilhadas.');
+          return false;
+        } finally {
+          document.body.classList.remove('aux-notifications-loading');
+        }
+      }
+
+      function sairAcessoAuxiliarNotificacoes_() {
+        encerrarMonitorAcessoAuxiliar_();
+        const url = urlBaseSemAcessoAuxiliar_();
+        if (url) window.location.href = url.toString();
+      }
+
+      function fecharModalCompartilharAuxiliar_() {
+        if (auxNotificationsShareModal) auxNotificationsShareModal.hidden = true;
+        document.body.classList.remove('review-open');
+      }
+
+      async function copiarTextoClipboard_(texto) {
+        const valor = String(texto || '');
+        if (!valor) return false;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(valor);
+            return true;
+          }
+        } catch (e) {}
+        try {
+          const area = document.createElement('textarea');
+          area.value = valor;
+          area.setAttribute('readonly','');
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.select();
+          const ok = document.execCommand('copy');
+          area.remove();
+          return Boolean(ok);
+        } catch (e) {
+          return false;
+        }
+      }
+
+      async function compartilharNotificacoesComAuxiliar_() {
+        if (!usuarioPodeOperar_()) return;
+        if (modoAcessoAuxiliarNotificacoesAtivo_()) return;
+        if (!currentRecordId || notificacoesLiberacaoSecao?.hidden) {
+          appStatus.textContent = 'Abra uma Vistoria de Liberação antes de compartilhar as notificações.';
+          return;
+        }
+        if (!navigator.onLine) {
+          appStatus.textContent = 'Conecte-se à internet para gerar o link compartilhado.';
+          return;
+        }
+
+        const textoAnterior = notificacoesCompartilharAuxBtn?.textContent || 'Compartilhar com auxiliar';
+        if (notificacoesCompartilharAuxBtn) {
+          notificacoesCompartilharAuxBtn.disabled = true;
+          notificacoesCompartilharAuxBtn.textContent = 'Preparando link...';
+        }
+
+        try {
+          saveDraft();
+          const sincronizou = await sincronizarRascunhoCompartilhado_('em_andamento', true);
+          if (!sincronizou) throw new Error('Não foi possível sincronizar a vistoria para criar o link.');
+
+          // Confirma que o rascunho realmente está acessível no servidor antes de entregar o endereço.
+          const detalhe = await apiRequest('config', { consulta: 'rascunho', id: String(currentRecordId) }, 15000);
+          if (!detalhe?.payload) throw new Error('O servidor não confirmou o rascunho compartilhado.');
+
+          const link = urlAcessoAuxiliarNotificacoes_(currentRecordId);
+          if (!link) throw new Error('Não foi possível montar o link da vistoria.');
+
+          if (auxNotificationsShareLink) auxNotificationsShareLink.value = link;
+          if (auxNotificationsShareBuilding) {
+            const edificio = nomeEdificacaoAcessoAuxiliar_(detalhe.payload);
+            const pscip = String(detalhe.payload.pscip || '').trim();
+            auxNotificationsShareBuilding.textContent = edificio + (pscip ? ` · ${pscip}` : '');
+          }
+          if (auxNotificationsNativeShareBtn) {
+            auxNotificationsNativeShareBtn.hidden = typeof navigator.share !== 'function';
+          }
+          if (auxNotificationsShareModal) auxNotificationsShareModal.hidden = false;
+          document.body.classList.add('review-open');
+          setTimeout(() => auxNotificationsCopyLinkBtn?.focus(), 30);
+          appStatus.textContent = 'Link específico das notificações pronto para compartilhar.';
+        } catch (erro) {
+          appStatus.textContent = erro?.message || 'Não foi possível gerar o link compartilhado.';
+        } finally {
+          if (notificacoesCompartilharAuxBtn) {
+            notificacoesCompartilharAuxBtn.disabled = false;
+            notificacoesCompartilharAuxBtn.textContent = textoAnterior;
+          }
+        }
+      }
+
       function vistaInicialDaUrl_() {
         try {
+          if (idAcessoAuxiliarNotificacoesUrl_()) return 'form';
           const valor = String(new URLSearchParams(window.location.search).get('view') || '').trim().toLowerCase();
           if (['painel', 'panel', 'records', 'planilha'].includes(valor)) return 'records';
           if (['vistoria', 'form', 'formulario', 'nova-vistoria'].includes(valor)) return 'form';
@@ -7734,6 +8000,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try {
           await apiRequest('config', { consulta: 'rascunho_salvar', estado, payload }, 18000);
           atualizarEstadoSalvamentoIrregularidades_('synced', '✓ Salva e sincronizada');
+          if (modoAcessoAuxiliarNotificacoesAtivo_() && auxNotificationsMeta) {
+            const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+            const base = auxNotificationsMeta.textContent.split(' • Sincronizada às ')[0];
+            auxNotificationsMeta.textContent = `${base} • Sincronizada às ${agora}`;
+          }
           if (!silencioso) appStatus.textContent = estado === 'parcial' ? 'Vistoria concluída parcialmente e sincronizada.' : 'Rascunho compartilhado sincronizado.';
           return true;
         } catch (e) {
@@ -8565,6 +8836,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function carregarInicialComMotivacional_(opcoes = {}) {
+        if (idAcessoAuxiliarNotificacoesUrl_()) {
+          await loadInitialData();
+          return;
+        }
         const forcar = Boolean(opcoes.forcar);
         const mostrar = forcar || deveMostrarMotivacionalHoje_();
         if (!mostrar) {
@@ -9762,8 +10037,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const ativo = Boolean(preparacaoEmUsoId && currentRecordId && usuarioPodeOperar_());
         const btn = document.getElementById('activeInspectionCancelBtn');
         const notifBtn = document.getElementById('activeInspectionNotificationsBtn');
-        if (btn) btn.hidden = !ativo;
-        if (notifBtn) notifBtn.hidden = !ativo;
+        const modoAuxiliar = modoAcessoAuxiliarNotificacoesAtivo_();
+        if (btn) btn.hidden = !ativo || modoAuxiliar;
+        if (notifBtn) notifBtn.hidden = !ativo || modoAuxiliar;
+        if (notificacoesCompartilharAuxBtn) notificacoesCompartilharAuxBtn.hidden = modoAuxiliar;
+        if (notificacoesRevisarBtn) notificacoesRevisarBtn.hidden = modoAuxiliar;
       }
 
       function atualizarTextoTecnicoIrregularidade_(item) {
@@ -10151,6 +10429,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         inicializarNavegacaoGlobal_(vistaInicial);
 
+        const acessoAuxiliarId = idAcessoAuxiliarNotificacoesUrl_();
+        if (acessoAuxiliarId && usuarioPodeOperar_()) {
+          await abrirAcessoAuxiliarNotificacoes_(acessoAuxiliarId);
+        } else if (acessoAuxiliarId && !usuarioPodeOperar_()) {
+          appStatus.textContent = 'Este link de notificações exige um usuário com perfil GPV.';
+        }
+
         // V23.9.47: DDU, programações e lista de vistoriadores são dados auxiliares.
         // A tela principal não fica mais presa ao "Carregando" aguardando essas três consultas.
         // Cada área mantém seu próprio indicador e termina a atualização em segundo plano.
@@ -10422,6 +10707,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         adicionarLocalNotificacao_(true);
       });
       notificacoesRevisarBtn?.addEventListener('click', abrirRevisaoTecnicaNotificacoes_);
+      notificacoesCompartilharAuxBtn?.addEventListener('click', compartilharNotificacoesComAuxiliar_);
+      auxNotificationsExitBtn?.addEventListener('click', sairAcessoAuxiliarNotificacoes_);
+      auxNotificationsShareCloseBtn?.addEventListener('click', fecharModalCompartilharAuxiliar_);
+      auxNotificationsShareCancelBtn?.addEventListener('click', fecharModalCompartilharAuxiliar_);
+      auxNotificationsShareModal?.addEventListener('click', event => {
+        if (event.target === auxNotificationsShareModal) fecharModalCompartilharAuxiliar_();
+      });
+      auxNotificationsCopyLinkBtn?.addEventListener('click', async () => {
+        const ok = await copiarTextoClipboard_(auxNotificationsShareLink?.value || '');
+        appStatus.textContent = ok ? '✓ Link copiado. Envie ao auxiliar.' : 'Não foi possível copiar automaticamente. Selecione o link e copie manualmente.';
+        if (ok && auxNotificationsCopyLinkBtn) {
+          const anterior = auxNotificationsCopyLinkBtn.textContent;
+          auxNotificationsCopyLinkBtn.textContent = '✓ Copiado';
+          setTimeout(() => { auxNotificationsCopyLinkBtn.textContent = anterior; }, 1400);
+        }
+      });
+      auxNotificationsNativeShareBtn?.addEventListener('click', async () => {
+        const link = String(auxNotificationsShareLink?.value || '');
+        if (!link || typeof navigator.share !== 'function') return;
+        try {
+          await navigator.share({
+            title: 'Notificações da vistoria',
+            text: 'Acesse este link para lançar as notificações desta vistoria. Entre com seu Nº BM e senha.',
+            url: link
+          });
+        } catch (e) {
+          if (e?.name !== 'AbortError') appStatus.textContent = 'Não foi possível abrir o compartilhamento do aparelho.';
+        }
+      });
+
       notificacoesLiberacaoLista?.addEventListener('change',event=>{const a=event.target.closest('[data-notification-field]');if(!a||!/^(tipoIrregularidade|itemIrregular)$/.test(a.dataset.notificationField||''))return;const l=notificacoesLiberacao.find(x=>String(x.id)===String(a.dataset.notificationLocalId)),i=l?.irregularidades?.find(x=>String(x.id)===String(a.dataset.notificationId));if(!i)return;const c=a.dataset.notificationField;i[c]=a.value;if(c==='tipoIrregularidade')i.itemIrregular='';processarIrregularidadeTecnica_(l,i);agendarPersistenciaNotificacoesLiberacao_();renderNotificacoesLiberacao_();});
       notificacoesLiberacaoLista?.addEventListener('input', event => {
         const alvo = event.target.closest('[data-notification-field]');
@@ -10816,7 +11131,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99m', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99n', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
