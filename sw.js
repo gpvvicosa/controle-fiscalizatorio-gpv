@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260817-v23-9-99-renovacao-avcb-ae';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260817-v23-9-99-update-compact-occupation-af';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [

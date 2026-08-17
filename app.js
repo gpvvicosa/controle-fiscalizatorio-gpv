@@ -3527,6 +3527,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return recordRedsModelSelect.value;
       }
 
+      function codigosOcupacaoRelatorio_(valor) {
+        const texto = String(valor || '').toUpperCase();
+        const encontrados = [];
+        const vistos = new Set();
+
+        // Aceita "G-3" e também "G3"; a saída fica sempre como "G-3".
+        const regex = /\b([A-Z]{1,2})\s*-?\s*(\d{1,2})\b/g;
+        let match;
+        while ((match = regex.exec(texto)) !== null) {
+          const codigo = `${match[1]}-${match[2]}`;
+          if (!vistos.has(codigo)) {
+            vistos.add(codigo);
+            encontrados.push(codigo);
+          }
+        }
+        return encontrados.join(', ');
+      }
+
       function montarTextoRedsFiscalizacao_(modelo, registro) {
         const pscip = valorPscipOperacionalFicha_(registro);
         const pf = valorCampoFicha_(registro, 'Nº do PF') || 'NÃO INFORMADO';
@@ -3540,7 +3558,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const eventoOrganizador = String(valorCampoFicha_(registro, 'Organizador do evento') || 'NÃO INFORMADO').toUpperCase();
         const eventoDocumento = valorCampoFicha_(registro, 'CPF/CNPJ do organizador') || 'NÃO INFORMADO';
         const ddu = valorCampoFicha_(registro, 'Nº DDU') || 'NÃO INFORMADO';
-        const ocupacao = String(valorCampoFicha_(registro, 'Ocupação') || 'NÃO INFORMADO').replace(/\s*\|\s*/g, ', ').toUpperCase();
+        const ocupacaoCompleta = String(valorCampoFicha_(registro, 'Ocupação') || 'NÃO INFORMADO').replace(/\s*\|\s*/g, ', ').toUpperCase();
+        const ocupacaoSomenteCodigos = codigosOcupacaoRelatorio_(ocupacaoCompleta);
+        const ocupacao = modelo === RELATORIOS_REDS_FISCALIZACAO.renovacaoAvcb
+          ? (ocupacaoSomenteCodigos || 'NÃO INFORMADO')
+          : ocupacaoCompleta;
         const area = valorCampoFicha_(registro, 'Área m²') || 'NÃO INFORMADA';
         const situacaoPscip = String(valorCampoFicha_(registro, 'Situação atual do PSCIP') || 'NÃO INFORMADA').toUpperCase();
         const dataRenovacaoAvcb = valorCampoFicha_(registro, 'Data de renovação do AVCB') || 'NÃO INFORMADA';
@@ -11857,7 +11879,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ae', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99af', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
