@@ -555,6 +555,8 @@
       const dashboardGoalsOpenBtn = document.getElementById('dashboardGoalsOpenBtn');
       const goalsModal = document.getElementById('goalsModal');
       const goalsModalCloseBtn = document.getElementById('goalsModalCloseBtn');
+      const goalsModalPrintBtn = document.getElementById('goalsModalPrintBtn');
+      const goalsPrintMeta = document.getElementById('goalsPrintMeta');
       const goalsModalTitle = document.getElementById('goalsModalTitle');
       const goalsModalSubtitle = document.getElementById('goalsModalSubtitle');
       const goalsModalSummary = document.getElementById('goalsModalSummary');
@@ -2955,6 +2957,97 @@
         selecionarAbaMetas_('resumo');
         if (goalsModal) goalsModal.hidden = false;
         void carregarMetas_(true);
+      }
+
+      function dataHoraImpressaoMetas_() {
+        try {
+          return new Intl.DateTimeFormat('pt-BR', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+          }).format(new Date());
+        } catch (erro) {
+          return new Date().toLocaleString('pt-BR');
+        }
+      }
+
+      async function imprimirOuSalvarMetas_() {
+        if (!goalsModal || goalsModal.hidden || !metasMensaisAtual) {
+          await avisarGpv_(
+            'Abra as metas mensais antes de imprimir ou salvar o relatório.',
+            'Metas mensais',
+            { tom: 'warning' }
+          );
+          return;
+        }
+
+        const modo = await escolherOpcaoGpv_(
+          'Escolha o conteúdo que deseja levar para a impressão ou para o PDF.',
+          [
+            {
+              valor: 'resumo',
+              titulo: 'Resumo mensal',
+              subtitulo: 'Progresso geral e cartões das metas, como na tela Resumo.'
+            },
+            {
+              valor: 'completo',
+              titulo: 'Resumo + detalhes dos locais',
+              subtitulo: 'Inclui também os registros contabilizados em cada categoria.'
+            }
+          ],
+          'Imprimir / salvar metas'
+        );
+
+        if (!modo) return;
+
+        const resumoEstavaOculto = Boolean(goalsSummaryPanel?.hidden);
+        const detalhesEstavamOcultos = Boolean(goalsDetailsPanel?.hidden);
+        const tituloAnterior = document.title;
+
+        if (goalsPrintMeta) {
+          goalsPrintMeta.textContent =
+            `GPV — 3º Pelotão Viçosa • Gerado em ${dataHoraImpressaoMetas_()}`;
+        }
+
+        if (goalsSummaryPanel) goalsSummaryPanel.hidden = false;
+        if (goalsDetailsPanel) goalsDetailsPanel.hidden = modo !== 'completo';
+
+        goalsModal.dataset.printMode = modo;
+        document.body.classList.add('printing-goals');
+
+        const tituloMetas = String(goalsModalTitle?.textContent || 'Metas mensais').trim();
+        document.title = `${tituloMetas} - GPV Viçosa`;
+
+        let limpezaExecutada = false;
+        const limparImpressao = () => {
+          if (limpezaExecutada) return;
+          limpezaExecutada = true;
+          document.body.classList.remove('printing-goals');
+          delete goalsModal.dataset.printMode;
+          if (goalsSummaryPanel) goalsSummaryPanel.hidden = resumoEstavaOculto;
+          if (goalsDetailsPanel) goalsDetailsPanel.hidden = detalhesEstavamOcultos;
+          document.title = tituloAnterior;
+        };
+
+        window.addEventListener('afterprint', limparImpressao, { once: true });
+
+        setTimeout(() => {
+          window.addEventListener('focus', () => {
+            setTimeout(limparImpressao, 250);
+          }, { once: true });
+        }, 700);
+
+        setTimeout(() => {
+          try {
+            window.print();
+          } catch (erro) {
+            limparImpressao();
+            avisarGpv_(
+              'Não foi possível abrir o serviço de impressão deste aparelho.',
+              'Impressão indisponível',
+              { tom: 'warning' }
+            );
+          }
+        }, 80);
       }
 
       function fecharMetas_() { if (goalsModal) goalsModal.hidden = true; }
@@ -11178,6 +11271,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       dashboardGoalsOpenBtn?.addEventListener('click', abrirMetas_);
       dashboardGoalsPanel?.addEventListener('dblclick', abrirMetas_);
       goalsModalCloseBtn?.addEventListener('click', fecharMetas_);
+      goalsModalPrintBtn?.addEventListener('click', imprimirOuSalvarMetas_);
       goalsTabSummaryBtn?.addEventListener('click', () => selecionarAbaMetas_('resumo'));
       goalsTabDetailsBtn?.addEventListener('click', () => selecionarAbaMetas_('detalhes'));
       goalsModalDetails?.addEventListener('click', event => {
@@ -11879,7 +11973,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99af', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ag', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

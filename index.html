@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99ae">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ag">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -387,7 +387,15 @@
   <div class="review-overlay" id="goalsModal" hidden>
     <section class="review-card goals-modal-card" role="dialog" aria-modal="true" aria-labelledby="goalsModalTitle">
       <div class="review-head goals-modal-head">
-        <div><span class="goals-modal-kicker">GPV — 3º Pelotão Viçosa</span><h2 id="goalsModalTitle">Metas do mês</h2><p id="goalsModalSubtitle">Acompanhamento das metas mensais.</p></div>
+        <div>
+          <span class="goals-modal-kicker">GPV — 3º Pelotão Viçosa</span>
+          <h2 id="goalsModalTitle">Metas do mês</h2>
+          <p id="goalsModalSubtitle">Acompanhamento das metas mensais.</p>
+          <div class="goals-print-meta" id="goalsPrintMeta" aria-hidden="true"></div>
+        </div>
+        <button class="goals-modal-print-btn" id="goalsModalPrintBtn" type="button" aria-label="Imprimir ou salvar metas em PDF">
+          <span aria-hidden="true">🖨</span><span>Imprimir / PDF</span>
+        </button>
         <button class="icon-btn" id="goalsModalCloseBtn" type="button" aria-label="Fechar metas">×</button>
       </div>
       <div class="goals-modal-tabs" role="tablist" aria-label="Visualização das metas">
@@ -1825,7 +1833,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99af"></script>
+  <script src="app.js?v=23.9.99ag"></script>
 
   </div>
   
