@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-99-splash-final-p';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260816-v23-9-99-splash-image-q';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [
@@ -21,6 +21,7 @@ const OPTIONAL_SHELL = [
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/icon-maskable-512.png',
+  './assets/splash-gpv.png?v=23.9.99q',
   './assets/manual-do-autuado-infoscip-fiscalizacao.pdf',
   './manual/',
   './instrucoes-tecnicas/assets/app.js',

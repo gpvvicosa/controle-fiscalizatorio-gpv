@@ -9471,3 +9471,101 @@ html:not(.gpv-booting) body:not(.gpv-aux-auth-visible):not(.aux-notifications-mo
   0%,100%{box-shadow:0 24px 54px rgba(12,0,1,.34),0 0 0 9px rgba(255,255,255,.018)}
   50%{box-shadow:0 28px 62px rgba(12,0,1,.40),0 0 0 12px rgba(247,201,76,.055)}
 }
+
+
+/* =========================================================
+   V23.9.99q — splash com assets/splash-gpv.png
+   ========================================================= */
+.loading.gpv-image-splash{
+  position:fixed!important;
+  inset:0!important;
+  z-index:12000!important;
+  display:none;
+  overflow:hidden!important;
+  padding:0!important;
+  background:#52080c!important;
+}
+.loading.gpv-image-splash.show{
+  display:block!important;
+}
+.loading.gpv-image-splash::before,
+.loading.gpv-image-splash::after{
+  display:none!important;
+}
+.gpv-image-splash .gpv-splash-art{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:none;
+  object-fit:cover;
+  object-position:center center;
+  user-select:none;
+  -webkit-user-drag:none;
+  pointer-events:none;
+  transform:scale(1.006);
+  animation:gpvSplashImageBreath 2.15s ease-in-out infinite alternate;
+}
+.gpv-image-splash .gpv-splash-status{
+  position:absolute;
+  z-index:2;
+  left:50%;
+  bottom:max(36px,calc(env(safe-area-inset-bottom) + 26px));
+  width:min(300px,76vw);
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  text-align:center;
+  color:#fff;
+  text-shadow:0 2px 12px rgba(0,0,0,.42);
+}
+.gpv-image-splash #loadingText{
+  display:block;
+  color:rgba(255,255,255,.90)!important;
+  font-size:12px;
+  font-weight:750;
+  line-height:1.35;
+  letter-spacing:.01em;
+}
+.gpv-image-splash .gpv-splash-progress{
+  width:min(235px,64vw);
+  height:3px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.20);
+  box-shadow:0 1px 8px rgba(0,0,0,.15);
+}
+.gpv-image-splash .gpv-splash-progress i{
+  display:block;
+  width:42%;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#d89015,#ffd45b,#f4b62d);
+  animation:gpvSplashImageProgress 1.05s ease-in-out infinite;
+}
+@keyframes gpvSplashImageBreath{
+  from{transform:scale(1.006)}
+  to{transform:scale(1.025)}
+}
+@keyframes gpvSplashImageProgress{
+  0%{transform:translateX(-120%)}
+  55%{transform:translateX(115%)}
+  100%{transform:translateX(255%)}
+}
+@media(max-width:640px){
+  .gpv-image-splash .gpv-splash-status{
+    bottom:max(30px,calc(env(safe-area-inset-bottom) + 22px));
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .gpv-image-splash .gpv-splash-art,
+  .gpv-image-splash .gpv-splash-progress i{
+    animation:none!important;
+  }
+  .gpv-image-splash .gpv-splash-progress i{
+    width:54%;
+    margin:0 auto;
+  }
+}
