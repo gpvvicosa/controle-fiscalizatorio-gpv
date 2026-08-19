@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-historico-sugestoes-al';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-acesso-permanente-sugestoes-am';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [

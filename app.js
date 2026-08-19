@@ -709,6 +709,10 @@
       const inspectionSuggestionsText = document.getElementById('inspectionSuggestionsText');
       const inspectionSuggestionsCount = document.getElementById('inspectionSuggestionsCount');
       const inspectionSuggestionsBadge = document.getElementById('inspectionSuggestionsBadge');
+      const inspectionSuggestionsVistoriaCard = document.getElementById('inspectionSuggestionsVistoriaCard');
+      const inspectionSuggestionsVistoriaText = document.getElementById('inspectionSuggestionsVistoriaText');
+      const inspectionSuggestionsVistoriaSummary = document.getElementById('inspectionSuggestionsVistoriaSummary');
+      const inspectionSuggestionsVistoriaCount = document.getElementById('inspectionSuggestionsVistoriaCount');
       const programmedQuickAddBtn = document.getElementById('programmedQuickAddBtn');
       const programmedListModal = document.getElementById('programmedListModal');
       const programmedListCloseBtn = document.getElementById('programmedListCloseBtn');
@@ -10713,16 +10717,39 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const alta = Number(r.alta || 0);
         const media = Number(r.media || 0);
 
+        const acompanhamento = Number(r.acompanhamento || 0);
+
         if (inspectionSuggestionsCount) inspectionSuggestionsCount.textContent = String(total);
         if (inspectionSuggestionsBadge) inspectionSuggestionsBadge.textContent = String(total);
         if (inspectionSuggestionsText) {
           inspectionSuggestionsText.textContent = total
-            ? `${alta} alta prioridade • ${media} média • ${Number(r.acompanhamento || 0)} acompanhamento`
+            ? `${alta} alta prioridade • ${media} média • ${acompanhamento} acompanhamento`
             : 'Nenhum local sugerido com os critérios atuais.';
         }
         if (inspectionSuggestionsCard) {
           inspectionSuggestionsCard.classList.toggle('has-high', alta > 0);
           inspectionSuggestionsCard.hidden = false;
+        }
+
+        // O acesso na tela Vistoria permanece SEMPRE visível, inclusive quando
+        // não há nenhuma vistoria programada.
+        if (inspectionSuggestionsVistoriaCount) {
+          inspectionSuggestionsVistoriaCount.textContent = String(total);
+        }
+        if (inspectionSuggestionsVistoriaSummary) {
+          inspectionSuggestionsVistoriaSummary.textContent = total
+            ? `${alta} alta • ${media} média • ${acompanhamento} acompanhamento`
+            : 'Nenhuma sugestão pendente no momento';
+        }
+        if (inspectionSuggestionsVistoriaText) {
+          inspectionSuggestionsVistoriaText.textContent = total
+            ? 'Locais indicados para nova fiscalização com base no histórico e no risco.'
+            : 'A lista continua disponível para consulta mesmo sem sugestões pendentes.';
+        }
+        if (inspectionSuggestionsVistoriaCard) {
+          inspectionSuggestionsVistoriaCard.classList.toggle('has-high', alta > 0);
+          inspectionSuggestionsVistoriaCard.classList.toggle('is-empty', total === 0);
+          inspectionSuggestionsVistoriaCard.hidden = false;
         }
       }
 
@@ -11553,6 +11580,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
       inspectionSuggestionsCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
+      inspectionSuggestionsVistoriaCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       programmedQuickAddBtn?.addEventListener('click', event => {
         event.preventDefault();
         event.stopPropagation();
@@ -12265,7 +12293,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99al', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99am', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

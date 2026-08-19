@@ -10828,3 +10828,129 @@ body.gpv-dialog-open{overflow:hidden!important}
   .record-suggestion-callout{align-items:flex-start;flex-direction:column}
   .record-suggestion-callout .btn{width:100%}
 }
+
+
+/* ===== V23.9.99am — acesso permanente às Sugestões na tela Vistoria ===== */
+.inspection-suggestions-home-card{
+  width:100%;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto auto;
+  align-items:center;
+  gap:15px;
+  margin-top:14px;
+  padding:16px 18px;
+  border:1px solid #e3c9a2;
+  border-left:5px solid #c56a13;
+  border-radius:18px;
+  background:linear-gradient(135deg,#fffdf9 0%,#fff8ee 100%);
+  color:#263244;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:0 7px 22px rgba(15,23,42,.045);
+  transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+.inspection-suggestions-home-card:hover{
+  border-color:#d9ae75;
+  box-shadow:0 10px 28px rgba(15,23,42,.075);
+}
+.inspection-suggestions-home-card:active{transform:translateY(1px)}
+.inspection-suggestions-home-card.has-high{
+  border-color:#efb6b9;
+  border-left-color:#b4232b;
+  background:linear-gradient(135deg,#fffdfd 0%,#fff5f5 100%);
+}
+.inspection-suggestions-home-card.is-empty{
+  border-color:#dfe4ea;
+  border-left-color:#8995a5;
+  background:#fafbfc;
+}
+.inspection-suggestions-home-icon{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border-radius:15px;
+  background:#fff0dd;
+  color:#a3560e;
+}
+.inspection-suggestions-home-card.has-high .inspection-suggestions-home-icon{
+  background:#fee8e9;
+  color:#a12026;
+}
+.inspection-suggestions-home-card.is-empty .inspection-suggestions-home-icon{
+  background:#eef1f4;
+  color:#667384;
+}
+.inspection-suggestions-home-icon .ui-icon{width:24px;height:24px}
+.inspection-suggestions-home-copy{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.inspection-suggestions-home-copy strong{
+  font-size:1.02rem;
+  color:#202b3b;
+}
+.inspection-suggestions-home-copy small{
+  color:#626f81;
+  line-height:1.35;
+}
+.inspection-suggestions-home-summary{
+  margin-top:3px;
+  font-size:.8rem;
+  font-weight:800;
+  color:#92510f;
+}
+.inspection-suggestions-home-card.has-high .inspection-suggestions-home-summary{color:#a12026}
+.inspection-suggestions-home-card.is-empty .inspection-suggestions-home-summary{color:#687586}
+.inspection-suggestions-home-count{
+  min-width:42px;
+  height:34px;
+  padding:0 10px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid rgba(148,91,26,.16);
+  color:#8f4c0d;
+  font-weight:900;
+  font-size:.95rem;
+}
+.inspection-suggestions-home-card.has-high .inspection-suggestions-home-count{
+  color:#a12026;
+  border-color:#f0c8ca;
+}
+.inspection-suggestions-home-card.is-empty .inspection-suggestions-home-count{
+  color:#667384;
+  border-color:#e0e5eb;
+}
+.inspection-suggestions-home-arrow{
+  color:#9b5b19;
+  font-size:1.6rem;
+}
+.inspection-suggestions-home-card.has-high .inspection-suggestions-home-arrow{color:#b4232b}
+.inspection-suggestions-home-card.is-empty .inspection-suggestions-home-arrow{color:#778394}
+
+@media(max-width:680px){
+  .inspection-suggestions-home-card{
+    grid-template-columns:auto minmax(0,1fr) auto;
+    gap:11px;
+    padding:14px;
+    border-radius:16px;
+  }
+  .inspection-suggestions-home-icon{
+    width:42px;
+    height:42px;
+    border-radius:13px;
+  }
+  .inspection-suggestions-home-count{
+    min-width:36px;
+    height:30px;
+    padding:0 8px;
+  }
+  .inspection-suggestions-home-arrow{display:none}
+  .inspection-suggestions-home-copy strong{font-size:.96rem}
+  .inspection-suggestions-home-copy small{font-size:.8rem}
+  .inspection-suggestions-home-summary{font-size:.75rem}
+}

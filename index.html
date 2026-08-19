@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99al">
+  <link rel="stylesheet" href="styles.css?v=23.9.99am">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -770,6 +770,23 @@
               <span class="inspection-flow-copy"><strong>Vistoria de Liberação</strong><small>Realize ou consulte vistorias relacionadas à liberação.</small></span><span class="inspection-flow-arrow" aria-hidden="true">›</span>
             </button>
           </div>
+
+          <button type="button" class="inspection-suggestions-home-card" id="inspectionSuggestionsVistoriaCard" aria-label="Abrir sugestões de fiscalização">
+            <span class="inspection-suggestions-home-icon" aria-hidden="true">
+              <svg class="ui-icon" viewBox="0 0 24 24">
+                <path d="M4 5h16v14H4z"/>
+                <path d="M8 9h8M8 13h5M8 17h7"/>
+                <path d="m17 3 2 2-4.5 4.5-2.5.5.5-2.5z"/>
+              </svg>
+            </span>
+            <span class="inspection-suggestions-home-copy">
+              <strong>Sugestões de Fiscalização</strong>
+              <small id="inspectionSuggestionsVistoriaText">Locais indicados para nova fiscalização com base no histórico e no risco.</small>
+              <span class="inspection-suggestions-home-summary" id="inspectionSuggestionsVistoriaSummary">Carregando prioridades...</span>
+            </span>
+            <span class="inspection-suggestions-home-count" id="inspectionSuggestionsVistoriaCount">—</span>
+            <span class="inspection-flow-arrow inspection-suggestions-home-arrow" aria-hidden="true">›</span>
+          </button>
         </div>
       </section>
 
@@ -1845,7 +1862,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99al"></script>
+  <script src="app.js?v=23.9.99am"></script>
 
   </div>
   
