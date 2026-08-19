@@ -18,9 +18,12 @@
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
+      const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV1';
       const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
       const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
+      const SUGGESTIONS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+      const SUGGESTIONS_REFRESH_SOFT_MS = 5 * 60 * 1000;
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -450,6 +453,8 @@
       const recordsTabBtn = document.getElementById('recordsTabBtn');
       const recordsPanel = document.getElementById('recordsPanel');
       const recordsSearch = document.getElementById('recordsSearch');
+      const recordsSearchBox = document.getElementById('recordsSearchBox');
+      const recordsSearchActivity = document.getElementById('recordsSearchActivity');
       const recordsCityFilter = document.getElementById('recordsCityFilter');
       const recordsDemandFilter = document.getElementById('recordsDemandFilter');
       const recordsSanctionFilter = document.getElementById('recordsSanctionFilter');
@@ -713,6 +718,7 @@
       const inspectionSuggestionsVistoriaText = document.getElementById('inspectionSuggestionsVistoriaText');
       const inspectionSuggestionsVistoriaSummary = document.getElementById('inspectionSuggestionsVistoriaSummary');
       const inspectionSuggestionsVistoriaCount = document.getElementById('inspectionSuggestionsVistoriaCount');
+      const inspectionSuggestionsRefreshBtn = document.getElementById('inspectionSuggestionsRefreshBtn');
       const programmedQuickAddBtn = document.getElementById('programmedQuickAddBtn');
       const programmedListModal = document.getElementById('programmedListModal');
       const programmedListCloseBtn = document.getElementById('programmedListCloseBtn');
@@ -793,6 +799,8 @@
       let sugestoesFiscalizacao = [];
       let resumoSugestoesFiscalizacao = { total: 0, alta: 0, media: 0, acompanhamento: 0 };
       let sugestoesFiscalizacaoCarregadas = false;
+      let sugestoesFiscalizacaoAtualizando = false;
+      let sugestoesFiscalizacaoGeradoEm = '';
       let filtroPreparacoes = 'todas';
       let preparacaoEmUsoId = '';
       let dduEmUsoId = '';
@@ -810,6 +818,7 @@
       let recordDetailReturnContext = '';
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
+      let recordsSearchPending = false;
       const recordsState = {
         pagina: 1,
         limite: 25,
@@ -3097,6 +3106,44 @@
         catch (erro) { return false; }
       }
 
+      function lerCacheSugestoesFiscalizacaoLocal_() {
+        const item = lerStorageJson_(SUGGESTIONS_CACHE_STORAGE, null);
+        if (!item || !Array.isArray(item.itens) || !item.resumo || !item.salvoEm) return null;
+        if (Date.now() - Number(item.salvoEm || 0) > SUGGESTIONS_CACHE_TTL_MS) return null;
+        return item;
+      }
+
+      function salvarCacheSugestoesFiscalizacaoLocal_(resposta) {
+        if (!resposta || !Array.isArray(resposta.itens)) return;
+        gravarStorageJson_(SUGGESTIONS_CACHE_STORAGE, {
+          salvoEm: Date.now(),
+          geradoEm: String(resposta.geradoEm || new Date().toISOString()),
+          itens: resposta.itens,
+          resumo: resposta.resumo || { total: resposta.itens.length, alta: 0, media: 0, acompanhamento: 0 }
+        });
+      }
+
+      function aplicarCacheSugestoesFiscalizacaoLocal_(cache) {
+        if (!cache || !Array.isArray(cache.itens)) return false;
+        sugestoesFiscalizacao = cache.itens;
+        resumoSugestoesFiscalizacao = cache.resumo || { total: cache.itens.length, alta: 0, media: 0, acompanhamento: 0 };
+        sugestoesFiscalizacaoGeradoEm = String(cache.geradoEm || '');
+        sugestoesFiscalizacaoCarregadas = true;
+        atualizarResumoSugestoesUi_();
+        return true;
+      }
+
+      function rotuloAtualizacaoSugestoes_() {
+        const cache = lerCacheSugestoesFiscalizacaoLocal_();
+        const salvoEm = Number(cache?.salvoEm || 0);
+        if (!salvoEm) return '';
+        const minutos = Math.max(0, Math.floor((Date.now() - salvoEm) / 60000));
+        if (minutos < 1) return 'atualizado agora';
+        if (minutos === 1) return 'atualizado há 1 min';
+        if (minutos < 60) return `atualizado há ${minutos} min`;
+        return `atualizado às ${new Date(salvoEm).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}`;
+      }
+
       function chaveCachePainel_(filtros, offset, limite) {
         return JSON.stringify({ filtros: filtros || {}, offset: Number(offset || 0), limite: Number(limite || 25) });
       }
@@ -3136,6 +3183,10 @@
         try { localStorage.removeItem(PANEL_CACHE_STORAGE); } catch (erro) {}
         try { localStorage.removeItem(RECORD_CACHE_STORAGE); } catch (erro) {}
         try { localStorage.removeItem(GOALS_CACHE_STORAGE); } catch (erro) {}
+        try { localStorage.removeItem(SUGGESTIONS_CACHE_STORAGE); } catch (erro) {}
+        sugestoesFiscalizacaoCarregadas = false;
+        sugestoesFiscalizacao = [];
+        sugestoesFiscalizacaoGeradoEm = '';
         metasMensaisAtual = null;
       }
 
@@ -3192,18 +3243,32 @@
             : `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} na consulta. Mais recentes primeiro.`);
       }
 
+      function definirBuscaPainelEmAndamento_(ativa) {
+        const ligada = Boolean(ativa);
+        if (recordsSearchBox) {
+          recordsSearchBox.classList.toggle('is-searching', ligada);
+          recordsSearchBox.setAttribute('aria-busy', ligada ? 'true' : 'false');
+        }
+        if (recordsSearchActivity) recordsSearchActivity.hidden = !ligada;
+      }
+
       async function carregarRegistros_(reiniciar = true) {
-        if (recordsState.carregando) return;
+        if (recordsState.carregando) {
+          if (reiniciar) recordsSearchPending = true;
+          return;
+        }
         if (reiniciar) recordsState.pagina = 1;
 
         const offset = (recordsState.pagina - 1) * recordsState.limite;
         const limiteApi = Math.max(10, recordsState.limite);
         const filtros = filtrosConsultaAtuais_();
+        const buscaAtiva = Boolean(String(filtros.busca || '').trim());
         const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
         const cache = lerCachePainel_(chaveCache);
         if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true });
 
         if (!navigator.onLine) {
+          definirBuscaPainelEmAndamento_(false);
           if (!cache?.resposta) {
             recordsStatus.className = 'records-status error';
             recordsStatus.textContent = 'Sem internet e sem consulta recente salva neste aparelho.';
@@ -3214,7 +3279,14 @@
         recordsState.carregando = true;
         if (recordsRefreshBtn) recordsRefreshBtn.disabled = true;
         atualizarPaginacao_();
-        if (!cache?.resposta) {
+        definirBuscaPainelEmAndamento_(buscaAtiva);
+
+        if (buscaAtiva) {
+          recordsStatus.className = 'records-status searching';
+          recordsStatus.innerHTML = cache?.resposta
+            ? '<strong>Resultados salvos exibidos.</strong> Buscando informações mais recentes...'
+            : '<strong>Buscando registros...</strong> Consultando estabelecimento, CNPJ/CPF, PSCIP, endereço e nº do endereço.';
+        } else if (!cache?.resposta) {
           recordsStatus.className = 'records-status loading';
           recordsStatus.innerHTML = `
             <div class="panel-loading-visual" role="status" aria-live="polite">
@@ -3223,7 +3295,7 @@
                 <span class="panel-loading-pen"></span>
               </div>
               <strong>Atualizando Painel Fiscalizatório...</strong>
-              <small>Carregando dados da planilha</small>
+              <small>Carregando dados do painel</small>
               <span class="panel-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span>
             </div>`;
         }
@@ -3239,10 +3311,12 @@
         } catch (erro) {
           if (cache?.resposta) {
             recordsStatus.className = 'records-status cached';
-            recordsStatus.innerHTML = `<strong>Não foi possível atualizar agora.</strong> A última consulta salva continua disponível.`;
+            recordsStatus.innerHTML = buscaAtiva
+              ? '<strong>Não foi possível concluir a busca agora.</strong> Os últimos resultados salvos continuam visíveis.'
+              : '<strong>Não foi possível atualizar agora.</strong> A última consulta salva continua disponível.';
           } else {
             recordsStatus.className = 'records-status error';
-            recordsStatus.textContent = erro?.message || 'Não foi possível carregar o Painel Fiscalizatório.';
+            recordsStatus.textContent = erro?.message || (buscaAtiva ? 'Não foi possível concluir a busca.' : 'Não foi possível carregar o Painel Fiscalizatório.');
             if (!recordsState.itens.length) {
               recordsList.innerHTML = '<div class="records-empty">O painel não pôde ser carregado agora.</div>';
               recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
@@ -3251,7 +3325,13 @@
         } finally {
           recordsState.carregando = false;
           if (recordsRefreshBtn) recordsRefreshBtn.disabled = false;
+          definirBuscaPainelEmAndamento_(false);
           atualizarPaginacao_();
+
+          if (recordsSearchPending) {
+            recordsSearchPending = false;
+            setTimeout(() => carregarRegistros_(true), 20);
+          }
         }
       }
 
@@ -9415,6 +9495,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (desktopPrepareInspectionBtn) {
           desktopPrepareInspectionBtn.hidden = filtroPreparacoes === 'sugestoes' && !usuarioPodeOperar_();
         }
+        if (inspectionSuggestionsRefreshBtn) {
+          inspectionSuggestionsRefreshBtn.hidden = filtroPreparacoes !== 'sugestoes';
+        }
       }
 
       function abrirListaProgramadas_(preferirMinhas = true, filtroInicial = '') {
@@ -9424,13 +9507,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         renderizarPreparacoesVistoria_();
         if (programmedListModal) programmedListModal.hidden = false;
         if (navigator.onLine) {
-          carregarPreparacoesVistoria_().catch(() => {});
-          if (filtroPreparacoes === 'sugestoes') carregarSugestoesFiscalizacao_().catch(() => {});
-          else carregarResumoSugestoesFiscalizacao_().catch(() => {});
+          if (filtroPreparacoes === 'sugestoes') {
+            carregarSugestoesFiscalizacao_().catch(() => {});
+          } else {
+            carregarPreparacoesVistoria_().catch(() => {});
+            carregarResumoSugestoesFiscalizacao_().catch(() => {});
+          }
         }
       }
 
       function abrirSugestoesFiscalizacao_() {
+        const cacheLocal = lerCacheSugestoesFiscalizacaoLocal_();
+        if (cacheLocal) aplicarCacheSugestoesFiscalizacaoLocal_(cacheLocal);
         abrirListaProgramadas_(false, 'sugestoes');
       }
 
@@ -10773,16 +10861,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function carregarResumoSugestoesFiscalizacao_() {
+        const cacheLocal = lerCacheSugestoesFiscalizacaoLocal_();
+        if (cacheLocal) {
+          resumoSugestoesFiscalizacao = cacheLocal.resumo || resumoSugestoesFiscalizacao;
+          sugestoesFiscalizacaoGeradoEm = String(cacheLocal.geradoEm || '');
+          atualizarResumoSugestoesUi_();
+          if (Date.now() - Number(cacheLocal.salvoEm || 0) < SUGGESTIONS_REFRESH_SOFT_MS) return;
+        }
         if (!navigator.onLine) return;
         try {
           const r = await apiRequest('config', {
             consulta: 'sugestoes_fiscalizacao',
             filtros: { limite: 0 }
-          }, 45000);
+          }, 30000);
           resumoSugestoesFiscalizacao = r?.resumo || { total: 0, alta: 0, media: 0, acompanhamento: 0 };
+          sugestoesFiscalizacaoGeradoEm = String(r?.geradoEm || sugestoesFiscalizacaoGeradoEm || '');
           atualizarResumoSugestoesUi_();
         } catch (erro) {
-          if (inspectionSuggestionsText) inspectionSuggestionsText.textContent = 'Não foi possível atualizar as sugestões agora.';
+          if (!cacheLocal && inspectionSuggestionsText) inspectionSuggestionsText.textContent = 'Não foi possível atualizar as sugestões agora.';
         }
       }
 
@@ -10807,8 +10903,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         if (preparedInspectionsStatus) {
+          const atualizado = rotuloAtualizacaoSugestoes_();
           preparedInspectionsStatus.textContent =
-            `${sugestoesFiscalizacao.length} local${sugestoesFiscalizacao.length === 1 ? '' : 'is'} sugerido${sugestoesFiscalizacao.length === 1 ? '' : 's'} • prioridade operacional, não classificação normativa automática.`;
+            `${sugestoesFiscalizacao.length} local${sugestoesFiscalizacao.length === 1 ? '' : 'is'} sugerido${sugestoesFiscalizacao.length === 1 ? '' : 's'}${atualizado ? ` • ${atualizado}` : ''} • prioridade operacional.`;
         }
 
         preparedInspectionsList.innerHTML = sugestoesFiscalizacao.map(item => {
@@ -10848,17 +10945,42 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }).join('');
       }
 
-      async function carregarSugestoesFiscalizacao_() {
+      async function carregarSugestoesFiscalizacao_(forcarAtualizacao = false) {
+        if (sugestoesFiscalizacaoAtualizando) return;
+
+        const cacheLocal = lerCacheSugestoesFiscalizacaoLocal_();
+        if (!sugestoesFiscalizacaoCarregadas && cacheLocal) {
+          aplicarCacheSugestoesFiscalizacaoLocal_(cacheLocal);
+          if (filtroPreparacoes === 'sugestoes') renderizarSugestoesFiscalizacao_();
+        }
+
         if (!navigator.onLine) {
           renderizarSugestoesFiscalizacao_();
           return;
         }
-        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Localizando fiscalizações anteriores a 02/07/2025 ainda sem retorno...';
-        preparedInspectionsList?.classList.add('is-loading');
+
+        sugestoesFiscalizacaoAtualizando = true;
+        if (inspectionSuggestionsRefreshBtn) {
+          inspectionSuggestionsRefreshBtn.disabled = true;
+          inspectionSuggestionsRefreshBtn.classList.add('is-loading');
+          const span = inspectionSuggestionsRefreshBtn.querySelector('span');
+          if (span) span.textContent = 'Atualizando...';
+        }
+
+        const exibindoCache = sugestoesFiscalizacaoCarregadas && sugestoesFiscalizacao.length >= 0;
+        if (preparedInspectionsStatus && filtroPreparacoes === 'sugestoes') {
+          preparedInspectionsStatus.textContent = forcarAtualizacao
+            ? 'Recalculando as sugestões com os dados mais recentes...'
+            : (exibindoCache
+              ? 'Lista exibida imediatamente. Conferindo se há alterações em segundo plano...'
+              : 'Localizando fiscalizações anteriores a 02/07/2025 ainda sem retorno...');
+        }
+        if (!exibindoCache) preparedInspectionsList?.classList.add('is-loading');
+
         try {
           const r = await apiRequest('config', {
             consulta: 'sugestoes_fiscalizacao',
-            filtros: { limite: 200 }
+            filtros: { limite: 200, forcarAtualizacao: Boolean(forcarAtualizacao) }
           }, 60000);
           sugestoesFiscalizacao = Array.isArray(r?.itens) ? r.itens : [];
           resumoSugestoesFiscalizacao = r?.resumo || {
@@ -10867,13 +10989,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             media: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Média')).length,
             acompanhamento: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Acompanhamento')).length
           };
+          sugestoesFiscalizacaoGeradoEm = String(r?.geradoEm || new Date().toISOString());
           sugestoesFiscalizacaoCarregadas = true;
+          salvarCacheSugestoesFiscalizacaoLocal_({
+            itens: sugestoesFiscalizacao,
+            resumo: resumoSugestoesFiscalizacao,
+            geradoEm: sugestoesFiscalizacaoGeradoEm
+          });
           atualizarResumoSugestoesUi_();
         } catch (erro) {
-          sugestoesFiscalizacaoCarregadas = false;
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = erro?.message || 'Não foi possível carregar as sugestões.';
+          if (!sugestoesFiscalizacaoCarregadas && preparedInspectionsStatus) {
+            preparedInspectionsStatus.textContent = erro?.message || 'Não foi possível carregar as sugestões.';
+          }
         } finally {
+          sugestoesFiscalizacaoAtualizando = false;
           preparedInspectionsList?.classList.remove('is-loading');
+          if (inspectionSuggestionsRefreshBtn) {
+            inspectionSuggestionsRefreshBtn.disabled = false;
+            inspectionSuggestionsRefreshBtn.classList.remove('is-loading');
+            const span = inspectionSuggestionsRefreshBtn.querySelector('span');
+            if (span) span.textContent = 'Atualizar agora';
+          }
           if (filtroPreparacoes === 'sugestoes') renderizarSugestoesFiscalizacao_();
         }
       }
@@ -11600,6 +11736,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
       inspectionSuggestionsCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       inspectionSuggestionsVistoriaCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
+      inspectionSuggestionsRefreshBtn?.addEventListener('click', () => carregarSugestoesFiscalizacao_(true));
       programmedQuickAddBtn?.addEventListener('click', event => {
         event.preventDefault();
         event.stopPropagation();
@@ -12112,7 +12249,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         clearTimeout(recordsSearchTimer);
         recordsState.prazoMulta = '';
         atualizarEstadoCardsMulta_();
-        recordsSearchTimer = setTimeout(() => carregarRegistros_(true), 420);
+        recordsSearchTimer = setTimeout(() => carregarRegistros_(true), 300);
       });
       [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter, recordsTypeFilter, recordsInspectorFilter, recordsPeriodFilter].forEach(select => {
         select?.addEventListener('change', () => {
@@ -12312,7 +12449,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99an', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ap', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

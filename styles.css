@@ -10954,3 +10954,50 @@ body.gpv-dialog-open{overflow:hidden!important}
   .inspection-suggestions-home-copy small{font-size:.8rem}
   .inspection-suggestions-home-summary{font-size:.75rem}
 }
+
+
+/* ===== V23.9.99ap — busca visível + sugestões rápidas ===== */
+.dashboard-search{position:relative}
+.dashboard-search .dashboard-search-icon{display:block!important;opacity:1!important;visibility:visible!important;flex:0 0 auto}
+.dashboard-search-activity{
+  width:18px;height:18px;flex:0 0 18px;border-radius:50%;
+  border:2px solid #d9dee7;border-top-color:#9b1c22;
+  animation:gpvSearchSpin .7s linear infinite;
+}
+.dashboard-search-activity[hidden]{display:none!important}
+.dashboard-search.is-searching .dashboard-search-icon{animation:gpvSearchPulse 1.05s ease-in-out infinite}
+@keyframes gpvSearchSpin{to{transform:rotate(360deg)}}
+@keyframes gpvSearchPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.09);opacity:.72}}
+
+.records-status.searching{
+  background:#f7f9fc;border-color:#dfe5ec;color:#344054;
+  padding:9px 12px;min-height:0;
+}
+.records-status.searching strong{color:#263449}
+body.records-mode .records-status.searching{
+  display:block!important;position:static!important;inset:auto!important;
+  min-height:0!important;margin:8px 0 0!important;padding:9px 12px!important;
+  background:#f7f9fc!important;border:1px solid #e1e6ed!important;
+  box-shadow:none!important;font-size:12px!important;
+}
+
+.suggestions-refresh-btn{
+  min-height:44px;padding:0 14px;border-radius:12px;border:1px solid #d7dde5;
+  background:#fff;color:#344054;font-weight:800;display:inline-flex;align-items:center;
+  justify-content:center;gap:8px;cursor:pointer;white-space:nowrap;
+}
+.suggestions-refresh-btn .ui-icon{width:18px;height:18px}
+.suggestions-refresh-btn:hover{border-color:#b9c2ce;background:#f8fafc}
+.suggestions-refresh-btn:disabled{opacity:.65;cursor:wait}
+.suggestions-refresh-btn.is-loading .ui-icon{animation:gpvSearchSpin .8s linear infinite}
+.suggestions-refresh-btn[hidden]{display:none!important}
+
+@media(max-width:680px){
+  .dashboard-search-activity{width:17px;height:17px;flex-basis:17px}
+  .suggestions-refresh-btn{min-height:42px;padding:0 11px;font-size:.82rem}
+  .programmed-list-toolbar:has(.suggestions-refresh-btn:not([hidden])){align-items:stretch}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .dashboard-search-activity,.dashboard-search.is-searching .dashboard-search-icon,.suggestions-refresh-btn.is-loading .ui-icon{animation:none!important}
+}

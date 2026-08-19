@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99am">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ap">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -656,9 +656,10 @@
         </section>
 
         <div class="dashboard-filters">
-          <label class="dashboard-search" for="recordsSearch">
-            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
-            <input id="recordsSearch" type="search" autocomplete="off" placeholder="Pesquisar estabelecimento, CNPJ, CPF, Nº PSCIP ou endereço">
+          <label class="dashboard-search" for="recordsSearch" id="recordsSearchBox">
+            <svg class="ui-icon dashboard-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+            <input id="recordsSearch" type="search" autocomplete="off" placeholder="Pesquisar estabelecimento, CNPJ, CPF, Nº PSCIP, endereço ou nº do endereço">
+            <span class="dashboard-search-activity" id="recordsSearchActivity" aria-hidden="true" hidden></span>
           </label>
 
           <div class="dashboard-filter-grid">
@@ -1633,6 +1634,10 @@
               Sugestões <span id="inspectionSuggestionsBadge">—</span>
             </button>
           </div>
+          <button class="suggestions-refresh-btn" id="inspectionSuggestionsRefreshBtn" type="button" hidden>
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>
+            <span>Atualizar agora</span>
+          </button>
           <button class="desktop-prepare-btn programmed-register-btn" id="desktopPrepareInspectionBtn" type="button">
             <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
             <span>Cadastrar vistoria</span>
@@ -1862,7 +1867,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99an"></script>
+  <script src="app.js?v=23.9.99ap"></script>
 
   </div>
   
