@@ -2663,11 +2663,30 @@
 
       function formatarDataPainel_(valor) {
         const texto = String(valor || '').trim();
-        const br = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-        if (br) return `${br[1].padStart(2, '0')}/${br[2].padStart(2, '0')}/${br[3]}`;
+        if (!texto) return '—';
+
         const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-        if (iso) return `${iso[3].padStart(2, '0')}/${iso[2].padStart(2, '0')}/${iso[1]}`;
-        return texto || '—';
+        if (iso) {
+          return `${iso[3].padStart(2, '0')}/${iso[2].padStart(2, '0')}/${iso[1]}`;
+        }
+
+        const barras = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (barras) {
+          let parte1 = Number(barras[1]);
+          let parte2 = Number(barras[2]);
+          const ano = barras[3];
+
+          // Base antiga/importada pode chegar em MM/DD/AAAA.
+          // Ex.: 03/14/2025 -> 14/03/2025.
+          if (parte2 > 12 && parte1 >= 1 && parte1 <= 12) {
+            return `${String(parte2).padStart(2, '0')}/${String(parte1).padStart(2, '0')}/${ano}`;
+          }
+
+          // Nos casos ambíguos (ex.: 05/06/2025), mantém o padrão brasileiro.
+          return `${String(parte1).padStart(2, '0')}/${String(parte2).padStart(2, '0')}/${ano}`;
+        }
+
+        return texto;
       }
 
       function formatarEnderecoPainel_(item) {
@@ -3360,7 +3379,7 @@
           const titulo = item.sancao || item.tipoVistoria || item.demanda || 'Vistoria realizada';
           return `<article class="history-item ${classeStatus_(item.sancao)}">
             <div class="history-marker" aria-hidden="true"></div>
-            <div class="history-body"><time>${escapeHtml(item.carimbo || '')}</time><strong>${escapeHtml(titulo)}</strong><p>${escapeHtml(descricaoHistorico_(item))}</p></div>
+            <div class="history-body"><time>${escapeHtml(formatarDataPainel_(item.carimbo))}</time><strong>${escapeHtml(titulo)}</strong><p>${escapeHtml(descricaoHistorico_(item))}</p></div>
           </article>`;
         }).join('');
       }
@@ -7551,7 +7570,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const nome = item?.nomeFantasia || item?.razaoSocial || 'Estabelecimento anterior';
         const id = item?.cnpj ? formatarCnpjTela_(item.cnpj) : (item?.cpfEstabelecimento ? formatarCpfTela_(item.cpfEstabelecimento) : '');
         const endereco = [item?.endereco, item?.numero, item?.bairro].filter(Boolean).join(', ');
-        return { nome, detalhe: [id, endereco, item?.carimbo].filter(Boolean).join(' • ') };
+        return { nome, detalhe: [id, endereco, item?.carimbo ? formatarDataPainel_(item.carimbo) : ''].filter(Boolean).join(' • ') };
       }
 
       function renderizarHistoricoEstabelecimento_(resultados) {
@@ -8243,7 +8262,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? formatarCnpjTela_(item.cnpj)
             : (item.cpfEstabelecimento ? formatarCpfTela_(item.cpfEstabelecimento) : '');
           const refs = [
-            item.carimbo || '',
+            item.carimbo ? formatarDataPainel_(item.carimbo) : '',
             item.sancao ? `Situação: ${item.sancao}` : '',
             item.pf ? `PF: ${item.pf}` : '',
             identificador
@@ -10776,7 +10795,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? '<div class="prepared-empty">Carregando sugestões de fiscalização...</div>'
             : '<div class="prepared-empty">As sugestões precisam de conexão para cruzar a base atual com 2024-2025.</div>';
           if (preparedInspectionsStatus) {
-            preparedInspectionsStatus.textContent = 'Sugestões usam 02/07/2025 como marco zero das sanções.';
+            preparedInspectionsStatus.textContent = 'Somente locais fiscalizados antes de 02/07/2025, sem nova vistoria e sem regularização posterior.';
           }
           return;
         }
@@ -10834,7 +10853,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           renderizarSugestoesFiscalizacao_();
           return;
         }
-        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Cruzando Processo Fiscalizatório com a aba 2024-2025...';
+        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Localizando fiscalizações anteriores a 02/07/2025 ainda sem retorno...';
         preparedInspectionsList?.classList.add('is-loading');
         try {
           const r = await apiRequest('config', {
@@ -12293,7 +12312,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99am', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99an', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
