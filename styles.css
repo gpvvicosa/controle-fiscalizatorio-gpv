@@ -11048,3 +11048,71 @@ body.records-mode .records-status.searching{
     width:100%;
   }
 }
+
+
+/* ===== V23.9.99ar — observações operacionais + Ficha completa da edificação ===== */
+.inspection-suggestion-note-btn{
+  border-color:#c8d4e2!important;
+  background:#f7f9fc!important;
+  color:#344a63!important;
+}
+.inspection-suggestion-note-btn:hover{
+  border-color:#aebfd3!important;
+  background:#eef3f8!important;
+}
+.inspection-suggestion-notes{
+  margin:10px 0 8px;
+  padding:11px 12px;
+  border:1px solid #dfe5ec;
+  border-radius:12px;
+  background:#fbfcfd;
+}
+.inspection-suggestion-notes>strong{
+  display:block;
+  margin-bottom:7px;
+  color:#35445a;
+  font-size:.86rem;
+}
+.inspection-suggestion-note{
+  padding:7px 0;
+  border-top:1px solid #edf0f3;
+}
+.inspection-suggestion-note:first-of-type{border-top:0;padding-top:0}
+.inspection-suggestion-note span{
+  display:block;
+  color:#4d596a;
+  line-height:1.4;
+}
+.inspection-suggestion-note small,
+.inspection-suggestion-notes-more{
+  display:block;
+  margin-top:3px;
+  color:#778395;
+  font-size:.76rem;
+}
+.record-suggestion-observations{
+  margin:0 0 14px;
+  padding:14px 15px;
+  border:1px solid #dce3eb;
+  border-left:5px solid #667f9d;
+  border-radius:15px;
+  background:#f8fafc;
+}
+.record-suggestion-observations>strong{
+  color:#344a63;
+}
+.record-suggestion-observation-item{
+  margin-top:9px;
+  padding-top:9px;
+  border-top:1px solid #e5eaf0;
+}
+.record-suggestion-observation-item p{
+  margin:0;
+  color:#4a5667;
+  line-height:1.45;
+}
+.record-suggestion-observation-item small{
+  display:block;
+  margin-top:4px;
+  color:#7a8696;
+}

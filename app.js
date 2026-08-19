@@ -4217,8 +4217,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const local = [
           ['Estabelecimento', estabelecimento],
           ['Razão Social', razaoSocial && normalize(razaoSocial) !== normalize(estabelecimento) ? razaoSocial : ''],
+          [rotuloIdentificador, identificadorRegistro],
           ['Endereço', enderecoFicha_(registro)],
-          [rotuloIdentificador, identificadorRegistro]
+          ['Área (m²)', valorCampoFicha_(registro, 'Área m²', 'Área')],
+          ['Pavimentos', valorCampoFicha_(registro, 'Pavimentos')],
+          ['Altura (m)', valorCampoFicha_(registro, 'Altura')],
+          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação')],
+          ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
+          ['Situação atual do PSCIP', valorCampoFicha_(registro, 'Situação atual do PSCIP')]
         ];
         const responsavel = [
           ['Responsável / vínculo', valorCampoFicha_(registro, 'Responsável')],
@@ -4248,6 +4254,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         const sugestao = registro?.sugestaoFiscalizacao || null;
         const controleSugestao = registro?.controleSugestaoFiscalizacao || null;
+        const observacoesSugestao = Array.isArray(controleSugestao?.observacoes)
+          ? controleSugestao.observacoes
+          : (Array.isArray(sugestao?.observacoesControle) ? sugestao.observacoesControle : []);
+
+        const blocoObservacoesSugestao = observacoesSugestao.length
+          ? `<section class="record-suggestion-observations">
+              <strong>Observações operacionais da edificação</strong>
+              ${observacoesSugestao.slice(-6).map(obs => `<div class="record-suggestion-observation-item">
+                <p>${escapeHtml(obs.observacao || '')}</p>
+                <small>${[obs.registradoEm, obs.usuario].filter(Boolean).map(escapeHtml).join(' • ')}</small>
+              </div>`).join('')}
+            </section>`
+          : '';
 
         const avisoControleSugestao = controleSugestao?.regularizadaManualmente
           ? `<section class="record-suggestion-manual-regularized">
@@ -4273,10 +4292,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         recordDetailGroups.innerHTML =
           avisoSugestao +
+          blocoObservacoesSugestao +
           montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary') +
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
-          montarGrupoFicha_('Local', local) +
+          montarGrupoFicha_('Edificação', local) +
           montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel);
 
         recordDetailTitle.textContent = 'Ficha do Processo';
@@ -10954,10 +10974,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               <span><b>Situação:</b> ${escapeHtml(marco)}</span>
             </div>
             <p class="inspection-suggestion-reason"><strong>Por que está na lista:</strong> ${escapeHtml(item.motivo || 'Histórico pendente para verificação.')}</p>
+            ${Array.isArray(item.observacoesControle) && item.observacoesControle.length ? `<div class="inspection-suggestion-notes">
+              <strong>Observações operacionais</strong>
+              ${item.observacoesControle.slice(-3).map(obs => `<div class="inspection-suggestion-note">
+                <span>${escapeHtml(obs.observacao || '')}</span>
+                <small>${[obs.registradoEm, obs.usuario].filter(Boolean).map(escapeHtml).join(' • ')}</small>
+              </div>`).join('')}
+              ${item.observacoesControle.length > 3 ? `<small class="inspection-suggestion-notes-more">+ ${item.observacoesControle.length - 3} observação(ões) anterior(es)</small>` : ''}
+            </div>` : ''}
             ${item.historicoAnteriorResetado ? '<p class="inspection-suggestion-reset">As sanções anteriores a 02/07/2025 aparecem somente como histórico e não são tratadas como sanção atual.</p>' : ''}
             <div class="inspection-suggestion-actions">
               ${usuarioPodeOperar_() ? `<button class="btn btn-primary" type="button" data-program-suggestion-id="${escapeAttr(item.identidade || '')}">Programar vistoria</button>` : ''}
               <button class="btn btn-secondary" type="button" data-search-suggestion="${escapeAttr(item.cnpj || item.pscip || titulo)}">Consultar no Painel</button>
+              ${usuarioPodeOperar_() ? `<button class="btn btn-secondary inspection-suggestion-note-btn" type="button" data-note-suggestion-id="${escapeAttr(item.identidade || '')}">📝 Adicionar observação</button>` : ''}
               ${usuarioPodeOperar_() ? `<button class="btn btn-secondary inspection-suggestion-regularize-btn" type="button" data-regularize-suggestion-id="${escapeAttr(item.identidade || '')}">✓ Marcar regularizado</button>` : ''}
             </div>
           </article>`;
@@ -10996,6 +11025,83 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           pscip: String(item?.pscip || ''),
           observacao: String(observacao || '').trim()
         };
+      }
+
+
+      async function adicionarObservacaoSugestaoFiscalizacao_(item) {
+        if (!item || !usuarioPodeOperar_()) return;
+
+        if (!navigator.onLine) {
+          await avisarGpv_(
+            'É necessário estar conectado para registrar uma observação nesta edificação.',
+            'Sem conexão',
+            { tom: 'warning' }
+          );
+          return;
+        }
+
+        const titulo = item.nomeFantasia || item.razaoSocial || 'Edificação';
+        const endereco = [item.endereco, item.numero, item.bairro, item.cidade]
+          .filter(Boolean)
+          .join(', ');
+
+        const observacao = await solicitarTextoGpv_(
+          `Registre uma informação útil para a próxima fiscalização.\n\n${titulo}${endereco ? `\n${endereco}` : ''}`,
+          'Adicionar observação',
+          {
+            placeholder: 'Ex.: Possui AVCB válido, porém a Brigada de Incêndio estava vencida na última fiscalização.',
+            maxLength: 500,
+            rotuloConfirmar: 'Salvar observação'
+          }
+        );
+
+        if (observacao === null) return;
+        const texto = String(observacao || '').trim();
+        if (!texto) {
+          await avisarGpv_(
+            'Digite uma observação antes de salvar.',
+            'Observação vazia',
+            { tom: 'warning' }
+          );
+          return;
+        }
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'sugestao_observacao',
+            payload: payloadControleSugestaoFiscalizacao_(item, texto)
+          }, 30000);
+
+          const novaObservacao = {
+            registradoEm: resposta?.controle?.registradoEm || '',
+            usuario: resposta?.controle?.usuario || String(authState.usuario?.nome || ''),
+            bm: resposta?.controle?.bm || '',
+            observacao: texto
+          };
+
+          item.observacoesControle = Array.isArray(item.observacoesControle)
+            ? item.observacoesControle.slice()
+            : [];
+          item.observacoesControle.push(novaObservacao);
+          item.observacoesControle = item.observacoesControle.slice(-10);
+
+          salvarEstadoAtualSugestoesNoCacheLocal_();
+          renderizarSugestoesFiscalizacao_();
+
+          await avisarGpv_(
+            'A observação foi registrada e ficará disponível nas Sugestões, na Ficha e ao programar a vistoria.',
+            'Observação salva',
+            { tom: 'success' }
+          );
+
+          carregarSugestoesFiscalizacao_(true).catch(() => {});
+        } catch (erro) {
+          await avisarGpv_(
+            erro?.message || 'Não foi possível registrar a observação.',
+            'Não foi possível concluir',
+            { tom: 'error' }
+          );
+        }
       }
 
       async function marcarSugestaoRegularizadaManual_(item) {
@@ -11232,7 +11338,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareEndereco', item.endereco || '');
         set('prepareNumero', item.numero || '');
         set('prepareBairro', item.bairro || '');
-        set('prepareObservacao', item.observacaoPrevia || item.motivo || '');
+
+        const observacoesOperacionais = Array.isArray(item.observacoesControle)
+          ? item.observacoesControle
+              .map(obs => {
+                const cabecalho = [obs.registradoEm, obs.usuario].filter(Boolean).join(' • ');
+                return `${cabecalho ? `[${cabecalho}] ` : ''}${String(obs.observacao || '').trim()}`;
+              })
+              .filter(Boolean)
+              .join('\n')
+          : '';
+
+        set(
+          'prepareObservacao',
+          [
+            item.observacaoPrevia || item.motivo || '',
+            observacoesOperacionais
+              ? `OBSERVAÇÕES OPERACIONAIS:\n${observacoesOperacionais}`
+              : ''
+          ].filter(Boolean).join('\n\n')
+        );
         if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
 
         const cnpjInput = document.getElementById('prepareCnpj');
@@ -12034,6 +12159,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (filtroPreparacoes === 'sugestoes' && navigator.onLine) carregarSugestoesFiscalizacao_().catch(() => {});
       }));
       preparedInspectionsList?.addEventListener('click', event => {
+        const observarSugestao = event.target.closest('[data-note-suggestion-id]');
+        if (observarSugestao) {
+          event.preventDefault();
+          event.stopPropagation();
+          const item = sugestoesFiscalizacao.find(s =>
+            String(s.identidade || '') === String(observarSugestao.dataset.noteSuggestionId || '')
+          );
+          adicionarObservacaoSugestaoFiscalizacao_(item).catch(() => {});
+          return;
+        }
+
         const regularizarSugestao = event.target.closest('[data-regularize-suggestion-id]');
         if (regularizarSugestao) {
           event.preventDefault();
@@ -12666,7 +12802,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99aq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ar', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
