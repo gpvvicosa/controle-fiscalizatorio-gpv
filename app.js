@@ -4247,12 +4247,29 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ];
 
         const sugestao = registro?.sugestaoFiscalizacao || null;
-        const avisoSugestao = sugestao ? `<section class="record-suggestion-callout priority-${classePrioridadeSugestao_(sugestao.prioridade)}">
+        const controleSugestao = registro?.controleSugestaoFiscalizacao || null;
+
+        const avisoControleSugestao = controleSugestao?.regularizadaManualmente
+          ? `<section class="record-suggestion-manual-regularized">
+              <div>
+                <strong>✓ Sugestão encerrada — regularização informada</strong>
+                <p>Este endereço foi retirado manualmente das Sugestões de Fiscalização.</p>
+                <small>${[
+                  controleSugestao.registradoEm ? `Registrado em ${controleSugestao.registradoEm}` : '',
+                  controleSugestao.usuario ? `por ${controleSugestao.usuario}` : '',
+                  controleSugestao.observacao ? `Observação: ${controleSugestao.observacao}` : ''
+                ].filter(Boolean).join(' • ')}</small>
+              </div>
+              ${usuarioPodeOperar_() ? '<button type="button" class="btn btn-secondary" data-ficha-reopen-suggestion>Reabrir sugestão</button>' : ''}
+            </section>`
+          : '';
+
+        const avisoSugestao = avisoControleSugestao || (sugestao ? `<section class="record-suggestion-callout priority-${classePrioridadeSugestao_(sugestao.prioridade)}">
           <div><strong>Nova fiscalização sugerida — ${escapeHtml(sugestao.prioridade || 'Acompanhamento')}</strong>
           <p>${escapeHtml(sugestao.motivo || 'Há histórico que recomenda nova verificação do local.')}</p>
           ${registro?.avisoHistorico ? `<small>${escapeHtml(registro.avisoHistorico)}</small>` : ''}</div>
           ${usuarioPodeOperar_() ? `<button type="button" class="btn btn-primary" data-ficha-program-suggestion>Programar vistoria</button>` : ''}
-        </section>` : (registro?.avisoHistorico ? `<section class="record-history-reset-note">${escapeHtml(registro.avisoHistorico)}</section>` : '');
+        </section>` : (registro?.avisoHistorico ? `<section class="record-history-reset-note">${escapeHtml(registro.avisoHistorico)}</section>` : ''));
 
         recordDetailGroups.innerHTML =
           avisoSugestao +
@@ -4331,6 +4348,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             historico: extras.historico || [],
             auditoria: extras.auditoria || [],
             sugestaoFiscalizacao: extras.sugestaoFiscalizacao || registroBase?.sugestaoFiscalizacao || null,
+            controleSugestaoFiscalizacao: extras.controleSugestaoFiscalizacao || registroBase?.controleSugestaoFiscalizacao || null,
             parcial: false
           };
           salvarCacheFicha_(chave, completo);
@@ -10940,9 +10958,188 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <div class="inspection-suggestion-actions">
               ${usuarioPodeOperar_() ? `<button class="btn btn-primary" type="button" data-program-suggestion-id="${escapeAttr(item.identidade || '')}">Programar vistoria</button>` : ''}
               <button class="btn btn-secondary" type="button" data-search-suggestion="${escapeAttr(item.cnpj || item.pscip || titulo)}">Consultar no Painel</button>
+              ${usuarioPodeOperar_() ? `<button class="btn btn-secondary inspection-suggestion-regularize-btn" type="button" data-regularize-suggestion-id="${escapeAttr(item.identidade || '')}">✓ Marcar regularizado</button>` : ''}
             </div>
           </article>`;
         }).join('');
+      }
+
+
+      function recalcularResumoSugestoesFiscalizacaoLocal_() {
+        resumoSugestoesFiscalizacao = {
+          total: sugestoesFiscalizacao.length,
+          alta: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Alta')).length,
+          media: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Média')).length,
+          acompanhamento: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Acompanhamento')).length
+        };
+        atualizarResumoSugestoesUi_();
+      }
+
+      function salvarEstadoAtualSugestoesNoCacheLocal_() {
+        salvarCacheSugestoesFiscalizacaoLocal_({
+          itens: sugestoesFiscalizacao,
+          resumo: resumoSugestoesFiscalizacao,
+          geradoEm: sugestoesFiscalizacaoGeradoEm || new Date().toISOString()
+        });
+      }
+
+      function payloadControleSugestaoFiscalizacao_(item, observacao = '') {
+        return {
+          identidade: String(item?.identidade || ''),
+          cidade: String(item?.cidade || ''),
+          endereco: String(item?.endereco || ''),
+          numero: String(item?.numero || ''),
+          bairro: String(item?.bairro || ''),
+          nomeFantasia: String(item?.nomeFantasia || ''),
+          razaoSocial: String(item?.razaoSocial || ''),
+          cnpj: String(item?.cnpj || ''),
+          pscip: String(item?.pscip || ''),
+          observacao: String(observacao || '').trim()
+        };
+      }
+
+      async function marcarSugestaoRegularizadaManual_(item) {
+        if (!item || !usuarioPodeOperar_()) return;
+        if (!navigator.onLine) {
+          await avisarGpv_(
+            'É necessário estar conectado para registrar a regularização desta edificação.',
+            'Sem conexão',
+            { tom: 'warning' }
+          );
+          return;
+        }
+
+        const titulo = item.nomeFantasia || item.razaoSocial || 'Edificação';
+        const endereco = [item.endereco, item.numero, item.bairro, item.cidade]
+          .filter(Boolean)
+          .join(', ');
+
+        const confirmou = await confirmarGpv_(
+          `Confirma que esta edificação se encontra regularizada?\n\n${titulo}${endereco ? `\n${endereco}` : ''}\n\nEsta ação retira o local das Sugestões de Fiscalização, mas não altera a vistoria histórica.`,
+          'Marcar como regularizado',
+          {
+            tom: 'warning',
+            rotuloConfirmar: 'Sim, está regularizado'
+          }
+        );
+        if (!confirmou) return;
+
+        const observacao = await solicitarTextoGpv_(
+          'Informe, se desejar, como a regularização foi conferida. Ex.: AVCB regularizado, conferido no INFOSCIP, situação verificada no local.',
+          'Observação da regularização',
+          {
+            placeholder: 'Observação opcional',
+            maxLength: 500,
+            rotuloConfirmar: 'Registrar'
+          }
+        );
+        if (observacao === null) return;
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'sugestao_regularizar',
+            payload: payloadControleSugestaoFiscalizacao_(item, observacao)
+          }, 30000);
+
+          sugestoesFiscalizacao = sugestoesFiscalizacao.filter(
+            s => String(s.identidade || '') !== String(item.identidade || '')
+          );
+          recalcularResumoSugestoesFiscalizacaoLocal_();
+          salvarEstadoAtualSugestoesNoCacheLocal_();
+          renderizarSugestoesFiscalizacao_();
+
+          await avisarGpv_(
+            `A edificação foi retirada das Sugestões de Fiscalização.${resposta?.controle?.usuario ? `\nRegistrado por: ${resposta.controle.usuario}.` : ''}`,
+            'Regularização registrada',
+            { tom: 'success' }
+          );
+
+          // Confere em segundo plano a lista integral já com o controle manual.
+          carregarSugestoesFiscalizacao_(true).catch(() => {});
+        } catch (erro) {
+          await avisarGpv_(
+            erro?.message || 'Não foi possível registrar a regularização.',
+            'Não foi possível concluir',
+            { tom: 'error' }
+          );
+        }
+      }
+
+      async function reabrirSugestaoFiscalizacaoManual_(controle) {
+        if (!controle || !usuarioPodeOperar_()) return;
+        if (!navigator.onLine) {
+          await avisarGpv_(
+            'É necessário estar conectado para reabrir esta sugestão.',
+            'Sem conexão',
+            { tom: 'warning' }
+          );
+          return;
+        }
+
+        const titulo = controle.nomeFantasia || 'Edificação';
+        const endereco = [
+          controle.endereco,
+          controle.numero,
+          controle.bairro,
+          controle.cidade
+        ].filter(Boolean).join(', ');
+
+        const confirmou = await confirmarGpv_(
+          `Deseja reabrir esta edificação nas Sugestões de Fiscalização?\n\n${titulo}${endereco ? `\n${endereco}` : ''}\n\nO registro anterior de regularização continuará preservado no histórico de controle.`,
+          'Reabrir sugestão',
+          {
+            tom: 'warning',
+            rotuloConfirmar: 'Reabrir sugestão'
+          }
+        );
+        if (!confirmou) return;
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'sugestao_reabrir',
+            payload: {
+              identidade: controle.chave || '',
+              cidade: controle.cidade || '',
+              endereco: controle.endereco || '',
+              numero: controle.numero || '',
+              bairro: controle.bairro || '',
+              nomeFantasia: controle.nomeFantasia || '',
+              cnpj: controle.cnpj || '',
+              pscip: controle.pscip || '',
+              observacao: 'Reabertura manual da sugestão'
+            }
+          }, 30000);
+
+          try { localStorage.removeItem(SUGGESTIONS_CACHE_STORAGE); } catch (erro) {}
+          sugestoesFiscalizacaoCarregadas = false;
+          sugestoesFiscalizacao = [];
+          sugestoesFiscalizacaoGeradoEm = '';
+
+          if (recordStatusRegistroAtual) {
+            recordStatusRegistroAtual.controleSugestaoFiscalizacao =
+              resposta?.controle || {
+                ...controle,
+                regularizadaManualmente: false,
+                reaberta: true,
+                acao: 'REABERTO'
+              };
+            renderizarFichaRegistro_(recordStatusRegistroAtual);
+          }
+
+          await avisarGpv_(
+            'A edificação foi reaberta para voltar a ser considerada nas Sugestões de Fiscalização.',
+            'Sugestão reaberta',
+            { tom: 'success' }
+          );
+
+          carregarSugestoesFiscalizacao_(true).catch(() => {});
+        } catch (erro) {
+          await avisarGpv_(
+            erro?.message || 'Não foi possível reabrir a sugestão.',
+            'Não foi possível concluir',
+            { tom: 'error' }
+          );
+        }
       }
 
       async function carregarSugestoesFiscalizacao_(forcarAtualizacao = false) {
@@ -11837,6 +12034,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (filtroPreparacoes === 'sugestoes' && navigator.onLine) carregarSugestoesFiscalizacao_().catch(() => {});
       }));
       preparedInspectionsList?.addEventListener('click', event => {
+        const regularizarSugestao = event.target.closest('[data-regularize-suggestion-id]');
+        if (regularizarSugestao) {
+          event.preventDefault();
+          event.stopPropagation();
+          const item = sugestoesFiscalizacao.find(s =>
+            String(s.identidade || '') === String(regularizarSugestao.dataset.regularizeSuggestionId || '')
+          );
+          marcarSugestaoRegularizadaManual_(item).catch(() => {});
+          return;
+        }
+
         const programarSugestao = event.target.closest('[data-program-suggestion-id]');
         if (programarSugestao) {
           event.preventDefault();
@@ -11896,6 +12104,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         abrirPreparacaoComEscolha_(item);
       });
       recordDetailGroups?.addEventListener('click', event => {
+        const reabrir = event.target.closest('[data-ficha-reopen-suggestion]');
+        if (reabrir) {
+          event.preventDefault();
+          reabrirSugestaoFiscalizacaoManual_(
+            recordStatusRegistroAtual?.controleSugestaoFiscalizacao
+          ).catch(() => {});
+          return;
+        }
+
         const btn = event.target.closest('[data-ficha-program-suggestion]');
         if (!btn || !recordStatusRegistroAtual?.sugestaoFiscalizacao) return;
         abrirSugestaoComoPreparacao_(recordStatusRegistroAtual.sugestaoFiscalizacao);
@@ -12449,7 +12666,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ap', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99aq', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

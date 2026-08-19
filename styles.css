@@ -11001,3 +11001,50 @@ body.records-mode .records-status.searching{
 @media(prefers-reduced-motion:reduce){
   .dashboard-search-activity,.dashboard-search.is-searching .dashboard-search-icon,.suggestions-refresh-btn.is-loading .ui-icon{animation:none!important}
 }
+
+
+/* ===== V23.9.99aq — regularização manual das Sugestões de Fiscalização ===== */
+.inspection-suggestion-regularize-btn{
+  border-color:#b8d8c2!important;
+  background:#f3fbf5!important;
+  color:#176b34!important;
+}
+.inspection-suggestion-regularize-btn:hover{
+  border-color:#8bc79d!important;
+  background:#eaf7ee!important;
+}
+.record-suggestion-manual-regularized{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  padding:14px 15px;
+  margin:0 0 14px;
+  border:1px solid #b8d8c2;
+  border-left:5px solid #23964b;
+  border-radius:15px;
+  background:#f5fbf7;
+}
+.record-suggestion-manual-regularized strong{
+  color:#176b34;
+}
+.record-suggestion-manual-regularized p{
+  margin:4px 0 0;
+  color:#4f6557;
+  line-height:1.4;
+}
+.record-suggestion-manual-regularized small{
+  display:block;
+  margin-top:6px;
+  color:#61766a;
+  line-height:1.4;
+}
+@media(max-width:680px){
+  .record-suggestion-manual-regularized{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .record-suggestion-manual-regularized .btn{
+    width:100%;
+  }
+}

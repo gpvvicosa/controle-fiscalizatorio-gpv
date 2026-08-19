@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-sugestoes-rapidas-busca-numero-ap';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-sugestao-regularizada-manual-aq';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [
