@@ -705,6 +705,10 @@
       const programmedSummaryCard = document.getElementById('programmedSummaryCard');
       const programmedSummaryText = document.getElementById('programmedSummaryText');
       const programmedSummaryCount = document.getElementById('programmedSummaryCount');
+      const inspectionSuggestionsCard = document.getElementById('inspectionSuggestionsCard');
+      const inspectionSuggestionsText = document.getElementById('inspectionSuggestionsText');
+      const inspectionSuggestionsCount = document.getElementById('inspectionSuggestionsCount');
+      const inspectionSuggestionsBadge = document.getElementById('inspectionSuggestionsBadge');
       const programmedQuickAddBtn = document.getElementById('programmedQuickAddBtn');
       const programmedListModal = document.getElementById('programmedListModal');
       const programmedListCloseBtn = document.getElementById('programmedListCloseBtn');
@@ -782,6 +786,9 @@
       let demandasConfiguradas = [];
       let usuariosAtivosApp = [];
       let preparacoesVistoria = [];
+      let sugestoesFiscalizacao = [];
+      let resumoSugestoesFiscalizacao = { total: 0, alta: 0, media: 0, acompanhamento: 0 };
+      let sugestoesFiscalizacaoCarregadas = false;
       let filtroPreparacoes = 'todas';
       let preparacaoEmUsoId = '';
       let dduEmUsoId = '';
@@ -2736,7 +2743,8 @@
         }
 
         recordsTableBody.innerHTML = itens.map(item => {
-          const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const tituloBase = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
           const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
           const proximaAcao = proximaAcaoPainel_(item);
           return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
@@ -2757,7 +2765,8 @@
         }).join('');
 
         recordsList.innerHTML = itens.map(item => {
-          const titulo = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const tituloBase = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
           const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? item.razaoSocial : '';
           const endereco = formatarEnderecoPainel_(item);
           const proximaAcao = proximaAcaoPainel_(item);
@@ -3203,6 +3212,7 @@
           }, 50000);
           salvarCachePainel_(chaveCache, resposta || {});
           aplicarRespostaPainel_(resposta || {});
+          carregarResumoSugestoesFiscalizacao_().catch(() => {});
         } catch (erro) {
           if (cache?.resposta) {
             recordsStatus.className = 'records-status cached';
@@ -4133,7 +4143,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
 
+        const sugestao = registro?.sugestaoFiscalizacao || null;
+        const avisoSugestao = sugestao ? `<section class="record-suggestion-callout priority-${classePrioridadeSugestao_(sugestao.prioridade)}">
+          <div><strong>Nova fiscalização sugerida — ${escapeHtml(sugestao.prioridade || 'Acompanhamento')}</strong>
+          <p>${escapeHtml(sugestao.motivo || 'Há histórico que recomenda nova verificação do local.')}</p>
+          ${registro?.avisoHistorico ? `<small>${escapeHtml(registro.avisoHistorico)}</small>` : ''}</div>
+          ${usuarioPodeOperar_() ? `<button type="button" class="btn btn-primary" data-ficha-program-suggestion>Programar vistoria</button>` : ''}
+        </section>` : (registro?.avisoHistorico ? `<section class="record-history-reset-note">${escapeHtml(registro.avisoHistorico)}</section>` : '');
+
         recordDetailGroups.innerHTML =
+          avisoSugestao +
           montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary') +
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
@@ -4204,7 +4223,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (recordsState.chaveSelecionada !== chave || !recordDetailScreen?.classList.contains('show')) return;
           renderizarHistorico_(extras.historico || []);
           renderizarAuditoriaRegistro_(extras.auditoria || []);
-          const completo = { ...(registroBase || {}), historico: extras.historico || [], auditoria: extras.auditoria || [], parcial: false };
+          const completo = {
+            ...(registroBase || {}),
+            historico: extras.historico || [],
+            auditoria: extras.auditoria || [],
+            sugestaoFiscalizacao: extras.sugestaoFiscalizacao || registroBase?.sugestaoFiscalizacao || null,
+            parcial: false
+          };
           salvarCacheFicha_(chave, completo);
         } catch (erro) {
           // A ficha principal permanece utilizável mesmo se histórico/auditoria demorarem.
@@ -8486,7 +8511,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             pscipHistorico && pscipProjetoValido_(pscipHistorico) ? `PSCIP ${pscipHistorico}` : ''
           ].filter(Boolean).join(' • ');
           const ref = [candidato.criterio, candidato.estabelecimento, candidato.sancao].filter(Boolean).join(' • ');
-          status.textContent = `${referencias || 'Processo'} localizado no histórico desde 01/07/2025${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}.`;
+          status.textContent = `${referencias || 'Processo'} localizado no histórico desde 02/07/2025${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}.`;
           status.className = 'lookup-status show success';
         }
         const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
@@ -9359,19 +9384,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function definirFiltroPreparacoes_(filtro) {
-        const permitido = ['minhas','todas','fiscalizacao','liberacao'];
+        const permitido = ['minhas','todas','fiscalizacao','liberacao','sugestoes'];
         filtroPreparacoes = permitido.includes(filtro) ? filtro : 'todas';
         document.querySelectorAll('[data-prepared-filter]').forEach(b => {
           b.classList.toggle('is-active', b.dataset.preparedFilter === filtroPreparacoes);
         });
+        if (desktopPrepareInspectionBtn) {
+          desktopPrepareInspectionBtn.hidden = filtroPreparacoes === 'sugestoes' && !usuarioPodeOperar_();
+        }
       }
 
-      function abrirListaProgramadas_(preferirMinhas = true) {
+      function abrirListaProgramadas_(preferirMinhas = true, filtroInicial = '') {
         const minhas = preparacoesDoUsuarioLogado_();
-        definirFiltroPreparacoes_(preferirMinhas && minhas.length ? 'minhas' : 'todas');
+        if (filtroInicial === 'sugestoes') definirFiltroPreparacoes_('sugestoes');
+        else definirFiltroPreparacoes_(preferirMinhas && minhas.length ? 'minhas' : 'todas');
         renderizarPreparacoesVistoria_();
         if (programmedListModal) programmedListModal.hidden = false;
-        if (navigator.onLine) carregarPreparacoesVistoria_().catch(() => {});
+        if (navigator.onLine) {
+          carregarPreparacoesVistoria_().catch(() => {});
+          if (filtroPreparacoes === 'sugestoes') carregarSugestoesFiscalizacao_().catch(() => {});
+          else carregarResumoSugestoesFiscalizacao_().catch(() => {});
+        }
+      }
+
+      function abrirSugestoesFiscalizacao_() {
+        abrirListaProgramadas_(false, 'sugestoes');
       }
 
       function fecharListaProgramadas_() {
@@ -10381,6 +10418,53 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         };
       }
 
+
+      async function preencherPreparacaoComHistorico_(identificador) {
+        const doc = digits(identificador || '');
+        if (!navigator.onLine || (doc.length !== 11 && doc.length !== 14)) return false;
+        try {
+          const r = await apiRequest('config', {
+            consulta: 'estabelecimento_historico',
+            filtros: { identificador: doc }
+          }, 30000);
+          const item = Array.isArray(r?.resultados) ? r.resultados[0] : null;
+          if (!item) return false;
+
+          const setSeVazio = (id, valor) => {
+            const el = document.getElementById(id);
+            if (!el || !String(valor || '').trim() || String(el.value || '').trim()) return false;
+            el.value = String(valor);
+            return true;
+          };
+
+          let alterados = 0;
+          alterados += setSeVazio('prepareNomeFantasia', item.nomeFantasia) ? 1 : 0;
+          alterados += setSeVazio('prepareRazaoSocial', item.razaoSocial) ? 1 : 0;
+          alterados += setSeVazio('prepareCidade', item.cidade) ? 1 : 0;
+          alterados += setSeVazio('prepareEndereco', item.endereco) ? 1 : 0;
+          alterados += setSeVazio('prepareNumero', item.numero) ? 1 : 0;
+          alterados += setSeVazio('prepareBairro', item.bairro) ? 1 : 0;
+          alterados += setSeVazio('prepareArea', item.area) ? 1 : 0;
+
+          const pscip = projetoPscipOperacional_(item.pscip || '');
+          const pscipAtual = String(document.getElementById('preparePscip')?.value || '').trim();
+          if (pscip && (!pscipAtual || pscipAtual === 'PRJ')) {
+            document.getElementById('preparePscip').value = pscip;
+            alterados += 1;
+          }
+
+          if (alterados && item.historico2024_2025) {
+            showPrepareCnpjStatus_(
+              `Dados complementados pela base histórica 2024-2025. Confira antes de salvar.${item.observacaoHistorica ? ' ' + item.observacaoHistorica : ''}`,
+              'success'
+            );
+          }
+          return alterados > 0;
+        } catch (erro) {
+          return false;
+        }
+      }
+
       let cnpjPreparacaoConsultaSequencia = 0;
       let cnpjPreparacaoEmAndamento = null;
       let cnpjPreparacaoEmAndamentoNumero = '';
@@ -10468,11 +10552,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 : 'CNPJ localizado. Confira os dados cadastrais antes de salvar.',
               'success'
             );
+            await preencherPreparacaoComHistorico_(cnpj);
             return true;
           } catch (erro) {
             if (sequencia !== cnpjPreparacaoConsultaSequencia || digits(input?.value || '') !== cnpj) return false;
-            showPrepareCnpjStatus_(erro?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');
-            return false;
+            const recuperouHistorico = await preencherPreparacaoComHistorico_(cnpj);
+            if (!recuperouHistorico) {
+              showPrepareCnpjStatus_(erro?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');
+            }
+            return recuperouHistorico;
           } finally {
             if (cnpjPreparacaoEmAndamentoNumero === cnpj) {
               cnpjPreparacaoEmAndamento = null;
@@ -10611,7 +10699,179 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : 'Nenhuma vistoria pendente';
       }
 
+
+      function classePrioridadeSugestao_(prioridade) {
+        const n = normalize(prioridade);
+        if (n === normalize('Alta')) return 'high';
+        if (n === normalize('Média')) return 'medium';
+        return 'watch';
+      }
+
+      function atualizarResumoSugestoesUi_() {
+        const r = resumoSugestoesFiscalizacao || {};
+        const total = Number(r.total || 0);
+        const alta = Number(r.alta || 0);
+        const media = Number(r.media || 0);
+
+        if (inspectionSuggestionsCount) inspectionSuggestionsCount.textContent = String(total);
+        if (inspectionSuggestionsBadge) inspectionSuggestionsBadge.textContent = String(total);
+        if (inspectionSuggestionsText) {
+          inspectionSuggestionsText.textContent = total
+            ? `${alta} alta prioridade • ${media} média • ${Number(r.acompanhamento || 0)} acompanhamento`
+            : 'Nenhum local sugerido com os critérios atuais.';
+        }
+        if (inspectionSuggestionsCard) {
+          inspectionSuggestionsCard.classList.toggle('has-high', alta > 0);
+          inspectionSuggestionsCard.hidden = false;
+        }
+      }
+
+      async function carregarResumoSugestoesFiscalizacao_() {
+        if (!navigator.onLine) return;
+        try {
+          const r = await apiRequest('config', {
+            consulta: 'sugestoes_fiscalizacao',
+            filtros: { limite: 0 }
+          }, 45000);
+          resumoSugestoesFiscalizacao = r?.resumo || { total: 0, alta: 0, media: 0, acompanhamento: 0 };
+          atualizarResumoSugestoesUi_();
+        } catch (erro) {
+          if (inspectionSuggestionsText) inspectionSuggestionsText.textContent = 'Não foi possível atualizar as sugestões agora.';
+        }
+      }
+
+      function renderizarSugestoesFiscalizacao_() {
+        if (!preparedInspectionsList) return;
+        atualizarResumoSugestoesUi_();
+
+        if (!sugestoesFiscalizacaoCarregadas) {
+          preparedInspectionsList.innerHTML = navigator.onLine
+            ? '<div class="prepared-empty">Carregando sugestões de fiscalização...</div>'
+            : '<div class="prepared-empty">As sugestões precisam de conexão para cruzar a base atual com 2024-2025.</div>';
+          if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.textContent = 'Sugestões usam 02/07/2025 como marco zero das sanções.';
+          }
+          return;
+        }
+
+        if (!sugestoesFiscalizacao.length) {
+          preparedInspectionsList.innerHTML = '<div class="prepared-empty">Nenhum local pendente foi identificado pelos critérios atuais.</div>';
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Nenhuma sugestão de nova fiscalização.';
+          return;
+        }
+
+        if (preparedInspectionsStatus) {
+          preparedInspectionsStatus.textContent =
+            `${sugestoesFiscalizacao.length} local${sugestoesFiscalizacao.length === 1 ? '' : 'is'} sugerido${sugestoesFiscalizacao.length === 1 ? '' : 's'} • prioridade operacional, não classificação normativa automática.`;
+        }
+
+        preparedInspectionsList.innerHTML = sugestoesFiscalizacao.map(item => {
+          const titulo = item.nomeFantasia || item.razaoSocial || 'Edificação sem nome informado';
+          const endereco = [item.endereco, item.numero, item.bairro, item.cidade].filter(Boolean).join(', ');
+          const risco = classePrioridadeSugestao_(item.prioridade);
+          const dimensoes = [
+            item.area ? `${item.area} m²` : '',
+            item.pavimentos ? `${item.pavimentos} pav.` : '',
+            item.altura ? `${item.altura} m altura` : ''
+          ].filter(Boolean).join(' • ');
+          const marco = item.possuiRegistroAposMarco
+            ? `Situação após 02/07/2025: ${item.ultimaSituacao || 'não informada'}`
+            : 'Sem comprovação de regularização posterior a 02/07/2025';
+
+          return `<article class="inspection-suggestion-card priority-${risco}">
+            <div class="inspection-suggestion-head">
+              <span class="inspection-priority priority-${risco}">${escapeHtml(item.prioridade || 'Acompanhamento')}</span>
+              <span class="inspection-score">Prioridade ${Number(item.pontos || 0)}</span>
+            </div>
+            <h3>${escapeHtml(titulo)}</h3>
+            <p class="inspection-suggestion-address">${escapeHtml(endereco || 'Endereço não informado')}</p>
+            <div class="inspection-suggestion-meta">
+              ${item.ocupacao ? `<span><b>Ocupação:</b> ${escapeHtml(item.ocupacao)}</span>` : ''}
+              ${dimensoes ? `<span><b>Edificação:</b> ${escapeHtml(dimensoes)}</span>` : ''}
+              ${item.pscip ? `<span><b>PSCIP:</b> ${escapeHtml(projetoPscipOperacional_(item.pscip) || item.pscip)}</span>` : '<span><b>PSCIP:</b> não identificado</span>'}
+              <span><b>Última vistoria:</b> ${escapeHtml(formatarDataPainel_(item.ultimaVistoria) || item.ultimaVistoria || 'não informada')}</span>
+              <span><b>Situação:</b> ${escapeHtml(marco)}</span>
+            </div>
+            <p class="inspection-suggestion-reason"><strong>Por que está na lista:</strong> ${escapeHtml(item.motivo || 'Histórico pendente para verificação.')}</p>
+            ${item.historicoAnteriorResetado ? '<p class="inspection-suggestion-reset">As sanções anteriores a 02/07/2025 aparecem somente como histórico e não são tratadas como sanção atual.</p>' : ''}
+            <div class="inspection-suggestion-actions">
+              ${usuarioPodeOperar_() ? `<button class="btn btn-primary" type="button" data-program-suggestion-id="${escapeAttr(item.identidade || '')}">Programar vistoria</button>` : ''}
+              <button class="btn btn-secondary" type="button" data-search-suggestion="${escapeAttr(item.cnpj || item.pscip || titulo)}">Consultar no Painel</button>
+            </div>
+          </article>`;
+        }).join('');
+      }
+
+      async function carregarSugestoesFiscalizacao_() {
+        if (!navigator.onLine) {
+          renderizarSugestoesFiscalizacao_();
+          return;
+        }
+        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Cruzando Processo Fiscalizatório com a aba 2024-2025...';
+        preparedInspectionsList?.classList.add('is-loading');
+        try {
+          const r = await apiRequest('config', {
+            consulta: 'sugestoes_fiscalizacao',
+            filtros: { limite: 200 }
+          }, 60000);
+          sugestoesFiscalizacao = Array.isArray(r?.itens) ? r.itens : [];
+          resumoSugestoesFiscalizacao = r?.resumo || {
+            total: sugestoesFiscalizacao.length,
+            alta: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Alta')).length,
+            media: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Média')).length,
+            acompanhamento: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Acompanhamento')).length
+          };
+          sugestoesFiscalizacaoCarregadas = true;
+          atualizarResumoSugestoesUi_();
+        } catch (erro) {
+          sugestoesFiscalizacaoCarregadas = false;
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = erro?.message || 'Não foi possível carregar as sugestões.';
+        } finally {
+          preparedInspectionsList?.classList.remove('is-loading');
+          if (filtroPreparacoes === 'sugestoes') renderizarSugestoesFiscalizacao_();
+        }
+      }
+
+      function abrirSugestaoComoPreparacao_(item) {
+        if (!item || !usuarioPodeOperar_()) return;
+        fecharListaProgramadas_();
+        abrirModalPreparacao_({ retornarProgramadas: true });
+
+        const set = (id, valor) => {
+          const el = document.getElementById(id);
+          if (el && valor != null && String(valor).trim()) el.value = String(valor);
+        };
+
+        set('prepareTipo', 'fiscalizacao');
+        set('prepareCidade', item.cidade || 'Viçosa');
+        set('prepareDemanda', item.demandaPrincipal || 'Iniciativa');
+        set('preparePscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
+        set('prepareCnpj', item.cnpj || '');
+        set('prepareNomeFantasia', item.nomeFantasia || '');
+        set('prepareRazaoSocial', item.razaoSocial || '');
+        set('prepareArea', item.area || '');
+        set('prepareEndereco', item.endereco || '');
+        set('prepareNumero', item.numero || '');
+        set('prepareBairro', item.bairro || '');
+        set('prepareObservacao', item.observacaoPrevia || item.motivo || '');
+        if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
+
+        const cnpjInput = document.getElementById('prepareCnpj');
+        if (cnpjInput) {
+          const numero = digits(cnpjInput.value || '').slice(0, 14);
+          cnpjInput.value = numero.length > 11 ? formatarCnpjTela_(numero) : numero;
+        }
+        atualizarCamposPreparacaoPorTipo_();
+        if (prepareInspectionError) prepareInspectionError.hidden = true;
+        const titulo = document.getElementById('prepareInspectionTitle');
+        if (titulo) titulo.textContent = 'Programar fiscalização sugerida';
+      }
+
       function renderizarPreparacoesVistoria_() {
+        if (filtroPreparacoes === 'sugestoes') {
+          renderizarSugestoesFiscalizacao_();
+          return;
+        }
         atualizarVisibilidadeProgramadasMobile_();
         atualizarIndicadorPreparacoesUsuario_();
         atualizarAlertaPrazosProgramados_();
@@ -11292,6 +11552,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
+      inspectionSuggestionsCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       programmedQuickAddBtn?.addEventListener('click', event => {
         event.preventDefault();
         event.stopPropagation();
@@ -11389,8 +11650,33 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       document.querySelectorAll('[data-prepared-filter]').forEach(btn => btn.addEventListener('click', () => {
         definirFiltroPreparacoes_(btn.dataset.preparedFilter || 'todas');
         renderizarPreparacoesVistoria_();
+        if (filtroPreparacoes === 'sugestoes' && navigator.onLine) carregarSugestoesFiscalizacao_().catch(() => {});
       }));
       preparedInspectionsList?.addEventListener('click', event => {
+        const programarSugestao = event.target.closest('[data-program-suggestion-id]');
+        if (programarSugestao) {
+          event.preventDefault();
+          event.stopPropagation();
+          const item = sugestoesFiscalizacao.find(s =>
+            String(s.identidade || '') === String(programarSugestao.dataset.programSuggestionId || '')
+          );
+          abrirSugestaoComoPreparacao_(item);
+          return;
+        }
+
+        const pesquisarSugestao = event.target.closest('[data-search-suggestion]');
+        if (pesquisarSugestao) {
+          event.preventDefault();
+          event.stopPropagation();
+          fecharListaProgramadas_();
+          recordsState.pagina = 1;
+          mostrarVistaPlanilha_({
+            busca: String(pesquisarSugestao.dataset.searchSuggestion || ''),
+            carregar: true
+          });
+          return;
+        }
+
         const editar = event.target.closest('[data-preparacao-edit-id]');
         if (editar) {
           event.preventDefault();
@@ -11425,6 +11711,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const item = preparacoesVistoria.find(p => String(p.id) === String(btn.dataset.preparacaoId));
         abrirPreparacaoComEscolha_(item);
       });
+      recordDetailGroups?.addEventListener('click', event => {
+        const btn = event.target.closest('[data-ficha-program-suggestion]');
+        if (!btn || !recordStatusRegistroAtual?.sugestaoFiscalizacao) return;
+        abrirSugestaoComoPreparacao_(recordStatusRegistroAtual.sugestaoFiscalizacao);
+      });
+
       preparedInspectionsList?.addEventListener('keydown', event => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         const alvo = event.target.closest('[data-preparacao-id]');
@@ -11973,7 +12265,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ag', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99al', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

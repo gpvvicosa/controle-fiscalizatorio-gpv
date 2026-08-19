@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260817-v23-9-99-layout-code-print-goals-ag';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-historico-sugestoes-al';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [

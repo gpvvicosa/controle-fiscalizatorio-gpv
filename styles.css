@@ -10745,3 +10745,86 @@ body.gpv-dialog-open{overflow:hidden!important}
 
   body.printing-goals .goals-detail-card{padding:10px!important}
 }
+
+
+/* ===== V23.9.99al — Base histórica 2024-2025 + sugestões de fiscalização ===== */
+.dashboard-suggestions-card{
+  width:100%;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:14px;
+  margin:14px 0 18px;
+  padding:15px 17px;
+  border:1px solid #e2e7ee;
+  border-radius:18px;
+  background:#fff;
+  color:#263244;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:0 6px 20px rgba(15,23,42,.045);
+}
+.dashboard-suggestions-card:hover{border-color:#cfd6df;box-shadow:0 10px 28px rgba(15,23,42,.07)}
+.dashboard-suggestions-card.has-high{border-color:#efc6c8}
+.dashboard-suggestions-icon{
+  display:grid;place-items:center;width:38px;height:38px;border-radius:12px;
+  background:#fff2e8;color:#9a4315;font-size:1.1rem;font-weight:900
+}
+.dashboard-suggestions-card.has-high .dashboard-suggestions-icon{background:#fee9e9;color:#a12026}
+.dashboard-suggestions-copy{display:flex;flex-direction:column;min-width:0;gap:3px}
+.dashboard-suggestions-copy strong{font-size:.98rem;color:#1f2937}
+.dashboard-suggestions-copy small{color:#687385;line-height:1.35}
+.dashboard-suggestions-count{
+  min-width:38px;height:32px;padding:0 10px;display:grid;place-items:center;
+  border-radius:999px;background:#f2f4f7;color:#374151;font-weight:900
+}
+.prepared-filter-suggestions{display:inline-flex!important;align-items:center;gap:7px}
+.prepared-filter-suggestions span{
+  display:inline-grid;place-items:center;min-width:23px;height:21px;padding:0 6px;
+  border-radius:999px;background:rgba(255,255,255,.72);font-size:.72rem;font-weight:900
+}
+.inspection-suggestion-card{
+  padding:17px 18px;border:1px solid #e2e7ee;border-left-width:5px;border-radius:18px;
+  background:#fff;box-shadow:0 7px 22px rgba(15,23,42,.045)
+}
+.inspection-suggestion-card.priority-high{border-left-color:#b4232b}
+.inspection-suggestion-card.priority-medium{border-left-color:#d47a19}
+.inspection-suggestion-card.priority-watch{border-left-color:#7a8798}
+.inspection-suggestion-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.inspection-priority,.inspection-score{font-size:.76rem;font-weight:850;border-radius:999px;padding:5px 9px}
+.inspection-priority.priority-high{background:#fee9e9;color:#a12026}
+.inspection-priority.priority-medium{background:#fff1dc;color:#90500b}
+.inspection-priority.priority-watch{background:#eef1f4;color:#556171}
+.inspection-score{background:#f5f6f8;color:#6b7280}
+.inspection-suggestion-card h3{margin:0 0 6px;font-size:1.08rem;color:#1f2937}
+.inspection-suggestion-address{margin:0 0 11px;color:#657083}
+.inspection-suggestion-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 14px;font-size:.88rem;color:#596577}
+.inspection-suggestion-meta span{min-width:0}
+.inspection-suggestion-meta b{color:#374151}
+.inspection-suggestion-reason{margin:12px 0 8px;padding:10px 12px;border-radius:12px;background:#f7f8fa;color:#4b5563;line-height:1.45}
+.inspection-suggestion-reset{margin:0;color:#7a5b2d;font-size:.82rem;line-height:1.4}
+.inspection-suggestion-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:13px}
+.record-suggestion-callout{
+  display:flex;justify-content:space-between;align-items:center;gap:15px;
+  padding:14px 15px;margin:0 0 14px;border:1px solid #e1e6ed;border-left-width:5px;border-radius:15px;background:#fff
+}
+.record-suggestion-callout.priority-high{border-left-color:#b4232b;background:#fffafa}
+.record-suggestion-callout.priority-medium{border-left-color:#d47a19;background:#fffdf8}
+.record-suggestion-callout.priority-watch{border-left-color:#7a8798}
+.record-suggestion-callout strong{color:#263244}
+.record-suggestion-callout p{margin:4px 0 0;color:#626e80;line-height:1.4}
+.record-suggestion-callout small{display:block;margin-top:5px;color:#875f27}
+.record-history-reset-note{
+  padding:11px 13px;margin:0 0 14px;border-radius:12px;background:#fff8e8;color:#7a5a22;
+  font-size:.88rem;line-height:1.45
+}
+@media(max-width:680px){
+  .dashboard-suggestions-card{grid-template-columns:auto 1fr auto;padding:13px 14px;border-radius:16px}
+  .dashboard-suggestions-icon{width:34px;height:34px}
+  .inspection-suggestion-card{padding:15px 14px}
+  .inspection-suggestion-meta{grid-template-columns:1fr}
+  .inspection-suggestion-actions{display:grid;grid-template-columns:1fr 1fr}
+  .inspection-suggestion-actions .btn{width:100%}
+  .record-suggestion-callout{align-items:flex-start;flex-direction:column}
+  .record-suggestion-callout .btn{width:100%}
+}
