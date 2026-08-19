@@ -4218,7 +4218,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Estabelecimento', estabelecimento],
           ['Razão Social', razaoSocial && normalize(razaoSocial) !== normalize(estabelecimento) ? razaoSocial : ''],
           [rotuloIdentificador, identificadorRegistro],
-          ['Endereço', enderecoFicha_(registro)],
+          ['Endereço da edificação', enderecoFicha_(registro)],
+          ['Endereço para correspondência', valorCampoFicha_(registro, 'Endereço para correspondência')],
           ['Área (m²)', valorCampoFicha_(registro, 'Área m²', 'Área')],
           ['Pavimentos', valorCampoFicha_(registro, 'Pavimentos')],
           ['Altura (m)', valorCampoFicha_(registro, 'Altura')],
@@ -12802,7 +12803,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ar', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99as', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
