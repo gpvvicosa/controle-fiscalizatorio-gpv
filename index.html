@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99at">
+  <link rel="stylesheet" href="styles.css?v=23.9.99au">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -287,7 +287,7 @@
         <section class="system-manual-section" id="manualSec2">
           <h3>2. Cadastro de vistoria</h3>
           <p>Escolha Vistoria de Fiscalização ou Vistoria de Liberação e preencha os dados solicitados pelo fluxo.</p>
-          <p>Durante o cadastro, o app procura processo anterior na ordem: <strong>CNPJ/CPF → Nº do PSCIP → endereço completo</strong>. Quando houver histórico, apresenta situação, PF, última vistoria, prazo e atalho para a Ficha.</p>
+          <p>Durante o cadastro, o app consulta CNPJ/CPF, Nº do PSCIP ou processo antigo e endereço da edificação. Processos do sistema antigo podem aparecer no formato <strong>44/2016</strong>. Eles permanecem assim até que uma Vistoria de Liberação seja solicitada no sistema atual, quando passa a existir um novo número <strong>PRJ + 10 números</strong>. Quando houver histórico, o app apresenta situação, PF, última vistoria, prazo e atalho para a Ficha.</p>
           <p>Na Fiscalização comum, a área é obrigatória; acima de 930 m² a categoria Nível de risco III é considerada automaticamente. Em Eventos declaratórios, o fluxo usa os dados próprios da declaração INFOSCIP e o endereço real do evento, sem exigir Nº do PSCIP ou área da edificação.</p>
           <p><strong>PET — Projeto de Evento Temporário:</strong> quando o evento temporário não se enquadrar como Evento declaratório, selecione PET. O fluxo inicial normal é Vistoria de Liberação; posteriormente, um PET já existente também pode ser objeto de Vistoria de Fiscalização.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
@@ -843,9 +843,9 @@
               <div class="hint">Informe separadamente se já existe Processo de Segurança Contra Incêndio e Pânico.</div>
             </div>
             <div class="field wide licensing-pscip-field" id="pscipLicenciamentoWrap" hidden aria-hidden="true">
-              <label class="required" for="pscip" id="pscipLabel">Nº do PSCIP</label>
-              <input id="pscip" name="pscip" autocomplete="off" inputmode="numeric" maxlength="13" value="PRJ" placeholder="PRJ + 10 números">
-              <div class="hint">Padrão: PRJ seguido de exatamente 10 números. Se um AVCB completo for colado, o aplicativo identifica o Nº do Projeto antes de continuar.</div>
+              <label class="required" for="pscip" id="pscipLabel">Nº do PSCIP / Projeto antigo</label>
+              <input id="pscip" name="pscip" autocomplete="off" inputmode="text" maxlength="13" value="PRJ" placeholder="PRJ + 10 números ou 44/2016">
+              <div class="hint">Aceita PSCIP atual no padrão PRJ + 10 números ou processo do sistema antigo, por exemplo 44/2016. Em Vistoria de Liberação, informe o novo PRJ gerado no sistema atual.</div>
               <div class="lookup-status" id="pscipLookupStatus" role="status" aria-live="polite"></div>
               <div class="establishment-history-panel pscip-history-panel" id="pscipHistoryPanel" hidden>
                 <div class="establishment-history-head">
@@ -1543,7 +1543,7 @@
           <div class="field"><label for="prepareCidade">Cidade</label><input id="prepareCidade" value="Viçosa"></div>
           <div class="field" id="prepareDemandaWrap"><label for="prepareDemanda">Demanda</label><input id="prepareDemanda" list="dlDemanda" autocomplete="off" placeholder="Selecione ou digite a demanda"><div class="hint">Para evento declaratório, selecione “Eventos declaratórios”.</div></div>
           <div class="field" id="prepareDataRenovacaoAvcbWrap" hidden><label class="required" for="prepareDataRenovacaoAvcb">Data de renovação do AVCB</label><input id="prepareDataRenovacaoAvcb" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/AAAA"><div class="hint">Obrigatória somente quando a demanda for Renovação AVCB.</div></div>
-          <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP / Projeto</label><input id="preparePscip" value="PRJ" autocomplete="off" inputmode="numeric" maxlength="13" placeholder="PRJ + 10 números"><div class="hint">Padrão: PRJ seguido de exatamente 10 números. Obrigatório para vistoria de liberação.</div></div>
+          <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP / Projeto antigo</label><input id="preparePscip" value="PRJ" autocomplete="off" inputmode="text" maxlength="13" placeholder="PRJ + 10 números ou 44/2016"><div class="hint">Fiscalização aceita PRJ atual ou processo antigo (ex.: 44/2016). Para Vistoria de Liberação, é obrigatório informar o novo PRJ do sistema atual.</div></div>
           <div class="field" id="prepareEventoDeclaracaoWrap" hidden><label class="required" for="prepareEventoDeclaracaoNumero">Nº da declaração INFOSCIP</label><input id="prepareEventoDeclaracaoNumero" autocomplete="off" maxlength="20" placeholder="Ex.: 2026RME09669"><div class="hint">Evento declaratório não utiliza PRJ. Informe o ano, as letras do código de risco e a sequência numérica.</div></div>
           <div class="field"><label for="preparePf">Nº do PF</label><input id="preparePf" autocomplete="off" placeholder="Preenchido automaticamente quando houver processo anterior"><div class="lookup-status" id="preparePfLookupStatus" role="status" aria-live="polite"></div><div class="establishment-history-results pf-history-results" id="preparePfLookupResults" hidden></div></div>
           <div class="field"><label for="prepareNomeFantasia">Nome Fantasia</label><input id="prepareNomeFantasia"></div>
@@ -1867,7 +1867,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99at"></script>
+  <script src="app.js?v=23.9.99au"></script>
 
   </div>
   

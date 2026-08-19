@@ -11238,3 +11238,5 @@ body.records-mode .records-status.searching{
     padding-right:10px;
   }
 }
+
+/* V23.9.99au — compatibilidade de cache com processo antigo/PSCIP atual. */

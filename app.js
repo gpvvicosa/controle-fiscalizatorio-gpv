@@ -4191,8 +4191,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const identificadorRegistro = eventoFicha ? '' : (cnpj || (cpfRegistro ? formatarCpfTela_(cpfRegistro) : ''));
         const rotuloIdentificador = cnpj ? 'CNPJ' : (cpfRegistro && !eventoFicha ? 'CPF' : 'CNPJ / CPF');
         const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
+        const idsProjetoFicha = identificadoresProjetoFicha_(registro);
         const processo = [
-          ['Nº PSCIP', valorPscipOperacionalFicha_(registro)],
+          ['PSCIP atual', idsProjetoFicha.atual],
+          ['Processo antigo', idsProjetoFicha.antigo],
           ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
           ['Demanda', valorCampoFicha_(registro, 'Demanda')],
           ['Data de renovação do AVCB', valorCampoFicha_(registro, 'Data de renovação do AVCB')],
@@ -4223,7 +4225,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Área (m²)', valorCampoFicha_(registro, 'Área m²', 'Área')],
           ['Pavimentos', valorCampoFicha_(registro, 'Pavimentos')],
           ['Altura (m)', valorCampoFicha_(registro, 'Altura')],
-          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação')],
+          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação', 'Ocupação / Divisão', 'Divisão')],
           ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
           ['Situação atual do PSCIP', valorCampoFicha_(registro, 'Situação atual do PSCIP')]
         ];
@@ -7128,7 +7130,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!eventoDeclaratorio && value('possuiPscip') === 'sim' && !pscipProjetoValido_(value('pscip'))) {
           const elPscip = document.getElementById('pscip');
           if (elPscip) elPscip.classList.add('invalid');
-          missing.push('Nº do PSCIP / Projeto (PRJ + 10 números)');
+          missing.push('Nº do PSCIP / Projeto (PRJ + 10 números ou processo antigo, ex.: 44/2016)');
+          first = first || elPscip;
+        }
+        if (ehFluxoLiberacao_() && !eventoDeclaratorio && !pscipAtualValido_(value('pscip'))) {
+          const elPscip = document.getElementById('pscip');
+          if (elPscip) elPscip.classList.add('invalid');
+          missing.push('Nº do PSCIP atual para liberação (PRJ + 10 números)');
           first = first || elPscip;
         }
         if (ehFluxoFiscalizacao_() && !eventoDeclaratorio && value('licenciamento') === 'nao_possui' && value('possuiPscip') === 'sim' && !String(value('situacaoPscip') || '').trim()) {
@@ -7180,7 +7188,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
             if (lic === 'possui') {
               if (!String(value('acessoriaTipoLicenca') || '').trim()) { acessoriaTipoLicencaSelect?.classList.add('invalid'); missing.push('Documento de licenciamento'); first = first || acessoriaTipoLicencaSelect; }
-              if (!pscipProjetoValido_(value('pscip'))) { pscipInput?.classList.add('invalid'); missing.push('Nº do PSCIP / licenciamento (PRJ + 10 números)'); first = first || pscipInput; }
+              if (!pscipProjetoValido_(value('pscip'))) { pscipInput?.classList.add('invalid'); missing.push('Nº do PSCIP / Projeto (PRJ + 10 números ou processo antigo, ex.: 44/2016)'); first = first || pscipInput; }
             }
           }
         }
@@ -8158,11 +8166,64 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
 
+      function normalizarProcessoAntigo_(valor) {
+        const texto = String(valor == null ? '' : valor)
+          .trim()
+          .toUpperCase()
+          .replace(/^PRJ/i, '')
+          .replace(/\s+/g, '');
+        const m = texto.match(/^(\d{1,8})\/(\d{4})$/);
+        return m ? `${m[1]}/${m[2]}` : '';
+      }
+
+      function analisarNumeroPscip_(valor) {
+        const bruto = String(valor == null ? '' : valor).trim().toUpperCase();
+        const processoAntigo = normalizarProcessoAntigo_(bruto);
+
+        if (processoAntigo) {
+          return {
+            bruto,
+            tipo: 'antigo',
+            processoAntigo,
+            identificador: processoAntigo,
+            numeros: processoAntigo.replace(/\D/g, ''),
+            projeto: '',
+            completo: true,
+            atualValido: false,
+            antigoValido: true,
+            excedente: false
+          };
+        }
+
+        const temBarra = bruto.includes('/');
+        const semPrefixo = bruto.replace(/^PRJ/i, '');
+        const numeros = semPrefixo.replace(/\D/g, '');
+        const explicitamentePrj = /^PRJ/i.test(bruto);
+        const candidatoAtual = !temBarra && (explicitamentePrj || /^\d{10,}$/.test(bruto.replace(/\s+/g, '')));
+        const projeto = candidatoAtual && numeros.length
+          ? `PRJ${numeros.slice(0, 10)}`
+          : '';
+
+        return {
+          bruto,
+          tipo: candidatoAtual ? 'atual' : 'incompleto',
+          processoAntigo: '',
+          identificador: numeros.length === 10 && !temBarra ? `PRJ${numeros}` : projeto,
+          numeros,
+          projeto,
+          completo: candidatoAtual && numeros.length === 10,
+          atualValido: candidatoAtual && numeros.length === 10,
+          antigoValido: false,
+          excedente: candidatoAtual && numeros.length > 10
+        };
+      }
+
       function normalizarPscipExibicao_(valor, garantirPrefixo = false) {
-        let texto = String(valor == null ? '' : valor).trim();
+        const analise = analisarNumeroPscip_(valor);
+        if (analise.antigoValido) return analise.processoAntigo;
+        if (analise.atualValido || analise.projeto) return analise.projeto;
+        const texto = String(valor == null ? '' : valor).trim().toUpperCase();
         if (!texto) return garantirPrefixo ? 'PRJ' : '';
-        texto = texto.replace(/^prj/i, 'PRJ');
-        if (garantirPrefixo && !/^PRJ/i.test(texto)) texto = `PRJ${texto}`;
         return texto.replace(/^prj/i, 'PRJ');
       }
 
@@ -8170,7 +8231,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!pscipInput) return '';
         const antes = String(pscipInput.value || '');
         const analise = analisarNumeroPscip_(antes);
-        const depois = analise.numeros ? `PRJ${analise.numeros.slice(0, 10)}` : (garantirPrefixo ? 'PRJ' : '');
+        let depois = '';
+
+        if (analise.antigoValido) depois = analise.processoAntigo;
+        else if (analise.atualValido || analise.projeto) depois = analise.projeto;
+        else depois = formatarDigitacaoPscip_(antes) || (garantirPrefixo ? 'PRJ' : '');
+
         if (depois !== antes) pscipInput.value = depois;
         return depois;
       }
@@ -8179,31 +8245,62 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return String(valor == null ? '' : valor).toUpperCase().replace(/[^A-Z0-9]/g, '');
       }
 
-      function analisarNumeroPscip_(valor) {
-        const bruto = String(valor == null ? '' : valor).trim().toUpperCase();
-        const semPrefixo = bruto.replace(/^PRJ/i, '');
-        const numeros = semPrefixo.replace(/\D/g, '');
-        return {
-          bruto,
-          numeros,
-          projeto: `PRJ${numeros.slice(0, 10)}`,
-          completo: numeros.length === 10,
-          excedente: numeros.length > 10
-        };
-      }
-
       function projetoPscipOperacional_(valor) {
         const analise = analisarNumeroPscip_(valor);
-        return analise.numeros ? `PRJ${analise.numeros.slice(0, 10)}` : '';
+        if (analise.antigoValido) return analise.processoAntigo;
+        if (analise.atualValido || analise.projeto) return analise.projeto;
+        return '';
+      }
+
+      function pscipAtualValido_(valor) {
+        return analisarNumeroPscip_(valor).atualValido;
       }
 
       function pscipProjetoValido_(valor) {
-        return analisarNumeroPscip_(valor).numeros.length === 10;
+        const analise = analisarNumeroPscip_(valor);
+        return analise.atualValido || analise.antigoValido;
+      }
+
+      function rotuloProjetoPscip_(valor) {
+        return analisarNumeroPscip_(valor).antigoValido
+          ? 'Processo antigo'
+          : 'PSCIP';
       }
 
       function formatarDigitacaoPscip_(valor) {
+        const bruto = String(valor == null ? '' : valor).trim().toUpperCase();
+
+        // Permite digitar diretamente 44/2016 mesmo quando o campo começou com PRJ.
+        if (bruto.includes('/')) {
+          const semPrj = bruto.replace(/^PRJ/i, '');
+          const limpo = semPrj.replace(/[^\d/]/g, '');
+          const partes = limpo.split('/');
+          const numero = String(partes[0] || '').replace(/\D/g, '').slice(0, 8);
+          const ano = String(partes.slice(1).join('') || '').replace(/\D/g, '').slice(0, 4);
+          return `${numero}/${ano}`;
+        }
+
+        if (/^PRJ/i.test(bruto)) {
+          const numeros = bruto.replace(/^PRJ/i, '').replace(/\D/g, '').slice(0, 10);
+          return `PRJ${numeros}`;
+        }
+
+        // Sem prefixo, mantém os dígitos durante a digitação.
+        // Ao sair do campo, 10 dígitos são normalizados para PRJ.
+        return bruto.replace(/\D/g, '').slice(0, 10);
+      }
+
+      function normalizarIdentificadorProjetoAoSair_(valor) {
         const analise = analisarNumeroPscip_(valor);
-        return `PRJ${analise.numeros.slice(0, 10)}`;
+        if (analise.antigoValido) return analise.processoAntigo;
+        if (analise.atualValido || analise.projeto) return analise.projeto;
+
+        const digitos = String(valor == null ? '' : valor).replace(/\D/g, '');
+        if (!String(valor || '').includes('/') && digitos.length === 10) {
+          return `PRJ${digitos}`;
+        }
+
+        return formatarDigitacaoPscip_(valor);
       }
 
       function formatarDeclaracaoEvento_(valor) {
@@ -8309,9 +8406,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return ativo;
       }
 
+      function identificadoresProjetoFicha_(registro) {
+        const candidatos = [];
+        const direto = valorCampoFicha_(
+          registro,
+          'Nº do PSCIP / Projeto',
+          'Nº PSCIP',
+          'Nº do Projeto'
+        );
+        if (direto) candidatos.push(direto);
+
+        (Array.isArray(registro?.historico) ? registro.historico : []).forEach(item => {
+          if (item?.projeto) candidatos.push(item.projeto);
+        });
+
+        let atual = '';
+        let antigo = '';
+
+        candidatos.forEach(valor => {
+          const normalizado = projetoPscipOperacional_(valor);
+          const analise = analisarNumeroPscip_(normalizado || valor);
+          if (analise.atualValido) atual = analise.projeto;
+          if (analise.antigoValido && !antigo) antigo = analise.processoAntigo;
+        });
+
+        return { atual, antigo };
+      }
+
       function valorPscipOperacionalFicha_(registro) {
-        const bruto = valorCampoFicha_(registro, 'Nº do PSCIP / Projeto');
-        return bruto ? (projetoPscipOperacional_(bruto) || bruto) : '';
+        const ids = identificadoresProjetoFicha_(registro);
+        return ids.atual || ids.antigo || '';
       }
 
       function ehEventoDeclaratorioPreparacao_() {
@@ -8345,9 +8469,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         input.addEventListener('paste', event => {
           const texto = String(event.clipboardData?.getData('text') || '');
-          if (!analisarNumeroPscip_(texto).excedente) return;
+          const analise = analisarNumeroPscip_(texto);
+          if (analise.antigoValido || !analise.excedente) return;
           event.preventDefault();
           tratarPscipExcedente_(input, texto).catch(() => {});
+        });
+        input.addEventListener('blur', () => {
+          const normalizado = normalizarIdentificadorProjetoAoSair_(input.value);
+          if (input.value !== normalizado) input.value = normalizado;
+          if (typeof aoAlterar === 'function') aoAlterar();
         });
       }
 
@@ -8650,7 +8780,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (status) {
           const referencias = [
             candidato.pf ? `PF ${candidato.pf}` : '',
-            pscipHistorico && pscipProjetoValido_(pscipHistorico) ? `PSCIP ${pscipHistorico}` : ''
+            pscipHistorico && pscipProjetoValido_(pscipHistorico) ? `${rotuloProjetoPscip_(pscipHistorico)} ${pscipHistorico}` : ''
           ].filter(Boolean).join(' • ');
           const ref = [candidato.criterio, candidato.estabelecimento, candidato.sancao].filter(Boolean).join(' • ');
           status.textContent = `${referencias || 'Processo'} localizado no histórico desde 02/07/2025${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}.`;
@@ -8710,7 +8840,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         resultados.innerHTML = candidatos.map((item,index) => {
           const endereco = [item.endereco,item.numero,item.cidade].filter(Boolean).join(', ');
           const pscip = item.pscip ? projetoPscipOperacional_(item.pscip) : '';
-          const referencia = [item.pf ? `PF ${item.pf}` : '', pscip && pscipProjetoValido_(pscip) ? `PSCIP ${pscip}` : ''].filter(Boolean).join(' • ');
+          const referencia = [item.pf ? `PF ${item.pf}` : '', pscip && pscipProjetoValido_(pscip) ? `${rotuloProjetoPscip_(pscip)} ${pscip}` : ''].filter(Boolean).join(' • ');
           const detalhe = [item.criterio,item.sancao,item.carimbo,endereco].filter(Boolean).join(' • ');
           return `<div class="establishment-history-item"><div class="establishment-history-copy"><strong>${escapeHtml(referencia || 'Processo localizado')}</strong><span>${escapeHtml(item.estabelecimento || 'Processo localizado')}</span><span>${escapeHtml(detalhe)}</span></div><button class="establishment-history-use" type="button" data-pf-origin="${prepare ? 'prepare' : 'form'}" data-pf-index="${index}">Usar processo</button></div>`;
         }).join('');
@@ -10730,8 +10860,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!['fiscalizacao','liberacao'].includes(p.tipoPreparacao)) faltantes.push('Tipo de vistoria');
         if (p.tipoPreparacao === 'liberacao' && !p.dataPrevista) faltantes.push('Data prevista');
         if (!p.vistoriadorResponsavel) faltantes.push('Vistoriador responsável');
-        if (p.tipoPreparacao === 'liberacao' && !pscipProjetoValido_(p.pscip)) faltantes.push('Nº do PSCIP / Projeto');
-        if (!eventoDeclaratorio && normalizarPscipTela_(p.pscip).length > 3 && !pscipProjetoValido_(p.pscip)) faltantes.push('Nº do PSCIP / Projeto válido');
+        if (p.tipoPreparacao === 'liberacao' && !pscipAtualValido_(p.pscip)) {
+          faltantes.push('Nº do PSCIP atual (PRJ + 10 números)');
+        }
+        if (!eventoDeclaratorio && String(p.pscip || '').trim() && String(p.pscip || '').trim() !== 'PRJ' && !pscipProjetoValido_(p.pscip)) {
+          faltantes.push('Nº do PSCIP / Projeto válido (PRJ + 10 números ou processo antigo, ex.: 44/2016)');
+        }
         if (eventoDeclaratorio && !p.eventoDeclaracaoNumero) faltantes.push('Nº da declaração INFOSCIP');
         if (eventoDeclaratorio && p.eventoDeclaracaoNumero && !declaracaoEventoValida_(p.eventoDeclaracaoNumero)) faltantes.push('Nº da declaração INFOSCIP válido');
         const renovacaoAvcb = p.tipoPreparacao === 'fiscalizacao' && ehRenovacaoAvcbValor_(p.demandaPrincipal);
@@ -10970,7 +11104,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <div class="inspection-suggestion-meta">
               ${item.ocupacao ? `<span><b>Ocupação:</b> ${escapeHtml(item.ocupacao)}</span>` : ''}
               ${dimensoes ? `<span><b>Edificação:</b> ${escapeHtml(dimensoes)}</span>` : ''}
-              ${item.pscip ? `<span><b>PSCIP:</b> ${escapeHtml(projetoPscipOperacional_(item.pscip) || item.pscip)}</span>` : '<span><b>PSCIP:</b> não identificado</span>'}
+              ${item.pscip ? `<span><b>${escapeHtml(rotuloProjetoPscip_(item.pscip))}:</b> ${escapeHtml(projetoPscipOperacional_(item.pscip) || item.pscip)}</span>` : '<span><b>PSCIP / Projeto:</b> não identificado</span>'}
               <span><b>Última vistoria:</b> ${escapeHtml(formatarDataPainel_(item.ultimaVistoria) || item.ultimaVistoria || 'não informada')}</span>
               <span><b>Situação:</b> ${escapeHtml(marco)}</span>
             </div>
@@ -12092,7 +12226,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       instalarProtecaoPscip_(document.getElementById('preparePscip'), () => agendarConsultaProcessoPf_('prepare'));
       document.getElementById('preparePscip')?.addEventListener('blur', () => {
         const el = document.getElementById('preparePscip');
-        if (el && !ehEventoDeclaratorioPreparacao_()) el.value = formatarDigitacaoPscip_(el.value);
+        if (el && !ehEventoDeclaratorioPreparacao_()) el.value = normalizarIdentificadorProjetoAoSair_(el.value);
         agendarConsultaProcessoPf_('prepare', 100);
       });
       document.getElementById('prepareEventoDeclaracaoNumero')?.addEventListener('input', event => { event.target.value = formatarDeclaracaoEvento_(event.target.value); });
@@ -12803,7 +12937,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99at', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99au', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });
