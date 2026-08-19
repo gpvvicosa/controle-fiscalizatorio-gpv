@@ -11116,3 +11116,125 @@ body.records-mode .records-status.searching{
   margin-top:4px;
   color:#7a8696;
 }
+
+
+/* ===== V23.9.99at — modal INFOSCIP responsivo e sem overflow horizontal ===== */
+.record-status-update-overlay{
+  overflow:hidden;
+  box-sizing:border-box;
+}
+.record-status-update-card{
+  width:min(480px,calc(100vw - 36px));
+  max-width:100%;
+  overflow-x:hidden!important;
+  overflow-y:auto;
+  box-sizing:border-box;
+}
+.record-status-update-card *,
+.record-status-update-card *::before,
+.record-status-update-card *::after{
+  box-sizing:border-box;
+}
+.record-status-update-card>header,
+.record-status-update-body,
+.record-status-update-card>footer{
+  min-width:0;
+  max-width:100%;
+}
+.record-status-update-body>label{
+  min-width:0;
+  max-width:100%;
+}
+.record-status-update-body select{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.record-status-confirm{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  display:grid!important;
+  grid-template-columns:18px minmax(0,1fr);
+  align-items:start;
+  gap:10px;
+  overflow:hidden;
+}
+.record-status-confirm input[type="checkbox"]{
+  appearance:auto;
+  -webkit-appearance:checkbox;
+  width:18px!important;
+  min-width:18px!important;
+  max-width:18px!important;
+  height:18px!important;
+  min-height:18px!important;
+  max-height:18px!important;
+  padding:0!important;
+  margin:1px 0 0!important;
+  border-radius:4px;
+  box-shadow:none!important;
+  flex:none!important;
+  accent-color:#176b3a;
+}
+.record-status-confirm input[type="checkbox"]:focus{
+  box-shadow:0 0 0 3px rgba(23,107,58,.12)!important;
+}
+.record-status-confirm span{
+  display:block;
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  white-space:normal;
+  line-height:1.42;
+}
+.record-status-update-message{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+.record-status-update-card>footer{
+  flex-wrap:wrap;
+  overflow:hidden;
+}
+.record-status-update-card>footer button{
+  max-width:100%;
+}
+
+@media(max-width:680px){
+  .record-status-update-overlay{
+    align-items:flex-end;
+    padding:0;
+  }
+  .record-status-update-card{
+    width:100%;
+    max-width:100%;
+    max-height:90dvh;
+    border-radius:20px 20px 0 0;
+  }
+  .record-status-update-body{
+    padding:15px 16px;
+  }
+  .record-status-update-card>header{
+    padding:15px 16px;
+  }
+  .record-status-update-card>footer{
+    padding:12px 16px max(14px,env(safe-area-inset-bottom));
+  }
+}
+
+@media(max-width:430px){
+  .record-status-update-card>footer{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .record-status-update-card>footer button{
+    width:100%;
+    min-width:0;
+    padding-left:10px;
+    padding-right:10px;
+  }
+}

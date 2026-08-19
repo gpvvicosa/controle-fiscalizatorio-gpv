@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-ficha-endereco-correspondencia-as';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-modal-infoscip-responsivo-at';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [
