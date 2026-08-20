@@ -13,6 +13,8 @@
       const AUTH_SESSION_STORAGE = 'gpvVistoriasSessaoBmV1';
       const AUTH_PROFILES_STORAGE = 'gpvVistoriasPerfisBmV1';
       const AUTH_DEVICE_PIN_KEY_STORAGE = 'gpvVistoriasChaveSenhaLocalV1';
+      const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
+      const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
       const APP_VERSION = '23.9.99';
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
@@ -28,6 +30,7 @@
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
       let authPendingBm = '';
+      let authSessionTimer = 0;
       const DEFAULT_CONFIG = Object.freeze({
         ok: true,
         titulo: 'Controle de Vistorias — GPV Viçosa',
@@ -47,12 +50,162 @@
         padroes: { cidade: 'Viçosa', enderecoCorrespondencia: 'O Mesmo' }
       });
 
+      function decodificarPayloadSessaoBm_(token) {
+        const parte = String(token || '').split('.')[0] || '';
+        if (!parte) return null;
+        try {
+          const normalizada = parte.replace(/-/g, '+').replace(/_/g, '/');
+          const preenchida = normalizada + '='.repeat((4 - (normalizada.length % 4)) % 4);
+          const texto = decodeURIComponent(Array.from(atob(preenchida)).map(ch => `%${ch.charCodeAt(0).toString(16).padStart(2, '0')}`).join(''));
+          const payload = JSON.parse(texto);
+          return payload && Number(payload.exp || 0) ? payload : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function sessaoTokenExpiradaBm_(token) {
+        const payload = decodificarPayloadSessaoBm_(token);
+        return Boolean(payload && Number(payload.exp || 0) <= Date.now());
+      }
+
+      function tokenSessaoLimitada10hBm_(token) {
+        const payload = decodificarPayloadSessaoBm_(token);
+        if (!payload) return false;
+        const duracao = Number(payload.exp || 0) - Number(payload.iat || 0);
+        return duracao > 0 && duracao <= (AUTH_LIMITED_SESSION_HOURS * 60 * 60 * 1000) + (5 * 60 * 1000);
+      }
+
+      function dispositivoCompartilhadoBm_() {
+        try { return localStorage.getItem(AUTH_SHARED_DEVICE_STORAGE) === '1'; }
+        catch (_) { return false; }
+      }
+
+      function marcarDispositivoCompartilhadoBm_() {
+        try { localStorage.setItem(AUTH_SHARED_DEVICE_STORAGE, '1'); } catch (_) {}
+      }
+
+      function quantidadePerfisConhecidosRawBm_() {
+        try {
+          const bruto = JSON.parse(localStorage.getItem(AUTH_PROFILES_STORAGE) || '[]');
+          return Array.isArray(bruto) ? bruto.filter(item => item?.usuario?.id).length : 0;
+        } catch (_) { return 0; }
+      }
+
+      function dispositivoCompartilhadoPrevistoBm_(bm = '', userId = '') {
+        if (dispositivoCompartilhadoBm_()) return true;
+        let lista = [];
+        try {
+          const bruto = JSON.parse(localStorage.getItem(AUTH_PROFILES_STORAGE) || '[]');
+          if (Array.isArray(bruto)) lista = bruto.filter(item => item?.usuario?.id);
+        } catch (_) {}
+        if (lista.length > 1) return true;
+        if (!lista.length) return false;
+        const alvoId = String(userId || '').trim();
+        const alvoBm = normalizarBmCliente_(bm || '');
+        return lista.some(item => {
+          if (alvoId) return String(item.usuario?.id || '') !== alvoId;
+          if (alvoBm) return normalizarBmCliente_(item.usuario?.bm || '') !== alvoBm;
+          return false;
+        });
+      }
+
+      function aplicarPoliticaDispositivoCompartilhadoBm_() {
+        let lista = [];
+        try {
+          const bruto = JSON.parse(localStorage.getItem(AUTH_PROFILES_STORAGE) || '[]');
+          if (Array.isArray(bruto)) lista = bruto;
+        } catch (_) {}
+        if (lista.filter(item => item?.usuario?.id).length > 1) marcarDispositivoCompartilhadoBm_();
+        if (!dispositivoCompartilhadoBm_()) return;
+        let alterou = false;
+        lista.forEach(item => {
+          if (item && item.savedPinCipher) {
+            item.savedPinCipher = '';
+            alterou = true;
+          }
+        });
+        if (alterou) {
+          try { localStorage.setItem(AUTH_PROFILES_STORAGE, JSON.stringify(lista.slice(0, 12))); } catch (_) {}
+        }
+      }
+
+      function sessaoDeveSerLimitada10hBm_(bm = '', userId = '') {
+        if (dispositivoCompartilhadoPrevistoBm_(bm, userId)) return true;
+        return !Boolean(authSavePasswordCheck?.checked);
+      }
+
+      function limparTimerSessaoBm_() {
+        if (authSessionTimer) clearTimeout(authSessionTimer);
+        authSessionTimer = 0;
+      }
+
+      function agendarVerificacaoExpiracaoSessaoBm_() {
+        limparTimerSessaoBm_();
+        const token = String(authState.sessionToken || '').trim();
+        const payload = decodificarPayloadSessaoBm_(token);
+        if (!payload?.exp) return;
+        const restante = Number(payload.exp) - Date.now();
+        if (restante <= 0) {
+          setTimeout(() => expirarSessaoBm_(), 0);
+          return;
+        }
+        authSessionTimer = window.setTimeout(() => {
+          if (sessaoTokenExpiradaBm_(authState.sessionToken)) expirarSessaoBm_();
+          else agendarVerificacaoExpiracaoSessaoBm_();
+        }, Math.min(restante + 250, 60 * 60 * 1000));
+      }
+
+      function expirarSessaoBm_() {
+        if (!authState.usuario?.id && !authState.sessionToken) return;
+        try { prepararSaidaUsuarioBm_(); }
+        catch (_) {
+          limparSessaoLocalBm_();
+          limparEstadoPinLogin_();
+        }
+        const perfis = carregarPerfisConhecidosBm_();
+        const mensagem = `Sessão expirada após ${AUTH_LIMITED_SESSION_HOURS} horas. Informe sua senha para entrar novamente.`;
+        if (perfis.length) mostrarEscolhaUsuariosDispositivo_(mensagem);
+        else mostrarTelaLoginBm_(mensagem);
+        if (authMessage) authMessage.textContent = mensagem;
+      }
+
+      function validarSessaoLocalAtivaBm_() {
+        const token = String(authState.sessionToken || '').trim();
+        if (!token) return false;
+        if (!sessaoTokenExpiradaBm_(token)) return true;
+        expirarSessaoBm_();
+        return false;
+      }
+
+      function atualizarPoliticaLoginBm_() {
+        if (!authSavePasswordCheck) return;
+        const compartilhado = dispositivoCompartilhadoBm_() || quantidadePerfisConhecidosRawBm_() > 1;
+        authSavePasswordCheck.disabled = compartilhado;
+        if (compartilhado) authSavePasswordCheck.checked = false;
+        const nota = document.getElementById('authSavePasswordNote');
+        if (nota) {
+          nota.textContent = compartilhado
+            ? `Aparelho compartilhado: a senha não será armazenada e cada sessão expira após ${AUTH_LIMITED_SESSION_HOURS} horas.`
+            : `Sem salvar a senha, a sessão expira automaticamente após ${AUTH_LIMITED_SESSION_HOURS} horas. Marque somente em aparelho de uso individual.`;
+        }
+      }
+
       function carregarSessaoLocalBm_() {
         let usuario = null;
         let sessionToken = '';
         try { usuario = JSON.parse(localStorage.getItem(AUTH_USER_STORAGE) || 'null'); } catch (e) {}
         try { sessionToken = String(localStorage.getItem(AUTH_SESSION_STORAGE) || '').trim(); } catch (e) {}
+        if (sessionToken && sessaoTokenExpiradaBm_(sessionToken)) {
+          try {
+            localStorage.removeItem(AUTH_USER_STORAGE);
+            localStorage.removeItem(AUTH_SESSION_STORAGE);
+          } catch (_) {}
+          usuario = null;
+          sessionToken = '';
+        }
         authState = { usuario: usuario && usuario.id ? usuario : null, sessionToken };
+        if (sessionToken) agendarVerificacaoExpiracaoSessaoBm_();
         return authState;
       }
 
@@ -62,6 +215,12 @@
           const bruto = JSON.parse(localStorage.getItem(AUTH_PROFILES_STORAGE) || '[]');
           if (Array.isArray(bruto)) lista = bruto;
         } catch (e) {}
+
+        aplicarPoliticaDispositivoCompartilhadoBm_();
+        try {
+          const brutoAtualizado = JSON.parse(localStorage.getItem(AUTH_PROFILES_STORAGE) || '[]');
+          if (Array.isArray(brutoAtualizado)) lista = brutoAtualizado;
+        } catch (_) {}
 
         lista = lista
           .filter(item => item && item.usuario && item.usuario.id && item.sessionToken)
@@ -92,6 +251,7 @@
             .slice(0, 12);
           localStorage.setItem(AUTH_PROFILES_STORAGE, JSON.stringify(normalizados));
         } catch (e) {}
+        aplicarPoliticaDispositivoCompartilhadoBm_();
       }
 
       function registrarPerfilConhecidoBm_(usuario, sessionToken) {
@@ -257,6 +417,8 @@
           localStorage.removeItem('gpvVistoriasAccessKeyV1');
         } catch (e) {}
         if (usuario && sessionToken) registrarPerfilConhecidoBm_(usuario, sessionToken);
+        if (sessionToken) agendarVerificacaoExpiracaoSessaoBm_();
+        else limparTimerSessaoBm_();
         atualizarUsuarioLogadoUi_();
       }
 
@@ -360,6 +522,11 @@
       }
 
       async function apiRequest(action, data = {}, timeoutMs = 30000) {
+        if (!validarSessaoLocalAtivaBm_()) {
+          const error = new Error('Sua sessão expirou. Entre novamente com seu Nº BM.');
+          error.code = 'AUTH_REQUIRED';
+          throw error;
+        }
         const sessionToken = String(authState.sessionToken || '').trim();
         if (!sessionToken) {
           const error = new Error('Entre com seu Nº BM para continuar.');
@@ -9713,6 +9880,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           forgetSavedPinBtn.hidden = !temSenhaSalva;
         }
         atualizarIndicadorPreparacoesUsuario_();
+        atualizarPoliticaLoginBm_();
       }
 
       function limparEstadoPinLogin_() {
@@ -9738,6 +9906,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (authMessage) authMessage.textContent = '';
         if (authProfileChoice) authProfileChoice.hidden = true;
         if (authPinSetup) authPinSetup.hidden = true;
+        atualizarPoliticaLoginBm_();
         setTimeout(() => (authBmInput?.readOnly ? authPinInput : authBmInput)?.focus(), 30);
       }
 
@@ -9751,6 +9920,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (authManualLogin) authManualLogin.hidden = true;
         if (authDeviceChoice) authDeviceChoice.hidden = false;
         if (authSubtitle) authSubtitle.textContent = mensagem || 'Escolha seu usuário e informe sua senha.';
+        atualizarPoliticaLoginBm_();
         if (authDeviceProfileList) {
           authDeviceProfileList.innerHTML = perfis.map(item => `
             <button type="button" class="auth-device-profile-btn" data-device-user-id="${escapeHtml(item.usuario.id)}">
@@ -9917,7 +10087,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         authPendingBm = normalizarBmCliente_(perfil.usuario.bm || '');
         if (authBmInput) { authBmInput.value = authPendingBm; authBmInput.readOnly = true; }
         if (authPinInput) authPinInput.value = '';
-        if (authSavePasswordCheck) authSavePasswordCheck.checked = Boolean(perfil.savedPinCipher);
+        if (authSavePasswordCheck) authSavePasswordCheck.checked = Boolean(perfil.savedPinCipher) && !dispositivoCompartilhadoBm_();
         mostrarTelaLoginBm_(`Olá, ${perfil.usuario.nome}. Informe sua senha de 6 dígitos.`);
         if (authBmInput) authBmInput.readOnly = true;
         setTimeout(() => authPinInput?.focus(), 30);
@@ -9949,6 +10119,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (authMessage) authMessage.textContent = perfil.offlinePinVerifier ? 'Senha incorreta.' : 'Conecte-se à internet uma vez para habilitar o acesso offline com senha.';
             return false;
           }
+          if (sessaoTokenExpiradaBm_(perfil.sessionToken)) {
+            if (authMessage) authMessage.textContent = 'A sessão deste aparelho expirou. Conecte-se à internet para renovar o acesso.';
+            return false;
+          }
+          if (dispositivoCompartilhadoBm_() && !tokenSessaoLimitada10hBm_(perfil.sessionToken)) {
+            if (authMessage) authMessage.textContent = 'Este aparelho é compartilhado. Conecte-se à internet uma vez para renovar a sessão segura de 10 horas.';
+            return false;
+          }
           salvarSessaoLocalBm_(perfil.usuario, perfil.sessionToken);
           aplicarPermissoesInterface_();
           ocultarTelaLoginBm_();
@@ -9959,7 +10137,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (authEnterBtn) authEnterBtn.disabled = true;
         if (authMessage) authMessage.textContent = novaSenha ? 'Criando senha...' : 'Verificando acesso...';
         try {
-          const result = await authRequest_({ bm: numero, userId: alvoId, pin: senha, newPin: novaSenha }, 30000);
+          const sessaoLimitada10h = sessaoDeveSerLimitada10hBm_(numero, alvoId);
+          if (sessaoLimitada10h && dispositivoCompartilhadoPrevistoBm_(numero, alvoId)) marcarDispositivoCompartilhadoBm_();
+          const result = await authRequest_({
+            bm: numero,
+            userId: alvoId,
+            pin: senha,
+            newPin: novaSenha,
+            sessionPolicy: sessaoLimitada10h ? 'limited_10h' : 'trusted_device'
+          }, 30000);
           if (result?.requiresSelection) {
             authPendingBm = numero;
             if (authProfileChoice) authProfileChoice.hidden = false;
@@ -9988,7 +10174,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           aplicarPermissoesInterface_();
           await registrarCredencialOfflineBm_(result.usuario, novaSenha || senha);
           const senhaEfetiva = novaSenha || senha;
-          if (authSavePasswordCheck?.checked && /^\d{6}$/.test(senhaEfetiva)) {
+          if (authSavePasswordCheck?.checked && !dispositivoCompartilhadoBm_() && /^\d{6}$/.test(senhaEfetiva)) {
             await salvarSenhaLocalPerfilBm_(result.usuario.id, senhaEfetiva);
           } else if (result.usuario?.id && perfilTemSenhaSalvaBm_(result.usuario.id)) {
             apagarSenhaLocalPerfilBm_(result.usuario.id);
@@ -10014,7 +10200,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           mostrarEscolhaUsuariosDispositivo_('O usuário salvo neste aparelho não foi localizado.');
           return false;
         }
-        if (perfil.savedPinCipher) {
+        if (perfil.savedPinCipher && !dispositivoCompartilhadoBm_()) {
           const senhaSalva = await descriptografarSenhaLocalBm_(perfil.savedPinCipher);
           if (/^\d{6}$/.test(senhaSalva)) {
             authPendingUserId = String(perfil.usuario.id || '');
@@ -10042,9 +10228,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           loadingOverlay.classList.remove('show');
         }
 
-        // V23.9.30: recarregar/atualizar o PWA não encerra mais uma sessão válida.
-        // A sessão só é limpa por Sair/Trocar usuário ou quando a API devolve 401.
-        if (sessao?.usuario?.id && String(sessao.sessionToken || '').trim()) {
+        // Sessões sem senha salva expiram em 10 horas. Em aparelho compartilhado,
+        // toda sessão também é limitada a 10 horas, mesmo que tenha existido uma senha salva antes.
+        const sessaoCompartilhadaInvalida = Boolean(
+          sessao?.sessionToken && dispositivoCompartilhadoBm_() && !tokenSessaoLimitada10hBm_(sessao.sessionToken)
+        );
+        if (sessaoCompartilhadaInvalida) {
+          limparSessaoLocalBm_();
+        }
+        if (!sessaoCompartilhadaInvalida && sessao?.usuario?.id && String(sessao.sessionToken || '').trim() && !sessaoTokenExpiradaBm_(sessao.sessionToken)) {
           ocultarTelaLoginBm_();
           atualizarUsuarioLogadoUi_();
           aplicarPermissoesInterface_();
@@ -12836,6 +13028,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         authPinToggleBtn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
         authPinToggleBtn.title = mostrar ? 'Ocultar senha' : 'Mostrar senha';
       });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && authState.sessionToken) validarSessaoLocalAtivaBm_();
+      });
+      window.addEventListener('focus', () => { if (authState.sessionToken) validarSessaoLocalAtivaBm_(); });
       authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); authPendingUserId = ''; authPendingBm = ''; });
       authForm?.addEventListener('submit', async event => {
         event.preventDefault();
@@ -12937,7 +13133,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99au', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99av', { updateViaCache: 'none' });
             await reg.update();
           } catch (e) {}
         });

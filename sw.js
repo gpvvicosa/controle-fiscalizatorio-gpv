@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260819-v23-9-99-processo-antigo-ocupacao-au';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260820-v23-9-99-sessao-10h-compartilhado-av';
 const VERSION = '23.9.99';
 
 const CORE_SHELL = [
