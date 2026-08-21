@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260821-v23-9-99-correcao-geral-ficha-ay';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260821-v23-9-99-copia-individual-ficha-ba';
 const VERSION = '23.9.99ay';
 
 const CORE_SHELL = [

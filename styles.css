@@ -11549,3 +11549,147 @@ body.record-correction-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   .record-correction-group>summary::after{transition:none}
 }
+
+
+/* V23.9.99ba — copiar valores individuais na Ficha e no Histórico */
+.record-detail-field .record-detail-copy-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+}
+.record-detail-field .record-detail-copy-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #172033;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.record-copy-value-btn {
+  flex: 0 0 auto;
+  min-width: 34px;
+  min-height: 32px;
+  padding: 5px 7px;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  background: #fff;
+  color: #475467;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+.record-copy-value-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.record-copy-value-btn.is-copied {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #067647;
+}
+.record-copy-value-btn.is-copied svg {
+  transform: scale(.92);
+}
+@media (hover: hover) and (pointer: fine) {
+  .record-copy-value-btn:hover {
+    border-color: #98a2b3;
+    background: #f8fafc;
+  }
+}
+.record-copy-value-btn:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, .22);
+  outline-offset: 2px;
+}
+.history-copy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 2px 0 12px;
+}
+.history-copy-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label copy"
+    "value copy";
+  column-gap: 6px;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px solid #eaecf0;
+  border-radius: 9px;
+  background: #fcfcfd;
+}
+.history-copy-item > span {
+  grid-area: label;
+  min-width: 0;
+  color: #98a2b3;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.history-copy-item > strong {
+  grid-area: value;
+  min-width: 0;
+  margin-top: 2px;
+  color: #344054;
+  font-size: 9px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.history-copy-item .history-copy-btn {
+  grid-area: copy;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 5px;
+}
+.history-copy-item .history-copy-btn .record-copy-value-label {
+  display: none;
+}
+@media (max-width: 620px) {
+  .record-detail-field .record-detail-copy-row {
+    gap: 5px;
+  }
+  .record-copy-value-btn {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 7px;
+  }
+  .record-copy-value-btn .record-copy-value-label {
+    display: none;
+  }
+  .record-copy-value-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .history-copy-grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .history-copy-item .history-copy-btn {
+    min-width: 38px;
+    min-height: 38px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .record-copy-value-btn {
+    transition: none;
+  }
+}

@@ -3383,6 +3383,13 @@
         return texto;
       }
 
+      function formatarDataNascimentoFicha_(valor) {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (!texto) return '';
+        const formatada = formatarDataPainel_(texto);
+        return formatada === '—' ? '' : formatada;
+      }
+
       function formatarEnderecoPainel_(item) {
         const logradouro = String(item?.endereco || '').trim();
         const numero = String(item?.numero || '').trim();
@@ -4084,10 +4091,78 @@
         return [endereco, cidade].filter(Boolean).join(' — ');
       }
 
+      // V23.9.99ba — cópia individual de valores da Ficha/Histórico.
+      // Copia somente o valor escolhido (CPF, RG, PSCIP, PF, REDS etc.),
+      // sem montar texto agregado e sem alterar nenhum dado do processo.
+      function botaoCopiarValorFichaHtml_(rotulo, valor, classeExtra = '') {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (!texto || texto === '—') return '';
+        return `<button type="button" class="record-copy-value-btn${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}" data-copy-field-value="${escapeAttr(texto)}" data-copy-field-label="${escapeAttr(rotulo || 'valor')}" title="Copiar ${escapeAttr(rotulo || 'valor')}" aria-label="Copiar ${escapeAttr(rotulo || 'valor')}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="10" height="10" rx="2"></rect><path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path></svg>
+          <span class="record-copy-value-label">Copiar</span>
+        </button>`;
+      }
+
+      async function copiarValorFicha_(botao) {
+        if (!botao) return;
+        const texto = String(botao.dataset.copyFieldValue || '').trim();
+        const rotulo = String(botao.dataset.copyFieldLabel || 'Valor').trim();
+        if (!texto) return;
+
+        const copiarFallback = () => {
+          const area = document.createElement('textarea');
+          area.value = texto;
+          area.setAttribute('readonly', '');
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          area.style.pointerEvents = 'none';
+          area.style.left = '-9999px';
+          document.body.appendChild(area);
+          area.select();
+          area.setSelectionRange(0, area.value.length);
+          let ok = false;
+          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+          area.remove();
+          if (!ok) throw new Error('Não foi possível copiar.');
+        };
+
+        try {
+          if (navigator.clipboard?.writeText && window.isSecureContext) {
+            await navigator.clipboard.writeText(texto);
+          } else {
+            copiarFallback();
+          }
+
+          clearTimeout(botao._copyFeedbackTimer);
+          botao.classList.add('is-copied');
+          botao.setAttribute('aria-label', `${rotulo} copiado`);
+          botao.setAttribute('title', `${rotulo} copiado`);
+          const label = botao.querySelector('.record-copy-value-label');
+          if (label) label.textContent = 'Copiado';
+          botao._copyFeedbackTimer = setTimeout(() => {
+            botao.classList.remove('is-copied');
+            botao.setAttribute('aria-label', `Copiar ${rotulo}`);
+            botao.setAttribute('title', `Copiar ${rotulo}`);
+            if (label) label.textContent = 'Copiar';
+          }, 1300);
+        } catch (erro) {
+          console.warn('Falha ao copiar valor da Ficha:', erro?.message || erro);
+          avisarGpv_('Não foi possível copiar este valor automaticamente. Tente novamente.', 'Copiar informação');
+        }
+      }
+
+      document.addEventListener('click', event => {
+        const botao = event.target.closest?.('[data-copy-field-value]');
+        if (!botao) return;
+        event.preventDefault();
+        event.stopPropagation();
+        void copiarValorFicha_(botao);
+      });
+
       function montarGrupoFicha_(titulo, campos, classeExtra = '') {
         const validos = (campos || []).filter(item => item && item[1]);
         if (!validos.length) return '';
-        return `<section class="record-detail-group${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => `<div class="record-detail-field"><label>${escapeHtml(rotulo)}</label><div>${escapeHtml(valor)}</div></div>`).join('')}</div></section>`;
+        return `<section class="record-detail-group${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => `<div class="record-detail-field"><label>${escapeHtml(rotulo)}</label><div class="record-detail-copy-row"><span class="record-detail-copy-value">${escapeHtml(valor)}</span>${botaoCopiarValorFichaHtml_(rotulo, valor)}</div></div>`).join('')}</div></section>`;
       }
 
       function resumoOperacionalFicha_(registro, situacao) {
@@ -4136,6 +4211,25 @@
         return complementos.length ? `${texto} ${complementos.join(' · ')}` : texto;
       }
 
+      function dadosCopiaveisHistorico_(item) {
+        const documento = identificadorPainel_(item || {});
+        const projeto = item?.projeto ? (projetoPscipOperacional_(item.projeto) || String(item.projeto || '').trim()) : '';
+        const endereco = [
+          String(item?.endereco || '').trim(),
+          String(item?.numero || '').trim(),
+          String(item?.bairro || '').trim(),
+          String(item?.cidade || '').trim()
+        ].filter(Boolean).join(', ');
+        return [
+          ['Data', formatarDataPainel_(item?.carimbo)],
+          [documento.rotulo, documento.valor && documento.valor !== '—' ? documento.valor : ''],
+          [projeto && normalizarProcessoAntigo_(projeto) ? 'Processo antigo' : 'PSCIP', projeto],
+          ['Nº do PF', item?.pf],
+          ['REDS', item?.reds],
+          ['Endereço', endereco]
+        ].filter(([, valor]) => String(valor == null ? '' : valor).trim() && String(valor).trim() !== '—');
+      }
+
       function renderizarHistorico_(historico) {
         const itens = Array.isArray(historico) ? historico : [];
         if (!itens.length) {
@@ -4146,9 +4240,13 @@
         recordHistoryCount.textContent = `${itens.length} registro${itens.length === 1 ? '' : 's'}`;
         recordHistoryTimeline.innerHTML = itens.map(item => {
           const titulo = item.sancao || item.tipoVistoria || item.demanda || 'Vistoria realizada';
+          const dadosCopiaveis = dadosCopiaveisHistorico_(item);
+          const atalhos = dadosCopiaveis.length
+            ? `<div class="history-copy-grid">${dadosCopiaveis.map(([rotulo, valor]) => `<div class="history-copy-item"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong>${botaoCopiarValorFichaHtml_(rotulo, valor, 'history-copy-btn')}</div>`).join('')}</div>`
+            : '';
           return `<article class="history-item ${classeStatus_(item.sancao)}">
             <div class="history-marker" aria-hidden="true"></div>
-            <div class="history-body"><time>${escapeHtml(formatarDataPainel_(item.carimbo))}</time><strong>${escapeHtml(titulo)}</strong><p>${escapeHtml(descricaoHistorico_(item))}</p></div>
+            <div class="history-body"><time>${escapeHtml(formatarDataPainel_(item.carimbo))}</time><strong>${escapeHtml(titulo)}</strong><p>${escapeHtml(descricaoHistorico_(item))}</p>${atalhos}</div>
           </article>`;
         }).join('');
       }
@@ -4966,7 +5064,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function valorCampoCorrecao_(registro, campo) {
-        return valorCampoFicha_(registro, ...(campo?.fontes || []));
+        const valor = valorCampoFicha_(registro, ...(campo?.fontes || []));
+        if (campo?.id === 'nascimento') return formatarDataNascimentoFicha_(valor);
+        return valor;
       }
 
       function opcoesCampoCorrecao_(campo, valorAtual) {
@@ -5091,6 +5191,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           if (item.id === 'pscip' && valor && !pscipProjetoValido_(valor)) {
             return 'O Nº do PSCIP / Projeto deve usar PRJ + 10 números ou processo antigo, como 44/2016.';
+          }
+          if (item.id === 'nascimento' && valor) {
+            const m = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!m) return 'A Data de nascimento deve estar no formato DD/MM/AAAA.';
+            const dia = Number(m[1]);
+            const mes = Number(m[2]);
+            const ano = Number(m[3]);
+            const data = new Date(ano, mes - 1, dia);
+            if (
+              data.getFullYear() !== ano ||
+              data.getMonth() !== mes - 1 ||
+              data.getDate() !== dia
+            ) return 'Informe uma Data de nascimento válida no formato DD/MM/AAAA.';
           }
           if (item.id === 'eventoClassificacao' && valor && !['Risco mínimo','Risco baixo','Risco médio'].some(v => normalize(v) === normalize(valor))) {
             return 'Em evento declaratório, a classificação deve ser Risco mínimo, Risco baixo ou Risco médio.';
@@ -5240,7 +5353,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['RG', valorCampoFicha_(registro, 'RG')],
           ['CPF', valorCampoFicha_(registro, 'CPF')],
           ['Mãe', valorCampoFicha_(registro, 'Mãe')],
-          ['Data de nascimento', valorCampoFicha_(registro, 'Nascimento', 'Data de nascimento')],
+          ['Data de nascimento', formatarDataNascimentoFicha_(valorCampoFicha_(registro, 'Nascimento', 'Data de nascimento'))],
           ['Profissão', valorCampoFicha_(registro, 'Profissão')],
           ['Estado civil', valorCampoFicha_(registro, 'Estado civil')],
           ['Escolaridade', valorCampoFicha_(registro, 'Escolaridade')],
@@ -14027,7 +14140,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ay', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ba', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.
