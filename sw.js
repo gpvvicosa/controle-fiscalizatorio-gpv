@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260820-v23-9-99-duvidas-update-silenciosa-aw';
-const VERSION = '23.9.99aw';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260820-v23-9-99-duvidas-v2-moderno-ax';
+const VERSION = '23.9.99ax';
 
 const CORE_SHELL = [
   './',

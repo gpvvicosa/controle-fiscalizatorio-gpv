@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99aw">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ax">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -388,9 +388,9 @@
 
         <section class="system-manual-section" id="manualSec14">
           <h3>14. Dúvidas</h3>
-          <p>O menu <strong>Mais → Dúvidas</strong> permite fazer perguntas sobre o funcionamento do aplicativo, procedimentos operacionais e o acervo das Instruções Técnicas CBMMG.</p>
-          <p>O assistente usa o Manual do Sistema e os trechos localizados na base técnica. Quando a pergunta depender da situação oficial de um processo, a conferência deve ser feita no INFOSCIP. Não informe dados pessoais ou informações sigilosas no campo de perguntas.</p>
-          <p>As respostas são apenas de apoio à consulta. O recurso não grava nem altera vistoria, processo, planilha ou situação administrativa.</p>
+          <p>O menu <strong>Mais → Dúvidas</strong> abre o Assistente GPV em formato de conversa, com perguntas rápidas, histórico curto da sessão, indicador de consulta e fontes vinculadas às respostas.</p>
+          <p>O assistente usa o Manual do Sistema e os trechos localizados na base técnica das Instruções Técnicas CBMMG. Quando uma IT for utilizada, a resposta apresenta a referência correspondente e permite abrir a IT. Quando a pergunta depender da situação oficial de um processo, a conferência deve ser feita no INFOSCIP.</p>
+          <p>As respostas são apenas de apoio à consulta. O recurso não grava nem altera vistoria, processo, planilha ou situação administrativa. Não informe dados pessoais ou informações sigilosas no campo de perguntas.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
@@ -402,33 +402,65 @@
   <div class="review-overlay duvidas-overlay" id="duvidasModal" hidden>
     <section class="review-card duvidas-card" role="dialog" aria-modal="true" aria-labelledby="duvidasTitle">
       <header class="duvidas-header">
-        <div>
-          <span>Assistente de consulta</span>
-          <h2 id="duvidasTitle">Dúvidas</h2>
-          <p>Pergunte sobre o aplicativo, procedimentos operacionais ou Instruções Técnicas CBMMG.</p>
-        </div>
-        <div class="duvidas-header-actions">
-          <button class="duvidas-new-btn" id="duvidasNovaConversaBtn" type="button">Nova conversa</button>
-          <button class="review-close" id="duvidasCloseBtn" type="button" aria-label="Fechar Dúvidas">×</button>
-        </div>
-      </header>
-      <div class="duvidas-body">
-        <div class="duvidas-notice">
-          <strong>Consulta de apoio</strong>
-          <span>As respostas usam o Manual do Sistema e a base das ITs. Situações oficiais de processo devem ser conferidas no INFOSCIP. Não informe dados pessoais ou sigilosos.</span>
-        </div>
-        <div class="duvidas-conversation" id="duvidasConversation" aria-live="polite">
-          <div class="duvidas-empty" id="duvidasEmpty">
-            <strong>Como posso ajudar?</strong>
-            <span>Ex.: “Como programo uma vistoria?”, “O que é Vistoria Acessória?” ou “Qual item da IT trata deste requisito?”</span>
+        <div class="duvidas-brand">
+          <div class="duvidas-brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M12 2.8 19 5.5v5.7c0 4.7-2.8 8.1-7 10-4.2-1.9-7-5.3-7-10V5.5L12 2.8Z"/><path d="M8.3 10.2h7.4M8.3 13.2h4.8"/></svg>
+          </div>
+          <div class="duvidas-brand-copy">
+            <div class="duvidas-kicker-row">
+              <span class="duvidas-kicker">Assistente GPV</span>
+              <span class="duvidas-connection" id="duvidasConnectionBadge"><i aria-hidden="true"></i><span>Online</span></span>
+            </div>
+            <h2 id="duvidasTitle">Dúvidas</h2>
+            <p>Manual do Sistema + Instruções Técnicas CBMMG</p>
           </div>
         </div>
+        <div class="duvidas-header-actions">
+          <button class="duvidas-new-btn" id="duvidasNovaConversaBtn" type="button" aria-label="Iniciar nova conversa">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Nova conversa</span>
+          </button>
+          <button class="duvidas-close-btn" id="duvidasCloseBtn" type="button" aria-label="Fechar Dúvidas">×</button>
+        </div>
+      </header>
+
+      <div class="duvidas-body">
+        <div class="duvidas-guidance">
+          <div class="duvidas-guidance-icon" aria-hidden="true">i</div>
+          <div><strong>Consulta de apoio</strong><span>Use para dúvidas do app, procedimentos e ITs. Situações oficiais de processo devem ser conferidas no INFOSCIP. Não informe dados pessoais ou sigilosos.</span></div>
+        </div>
+
+        <div class="duvidas-suggestions" id="duvidasSuggestions" aria-label="Perguntas rápidas">
+          <button type="button" data-duvidas-prompt="Como programar uma vistoria?">Programar vistoria</button>
+          <button type="button" data-duvidas-prompt="Como funciona a Vistoria Acessória?">Vistoria Acessória</button>
+          <button type="button" data-duvidas-prompt="Como funciona o processo antigo, por exemplo 44/2016?">Processo antigo</button>
+          <button type="button" data-duvidas-prompt="Como atualizar a situação depois de conferir o INFOSCIP?">Atualizar no INFOSCIP</button>
+          <button type="button" data-duvidas-prompt="Quero consultar uma Instrução Técnica. Como faço?">Consultar uma IT</button>
+        </div>
+
+        <div class="duvidas-conversation" id="duvidasConversation" aria-live="polite" aria-label="Conversa com o Assistente GPV">
+          <div class="duvidas-empty" id="duvidasEmpty">
+            <div class="duvidas-empty-icon" aria-hidden="true">?</div>
+            <strong>Como posso ajudar?</strong>
+            <span>Escreva uma dúvida ou escolha uma pergunta rápida acima. As fontes utilizadas aparecem junto da resposta.</span>
+            <div class="duvidas-empty-capabilities"><span>Manual</span><span>ITs CBMMG</span><span>Contexto da conversa</span></div>
+          </div>
+        </div>
+
         <form class="duvidas-form" id="duvidasForm">
-          <label for="duvidasInput">Descreva sua dúvida</label>
-          <textarea id="duvidasInput" rows="3" maxlength="1200" placeholder="Digite sua pergunta de forma objetiva..."></textarea>
-          <div class="duvidas-form-footer">
-            <span class="duvidas-status" id="duvidasStatus" role="status" aria-live="polite"></span>
-            <button class="duvidas-send-btn" id="duvidasSendBtn" type="submit">Perguntar</button>
+          <label class="duvidas-form-label" for="duvidasInput">Pergunte ao Assistente GPV</label>
+          <div class="duvidas-composer">
+            <textarea id="duvidasInput" rows="1" maxlength="1200" placeholder="Digite sua dúvida..."></textarea>
+            <div class="duvidas-composer-actions">
+              <span class="duvidas-char-count" id="duvidasCharCount">0/1200</span>
+              <button class="duvidas-send-btn" id="duvidasSendBtn" type="submit" aria-label="Enviar pergunta">
+                <span data-duvidas-send-label>Enviar</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="duvidas-form-meta">
+            <span class="duvidas-status" id="duvidasStatus" role="status" aria-live="polite">Pronto para consultar.</span>
+            <span class="duvidas-keyboard-hint">No computador: Enter envia · Shift + Enter cria nova linha</span>
           </div>
         </form>
       </div>
@@ -1918,7 +1950,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99aw"></script>
+  <script src="app.js?v=23.9.99ax"></script>
 
   </div>
   

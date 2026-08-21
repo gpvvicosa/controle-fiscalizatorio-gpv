@@ -593,9 +593,12 @@
       const duvidasNovaConversaBtn = document.getElementById('duvidasNovaConversaBtn');
       const duvidasConversation = document.getElementById('duvidasConversation');
       const duvidasEmpty = document.getElementById('duvidasEmpty');
+      const duvidasSuggestions = document.getElementById('duvidasSuggestions');
       const duvidasForm = document.getElementById('duvidasForm');
       const duvidasInput = document.getElementById('duvidasInput');
       const duvidasStatus = document.getElementById('duvidasStatus');
+      const duvidasCharCount = document.getElementById('duvidasCharCount');
+      const duvidasConnectionBadge = document.getElementById('duvidasConnectionBadge');
       const duvidasSendBtn = document.getElementById('duvidasSendBtn');
       const switchUserBtn = document.getElementById('switchUserBtn');
       const logoutUserBtn = document.getElementById('logoutUserBtn');
@@ -1222,9 +1225,7 @@
         const partes = [];
         const manualTop = Array.isArray(manual) ? manual[0] : null;
         const itsTop = Array.isArray(its) ? its.slice(0,3) : [];
-        if (manualTop) {
-          partes.push(`Manual do Sistema — ${manualTop.titulo}\n${String(manualTop.texto || '').slice(0,900)}`);
-        }
+        if (manualTop) partes.push(`Manual do Sistema — ${manualTop.titulo}\n${String(manualTop.texto || '').slice(0,900)}`);
         if (itsTop.length) {
           const blocos = itsTop.map(ref => `IT ${String(ref.it || '').padStart(2,'0')}${ref.item ? `, item ${ref.item}` : ''}: ${String(ref.texto || '').slice(0,650)}`);
           partes.push(`Base técnica localizada:\n${blocos.join('\n\n')}`);
@@ -1232,7 +1233,7 @@
         if (!partes.length) {
           return 'Não localizei no Manual do Sistema nem na base das Instruções Técnicas um trecho suficientemente relacionado a essa pergunta. Tente informar o assunto, a IT ou o item específico. Se a dúvida for sobre a situação oficial de um processo, consulte o INFOSCIP.';
         }
-        return `${partes.join('\n\n')}\n\nConsulta de apoio: para situação oficial de processo, confirme no INFOSCIP.`;
+        return `${partes.join('\n\n')}\n\nAtenção operacional: para situação oficial de processo, confirme no INFOSCIP.`;
       }
 
       function resetarHistoricoDuvidas_(forcar = false) {
@@ -1240,35 +1241,188 @@
         if (!forcar && duvidasHistoricoUsuarioId_ === usuarioId) return;
         duvidasHistoricoUsuarioId_ = usuarioId;
         duvidasHistorico_ = [];
+        pararAnimacaoConsultaDuvidas_();
+        duvidasRespondendo_ = false;
+        duvidasPerguntaEmCurso_ = '';
         renderizarHistoricoDuvidas_();
+        atualizarComposerDuvidas_();
+      }
+
+      function horaMensagemDuvidas_(valor) {
+        try {
+          const data = valor ? new Date(valor) : new Date();
+          if (Number.isNaN(data.getTime())) return '';
+          return new Intl.DateTimeFormat('pt-BR', { hour:'2-digit', minute:'2-digit' }).format(data);
+        } catch (e) { return ''; }
+      }
+
+      function formatarInlineDuvidas_(texto) {
+        let seguro = escapeHtml(String(texto || ''));
+        seguro = seguro.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        seguro = seguro.replace(/`([^`]+)`/g, '<code>$1</code>');
+        return seguro;
+      }
+
+      function formatarConteudoMensagemDuvidas_(texto) {
+        const linhas = String(texto || '').replace(/\r/g, '').split('\n');
+        const partes = [];
+        let lista = [];
+        let listaTipo = '';
+        const fecharLista = () => {
+          if (!lista.length) return;
+          const tag = listaTipo === 'ol' ? 'ol' : 'ul';
+          partes.push(`<${tag}>${lista.map(item => `<li>${formatarInlineDuvidas_(item)}</li>`).join('')}</${tag}>`);
+          lista = [];
+          listaTipo = '';
+        };
+        linhas.forEach(linhaOriginal => {
+          const linha = String(linhaOriginal || '').trim();
+          if (!linha) { fecharLista(); return; }
+          const bullet = linha.match(/^[-•]\s+(.+)$/);
+          const numero = linha.match(/^\d+[.)]\s+(.+)$/);
+          if (bullet || numero) {
+            const tipo = numero ? 'ol' : 'ul';
+            if (listaTipo && listaTipo !== tipo) fecharLista();
+            listaTipo = tipo;
+            lista.push((bullet || numero)[1]);
+            return;
+          }
+          fecharLista();
+          const titulo = linha.match(/^#{1,3}\s+(.+)$/);
+          if (titulo) partes.push(`<h4>${formatarInlineDuvidas_(titulo[1])}</h4>`);
+          else if (/^(atenção operacional|atenção|fonte|fontes|resposta)\s*:/i.test(linha)) partes.push(`<p class="duvidas-answer-emphasis">${formatarInlineDuvidas_(linha)}</p>`);
+          else partes.push(`<p>${formatarInlineDuvidas_(linha)}</p>`);
+        });
+        fecharLista();
+        return partes.join('');
+      }
+
+      function renderizarIndicadoresDuvidas_(msg) {
+        const fontes = Array.isArray(msg?.fontes) ? msg.fontes : [];
+        const manual = fontes.some(f => f?.tipo === 'manual');
+        const its = fontes.filter(f => f?.tipo === 'it').length;
+        const badges = [];
+        if (msg?.modo === 'ia') badges.push('<span class="duvidas-mode-chip ia">IA</span>');
+        else badges.push('<span class="duvidas-mode-chip local">Base local</span>');
+        if (manual) badges.push('<span class="duvidas-mode-chip manual">Manual</span>');
+        if (its) badges.push(`<span class="duvidas-mode-chip it">${its} ${its === 1 ? 'IT' : 'ITs'}</span>`);
+        if (msg?.iaIndisponivel) badges.push('<span class="duvidas-mode-chip warning">IA indisponível</span>');
+        return badges.join('');
       }
 
       function renderizarFontesDuvidas_(fontes) {
         const lista = Array.isArray(fontes) ? fontes : [];
         if (!lista.length) return '';
-        return `<div class="duvidas-sources">${lista.slice(0,6).map(f => {
+        const itens = lista.slice(0,8).map(f => {
           if (f.tipo === 'it' && Number(f.it || 0)) {
             const numero = String(Number(f.it)).padStart(2,'0');
             const titulo = escapeHtml(f.titulo || `IT ${numero}`);
-            return `<a class="duvidas-source" href="./instrucoes-tecnicas/its/it-${numero}.html" target="_blank" rel="noopener">${titulo}</a>`;
+            return `<a class="duvidas-source-item" href="./instrucoes-tecnicas/its/it-${numero}.html" target="_blank" rel="noopener"><span class="duvidas-source-icon">IT</span><span>${titulo}</span><b aria-hidden="true">↗</b></a>`;
           }
-          return `<span class="duvidas-source">${escapeHtml(f.titulo || 'Manual do Sistema')}</span>`;
-        }).join('')}</div>`;
+          const titulo = escapeHtml(f.titulo || 'Manual do Sistema');
+          const id = escapeHtml(f.id || '');
+          return `<button class="duvidas-source-item" type="button" data-duvidas-manual-id="${id}"><span class="duvidas-source-icon manual">M</span><span>${titulo}</span><b aria-hidden="true">→</b></button>`;
+        }).join('');
+        return `<details class="duvidas-source-details"><summary><span>Fontes consultadas</span><strong>${lista.length}</strong></summary><div class="duvidas-source-list">${itens}</div></details>`;
+      }
+
+      function renderizarCarregamentoDuvidas_() {
+        const etapas = ['Analisando sua pergunta', 'Consultando Manual e ITs', 'Preparando a resposta'];
+        return `<div class="duvidas-message assistant duvidas-thinking-message" data-duvidas-thinking>
+          <div class="duvidas-assistant-row">
+            <div class="duvidas-assistant-avatar" aria-hidden="true">GPV</div>
+            <div class="duvidas-thinking-card">
+              <div class="duvidas-thinking-title"><span class="duvidas-thinking-dots"><i></i><i></i><i></i></span><strong>Consultando...</strong></div>
+              <div class="duvidas-thinking-steps">${etapas.map((etapa,idx) => `<span class="duvidas-thinking-step ${idx === duvidasEtapaCarregamento_ ? 'active' : (idx < duvidasEtapaCarregamento_ ? 'done' : '')}" data-duvidas-step="${idx}"><i></i>${etapa}</span>`).join('')}</div>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      function atualizarEtapasCarregamentoDuvidas_() {
+        if (!duvidasConversation) return;
+        duvidasConversation.querySelectorAll('[data-duvidas-step]').forEach(el => {
+          const idx = Number(el.dataset.duvidasStep || 0);
+          el.classList.toggle('active', idx === duvidasEtapaCarregamento_);
+          el.classList.toggle('done', idx < duvidasEtapaCarregamento_);
+        });
+      }
+
+      function iniciarAnimacaoConsultaDuvidas_() {
+        pararAnimacaoConsultaDuvidas_();
+        duvidasEtapaCarregamento_ = 0;
+        atualizarEtapasCarregamentoDuvidas_();
+        duvidasCarregamentoTimer_ = setInterval(() => {
+          if (!duvidasRespondendo_) return;
+          if (duvidasEtapaCarregamento_ < 2) duvidasEtapaCarregamento_ += 1;
+          atualizarEtapasCarregamentoDuvidas_();
+        }, 1350);
+      }
+
+      function pararAnimacaoConsultaDuvidas_() {
+        if (duvidasCarregamentoTimer_) clearInterval(duvidasCarregamentoTimer_);
+        duvidasCarregamentoTimer_ = null;
+        duvidasEtapaCarregamento_ = 0;
       }
 
       function renderizarHistoricoDuvidas_() {
         if (!duvidasConversation) return;
-        if (!duvidasHistorico_.length) {
-          duvidasConversation.innerHTML = '<div class="duvidas-empty" id="duvidasEmpty"><strong>Como posso ajudar?</strong><span>Ex.: “Como programo uma vistoria?”, “O que é Vistoria Acessória?” ou “Qual item da IT trata deste requisito?”</span></div>';
-          return;
+        const pertoFim = duvidasConversation.scrollHeight - duvidasConversation.scrollTop - duvidasConversation.clientHeight < 140;
+        if (!duvidasHistorico_.length && !duvidasRespondendo_) {
+          duvidasConversation.innerHTML = '<div class="duvidas-empty" id="duvidasEmpty"><div class="duvidas-empty-icon" aria-hidden="true">?</div><strong>Como posso ajudar?</strong><span>Escreva uma dúvida ou escolha uma pergunta rápida acima. As fontes utilizadas aparecem junto da resposta.</span><div class="duvidas-empty-capabilities"><span>Manual</span><span>ITs CBMMG</span><span>Contexto da conversa</span></div></div>';
+        } else {
+          const mensagens = duvidasHistorico_.map((msg, index) => {
+            const usuario = msg.papel === 'usuario';
+            const hora = horaMensagemDuvidas_(msg.hora);
+            if (usuario) {
+              return `<article class="duvidas-message user" data-duvidas-index="${index}"><div class="duvidas-message-bubble user-bubble">${formatarConteudoMensagemDuvidas_(msg.texto || '')}</div><div class="duvidas-message-meta"><span>Você</span>${hora ? `<time>${hora}</time>` : ''}</div></article>`;
+            }
+            return `<article class="duvidas-message assistant" data-duvidas-index="${index}">
+              <div class="duvidas-assistant-row"><div class="duvidas-assistant-avatar" aria-hidden="true">GPV</div><div class="duvidas-assistant-content">
+                <div class="duvidas-message-bubble assistant-bubble">${formatarConteudoMensagemDuvidas_(msg.texto || '')}</div>
+                <div class="duvidas-message-meta duvidas-assistant-meta"><span>Assistente GPV</span>${hora ? `<time>${hora}</time>` : ''}<span class="duvidas-mode-group">${renderizarIndicadoresDuvidas_(msg)}</span></div>
+                ${renderizarFontesDuvidas_(msg.fontes)}
+                <div class="duvidas-message-actions"><button type="button" data-duvidas-copy-index="${index}" aria-label="Copiar resposta">Copiar</button><button type="button" data-duvidas-retry-index="${index}" aria-label="Perguntar novamente">Perguntar novamente</button></div>
+              </div></div>
+            </article>`;
+          }).join('');
+          duvidasConversation.innerHTML = mensagens + (duvidasRespondendo_ ? renderizarCarregamentoDuvidas_() : '');
         }
-        duvidasConversation.innerHTML = duvidasHistorico_.map(msg => {
-          const papel = msg.papel === 'usuario' ? 'user' : 'assistant';
-          const rotulo = papel === 'user' ? 'Você' : 'Assistente';
-          const modo = papel === 'assistant' && msg.modo === 'base_local' ? ' · base local' : '';
-          return `<div class="duvidas-message ${papel}"><div class="duvidas-message-bubble">${escapeHtml(msg.texto || '')}</div><div class="duvidas-message-meta">${rotulo}${modo}</div>${papel === 'assistant' ? renderizarFontesDuvidas_(msg.fontes) : ''}</div>`;
-        }).join('');
-        duvidasConversation.scrollTop = duvidasConversation.scrollHeight;
+        if (duvidasSuggestions) duvidasSuggestions.hidden = duvidasHistorico_.some(m => m.papel === 'usuario') || duvidasRespondendo_;
+        if (pertoFim || duvidasRespondendo_) requestAnimationFrame(() => { duvidasConversation.scrollTop = duvidasConversation.scrollHeight; });
+      }
+
+      function ajustarAlturaDuvidasInput_() {
+        if (!duvidasInput) return;
+        duvidasInput.style.height = 'auto';
+        const limite = window.innerWidth <= 700 ? 132 : 160;
+        duvidasInput.style.height = `${Math.max(48, Math.min(limite, duvidasInput.scrollHeight))}px`;
+      }
+
+      function atualizarComposerDuvidas_() {
+        const tamanho = String(duvidasInput?.value || '').length;
+        if (duvidasCharCount) {
+          duvidasCharCount.textContent = `${tamanho}/1200`;
+          duvidasCharCount.classList.toggle('warning', tamanho >= 1050);
+        }
+        ajustarAlturaDuvidasInput_();
+        if (duvidasSendBtn) {
+          duvidasSendBtn.disabled = duvidasRespondendo_ || tamanho < 3;
+          duvidasSendBtn.classList.toggle('is-loading', duvidasRespondendo_);
+          const label = duvidasSendBtn.querySelector('[data-duvidas-send-label]');
+          if (label) label.textContent = duvidasRespondendo_ ? 'Respondendo' : 'Enviar';
+        }
+      }
+
+      function atualizarEstadoConexaoDuvidas_() {
+        if (!duvidasConnectionBadge) return;
+        const online = navigator.onLine;
+        duvidasConnectionBadge.classList.toggle('offline', !online);
+        const texto = duvidasConnectionBadge.querySelector('span');
+        if (texto) texto.textContent = online ? 'Online' : 'Offline';
+        if (!duvidasRespondendo_ && duvidasStatus) {
+          duvidasStatus.textContent = online ? 'Pronto para consultar.' : 'Offline: a consulta local ao Manual e às ITs continua disponível.';
+        }
       }
 
       function abrirDuvidas_() {
@@ -1277,15 +1431,62 @@
         resetarHistoricoDuvidas_();
         duvidasModal.hidden = false;
         document.body.classList.add('duvidas-open');
-        if (duvidasStatus) duvidasStatus.textContent = navigator.onLine ? 'Pronto para consultar.' : 'Sem internet: a busca local no Manual e nas ITs continua disponível.';
+        atualizarEstadoConexaoDuvidas_();
+        atualizarComposerDuvidas_();
         carregarBaseNormativaITS_().catch(() => []);
-        setTimeout(() => duvidasInput?.focus(), 40);
+        setTimeout(() => duvidasInput?.focus(), 80);
       }
 
       function fecharDuvidas_() {
         if (!duvidasModal) return;
         duvidasModal.hidden = true;
         document.body.classList.remove('duvidas-open');
+      }
+
+      async function copiarRespostaDuvidas_(indice) {
+        const msg = duvidasHistorico_[Number(indice)];
+        const texto = String(msg?.texto || '').trim();
+        if (!texto) return;
+        try {
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
+          else {
+            const area = document.createElement('textarea');
+            area.value = texto;
+            area.setAttribute('readonly', '');
+            area.style.position = 'fixed'; area.style.opacity = '0';
+            document.body.appendChild(area); area.select(); document.execCommand('copy'); area.remove();
+          }
+          if (duvidasStatus) duvidasStatus.textContent = 'Resposta copiada.';
+        } catch (e) {
+          if (duvidasStatus) duvidasStatus.textContent = 'Não foi possível copiar automaticamente.';
+        }
+      }
+
+      function perguntaOrigemMensagemDuvidas_(indice) {
+        const i = Number(indice);
+        const msg = duvidasHistorico_[i];
+        if (msg?.perguntaOrigem) return String(msg.perguntaOrigem);
+        for (let pos = i - 1; pos >= 0; pos -= 1) {
+          if (duvidasHistorico_[pos]?.papel === 'usuario') return String(duvidasHistorico_[pos].texto || '');
+        }
+        return '';
+      }
+
+      async function reenviarDuvida_(indice) {
+        if (duvidasRespondendo_) return;
+        const pergunta = perguntaOrigemMensagemDuvidas_(indice).trim();
+        if (!pergunta) return;
+        if (duvidasInput) duvidasInput.value = pergunta;
+        atualizarComposerDuvidas_();
+        await enviarDuvida_();
+      }
+
+      function abrirFonteManualDuvidas_(id) {
+        const alvo = String(id || '').trim();
+        if (!alvo) return;
+        fecharDuvidas_();
+        abrirManualSistema_();
+        setTimeout(() => navegarManualSistema_(alvo), 120);
       }
 
       async function enviarDuvida_() {
@@ -1299,13 +1500,14 @@
 
         resetarHistoricoDuvidas_();
         duvidasRespondendo_ = true;
-        if (duvidasSendBtn) duvidasSendBtn.disabled = true;
-        if (duvidasInput) duvidasInput.disabled = true;
+        duvidasPerguntaEmCurso_ = pergunta;
         if (duvidasStatus) duvidasStatus.textContent = 'Consultando Manual do Sistema e Instruções Técnicas...';
-        duvidasHistorico_.push({ papel:'usuario', texto:pergunta });
-        duvidasHistorico_ = duvidasHistorico_.slice(-10);
-        renderizarHistoricoDuvidas_();
+        duvidasHistorico_.push({ papel:'usuario', texto:pergunta, hora:new Date().toISOString() });
+        duvidasHistorico_ = duvidasHistorico_.slice(-12);
         if (duvidasInput) duvidasInput.value = '';
+        atualizarComposerDuvidas_();
+        renderizarHistoricoDuvidas_();
+        iniciarAnimacaoConsultaDuvidas_();
 
         try {
           const [manual, its] = await Promise.all([
@@ -1316,10 +1518,11 @@
           let resposta = '';
           let fontes = fontesLocais;
           let modo = 'base_local';
+          let iaIndisponivel = false;
 
           if (navigator.onLine) {
             try {
-              const historicoEnvio = duvidasHistorico_.slice(-7).map(m => ({ papel:m.papel, texto:String(m.texto || '').slice(0,1800) }));
+              const historicoEnvio = duvidasHistorico_.slice(-9).map(m => ({ papel:m.papel, texto:String(m.texto || '').slice(0,1800) }));
               const retorno = await apiRequest('config', {
                 consulta: 'duvidas',
                 pergunta,
@@ -1328,33 +1531,48 @@
                   manual: manual.map(m => ({ id:m.id, titulo:m.titulo, texto:m.texto })),
                   its: its.map(i => ({ it:i.it, item:i.item, texto:i.texto, arquivo:i.arquivo }))
                 }
-              }, 50000);
+              }, 55000);
               resposta = String(retorno?.resposta || '').trim();
               if (Array.isArray(retorno?.fontes) && retorno.fontes.length) fontes = retorno.fontes;
               modo = String(retorno?.modo || 'ia');
-              if (duvidasStatus) duvidasStatus.textContent = modo === 'ia' ? 'Resposta baseada nas fontes localizadas.' : 'Resposta baseada diretamente no Manual e nas ITs localizadas.';
+              iaIndisponivel = Boolean(retorno?.iaIndisponivel);
+              if (duvidasStatus) {
+                if (modo === 'ia') duvidasStatus.textContent = 'Resposta pronta — baseada nas fontes localizadas.';
+                else if (iaIndisponivel) duvidasStatus.textContent = 'IA indisponível agora — resposta produzida diretamente pelas fontes locais.';
+                else duvidasStatus.textContent = 'Resposta baseada diretamente no Manual e nas ITs localizadas.';
+              }
             } catch (erroApi) {
               resposta = montarRespostaLocalDuvidas_(pergunta, manual, its);
               modo = 'base_local';
-              if (duvidasStatus) duvidasStatus.textContent = 'A resposta online não ficou disponível. Mostrando a consulta local.';
+              iaIndisponivel = true;
+              if (duvidasStatus) duvidasStatus.textContent = 'A consulta online não respondeu. Mostrando a base local.';
             }
           } else {
             resposta = montarRespostaLocalDuvidas_(pergunta, manual, its);
-            if (duvidasStatus) duvidasStatus.textContent = 'Resposta local — sem conexão com o servidor.';
+            if (duvidasStatus) duvidasStatus.textContent = 'Resposta local — aparelho sem conexão.';
           }
 
           if (!resposta) resposta = montarRespostaLocalDuvidas_(pergunta, manual, its);
-          duvidasHistorico_.push({ papel:'assistente', texto:resposta, fontes, modo });
-          duvidasHistorico_ = duvidasHistorico_.slice(-10);
+          pararAnimacaoConsultaDuvidas_();
+          duvidasRespondendo_ = false;
+          duvidasHistorico_.push({ papel:'assistente', texto:resposta, fontes, modo, iaIndisponivel, perguntaOrigem:pergunta, hora:new Date().toISOString() });
+          duvidasHistorico_ = duvidasHistorico_.slice(-12);
           renderizarHistoricoDuvidas_();
         } catch (erro) {
-          duvidasHistorico_.push({ papel:'assistente', texto:'Não foi possível concluir a consulta agora. Tente novamente ou use diretamente o Manual do Sistema e o menu Instruções Técnicas CBMMG.', fontes:[], modo:'base_local' });
-          renderizarHistoricoDuvidas_();
-          if (duvidasStatus) duvidasStatus.textContent = erro?.message || 'Falha ao consultar.';
-        } finally {
+          pararAnimacaoConsultaDuvidas_();
           duvidasRespondendo_ = false;
-          if (duvidasSendBtn) duvidasSendBtn.disabled = false;
-          if (duvidasInput) { duvidasInput.disabled = false; duvidasInput.focus(); }
+          duvidasHistorico_.push({
+            papel:'assistente',
+            texto:'Não foi possível concluir a consulta agora. Tente novamente. Se necessário, use diretamente o Manual do Sistema ou o menu Instruções Técnicas CBMMG.',
+            fontes:[], modo:'base_local', iaIndisponivel:true, perguntaOrigem:pergunta, hora:new Date().toISOString()
+          });
+          renderizarHistoricoDuvidas_();
+          if (duvidasStatus) duvidasStatus.textContent = erro?.message || 'Falha ao consultar. Você pode tentar novamente.';
+          if (duvidasInput && !duvidasInput.value) duvidasInput.value = pergunta;
+        } finally {
+          duvidasPerguntaEmCurso_ = '';
+          atualizarComposerDuvidas_();
+          if (!duvidasModal?.hidden && !duvidasInput?.value) setTimeout(() => duvidasInput?.focus(), 30);
         }
       }
 
@@ -1424,6 +1642,9 @@
       let duvidasHistorico_ = [];
       let duvidasHistoricoUsuarioId_ = '';
       let duvidasRespondendo_ = false;
+      let duvidasEtapaCarregamento_ = 0;
+      let duvidasCarregamentoTimer_ = null;
+      let duvidasPerguntaEmCurso_ = '';
       let swRegistroSilencioso_ = null;
       let swUltimaVerificacaoSilenciosa_ = 0;
       let swAtualizacaoPendente_ = false;
@@ -13277,9 +13498,40 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       systemManualBtn?.addEventListener('click', abrirManualSistema_);
       duvidasMenuBtn?.addEventListener('click', abrirDuvidas_);
       duvidasCloseBtn?.addEventListener('click', fecharDuvidas_);
-      duvidasNovaConversaBtn?.addEventListener('click', () => { resetarHistoricoDuvidas_(true); if (duvidasStatus) duvidasStatus.textContent = 'Nova conversa iniciada.'; duvidasInput?.focus(); });
+      duvidasNovaConversaBtn?.addEventListener('click', () => {
+        resetarHistoricoDuvidas_(true);
+        if (duvidasInput) duvidasInput.value = '';
+        atualizarComposerDuvidas_();
+        if (duvidasStatus) duvidasStatus.textContent = 'Nova conversa iniciada.';
+        duvidasInput?.focus();
+      });
       duvidasModal?.addEventListener('click', event => { if (event.target === duvidasModal) fecharDuvidas_(); });
       duvidasForm?.addEventListener('submit', event => { event.preventDefault(); enviarDuvida_(); });
+      duvidasInput?.addEventListener('input', atualizarComposerDuvidas_);
+      duvidasInput?.addEventListener('keydown', event => {
+        const tecladoPc = window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches;
+        if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && tecladoPc) {
+          event.preventDefault();
+          enviarDuvida_();
+        }
+      });
+      duvidasSuggestions?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-duvidas-prompt]');
+        if (!botao || duvidasRespondendo_) return;
+        if (duvidasInput) duvidasInput.value = String(botao.dataset.duvidasPrompt || '');
+        atualizarComposerDuvidas_();
+        enviarDuvida_();
+      });
+      duvidasConversation?.addEventListener('click', event => {
+        const copiar = event.target.closest('[data-duvidas-copy-index]');
+        if (copiar) { copiarRespostaDuvidas_(copiar.dataset.duvidasCopyIndex); return; }
+        const repetir = event.target.closest('[data-duvidas-retry-index]');
+        if (repetir) { reenviarDuvida_(repetir.dataset.duvidasRetryIndex); return; }
+        const manual = event.target.closest('[data-duvidas-manual-id]');
+        if (manual) abrirFonteManualDuvidas_(manual.dataset.duvidasManualId);
+      });
+      window.addEventListener('online', atualizarEstadoConexaoDuvidas_);
+      window.addEventListener('offline', atualizarEstadoConexaoDuvidas_);
       systemManualCloseBtn?.addEventListener('click', fecharManualSistema_);
       systemManualModal?.addEventListener('click', event => { if (event.target === systemManualModal) fecharManualSistema_(); });
       systemManualModal?.addEventListener('click', event => {
@@ -13433,7 +13685,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99aw', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ax', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.
