@@ -11240,3 +11240,181 @@ body.records-mode .records-status.searching{
 }
 
 /* V23.9.99au — compatibilidade de cache com processo antigo/PSCIP atual. */
+
+
+/* =============================================================================
+   V23.9.99aw — Dúvidas + atualização silenciosa
+   ============================================================================= */
+.duvidas-overlay{
+  z-index:12100;
+  padding:18px;
+  align-items:center;
+  justify-content:center;
+}
+.duvidas-card{
+  width:min(760px,96vw);
+  max-height:min(92dvh,900px);
+  padding:0;
+  overflow:hidden;
+  border-radius:20px;
+  background:#fff;
+}
+.duvidas-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 20px 15px;
+  border-bottom:1px solid #e8edf2;
+  background:linear-gradient(180deg,#fff 0%,#f8fbff 100%);
+}
+.duvidas-header>div:first-child{min-width:0}
+.duvidas-header span:first-child{
+  display:block;
+  margin-bottom:3px;
+  color:#2563eb;
+  font-size:.71rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.055em;
+}
+.duvidas-header h2{margin:0;color:#1f2937;font-size:1.4rem;line-height:1.2}
+.duvidas-header p{margin:5px 0 0;color:#667085;font-size:.86rem;line-height:1.4}
+.duvidas-header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.duvidas-new-btn{
+  min-height:36px;
+  padding:0 11px;
+  border:1px solid #dbe4ee;
+  border-radius:10px;
+  background:#fff;
+  color:#475467;
+  font:inherit;
+  font-size:.76rem;
+  font-weight:800;
+  cursor:pointer;
+}
+.duvidas-body{
+  display:grid;
+  grid-template-rows:auto minmax(180px,1fr) auto;
+  gap:12px;
+  max-height:calc(min(92dvh,900px) - 92px);
+  padding:15px 18px 18px;
+  overflow:hidden;
+}
+.duvidas-notice{
+  display:grid;
+  gap:3px;
+  padding:10px 12px;
+  border:1px solid #dbeafe;
+  border-radius:12px;
+  background:#f8fbff;
+}
+.duvidas-notice strong{color:#1e4f8f;font-size:.78rem}
+.duvidas-notice span{color:#637083;font-size:.73rem;line-height:1.42}
+.duvidas-conversation{
+  min-height:180px;
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:3px 2px 8px;
+}
+.duvidas-empty{
+  margin:auto;
+  max-width:500px;
+  padding:24px 18px;
+  text-align:center;
+  color:#667085;
+}
+.duvidas-empty strong{display:block;margin-bottom:6px;color:#344054;font-size:1rem}
+.duvidas-empty span{font-size:.82rem;line-height:1.45}
+.duvidas-message{display:flex;flex-direction:column;gap:5px;max-width:90%}
+.duvidas-message.user{align-self:flex-end;align-items:flex-end}
+.duvidas-message.assistant{align-self:flex-start;align-items:flex-start}
+.duvidas-message-bubble{
+  padding:10px 12px;
+  border-radius:14px;
+  font-size:.86rem;
+  line-height:1.5;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.duvidas-message.user .duvidas-message-bubble{
+  background:#1f6feb;
+  color:#fff;
+  border-bottom-right-radius:5px;
+}
+.duvidas-message.assistant .duvidas-message-bubble{
+  border:1px solid #e1e8f0;
+  background:#f8fafc;
+  color:#263244;
+  border-bottom-left-radius:5px;
+}
+.duvidas-message-meta{color:#98a2b3;font-size:.66rem;font-weight:750}
+.duvidas-sources{display:flex;flex-wrap:wrap;gap:5px;margin-top:1px}
+.duvidas-source{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:4px 8px;
+  border:1px solid #dce4ed;
+  border-radius:999px;
+  background:#fff;
+  color:#475467;
+  text-decoration:none;
+  font-size:.67rem;
+  font-weight:800;
+}
+.duvidas-source:hover{background:#f2f6fa}
+.duvidas-form{display:grid;gap:7px;padding-top:11px;border-top:1px solid #edf0f3}
+.duvidas-form label{color:#344054;font-size:.76rem;font-weight:850}
+.duvidas-form textarea{
+  width:100%;
+  min-height:78px;
+  max-height:180px;
+  resize:vertical;
+  box-sizing:border-box;
+  border:1px solid #cfd8e3;
+  border-radius:12px;
+  padding:10px 11px;
+  background:#fff;
+  color:#1f2937;
+  font:inherit;
+  font-size:.88rem;
+  line-height:1.4;
+}
+.duvidas-form textarea:focus{outline:none;border-color:#5b8fd8;box-shadow:0 0 0 3px rgba(37,99,235,.09)}
+.duvidas-form-footer{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.duvidas-status{min-width:0;color:#667085;font-size:.71rem;line-height:1.35}
+.duvidas-send-btn{
+  flex:0 0 auto;
+  min-height:40px;
+  padding:0 16px;
+  border:0;
+  border-radius:11px;
+  background:#176b3a;
+  color:#fff;
+  font:inherit;
+  font-size:.79rem;
+  font-weight:850;
+  cursor:pointer;
+}
+.duvidas-send-btn:disabled{opacity:.55;cursor:wait}
+body.duvidas-open{overflow:hidden}
+
+@media(max-width:700px){
+  .duvidas-overlay{align-items:flex-end;padding:0!important}
+  .duvidas-card{width:100%;max-height:94dvh;border-radius:20px 20px 0 0}
+  .duvidas-header{padding:15px 14px 13px;gap:10px}
+  .duvidas-header h2{font-size:1.22rem}
+  .duvidas-header p{font-size:.78rem}
+  .duvidas-header-actions{gap:6px}
+  .duvidas-new-btn{padding:0 8px;font-size:.69rem}
+  .duvidas-body{max-height:calc(94dvh - 88px);padding:12px 13px max(14px,env(safe-area-inset-bottom));gap:10px}
+  .duvidas-message{max-width:94%}
+  .duvidas-message-bubble{font-size:.83rem}
+  .duvidas-form textarea{font-size:16px;min-height:76px}
+  .duvidas-form-footer{align-items:flex-end}
+}

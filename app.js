@@ -587,6 +587,16 @@
       const systemManualModal = document.getElementById('systemManualModal');
       const systemManualCloseBtn = document.getElementById('systemManualCloseBtn');
       const systemManualScroll = document.getElementById('systemManualScroll');
+      const duvidasMenuBtn = document.getElementById('duvidasMenuBtn');
+      const duvidasModal = document.getElementById('duvidasModal');
+      const duvidasCloseBtn = document.getElementById('duvidasCloseBtn');
+      const duvidasNovaConversaBtn = document.getElementById('duvidasNovaConversaBtn');
+      const duvidasConversation = document.getElementById('duvidasConversation');
+      const duvidasEmpty = document.getElementById('duvidasEmpty');
+      const duvidasForm = document.getElementById('duvidasForm');
+      const duvidasInput = document.getElementById('duvidasInput');
+      const duvidasStatus = document.getElementById('duvidasStatus');
+      const duvidasSendBtn = document.getElementById('duvidasSendBtn');
       const switchUserBtn = document.getElementById('switchUserBtn');
       const logoutUserBtn = document.getElementById('logoutUserBtn');
       const changePinModal = document.getElementById('changePinModal');
@@ -1121,6 +1131,274 @@
         const top = alvo.offsetTop - 12;
         systemManualScroll.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       }
+
+
+      function normalizarConsultaDuvidas_(valor) {
+        return String(valor == null ? '' : valor)
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/[^a-z0-9./\s-]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function tokensConsultaDuvidas_(valor) {
+        const stop = new Set([
+          'a','o','as','os','um','uma','uns','umas','de','da','do','das','dos','e','em','no','na','nos','nas',
+          'para','por','com','sem','que','qual','quais','como','onde','quando','porque','porquê','se','ser','esta','este',
+          'isso','isto','ao','aos','ou','me','eu','tem','tenho','deve','deverá','devera','sobre','mais','menos'
+        ]);
+        return Array.from(new Set(normalizarConsultaDuvidas_(valor).split(' ').filter(t => t.length >= 3 && !stop.has(t)))).slice(0, 18);
+      }
+
+      function buscarContextoManualDuvidas_(pergunta) {
+        const tokens = tokensConsultaDuvidas_(pergunta);
+        const consulta = normalizarConsultaDuvidas_(pergunta);
+        const secoes = Array.from(document.querySelectorAll('#systemManualModal .system-manual-section'));
+        return secoes.map(sec => {
+          const titulo = String(sec.querySelector('h3')?.textContent || '').trim();
+          const texto = Array.from(sec.querySelectorAll('p')).map(p => String(p.textContent || '').trim()).filter(Boolean).join(' ');
+          const canon = normalizarConsultaDuvidas_(`${titulo} ${texto}`);
+          let score = 0;
+          tokens.forEach(t => {
+            if (normalizarConsultaDuvidas_(titulo).includes(t)) score += 6;
+            else if (canon.includes(t)) score += 2;
+          });
+          if (consulta && canon.includes(consulta)) score += 14;
+          return { id: sec.id || '', titulo, texto: texto.slice(0, 1500), score };
+        }).filter(x => x.score > 0).sort((a,b) => b.score - a.score).slice(0, 3);
+      }
+
+      async function buscarContextoItsDuvidas_(pergunta) {
+        const base = await carregarBaseNormativaITS_().catch(() => []);
+        if (!Array.isArray(base) || !base.length) return [];
+        const tokens = tokensConsultaDuvidas_(pergunta);
+        const consulta = normalizarConsultaDuvidas_(pergunta);
+        const itExplicita = consulta.match(/\bit\s*0*(\d{1,2})\b/i);
+        const itemExplicito = consulta.match(/\b(?:item\s*)?([a-z]?\.?\d+(?:\.\d+){1,6})\b/i);
+        const itNumero = itExplicita ? Number(itExplicita[1]) : 0;
+        const itemNumero = itemExplicito ? String(itemExplicito[1] || '').toUpperCase() : '';
+        const candidatos = [];
+
+        for (const ref of base) {
+          const it = Number(ref?.it || 0);
+          if (itNumero && it !== itNumero) continue;
+          const section = String(ref?.section || '').trim();
+          const text = String(ref?.text || '').trim();
+          const tituloCanon = normalizarConsultaDuvidas_(section);
+          const textoCanon = normalizarConsultaDuvidas_(text);
+          let score = 0;
+          if (itNumero && it === itNumero) score += 30;
+          if (itemNumero && normalizarConsultaDuvidas_(section).includes(normalizarConsultaDuvidas_(itemNumero))) score += 34;
+          tokens.forEach(t => {
+            if (tituloCanon.includes(t)) score += 6;
+            if (textoCanon.includes(t)) score += 2;
+          });
+          if (consulta.length > 8 && textoCanon.includes(consulta)) score += 18;
+          if (score > 0) candidatos.push({ it, item: section, texto: text.slice(0, 1400), arquivo: String(ref?.arquivo || ''), score });
+        }
+
+        candidatos.sort((a,b) => b.score - a.score);
+        const usados = new Set();
+        const saida = [];
+        for (const c of candidatos) {
+          const chave = `${c.it}|${c.item}`;
+          if (usados.has(chave)) continue;
+          usados.add(chave);
+          saida.push(c);
+          if (saida.length >= 5) break;
+        }
+        return saida;
+      }
+
+      function fontesContextoDuvidas_(manual, its) {
+        const fontes = [];
+        (Array.isArray(manual) ? manual : []).slice(0,3).forEach(m => fontes.push({ tipo:'manual', titulo:m.titulo || 'Manual do Sistema', id:m.id || '' }));
+        (Array.isArray(its) ? its : []).slice(0,5).forEach(i => fontes.push({ tipo:'it', it:Number(i.it || 0), item:String(i.item || ''), titulo:`IT ${String(i.it || '').padStart(2,'0')}${i.item ? ` · item ${i.item}` : ''}` }));
+        return fontes;
+      }
+
+      function montarRespostaLocalDuvidas_(pergunta, manual, its) {
+        const partes = [];
+        const manualTop = Array.isArray(manual) ? manual[0] : null;
+        const itsTop = Array.isArray(its) ? its.slice(0,3) : [];
+        if (manualTop) {
+          partes.push(`Manual do Sistema — ${manualTop.titulo}\n${String(manualTop.texto || '').slice(0,900)}`);
+        }
+        if (itsTop.length) {
+          const blocos = itsTop.map(ref => `IT ${String(ref.it || '').padStart(2,'0')}${ref.item ? `, item ${ref.item}` : ''}: ${String(ref.texto || '').slice(0,650)}`);
+          partes.push(`Base técnica localizada:\n${blocos.join('\n\n')}`);
+        }
+        if (!partes.length) {
+          return 'Não localizei no Manual do Sistema nem na base das Instruções Técnicas um trecho suficientemente relacionado a essa pergunta. Tente informar o assunto, a IT ou o item específico. Se a dúvida for sobre a situação oficial de um processo, consulte o INFOSCIP.';
+        }
+        return `${partes.join('\n\n')}\n\nConsulta de apoio: para situação oficial de processo, confirme no INFOSCIP.`;
+      }
+
+      function resetarHistoricoDuvidas_(forcar = false) {
+        const usuarioId = String(authState.usuario?.id || '');
+        if (!forcar && duvidasHistoricoUsuarioId_ === usuarioId) return;
+        duvidasHistoricoUsuarioId_ = usuarioId;
+        duvidasHistorico_ = [];
+        renderizarHistoricoDuvidas_();
+      }
+
+      function renderizarFontesDuvidas_(fontes) {
+        const lista = Array.isArray(fontes) ? fontes : [];
+        if (!lista.length) return '';
+        return `<div class="duvidas-sources">${lista.slice(0,6).map(f => {
+          if (f.tipo === 'it' && Number(f.it || 0)) {
+            const numero = String(Number(f.it)).padStart(2,'0');
+            const titulo = escapeHtml(f.titulo || `IT ${numero}`);
+            return `<a class="duvidas-source" href="./instrucoes-tecnicas/its/it-${numero}.html" target="_blank" rel="noopener">${titulo}</a>`;
+          }
+          return `<span class="duvidas-source">${escapeHtml(f.titulo || 'Manual do Sistema')}</span>`;
+        }).join('')}</div>`;
+      }
+
+      function renderizarHistoricoDuvidas_() {
+        if (!duvidasConversation) return;
+        if (!duvidasHistorico_.length) {
+          duvidasConversation.innerHTML = '<div class="duvidas-empty" id="duvidasEmpty"><strong>Como posso ajudar?</strong><span>Ex.: “Como programo uma vistoria?”, “O que é Vistoria Acessória?” ou “Qual item da IT trata deste requisito?”</span></div>';
+          return;
+        }
+        duvidasConversation.innerHTML = duvidasHistorico_.map(msg => {
+          const papel = msg.papel === 'usuario' ? 'user' : 'assistant';
+          const rotulo = papel === 'user' ? 'Você' : 'Assistente';
+          const modo = papel === 'assistant' && msg.modo === 'base_local' ? ' · base local' : '';
+          return `<div class="duvidas-message ${papel}"><div class="duvidas-message-bubble">${escapeHtml(msg.texto || '')}</div><div class="duvidas-message-meta">${rotulo}${modo}</div>${papel === 'assistant' ? renderizarFontesDuvidas_(msg.fontes) : ''}</div>`;
+        }).join('');
+        duvidasConversation.scrollTop = duvidasConversation.scrollHeight;
+      }
+
+      function abrirDuvidas_() {
+        fecharMenuMais_();
+        if (!duvidasModal) return;
+        resetarHistoricoDuvidas_();
+        duvidasModal.hidden = false;
+        document.body.classList.add('duvidas-open');
+        if (duvidasStatus) duvidasStatus.textContent = navigator.onLine ? 'Pronto para consultar.' : 'Sem internet: a busca local no Manual e nas ITs continua disponível.';
+        carregarBaseNormativaITS_().catch(() => []);
+        setTimeout(() => duvidasInput?.focus(), 40);
+      }
+
+      function fecharDuvidas_() {
+        if (!duvidasModal) return;
+        duvidasModal.hidden = true;
+        document.body.classList.remove('duvidas-open');
+      }
+
+      async function enviarDuvida_() {
+        if (duvidasRespondendo_) return;
+        const pergunta = String(duvidasInput?.value || '').trim();
+        if (pergunta.length < 3) {
+          if (duvidasStatus) duvidasStatus.textContent = 'Descreva a dúvida antes de perguntar.';
+          duvidasInput?.focus();
+          return;
+        }
+
+        resetarHistoricoDuvidas_();
+        duvidasRespondendo_ = true;
+        if (duvidasSendBtn) duvidasSendBtn.disabled = true;
+        if (duvidasInput) duvidasInput.disabled = true;
+        if (duvidasStatus) duvidasStatus.textContent = 'Consultando Manual do Sistema e Instruções Técnicas...';
+        duvidasHistorico_.push({ papel:'usuario', texto:pergunta });
+        duvidasHistorico_ = duvidasHistorico_.slice(-10);
+        renderizarHistoricoDuvidas_();
+        if (duvidasInput) duvidasInput.value = '';
+
+        try {
+          const [manual, its] = await Promise.all([
+            Promise.resolve(buscarContextoManualDuvidas_(pergunta)),
+            buscarContextoItsDuvidas_(pergunta)
+          ]);
+          const fontesLocais = fontesContextoDuvidas_(manual, its);
+          let resposta = '';
+          let fontes = fontesLocais;
+          let modo = 'base_local';
+
+          if (navigator.onLine) {
+            try {
+              const historicoEnvio = duvidasHistorico_.slice(-7).map(m => ({ papel:m.papel, texto:String(m.texto || '').slice(0,1800) }));
+              const retorno = await apiRequest('config', {
+                consulta: 'duvidas',
+                pergunta,
+                historico: historicoEnvio,
+                contexto: {
+                  manual: manual.map(m => ({ id:m.id, titulo:m.titulo, texto:m.texto })),
+                  its: its.map(i => ({ it:i.it, item:i.item, texto:i.texto, arquivo:i.arquivo }))
+                }
+              }, 50000);
+              resposta = String(retorno?.resposta || '').trim();
+              if (Array.isArray(retorno?.fontes) && retorno.fontes.length) fontes = retorno.fontes;
+              modo = String(retorno?.modo || 'ia');
+              if (duvidasStatus) duvidasStatus.textContent = modo === 'ia' ? 'Resposta baseada nas fontes localizadas.' : 'Resposta baseada diretamente no Manual e nas ITs localizadas.';
+            } catch (erroApi) {
+              resposta = montarRespostaLocalDuvidas_(pergunta, manual, its);
+              modo = 'base_local';
+              if (duvidasStatus) duvidasStatus.textContent = 'A resposta online não ficou disponível. Mostrando a consulta local.';
+            }
+          } else {
+            resposta = montarRespostaLocalDuvidas_(pergunta, manual, its);
+            if (duvidasStatus) duvidasStatus.textContent = 'Resposta local — sem conexão com o servidor.';
+          }
+
+          if (!resposta) resposta = montarRespostaLocalDuvidas_(pergunta, manual, its);
+          duvidasHistorico_.push({ papel:'assistente', texto:resposta, fontes, modo });
+          duvidasHistorico_ = duvidasHistorico_.slice(-10);
+          renderizarHistoricoDuvidas_();
+        } catch (erro) {
+          duvidasHistorico_.push({ papel:'assistente', texto:'Não foi possível concluir a consulta agora. Tente novamente ou use diretamente o Manual do Sistema e o menu Instruções Técnicas CBMMG.', fontes:[], modo:'base_local' });
+          renderizarHistoricoDuvidas_();
+          if (duvidasStatus) duvidasStatus.textContent = erro?.message || 'Falha ao consultar.';
+        } finally {
+          duvidasRespondendo_ = false;
+          if (duvidasSendBtn) duvidasSendBtn.disabled = false;
+          if (duvidasInput) { duvidasInput.disabled = false; duvidasInput.focus(); }
+        }
+      }
+
+      function appPodeAplicarAtualizacaoSilenciosa_() {
+        // Para incomodar o mínimo possível, nunca recarrega uma sessão autenticada.
+        // A versão nova entra naturalmente na próxima abertura/recarregamento.
+        return !authState.sessionToken && Boolean(authGate && authGate.classList.contains('show'));
+      }
+
+      function aplicarAtualizacaoSilenciosaSeSeguro_() {
+        if (!swAtualizacaoPendente_ || !appPodeAplicarAtualizacaoSilenciosa_()) return false;
+        swAtualizacaoPendente_ = false;
+        window.location.reload();
+        return true;
+      }
+
+      function observarAtualizacaoSilenciosaPwa_(registro) {
+        if (!registro) return;
+        swRegistroSilencioso_ = registro;
+        registro.addEventListener('updatefound', () => {
+          const worker = registro.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              swAtualizacaoPendente_ = true;
+              aplicarAtualizacaoSilenciosaSeSeguro_();
+            }
+          });
+        });
+      }
+
+      async function verificarAtualizacaoSilenciosaPwa_(forcar = false) {
+        if (!navigator.onLine || !('serviceWorker' in navigator)) return;
+        const agora = Date.now();
+        if (!forcar && agora - swUltimaVerificacaoSilenciosa_ < 20 * 60 * 1000) return;
+        swUltimaVerificacaoSilenciosa_ = agora;
+        try {
+          const registro = swRegistroSilencioso_ || await navigator.serviceWorker.getRegistration();
+          if (registro) {
+            swRegistroSilencioso_ = registro;
+            await registro.update();
+          }
+        } catch (e) {}
+      }
       let saveTimer = null;
       let cnpjTimer = null;
       let ultimoCnpjConsultado = '';
@@ -1143,6 +1421,12 @@
       let pendingCache = [];
       let deferredInstallPrompt = null;
       let tutorialStepIndex = 0;
+      let duvidasHistorico_ = [];
+      let duvidasHistoricoUsuarioId_ = '';
+      let duvidasRespondendo_ = false;
+      let swRegistroSilencioso_ = null;
+      let swUltimaVerificacaoSilenciosa_ = 0;
+      let swAtualizacaoPendente_ = false;
       let sancaoDefinidaAutomaticamente = false;
       let sancaoAntesDoAutomatico = '';
       let cpfCopiadoDoIdentificador = '';
@@ -2594,6 +2878,7 @@
         if (elementoVisivelNavegacao_(userManagerModal)) return { id: 'user-manager', fechar: () => fecharGerenciadorUsuarios_() };
         if (elementoVisivelNavegacao_(prepareInspectionModal)) return { id: 'prepare-inspection', fechar: () => fecharModalPreparacao_() };
         if (elementoVisivelNavegacao_(dduRegisterModal)) return { id: 'ddu-register', fechar: () => fecharCadastroDdu_() };
+        if (elementoVisivelNavegacao_(duvidasModal)) return { id: 'duvidas', fechar: () => fecharDuvidas_() };
         if (elementoVisivelNavegacao_(systemManualModal)) return { id: 'system-manual', fechar: () => fecharManualSistema_() };
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
         if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
@@ -12990,6 +13275,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
       accessGuidanceContinueBtn?.addEventListener('click', fecharAvisoAcessoGeral_);
       systemManualBtn?.addEventListener('click', abrirManualSistema_);
+      duvidasMenuBtn?.addEventListener('click', abrirDuvidas_);
+      duvidasCloseBtn?.addEventListener('click', fecharDuvidas_);
+      duvidasNovaConversaBtn?.addEventListener('click', () => { resetarHistoricoDuvidas_(true); if (duvidasStatus) duvidasStatus.textContent = 'Nova conversa iniciada.'; duvidasInput?.focus(); });
+      duvidasModal?.addEventListener('click', event => { if (event.target === duvidasModal) fecharDuvidas_(); });
+      duvidasForm?.addEventListener('submit', event => { event.preventDefault(); enviarDuvida_(); });
       systemManualCloseBtn?.addEventListener('click', fecharManualSistema_);
       systemManualModal?.addEventListener('click', event => { if (event.target === systemManualModal) fecharManualSistema_(); });
       systemManualModal?.addEventListener('click', event => {
@@ -13030,8 +13320,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && authState.sessionToken) validarSessaoLocalAtivaBm_();
+        if (document.visibilityState === 'visible') { verificarAtualizacaoSilenciosaPwa_(); aplicarAtualizacaoSilenciosaSeSeguro_(); }
       });
-      window.addEventListener('focus', () => { if (authState.sessionToken) validarSessaoLocalAtivaBm_(); });
+      window.addEventListener('focus', () => {
+        if (authState.sessionToken) validarSessaoLocalAtivaBm_();
+        verificarAtualizacaoSilenciosaPwa_();
+        aplicarAtualizacaoSilenciosaSeSeguro_();
+      });
       authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); authPendingUserId = ''; authPendingBm = ''; });
       authForm?.addEventListener('submit', async event => {
         event.preventDefault();
@@ -13087,7 +13382,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharManualSistema_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
@@ -13105,6 +13400,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (document.body.classList.contains('records-mode')) {
           setTimeout(() => carregarRegistros_(true), 900);
         }
+        setTimeout(() => verificarAtualizacaoSilenciosaPwa_(true), 1200);
       });
 
       window.addEventListener('beforeinstallprompt', event => {
@@ -13131,10 +13427,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) installPanel.hidden = true;
 
       if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          swAtualizacaoPendente_ = true;
+          aplicarAtualizacaoSilenciosaSeSeguro_();
+        });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99av', { updateViaCache: 'none' });
-            await reg.update();
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99aw', { updateViaCache: 'none' });
+            observarAtualizacaoSilenciosaPwa_(reg);
+            await verificarAtualizacaoSilenciosaPwa_(true);
+            // Durante a fase de atualizações, verifica em segundo plano sem avisos.
+            setInterval(() => verificarAtualizacaoSilenciosaPwa_(), 30 * 60 * 1000);
           } catch (e) {}
         });
       }
