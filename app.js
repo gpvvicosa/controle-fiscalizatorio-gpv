@@ -689,6 +689,15 @@
       const recordFineUpdateSelect = document.getElementById('recordFineUpdateSelect');
       const recordStatusUpdateConfirm = document.getElementById('recordStatusUpdateConfirm');
       const recordStatusUpdateMessage = document.getElementById('recordStatusUpdateMessage');
+      const recordCorrectionPanel = document.getElementById('recordCorrectionPanel');
+      const recordCorrectionBtn = document.getElementById('recordCorrectionBtn');
+      const recordCorrectionModal = document.getElementById('recordCorrectionModal');
+      const recordCorrectionCloseBtn = document.getElementById('recordCorrectionCloseBtn');
+      const recordCorrectionCancelBtn = document.getElementById('recordCorrectionCancelBtn');
+      const recordCorrectionSaveBtn = document.getElementById('recordCorrectionSaveBtn');
+      const recordCorrectionFields = document.getElementById('recordCorrectionFields');
+      const recordCorrectionReason = document.getElementById('recordCorrectionReason');
+      const recordCorrectionMessage = document.getElementById('recordCorrectionMessage');
       const recordHistoryPanel = document.getElementById('recordHistoryPanel');
       const recordHistoryCount = document.getElementById('recordHistoryCount');
       const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
@@ -995,6 +1004,8 @@
       let ultimoRegistroParaOrientacoes = null;
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
+      let recordCorrectionRegistroAtual = null;
+      let recordCorrectionOriginal = new Map();
       let recordDetailReturnContext = '';
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
@@ -3091,6 +3102,7 @@
         if (elementoVisivelNavegacao_(accessGuidanceModal)) return { id: 'access-guidance', fechar: () => fecharAvisoAcessoGeral_() };
         const mobileChoice = mobileChoiceState?.overlay;
         if (elementoVisivelNavegacao_(mobileChoice)) return { id: 'mobile-choice', fechar: () => fecharEscolhaMovel_() };
+        if (elementoVisivelNavegacao_(recordCorrectionModal)) return { id: 'record-correction', fechar: () => fecharCorrecaoRegistro_() };
         if (elementoVisivelNavegacao_(recordStatusUpdateModal)) return { id: 'status-infoscip', fechar: () => fecharAtualizacaoSituacaoInfoscip_() };
         if (elementoVisivelNavegacao_(notificationReviewModal)) return { id: 'notification-review', fechar: () => notificationReviewBackBtn?.click() };
         if (elementoVisivelNavegacao_(reviewModal)) return { id: 'review', fechar: () => reviewCancelBtn?.click() };
@@ -4026,7 +4038,11 @@
         if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
+        recordCorrectionRegistroAtual = null;
+        recordCorrectionOriginal = new Map();
+        if (recordCorrectionPanel) recordCorrectionPanel.hidden = true;
         if (recordInfoscipUpdatePanel) recordInfoscipUpdatePanel.hidden = true;
+        fecharCorrecaoRegistro_();
         fecharAtualizacaoSituacaoInfoscip_();
         if (opcoes.restaurarContexto !== false && contextoRetorno === 'goals-details') {
           abrirMetas_();
@@ -4854,6 +4870,322 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+
+      function registroEhEventoDeclaratorio_(registro) {
+        return Boolean(valorCampoFicha_(registro, 'Nº da declaração INFOSCIP')) ||
+          normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Eventos declaratórios'));
+      }
+
+      function registroEhLiberacao_(registro) {
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        return tipo.includes(normalize('Liberação')) || demanda.includes(normalize('Liberação'));
+      }
+
+      function registroEhAcessoria_(registro) {
+        return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
+      }
+
+      function camposCorrecaoRegistro_(registro) {
+        const evento = registroEhEventoDeclaratorio_(registro);
+        const liberacao = registroEhLiberacao_(registro);
+        const acessoria = registroEhAcessoria_(registro);
+        const demanda = valorCampoFicha_(registro, 'Demanda');
+        const renovacao = normalize(demanda).includes(normalize('Renovação AVCB'));
+        const ddu = normalize(demanda).includes(normalize('DDU')) || Boolean(valorCampoFicha_(registro, 'Nº DDU'));
+        const campo = (id, grupo, rotulo, fontes, opcoes = {}) => ({ id, grupo, rotulo, fontes, ...opcoes });
+
+        return [
+          campo('nomeFantasia', 'Estabelecimento', 'Nome Fantasia', ['Nome Fantasia'], { mostrar: !evento }),
+          campo('razaoSocial', 'Estabelecimento', 'Razão Social', ['Razão Social'], { mostrar: !evento }),
+          campo('documentoEstabelecimento', 'Estabelecimento', 'CNPJ / CPF do estabelecimento', ['CNPJ'], { mostrar: !evento, inputmode: 'numeric' }),
+
+          campo('cidade', 'Edificação / local', 'Cidade', ['Cidade']),
+          campo('enderecoEdificacao', 'Edificação / local', evento ? 'Endereço do evento' : 'Endereço da edificação', ['Endereço do estabelecimento']),
+          campo('numero', 'Edificação / local', 'Número', ['Nº']),
+          campo('complemento', 'Edificação / local', 'Complemento', ['Complemento']),
+          campo('bairro', 'Edificação / local', 'Bairro', ['Bairro']),
+          campo('enderecoCorrespondencia', 'Edificação / local', 'Endereço para correspondência', ['Endereço para correspondência'], { mostrar: !evento }),
+          campo('area', 'Edificação / local', 'Área (m²)', ['Área (m²)', 'Área m²', 'Área'], { mostrar: !evento, inputmode: 'decimal' }),
+          campo('pavimentos', 'Edificação / local', 'Pavimentos', ['Pavimentos'], { mostrar: !evento, inputmode: 'numeric' }),
+          campo('altura', 'Edificação / local', 'Altura (m)', ['Altura (m)', 'Altura'], { mostrar: !evento, inputmode: 'decimal' }),
+          campo('ocupacao', 'Edificação / local', 'Ocupação / Divisão', ['Ocupação', 'Ocupação / Divisão', 'Divisão'], { mostrar: !evento }),
+
+          campo('pscip', 'Processo / vistoria', 'Nº do PSCIP / Projeto', ['Nº do PSCIP / Projeto'], { mostrar: !evento, placeholder: 'PRJ + 10 números ou 44/2016' }),
+          campo('pf', 'Processo / vistoria', 'Nº do PF', ['Nº do PF'], { mostrar: !evento }),
+          campo('tipoVistoria', 'Processo / vistoria', 'Tipo de vistoria', ['Tipo de vistoria'], { tipo: 'select', opcoes: ['Vistoria de Fiscalização', 'Vistoria de Liberação'] }),
+          campo('vistoriadorResponsavel', 'Processo / vistoria', 'Vistoriador responsável', ['Vistoriador responsável']),
+          campo('reds', 'Processo / vistoria', 'REDS', ['REDS']),
+          campo('natureza', 'Processo / vistoria', 'Natureza', ['Natureza']),
+          campo('demanda', 'Processo / vistoria', 'Demanda', ['Demanda']),
+          campo('resim', 'Processo / vistoria', 'RESIM', ['RESIM'], { mostrar: !evento }),
+          campo('situacaoLicenciamento', 'Processo / vistoria', 'Situação do licenciamento', ['Situação do licenciamento'], {
+            mostrar: !evento,
+            tipo: 'select',
+            opcoes: ['Possui AVCB ou CLCB', 'Não possui', 'AVCB/CLCB vencido', 'Dispensado de licenciamento']
+          }),
+          campo('situacaoPscip', 'Processo / vistoria', 'Situação atual do PSCIP', ['Situação atual do PSCIP'], { mostrar: !evento }),
+          campo('pendenciaDocumental', 'Processo / vistoria', 'Pendência documental', ['Pendência documental'], { mostrar: liberacao, tipo: 'select', opcoes: ['Sim', 'Não'] }),
+          campo('nDdu', 'Processo / vistoria', 'Nº DDU', ['Nº DDU'], { mostrar: ddu }),
+          campo('dataRenovacaoAvcb', 'Processo / vistoria', 'Data de renovação do AVCB', ['Data de renovação do AVCB'], { mostrar: renovacao, placeholder: 'DD/MM/AAAA' }),
+          campo('tipoLiberacao', 'Processo / vistoria', 'Tipo da liberação', ['Tipo da liberação'], { mostrar: liberacao, tipo: 'select', opcoes: ['Final', 'Parcial'] }),
+          campo('liberacaoParcialDescricao', 'Processo / vistoria', 'Área/trecho liberado', ['Área/trecho liberado'], { mostrar: liberacao, tipo: 'textarea' }),
+          campo('liberacaoParcialArea', 'Processo / vistoria', 'Área liberada parcialmente (m²)', ['Área liberada parcialmente (m²)'], { mostrar: liberacao, inputmode: 'decimal' }),
+          campo('acessoriaResultado', 'Processo / vistoria', 'Resultado da vistoria acessória', ['Resultado da vistoria acessória'], { mostrar: acessoria, tipo: 'select', opcoes: ['Irregularidades sanadas', 'Irregularidades persistem'] }),
+          campo('acessoriaTipoLicenca', 'Processo / vistoria', 'Documento de licenciamento da acessória', ['Documento de licenciamento da acessória'], { mostrar: acessoria }),
+          campo('acessoriaSituacaoAnterior', 'Processo / vistoria', 'Situação anterior do PF', ['Situação anterior do PF'], { mostrar: acessoria }),
+
+          campo('responsavel', 'Responsável / envolvido', evento ? 'Vínculo / função' : 'Responsável / vínculo', ['Responsável']),
+          campo('nomeResponsavel', 'Responsável / envolvido', 'Nome', ['Nome']),
+          campo('rg', 'Responsável / envolvido', 'RG', ['RG']),
+          campo('cpfResponsavel', 'Responsável / envolvido', 'CPF', ['CPF'], { inputmode: 'numeric' }),
+          campo('mae', 'Responsável / envolvido', 'Mãe', ['Mãe']),
+          campo('nascimento', 'Responsável / envolvido', 'Data de nascimento', ['Nascimento', 'Data de nascimento'], { placeholder: 'DD/MM/AAAA' }),
+          campo('profissao', 'Responsável / envolvido', 'Profissão', ['Profissão']),
+          campo('estadoCivil', 'Responsável / envolvido', 'Estado civil', ['Estado civil']),
+          campo('escolaridade', 'Responsável / envolvido', 'Escolaridade', ['Escolaridade']),
+          campo('telefone', 'Responsável / envolvido', 'Telefone', ['Telefone'], { inputmode: 'tel' }),
+          campo('email', 'Responsável / envolvido', 'E-mail', ['E-mail'], { tipoInput: 'email' }),
+          campo('enderecoResponsavel', 'Responsável / envolvido', 'Endereço do responsável', ['Endereço do responsável', 'Endereço do envolvido']),
+
+          campo('eventoDeclaracaoNumero', 'Evento declaratório', 'Nº da declaração INFOSCIP', ['Nº da declaração INFOSCIP'], { mostrar: evento }),
+          campo('eventoClassificacao', 'Evento declaratório', 'Classificação do evento', ['Classificação do evento'], {
+            mostrar: evento,
+            tipo: 'select',
+            opcoes: ['Risco mínimo', 'Risco baixo', 'Risco médio'],
+            opcoesEstritas: true
+          }),
+          campo('eventoNome', 'Evento declaratório', 'Nome do evento', ['Nome do evento'], { mostrar: evento }),
+          campo('eventoInicio', 'Evento declaratório', 'Início do evento', ['Início do evento'], { mostrar: evento }),
+          campo('eventoTermino', 'Evento declaratório', 'Término do evento', ['Término do evento'], { mostrar: evento }),
+          campo('eventoPublicoEstimado', 'Evento declaratório', 'Público estimado', ['Público estimado'], { mostrar: evento, inputmode: 'numeric' }),
+          campo('eventoOrganizador', 'Evento declaratório', 'Organizador do evento', ['Organizador do evento'], { mostrar: evento }),
+          campo('eventoOrganizadorDocumento', 'Evento declaratório', 'CPF/CNPJ do organizador', ['CPF/CNPJ do organizador'], { mostrar: evento, inputmode: 'numeric' }),
+          campo('eventoTelefoneOrganizador', 'Evento declaratório', 'Telefone do organizador', ['Telefone do organizador'], { mostrar: evento, inputmode: 'tel' })
+        ].filter(item => item.mostrar !== false);
+      }
+
+      function valorCampoCorrecao_(registro, campo) {
+        return valorCampoFicha_(registro, ...(campo?.fontes || []));
+      }
+
+      function opcoesCampoCorrecao_(campo, valorAtual) {
+        const base = Array.isArray(campo?.opcoes) ? campo.opcoes.slice() : [];
+        if (!campo?.opcoesEstritas && valorAtual && !base.some(v => normalize(v) === normalize(valorAtual))) {
+          base.unshift(valorAtual);
+        }
+        return base;
+      }
+
+      function htmlCampoCorrecao_(campo, valorAtual) {
+        const id = `record-correction-${campo.id}`;
+        const comum = `data-correction-id="${escapeAttr(campo.id)}" data-correction-label="${escapeAttr(campo.rotulo)}"`;
+        if (campo.tipo === 'select') {
+          const opcoes = opcoesCampoCorrecao_(campo, valorAtual);
+          const selecionadoValido = opcoes.some(v => normalize(v) === normalize(valorAtual));
+          const optionsHtml = [`<option value="">Selecione</option>`].concat(
+            opcoes.map(v => `<option value="${escapeAttr(v)}"${normalize(v) === normalize(valorAtual) ? ' selected' : ''}>${escapeHtml(v)}</option>`)
+          ).join('');
+          return `<label class="record-correction-field"><span>${escapeHtml(campo.rotulo)}</span><select id="${escapeAttr(id)}" ${comum} data-correction-kind="select"${selecionadoValido ? ' data-correction-initial-valid="1"' : ''}>${optionsHtml}</select></label>`;
+        }
+        if (campo.tipo === 'textarea') {
+          return `<label class="record-correction-field wide"><span>${escapeHtml(campo.rotulo)}</span><textarea id="${escapeAttr(id)}" ${comum} rows="3"${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}>${escapeHtml(valorAtual)}</textarea></label>`;
+        }
+        const tipo = campo.tipoInput || 'text';
+        return `<label class="record-correction-field"><span>${escapeHtml(campo.rotulo)}</span><input id="${escapeAttr(id)}" type="${escapeAttr(tipo)}" ${comum} value="${escapeAttr(valorAtual)}"${campo.inputmode ? ` inputmode="${escapeAttr(campo.inputmode)}"` : ''}${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}></label>`;
+      }
+
+      function renderizarCamposCorrecao_(registro) {
+        if (!recordCorrectionFields) return;
+        const campos = camposCorrecaoRegistro_(registro);
+        recordCorrectionOriginal = new Map();
+        const grupos = new Map();
+        campos.forEach(campo => {
+          const atual = valorCampoCorrecao_(registro, campo);
+          recordCorrectionOriginal.set(campo.id, { valor: atual, campo });
+          if (!grupos.has(campo.grupo)) grupos.set(campo.grupo, []);
+          grupos.get(campo.grupo).push({ campo, atual });
+        });
+        recordCorrectionFields.innerHTML = Array.from(grupos.entries()).map(([grupo, itens], index) => `
+          <details class="record-correction-group"${index < 2 || grupo === 'Responsável / envolvido' || grupo === 'Evento declaratório' ? ' open' : ''}>
+            <summary><span>${escapeHtml(grupo)}</span><small>${itens.length} campo${itens.length === 1 ? '' : 's'}</small></summary>
+            <div class="record-correction-grid">${itens.map(item => htmlCampoCorrecao_(item.campo, item.atual)).join('')}</div>
+          </details>`).join('');
+      }
+
+      function configurarCorrecaoFicha_(registro) {
+        recordCorrectionRegistroAtual = registro || null;
+        if (!recordCorrectionPanel || !recordCorrectionBtn) return;
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        const permitido = usuarioPodeOperar_() && !historico;
+        recordCorrectionPanel.hidden = !permitido;
+        recordCorrectionBtn.disabled = !permitido;
+      }
+
+      function abrirCorrecaoRegistro_() {
+        if (!recordCorrectionRegistroAtual || !recordCorrectionModal || !usuarioPodeOperar_()) return;
+        const historico = Boolean(recordCorrectionRegistroAtual?.origemHistorica) || String(recordCorrectionRegistroAtual?.chave || '').startsWith('HIST:');
+        if (historico) {
+          avisarGpv_('Registros da base histórica 2024-2025 são somente para consulta e não podem ser corrigidos por esta tela.', 'Registro histórico');
+          return;
+        }
+        renderizarCamposCorrecao_(recordCorrectionRegistroAtual);
+        if (recordCorrectionReason) recordCorrectionReason.value = '';
+        if (recordCorrectionMessage) { recordCorrectionMessage.textContent = ''; recordCorrectionMessage.className = 'record-correction-message'; }
+        if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = false;
+        recordCorrectionModal.hidden = false;
+        document.body.classList.add('record-correction-open');
+        setTimeout(() => recordCorrectionFields?.querySelector('input,select,textarea')?.focus(), 40);
+      }
+
+      function fecharCorrecaoRegistro_() {
+        if (!recordCorrectionModal || recordCorrectionModal.hidden) return;
+        recordCorrectionModal.hidden = true;
+        document.body.classList.remove('record-correction-open');
+        if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = false;
+      }
+
+      function normalizarComparacaoCorrecao_(id, valor) {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (['documentoEstabelecimento', 'cpfResponsavel', 'eventoOrganizadorDocumento', 'telefone', 'eventoTelefoneOrganizador'].includes(id)) {
+          return texto.replace(/\D/g, '');
+        }
+        if (id === 'pscip') return texto.toUpperCase().replace(/\s+/g, '');
+        return normalize(texto.replace(/\s+/g, ' '));
+      }
+
+      function coletarAlteracoesCorrecao_() {
+        if (!recordCorrectionFields) return [];
+        const alteracoes = [];
+        recordCorrectionFields.querySelectorAll('[data-correction-id]').forEach(el => {
+          const id = String(el.dataset.correctionId || '');
+          const original = recordCorrectionOriginal.get(id);
+          if (!original) return;
+          // Em selects estritos, um valor legado que não faça parte das opções não é apagado
+          // apenas por abrir o formulário; só muda se o militar realmente selecionar algo.
+          if (el.dataset.correctionKind === 'select' && !el.dataset.correctionTouched && !el.dataset.correctionInitialValid) return;
+          const novo = String(el.value == null ? '' : el.value).trim();
+          if (normalizarComparacaoCorrecao_(id, original.valor) === normalizarComparacaoCorrecao_(id, novo)) return;
+          alteracoes.push({
+            id,
+            rotulo: original.campo.rotulo,
+            anterior: original.valor,
+            novo
+          });
+        });
+        return alteracoes;
+      }
+
+      function validarAlteracoesCorrecao_(alteracoes) {
+        for (const item of alteracoes) {
+          const valor = String(item.novo || '').trim();
+          if (item.id === 'documentoEstabelecimento' && valor) {
+            const d = digits(valor);
+            if (![11, 14].includes(d.length)) return 'O CNPJ/CPF do estabelecimento deve conter 11 ou 14 dígitos.';
+          }
+          if (item.id === 'cpfResponsavel' && valor && digits(valor).length !== 11) {
+            return 'O CPF do responsável deve conter 11 dígitos.';
+          }
+          if (item.id === 'eventoOrganizadorDocumento' && valor && ![11,14].includes(digits(valor).length)) {
+            return 'O CPF/CNPJ do organizador deve conter 11 ou 14 dígitos.';
+          }
+          if (item.id === 'pscip' && valor && !pscipProjetoValido_(valor)) {
+            return 'O Nº do PSCIP / Projeto deve usar PRJ + 10 números ou processo antigo, como 44/2016.';
+          }
+          if (item.id === 'eventoClassificacao' && valor && !['Risco mínimo','Risco baixo','Risco médio'].some(v => normalize(v) === normalize(valor))) {
+            return 'Em evento declaratório, a classificação deve ser Risco mínimo, Risco baixo ou Risco médio.';
+          }
+        }
+        return '';
+      }
+
+      function resumoAlteracoesCorrecao_(alteracoes, motivo) {
+        const max = 10;
+        const linhas = alteracoes.slice(0, max).map(item => {
+          const anterior = item.anterior || '—';
+          const novo = item.novo || '—';
+          return `• ${item.rotulo}: ${anterior} → ${novo}`;
+        });
+        if (alteracoes.length > max) linhas.push(`• + ${alteracoes.length - max} outra(s) alteração(ões)`);
+        linhas.push('', `Motivo: ${motivo}`);
+        return linhas.join('\n');
+      }
+
+      async function salvarCorrecaoRegistro_() {
+        if (!recordCorrectionRegistroAtual || !recordsState.chaveSelecionada) return;
+        const motivo = String(recordCorrectionReason?.value || '').replace(/\s+/g, ' ').trim();
+        if (motivo.length < 5) {
+          if (recordCorrectionMessage) {
+            recordCorrectionMessage.textContent = 'Informe o motivo da correção com pelo menos 5 caracteres.';
+            recordCorrectionMessage.className = 'record-correction-message error';
+          }
+          recordCorrectionReason?.focus();
+          return;
+        }
+        const alteracoes = coletarAlteracoesCorrecao_();
+        if (!alteracoes.length) {
+          if (recordCorrectionMessage) {
+            recordCorrectionMessage.textContent = 'Nenhum dado foi alterado.';
+            recordCorrectionMessage.className = 'record-correction-message error';
+          }
+          return;
+        }
+        const erroValidacao = validarAlteracoesCorrecao_(alteracoes);
+        if (erroValidacao) {
+          if (recordCorrectionMessage) {
+            recordCorrectionMessage.textContent = erroValidacao;
+            recordCorrectionMessage.className = 'record-correction-message error';
+          }
+          return;
+        }
+        if (!navigator.onLine) {
+          if (recordCorrectionMessage) {
+            recordCorrectionMessage.textContent = 'A correção de uma vistoria encerrada exige conexão com a internet.';
+            recordCorrectionMessage.className = 'record-correction-message error';
+          }
+          return;
+        }
+
+        const confirmar = await confirmarGpv_(
+          resumoAlteracoesCorrecao_(alteracoes, motivo),
+          'Confirmar correção da vistoria',
+          { rotuloConfirmar: 'Salvar correção', rotuloCancelar: 'Voltar e revisar' }
+        );
+        if (!confirmar) return;
+
+        if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = true;
+        if (recordCorrectionMessage) {
+          recordCorrectionMessage.textContent = 'Salvando correções e registrando auditoria...';
+          recordCorrectionMessage.className = 'record-correction-message';
+        }
+
+        const chaveAnterior = recordsState.chaveSelecionada;
+        const linhaHint = Number(recordsState.linhaSelecionada || recordCorrectionRegistroAtual?.linhaAtual || 0);
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'registro_corrigir',
+            chave: chaveAnterior,
+            linhaHint,
+            motivo,
+            dispositivo: nomeDispositivo_(),
+            alteracoes: Object.fromEntries(alteracoes.map(item => [item.id, item.novo]))
+          }, 65000);
+          fecharCorrecaoRegistro_();
+          limparCachesConsulta_();
+          const novaChave = String(resposta?.chave || chaveAnterior);
+          appStatus.textContent = `${Number(resposta?.alteracoes || alteracoes.length)} correção(ões) salva(s) na vistoria e registrada(s) na auditoria.`;
+          await abrirDetalheRegistro_(novaChave, Number(resposta?.linha || linhaHint));
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false);
+        } catch (erro) {
+          if (recordCorrectionMessage) {
+            recordCorrectionMessage.textContent = erro?.message || 'Não foi possível salvar as correções.';
+            recordCorrectionMessage.className = 'record-correction-message error';
+          }
+        } finally {
+          if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = false;
+        }
+      }
+
       function renderizarFichaRegistro_(registro) {
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
@@ -4914,7 +5246,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Escolaridade', valorCampoFicha_(registro, 'Escolaridade')],
           ['Telefone', valorCampoFicha_(registro, 'Telefone')],
           ['E-mail', valorCampoFicha_(registro, 'E-mail')],
-          ['Endereço do responsável', valorCampoFicha_(registro, 'Endereço do responsável')]
+          ['Endereço do responsável', valorCampoFicha_(registro, 'Endereço do responsável', 'Endereço do envolvido')]
         ];
         const eventoDeclaratorio = [
           ['Nº da declaração INFOSCIP', valorCampoFicha_(registro, 'Nº da declaração INFOSCIP')],
@@ -4981,6 +5313,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
+        configurarCorrecaoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
         renderizarNotificacoesFicha_(registro);
         renderizarRelatorioReds_(registro, situacao);
@@ -13483,6 +13816,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
+      recordCorrectionBtn?.addEventListener('click', abrirCorrecaoRegistro_);
+      recordCorrectionCloseBtn?.addEventListener('click', fecharCorrecaoRegistro_);
+      recordCorrectionCancelBtn?.addEventListener('click', fecharCorrecaoRegistro_);
+      recordCorrectionSaveBtn?.addEventListener('click', salvarCorrecaoRegistro_);
+      recordCorrectionModal?.addEventListener('click', event => { if (event.target === recordCorrectionModal) fecharCorrecaoRegistro_(); });
+      recordCorrectionFields?.addEventListener('change', event => {
+        const campo = event.target.closest?.('[data-correction-id]');
+        if (campo) campo.dataset.correctionTouched = '1';
+      });
       recordInfoscipUpdateBtn?.addEventListener('click', abrirAtualizacaoSituacaoInfoscip_);
       recordStatusUpdateCloseBtn?.addEventListener('click', fecharAtualizacaoSituacaoInfoscip_);
       recordStatusUpdateCancelBtn?.addEventListener('click', fecharAtualizacaoSituacaoInfoscip_);
@@ -13685,7 +14027,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ax', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ay', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.

@@ -11435,3 +11435,117 @@ body.duvidas-open{overflow:hidden}
   .duvidas-thinking-card,.duvidas-thinking-dots i,.duvidas-send-btn.is-loading svg{animation:none!important}
   .duvidas-conversation{scroll-behavior:auto}
 }
+
+
+/* =============================================================================
+   V23.9.99ay — Correção geral de vistoria encerrada pela Ficha
+   ============================================================================= */
+.record-correction-panel{
+  margin:12px 0;padding:14px 16px;border:1px solid #d8e4ef;border-radius:14px;
+  background:#f8fbff;display:flex;align-items:center;justify-content:space-between;gap:14px
+}
+.record-correction-panel[hidden]{display:none!important}
+.record-correction-panel h3{margin:0 0 3px;color:#253b56;font-size:13px}
+.record-correction-panel span{display:block;color:#667085;font-size:11px;line-height:1.4}
+.record-correction-btn{
+  min-height:40px;padding:0 14px;border:1px solid #b8c8da;border-radius:10px;background:#fff;color:#28415e;
+  font:inherit;font-size:12px;font-weight:850;cursor:pointer;white-space:nowrap
+}
+.record-correction-btn:hover{background:#eef5fb}
+.record-correction-btn:disabled{opacity:.55;cursor:not-allowed}
+
+.record-correction-overlay{
+  position:fixed;inset:0;z-index:2250;display:flex;align-items:center;justify-content:center;padding:18px;
+  background:rgba(15,23,42,.56);backdrop-filter:blur(2px);overflow:hidden
+}
+.record-correction-overlay[hidden]{display:none!important}
+.record-correction-card{
+  width:min(920px,100%);max-height:calc(100vh - 36px);display:flex;flex-direction:column;overflow:hidden;
+  border-radius:20px;background:#fff;box-shadow:0 24px 80px rgba(15,23,42,.30)
+}
+.record-correction-card,.record-correction-card *{box-sizing:border-box}
+.record-correction-header{
+  flex:0 0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:17px 20px;
+  border-bottom:1px solid #e6eaf0;background:#fff
+}
+.record-correction-header>div{min-width:0}
+.record-correction-header span{display:block;color:#176b3a;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
+.record-correction-header h2{margin:3px 0 4px;color:#1d2939;font-size:20px;line-height:1.15}
+.record-correction-header p{margin:0;color:#667085;font-size:11.5px;line-height:1.4}
+.record-correction-header button{
+  flex:0 0 auto;width:38px;height:38px;border:1px solid #e4e7ec;border-radius:11px;background:#fff;color:#475467;
+  font-size:25px;line-height:1;cursor:pointer
+}
+.record-correction-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 20px 18px;-webkit-overflow-scrolling:touch}
+.record-correction-notice{
+  display:grid;gap:3px;margin-bottom:13px;padding:11px 13px;border:1px solid #fde0a8;border-radius:12px;background:#fffaf0
+}
+.record-correction-notice strong{color:#7a4b00;font-size:12px}
+.record-correction-notice span{color:#7d6644;font-size:11px;line-height:1.4}
+.record-correction-fields{display:grid;gap:10px}
+.record-correction-group{border:1px solid #e3e8ef;border-radius:14px;background:#fff;overflow:hidden}
+.record-correction-group>summary{
+  min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;
+  cursor:pointer;list-style:none;background:#f8fafc;color:#26384d;font-weight:850;font-size:12.5px
+}
+.record-correction-group>summary::-webkit-details-marker{display:none}
+.record-correction-group>summary::after{content:'⌄';color:#667085;font-size:17px;transition:transform .18s ease}
+.record-correction-group[open]>summary::after{transform:rotate(180deg)}
+.record-correction-group>summary span{min-width:0}
+.record-correction-group>summary small{margin-left:auto;color:#98a2b3;font-size:10px;font-weight:750}
+.record-correction-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 12px;padding:13px}
+.record-correction-field{display:grid;gap:6px;min-width:0;color:#344054;font-size:11px;font-weight:800}
+.record-correction-field.wide{grid-column:1/-1}
+.record-correction-field>span{min-width:0}
+.record-correction-field input,
+.record-correction-field select,
+.record-correction-field textarea{
+  width:100%;min-width:0;max-width:100%;min-height:43px;padding:9px 10px;border:1px solid #d0d5dd;border-radius:10px;
+  background:#fff;color:#101828;font:inherit;font-size:13px;outline:none
+}
+.record-correction-field textarea{min-height:78px;resize:vertical}
+.record-correction-field input:focus,
+.record-correction-field select:focus,
+.record-correction-field textarea:focus,
+.record-correction-reason textarea:focus{border-color:#6b8db4;box-shadow:0 0 0 3px rgba(66,105,150,.11)}
+.record-correction-reason{display:grid;gap:6px;margin-top:14px;color:#344054;font-size:11px;font-weight:850}
+.record-correction-reason>span strong{color:#b42318}
+.record-correction-reason textarea{
+  width:100%;min-width:0;min-height:82px;padding:10px 11px;border:1px solid #d0d5dd;border-radius:11px;background:#fff;
+  color:#101828;font:inherit;font-size:13px;resize:vertical;outline:none
+}
+.record-correction-reason small{color:#667085;font-size:10.5px;font-weight:600;line-height:1.4}
+.record-correction-message{min-height:19px;margin-top:8px;color:#667085;font-size:11px;font-weight:700;line-height:1.4}
+.record-correction-message.error{color:#b42318}
+.record-correction-actions{
+  flex:0 0 auto;display:flex;justify-content:flex-end;gap:9px;padding:13px 20px max(13px,env(safe-area-inset-bottom));
+  border-top:1px solid #e6eaf0;background:#fff
+}
+.record-correction-actions button{min-height:42px;padding:0 15px;border-radius:11px;font:inherit;font-size:12px;font-weight:850;cursor:pointer}
+.record-correction-actions .secondary{border:1px solid #d0d5dd;background:#fff;color:#344054}
+.record-correction-actions .primary{border:1px solid #176b3a;background:#176b3a;color:#fff}
+.record-correction-actions .primary:disabled{opacity:.55;cursor:wait}
+body.record-correction-open{overflow:hidden}
+
+@media(max-width:680px){
+  .record-correction-panel{align-items:stretch;flex-direction:column;padding:13px}
+  .record-correction-btn{width:100%}
+  .record-correction-overlay{align-items:flex-end;padding:0}
+  .record-correction-card{width:100%;max-width:100%;max-height:92dvh;border-radius:20px 20px 0 0}
+  .record-correction-header{padding:15px 16px}
+  .record-correction-header h2{font-size:18px}
+  .record-correction-body{padding:13px 14px 16px}
+  .record-correction-grid{grid-template-columns:1fr;padding:11px;gap:10px}
+  .record-correction-field.wide{grid-column:auto}
+  .record-correction-field input,.record-correction-field select,.record-correction-field textarea,.record-correction-reason textarea{font-size:16px}
+  .record-correction-actions{display:grid;grid-template-columns:1fr 1fr;padding:11px 14px max(14px,env(safe-area-inset-bottom))}
+  .record-correction-actions button{width:100%;min-width:0;padding-left:9px;padding-right:9px}
+}
+@media(max-width:390px){
+  .record-correction-actions{grid-template-columns:1fr}
+  .record-correction-actions .secondary{order:2}
+  .record-correction-actions .primary{order:1}
+}
+@media(prefers-reduced-motion:reduce){
+  .record-correction-group>summary::after{transition:none}
+}

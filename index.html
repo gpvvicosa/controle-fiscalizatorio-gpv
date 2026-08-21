@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99ax">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ay">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -294,7 +294,7 @@
           <h3>2. Cadastro de vistoria</h3>
           <p>Escolha Vistoria de Fiscalização ou Vistoria de Liberação e preencha os dados solicitados pelo fluxo.</p>
           <p>Durante o cadastro, o app consulta CNPJ/CPF, Nº do PSCIP ou processo antigo e endereço da edificação. Processos do sistema antigo podem aparecer no formato <strong>44/2016</strong>. Eles permanecem assim até que uma Vistoria de Liberação seja solicitada no sistema atual, quando passa a existir um novo número <strong>PRJ + 10 números</strong>. Quando houver histórico, o app apresenta situação, PF, última vistoria, prazo e atalho para a Ficha.</p>
-          <p>Na Fiscalização comum, a área é obrigatória; acima de 930 m² a categoria Nível de risco III é considerada automaticamente. Em Eventos declaratórios, o fluxo usa os dados próprios da declaração INFOSCIP e o endereço real do evento, sem exigir Nº do PSCIP ou área da edificação.</p>
+          <p>Na Fiscalização comum, a área é obrigatória; acima de 930 m² a categoria Nível de risco III é considerada automaticamente. Em Eventos declaratórios, o fluxo usa os dados próprios da declaração INFOSCIP e o endereço real do evento, sem exigir Nº do PSCIP ou área da edificação. A classificação do evento possui somente as opções <strong>Risco mínimo</strong>, <strong>Risco baixo</strong> e <strong>Risco médio</strong>.</p>
           <p><strong>PET — Projeto de Evento Temporário:</strong> quando o evento temporário não se enquadrar como Evento declaratório, selecione PET. O fluxo inicial normal é Vistoria de Liberação; posteriormente, um PET já existente também pode ser objeto de Vistoria de Fiscalização.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
@@ -1446,6 +1446,13 @@
       <div class="record-detail-loading" id="recordDetailLoading">Selecione um processo na tabela para abrir a ficha.</div>
       <div class="record-detail-content">
         <div class="record-detail-groups" id="recordDetailGroups"></div>
+        <section class="record-correction-panel" id="recordCorrectionPanel" hidden>
+          <div>
+            <h3>Correção de dados da vistoria</h3>
+            <span>Corrija dados cadastrais, da edificação, do processo e do responsável. A data original e a situação administrativa são preservadas.</span>
+          </div>
+          <button class="record-correction-btn" id="recordCorrectionBtn" type="button">Corrigir dados</button>
+        </section>
         <section class="record-infoscip-update-panel" id="recordInfoscipUpdatePanel" hidden>
           <div>
             <h3>Atualização de acompanhamento</h3>
@@ -1542,6 +1549,37 @@
       <footer>
         <button class="secondary" id="recordStatusUpdateCancelBtn" type="button">Cancelar</button>
         <button class="primary" id="recordStatusUpdateSaveBtn" type="button">Salvar atualização</button>
+      </footer>
+    </section>
+  </div>
+
+
+  <div class="record-correction-overlay" id="recordCorrectionModal" hidden>
+    <section class="record-correction-card" role="dialog" aria-modal="true" aria-labelledby="recordCorrectionTitle">
+      <header class="record-correction-header">
+        <div>
+          <span>Ficha da vistoria</span>
+          <h2 id="recordCorrectionTitle">Corrigir dados da vistoria</h2>
+          <p>Altere somente o que estiver incorreto. A correção ficará registrada na auditoria.</p>
+        </div>
+        <button id="recordCorrectionCloseBtn" type="button" aria-label="Fechar">×</button>
+      </header>
+      <div class="record-correction-body">
+        <div class="record-correction-notice">
+          <strong>Importante</strong>
+          <span>Sanção, situação de multa e evolução no INFOSCIP não são alteradas aqui. Para isso, utilize “Atualizar situação” na Ficha.</span>
+        </div>
+        <div class="record-correction-fields" id="recordCorrectionFields"></div>
+        <label class="record-correction-reason" for="recordCorrectionReason">
+          <span>Motivo da correção <strong>*</strong></span>
+          <textarea id="recordCorrectionReason" rows="3" maxlength="500" placeholder="Ex.: Correção após conferência do PSCIP e dos dados apresentados pelo responsável."></textarea>
+          <small>Obrigatório. O motivo será registrado no histórico de alterações.</small>
+        </label>
+        <div class="record-correction-message" id="recordCorrectionMessage" role="status" aria-live="polite"></div>
+      </div>
+      <footer class="record-correction-actions">
+        <button class="secondary" id="recordCorrectionCancelBtn" type="button">Cancelar</button>
+        <button class="primary" id="recordCorrectionSaveBtn" type="button">Revisar e salvar</button>
       </footer>
     </section>
   </div>
@@ -1950,7 +1988,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99ax"></script>
+  <script src="app.js?v=23.9.99ay"></script>
 
   </div>
   
