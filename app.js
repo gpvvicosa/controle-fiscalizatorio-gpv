@@ -3565,11 +3565,15 @@
         const realizadoTotal = Number(dados?.realizadoTotal || 0);
         const percentual = Math.max(0, Math.min(100, Number(dados?.percentual || 0)));
         const titulo = String(dados?.titulo || 'Mês atual').trim();
+        const diagnosticoMetas = dados?.diagnostico && typeof dados.diagnostico === 'object' ? dados.diagnostico : {};
+        const alertaMetas = String(diagnosticoMetas?.alerta || '').trim();
 
         if (dashboardGoalsTitle) dashboardGoalsTitle.textContent = `Metas de ${titulo} — Viçosa`;
-        if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = metaTotal > 0
-          ? `${realizadoTotal} de ${metaTotal} vistorias da meta contabilizadas.`
-          : 'Acompanhamento mensal das categorias de meta.';
+        if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = alertaMetas
+          ? `⚠ ${alertaMetas}`
+          : (metaTotal > 0
+            ? `${realizadoTotal} de ${metaTotal} vistorias da meta contabilizadas.`
+            : 'Acompanhamento mensal das categorias de meta.');
         if (dashboardGoalsOverallValue) dashboardGoalsOverallValue.textContent = `${realizadoTotal} / ${metaTotal}`;
         if (dashboardGoalsOverallLabel) dashboardGoalsOverallLabel.textContent = percentual >= 100 ? 'Meta geral atingida' : `Faltam ${Math.max(0, metaTotal - realizadoTotal)}`;
         if (dashboardGoalsPercent) dashboardGoalsPercent.textContent = `${Math.round(percentual)}%`;
@@ -3600,7 +3604,9 @@
         }
 
         if (goalsModalTitle) goalsModalTitle.textContent = `Metas de ${titulo}`;
-        if (goalsModalSubtitle) goalsModalSubtitle.textContent = `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa.`;
+        if (goalsModalSubtitle) goalsModalSubtitle.textContent = alertaMetas
+          ? `⚠ ${alertaMetas}`
+          : `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa.`;
         if (goalsModalSummary) goalsModalSummary.innerHTML = `<div class="goals-modal-overall-card"><div class="goals-modal-overall-top"><div><span>Progresso geral</span><strong>${Math.round(percentual)}%</strong></div><div class="goals-modal-overall-count"><span>Realizado / meta</span><strong>${realizadoTotal}/${metaTotal}</strong></div></div><div class="goals-modal-overall-progress"><span style="width:${Math.max(0, Math.min(100, percentual))}%"></span></div><div class="goals-modal-overall-foot"><span>${realizadoTotal >= metaTotal ? 'Meta mensal atingida' : `Faltam ${Math.max(0, metaTotal-realizadoTotal)} para a meta mensal`}</span><span>Viçosa</span></div></div>`;
         if (goalsModalList) {
           goalsModalList.innerHTML = categorias.map(item => {
@@ -14140,7 +14146,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ba', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.
