@@ -1032,6 +1032,30 @@
         return perfilAcessoAtual_() === 'GPV';
       }
 
+      // V23.9.99bh — a planilha administrativa fica acessível somente
+      // para usuários do perfil GPV. O perfil GERAL permanece no app
+      // exclusivamente com os recursos de consulta/treinamento permitidos.
+      function usuarioPodeAcessarPlanilha_() {
+        return perfilAcessoAtual_() === 'GPV';
+      }
+
+      function bloquearLinksPlanilhaParaGeral_() {
+        if (usuarioPodeAcessarPlanilha_()) return;
+
+        [
+          recordsOpenSheetLink,
+          recordDetailSheetLink,
+          adminSheetMenuLink,
+          dashboardSheetHeaderLink
+        ].forEach(link => {
+          if (!link) return;
+          link.hidden = true;
+          link.removeAttribute('href');
+          link.setAttribute('aria-hidden', 'true');
+          link.setAttribute('tabindex', '-1');
+        });
+      }
+
       function usuarioEmTreinamento_() {
         return perfilAcessoAtual_() === 'GERAL';
       }
@@ -1122,6 +1146,10 @@
           if (submitBtn) submitBtn.textContent = 'Finalizar treinamento';
           if (prepareInspectionSaveBtn && !preparacaoEditandoId) prepareInspectionSaveBtn.textContent = 'Finalizar treinamento';
         }
+
+        // Defesa adicional contra links residuais de uma sessão GPV anterior
+        // no mesmo aparelho/navegador.
+        bloquearLinksPlanilhaParaGeral_();
       }
 
       function abrirManualSistema_() {
@@ -2760,25 +2788,55 @@
 
       function atualizarLinkPlanilha_(url) {
         const destino = String(url || '').trim();
-        if (destino) recordsState.planilhaUrl = destino;
+        if (destino && usuarioPodeAcessarPlanilha_()) {
+          recordsState.planilhaUrl = destino;
+        }
+
         const finalUrl = recordsState.planilhaUrl || String(appConfig?.planilhaUrl || '').trim();
 
         [recordsOpenSheetLink, recordDetailSheetLink, adminSheetMenuLink, dashboardSheetHeaderLink].forEach(link => {
           if (!link) return;
-          if (!usuarioPodeOperar_()) {
-            link.href = '#';
+
+          if (!usuarioPodeAcessarPlanilha_()) {
             link.hidden = true;
+            link.removeAttribute('href');
+            link.setAttribute('aria-hidden', 'true');
+            link.setAttribute('tabindex', '-1');
             return;
           }
+
+          link.removeAttribute('aria-hidden');
+          link.removeAttribute('tabindex');
+
           if (finalUrl) {
             link.href = finalUrl;
             link.hidden = false;
           } else {
-            link.href = '#';
+            link.removeAttribute('href');
             link.hidden = true;
           }
         });
       }
+
+      document.addEventListener('click', (event) => {
+        const alvo = event.target?.closest?.(
+          '#dashboardSheetHeaderLink, #adminSheetMenuLink, #recordsOpenSheetLink, #recordDetailSheetLink'
+        );
+        if (!alvo || usuarioPodeAcessarPlanilha_()) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        alvo.hidden = true;
+        alvo.removeAttribute('href');
+        alvo.setAttribute('aria-hidden', 'true');
+        alvo.setAttribute('tabindex', '-1');
+
+        try { fecharMenuMais_(); } catch (_) {}
+        if (appStatus) {
+          appStatus.textContent = 'A planilha administrativa está disponível somente para usuários GPV.';
+        }
+      }, true);
 
       function atualizarBotaoPlanilhaSucesso_() {
         if (!recordsSuccessBtn) return;
@@ -14300,7 +14358,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bg', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bh', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.
