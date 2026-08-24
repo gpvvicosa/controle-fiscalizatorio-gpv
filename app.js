@@ -12135,7 +12135,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return 'watch';
       }
 
-      // V23.9.99be — Sugestões de Fiscalização do registro histórico
+      // V23.9.99bf — Sugestões de Fiscalização do registro histórico
       // mais antigo para o mais novo. O fallback interpreta itens do cache
       // anterior, que ainda não possuíam ultimaVistoriaTimestamp.
       function timestampSugestaoFiscalizacao_(item) {
@@ -12319,6 +12319,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <div class="inspection-suggestion-meta">
               ${item.ocupacao ? `<span><b>Ocupação:</b> ${escapeHtml(item.ocupacao)}</span>` : ''}
               ${dimensoes ? `<span><b>Edificação:</b> ${escapeHtml(dimensoes)}</span>` : ''}
+              ${item.reds ? `<span><b>REDS:</b> ${escapeHtml(item.reds)}</span>` : ''}
               ${item.pscip ? `<span><b>${escapeHtml(rotuloProjetoPscip_(item.pscip))}:</b> ${escapeHtml(projetoPscipOperacional_(item.pscip) || item.pscip)}</span>` : '<span><b>PSCIP / Projeto:</b> não identificado</span>'}
               <span><b>Última vistoria:</b> ${escapeHtml(formatarDataPainel_(item.ultimaVistoria) || item.ultimaVistoria || 'não informada')}</span>
               <span><b>Situação:</b> ${escapeHtml(marco)}</span>
@@ -14213,7 +14214,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99be', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bf', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.
