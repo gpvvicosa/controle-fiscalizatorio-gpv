@@ -2527,7 +2527,60 @@
         return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
       }
 
-      function montarMensagemOrientacoes_(p) {
+      function contextoWhatsAppLiberacao_(p) {
+        const nome = String(p?.nomeResponsavel || '').trim();
+        const estabelecimento = String(p?.nomeFantasia || p?.razaoSocial || '').trim();
+        const pscip = String(p?.pscip || p?.projeto || '').trim();
+        const situacao = String(p?.sancao || p?.situacaoAtual || '').trim();
+        const tipoVistoria = String(p?.tipoVistoria || '').trim();
+        return { nome, estabelecimento, pscip, situacao, tipoVistoria };
+      }
+
+      function ehMensagemLiberacao_(p) {
+        const ctx = contextoWhatsAppLiberacao_(p);
+        return normalize(ctx.tipoVistoria).includes('liberacao') ||
+          [normalize('Liberado'), normalize('Notificado')].includes(normalize(ctx.situacao));
+      }
+
+      function montarMensagemLiberadoWhatsApp_(p) {
+        const { nome, estabelecimento, pscip } = contextoWhatsAppLiberacao_(p);
+        const linhas = [];
+
+        linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
+        linhas.push('');
+        linhas.push(
+          `Informamos que a vistoria de liberação realizada${estabelecimento ? ` na edificação *${estabelecimento}*` : ' na edificação'}${pscip ? `, referente ao *PSCIP ${pscip}*` : ''}, foi concluída com resultado *LIBERADO*.`
+        );
+        linhas.push('');
+        linhas.push('Orientamos a manter todas as medidas de segurança contra incêndio e pânico em condições adequadas de uso e funcionamento, conforme previsto no processo aprovado.');
+        linhas.push('');
+        linhas.push('A situação do licenciamento e a disponibilização do AVCB devem ser acompanhadas pelo *INFOSCIP*.');
+        linhas.push('');
+        linhas.push('*Grupamento de Prevenção e Vistoria — 3º Pelotão Viçosa — CBMMG*');
+
+        return linhas.join('\n');
+      }
+
+      function montarMensagemNotificadoWhatsApp_(p) {
+        const { nome, estabelecimento, pscip } = contextoWhatsAppLiberacao_(p);
+        const linhas = [];
+
+        linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
+        linhas.push('');
+        linhas.push(
+          `Durante a vistoria de liberação${estabelecimento ? ` da edificação *${estabelecimento}*` : ''}${pscip ? `, referente ao *PSCIP ${pscip}*` : ''}, foram constatadas irregularidades na execução das medidas de segurança contra incêndio e pânico, em desacordo com o projeto aprovado.`
+        );
+        linhas.push('');
+        linhas.push('As não conformidades foram registradas no *INFOSCIP* e, por esse motivo, não foi possível a emissão do AVCB neste momento.');
+        linhas.push('');
+        linhas.push('Após a correção das irregularidades, poderá ser solicitada *nova vistoria*. Também é possível apresentar *pedido de reconsideração de ato*, nos termos do art. 16 do Decreto Estadual nº 47.998/2020, cabendo recurso conforme o art. 17 do mesmo Decreto.');
+        linhas.push('');
+        linhas.push('*Grupamento de Prevenção e Vistoria — 3º Pelotão Viçosa — CBMMG*');
+
+        return linhas.join('\n');
+      }
+
+      function montarMensagemOrientacoesAutuado_(p) {
         const nome = String(p?.nomeResponsavel || '').trim();
         const estabelecimento = String(p?.nomeFantasia || p?.razaoSocial || '').trim();
         const data = dataOrientacao_(p?._appCriadoEm);
@@ -2599,6 +2652,15 @@
         return linhas.join('\n');
       }
 
+      function montarMensagemOrientacoes_(p) {
+        if (ehMensagemLiberacao_(p)) {
+          const situacao = normalize(p?.sancao || p?.situacaoAtual || '');
+          if (situacao === normalize('Liberado')) return montarMensagemLiberadoWhatsApp_(p);
+          if (situacao === normalize('Notificado')) return montarMensagemNotificadoWhatsApp_(p);
+        }
+        return montarMensagemOrientacoesAutuado_(p);
+      }
+
       function abrirMensagemWhatsAppResponsavel_(payload = ultimoRegistroParaOrientacoes, telefoneAlternativo = '') {
         if (!navigator.onLine) {
           avisarGpv_('A mensagem poderá ser aberta no WhatsApp quando a conexão voltar.', 'Sem internet', { tom: 'warning' });
@@ -2645,15 +2707,36 @@
 
       function atualizarBotaoOrientacoes_() {
         if (!whatsappOrientacoesBtn) return;
-        const numero = telefoneWhatsApp_(ultimoRegistroParaOrientacoes?.telefone);
+        const dados = ultimoRegistroParaOrientacoes || {};
+        const numero = telefoneWhatsApp_(dados.telefone);
         const label = whatsappOrientacoesBtn.querySelector('.whatsapp-btn-label');
+        const situacao = normalize(dados.sancao || dados.situacaoAtual || '');
+        const liberado = ehMensagemLiberacao_(dados) && situacao === normalize('Liberado');
+        const notificado = ehMensagemLiberacao_(dados) && situacao === normalize('Notificado');
+
         whatsappOrientacoesBtn.disabled = !numero;
+
         if (numero) {
-          if (label) label.textContent = 'Enviar mensagem ao responsável';
-          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'A mensagem será aberta diretamente no WhatsApp do responsável e já inclui o acesso ao Manual do Autuado.';
+          if (label) {
+            label.textContent = liberado
+              ? 'Enviar mensagem de liberação'
+              : notificado
+                ? 'Enviar mensagem de notificação'
+                : 'Enviar mensagem ao responsável';
+          }
+
+          if (whatsappOrientacoesNote) {
+            whatsappOrientacoesNote.textContent = liberado
+              ? 'A mensagem de liberação será aberta no WhatsApp para conferência antes do envio.'
+              : notificado
+                ? 'A mensagem sobre as irregularidades e nova vistoria será aberta no WhatsApp para conferência antes do envio.'
+                : 'A mensagem será aberta diretamente no WhatsApp do responsável e já inclui o acesso ao Manual do Autuado.';
+          }
         } else {
           if (label) label.textContent = 'WhatsApp — telefone não informado';
-          if (whatsappOrientacoesNote) whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para abrir diretamente a conversa no WhatsApp.';
+          if (whatsappOrientacoesNote) {
+            whatsappOrientacoesNote.textContent = 'Informe um telefone válido do responsável para abrir diretamente a conversa no WhatsApp.';
+          }
         }
       }
 
@@ -4695,6 +4778,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           nomeResponsavel,
           nomeFantasia,
           razaoSocial,
+          tipoVistoria: valorCampoFicha_(registro, 'Tipo de vistoria'),
+          sancao: String(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '').trim(),
+          pscip: valorPscipOperacionalFicha_(registro) || valorCampoFicha_(registro, 'Nº do PSCIP', 'Nº do PSCIP / Projeto'),
           _appCriadoEm: dataRegistro
         };
       }
@@ -14214,7 +14300,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bf', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bg', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.

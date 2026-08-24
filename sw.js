@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260824-v23-9-99-sugestoes-reds-bf';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260824-v23-9-99-whatsapp-liberacao-bg';
 const VERSION = '23.9.99ay';
 
 const CORE_SHELL = [
