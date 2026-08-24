@@ -4676,7 +4676,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             encontrados.push(codigo);
           }
         }
-        return encontrados.join(', ');
+
+        if (!encontrados.length) return '';
+        if (encontrados.length === 1) return encontrados[0];
+        if (encontrados.length === 2) return `${encontrados[0]} e ${encontrados[1]}`;
+
+        return `${encontrados.slice(0, -1).join(', ')} e ${encontrados[encontrados.length - 1]}`;
       }
 
       function montarTextoRedsFiscalizacao_(modelo, registro) {
@@ -4692,11 +4697,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const eventoOrganizador = String(valorCampoFicha_(registro, 'Organizador do evento') || 'NÃO INFORMADO').toUpperCase();
         const eventoDocumento = valorCampoFicha_(registro, 'CPF/CNPJ do organizador') || 'NÃO INFORMADO';
         const ddu = valorCampoFicha_(registro, 'Nº DDU') || 'NÃO INFORMADO';
-        const ocupacaoCompleta = String(valorCampoFicha_(registro, 'Ocupação') || 'NÃO INFORMADO').replace(/\s*\|\s*/g, ', ').toUpperCase();
+        const ocupacaoCompleta = String(valorCampoFicha_(registro, 'Ocupação') || '').replace(/\s*\|\s*/g, ', ').toUpperCase();
         const ocupacaoSomenteCodigos = codigosOcupacaoRelatorio_(ocupacaoCompleta);
-        const ocupacao = modelo === RELATORIOS_REDS_FISCALIZACAO.renovacaoAvcb
-          ? (ocupacaoSomenteCodigos || 'NÃO INFORMADO')
-          : ocupacaoCompleta;
+
+        // V23.9.99bi — padrão dos históricos/relatórios REDS:
+        // quando citar ocupação/divisão, exibir somente as siglas.
+        // Ex.: A-2, C-2, F-8 e D-1.
+        const ocupacao = ocupacaoSomenteCodigos || 'NÃO INFORMADO';
         const area = valorCampoFicha_(registro, 'Área m²') || 'NÃO INFORMADA';
         const situacaoPscip = String(valorCampoFicha_(registro, 'Situação atual do PSCIP') || 'NÃO INFORMADA').toUpperCase();
         const dataRenovacaoAvcb = valorCampoFicha_(registro, 'Data de renovação do AVCB') || 'NÃO INFORMADA';
@@ -14358,7 +14365,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bh', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bi', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.
