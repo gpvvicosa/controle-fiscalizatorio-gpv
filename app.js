@@ -20,7 +20,7 @@
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
-      const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV1';
+      const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV2Cronologica';
       const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
       const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -3565,15 +3565,11 @@
         const realizadoTotal = Number(dados?.realizadoTotal || 0);
         const percentual = Math.max(0, Math.min(100, Number(dados?.percentual || 0)));
         const titulo = String(dados?.titulo || 'Mês atual').trim();
-        const diagnosticoMetas = dados?.diagnostico && typeof dados.diagnostico === 'object' ? dados.diagnostico : {};
-        const alertaMetas = String(diagnosticoMetas?.alerta || '').trim();
 
         if (dashboardGoalsTitle) dashboardGoalsTitle.textContent = `Metas de ${titulo} — Viçosa`;
-        if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = alertaMetas
-          ? `⚠ ${alertaMetas}`
-          : (metaTotal > 0
-            ? `${realizadoTotal} de ${metaTotal} vistorias da meta contabilizadas.`
-            : 'Acompanhamento mensal das categorias de meta.');
+        if (dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = metaTotal > 0
+          ? `${realizadoTotal} de ${metaTotal} vistorias da meta contabilizadas.`
+          : 'Acompanhamento mensal das categorias de meta.';
         if (dashboardGoalsOverallValue) dashboardGoalsOverallValue.textContent = `${realizadoTotal} / ${metaTotal}`;
         if (dashboardGoalsOverallLabel) dashboardGoalsOverallLabel.textContent = percentual >= 100 ? 'Meta geral atingida' : `Faltam ${Math.max(0, metaTotal - realizadoTotal)}`;
         if (dashboardGoalsPercent) dashboardGoalsPercent.textContent = `${Math.round(percentual)}%`;
@@ -3604,9 +3600,7 @@
         }
 
         if (goalsModalTitle) goalsModalTitle.textContent = `Metas de ${titulo}`;
-        if (goalsModalSubtitle) goalsModalSubtitle.textContent = alertaMetas
-          ? `⚠ ${alertaMetas}`
-          : `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa.`;
+        if (goalsModalSubtitle) goalsModalSubtitle.textContent = `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa.`;
         if (goalsModalSummary) goalsModalSummary.innerHTML = `<div class="goals-modal-overall-card"><div class="goals-modal-overall-top"><div><span>Progresso geral</span><strong>${Math.round(percentual)}%</strong></div><div class="goals-modal-overall-count"><span>Realizado / meta</span><strong>${realizadoTotal}/${metaTotal}</strong></div></div><div class="goals-modal-overall-progress"><span style="width:${Math.max(0, Math.min(100, percentual))}%"></span></div><div class="goals-modal-overall-foot"><span>${realizadoTotal >= metaTotal ? 'Meta mensal atingida' : `Faltam ${Math.max(0, metaTotal-realizadoTotal)} para a meta mensal`}</span><span>Viçosa</span></div></div>`;
         if (goalsModalList) {
           goalsModalList.innerHTML = categorias.map(item => {
@@ -3823,7 +3817,7 @@
 
       function aplicarCacheSugestoesFiscalizacaoLocal_(cache) {
         if (!cache || !Array.isArray(cache.itens)) return false;
-        sugestoesFiscalizacao = cache.itens;
+        sugestoesFiscalizacao = ordenarSugestoesFiscalizacaoCronologicamente_(cache.itens);
         resumoSugestoesFiscalizacao = cache.resumo || { total: cache.itens.length, alta: 0, media: 0, acompanhamento: 0 };
         sugestoesFiscalizacaoGeradoEm = String(cache.geradoEm || '');
         sugestoesFiscalizacaoCarregadas = true;
@@ -12141,6 +12135,75 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return 'watch';
       }
 
+      // V23.9.99be — Sugestões de Fiscalização do registro histórico
+      // mais antigo para o mais novo. O fallback interpreta itens do cache
+      // anterior, que ainda não possuíam ultimaVistoriaTimestamp.
+      function timestampSugestaoFiscalizacao_(item) {
+        const direto = Number(item?.ultimaVistoriaTimestamp || 0);
+        if (Number.isFinite(direto) && direto > 0) return direto;
+
+        const texto = String(item?.ultimaVistoria || '').trim();
+        if (!texto) return 0;
+
+        let m = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.(\d{1,3}))?)?)?/);
+        if (m) {
+          const data = new Date(
+            Number(m[1]),
+            Number(m[2]) - 1,
+            Number(m[3]),
+            Number(m[4] || 0),
+            Number(m[5] || 0),
+            Number(m[6] || 0),
+            Number(String(m[7] || '0').padEnd(3, '0'))
+          );
+          return Number.isFinite(data.getTime()) ? data.getTime() : 0;
+        }
+
+        m = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,T]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+        if (m) {
+          let dia = Number(m[1]);
+          let mes = Number(m[2]);
+
+          // Base antiga/importada pode chegar em MM/DD/AAAA.
+          if (mes > 12 && dia >= 1 && dia <= 12) {
+            const troca = dia;
+            dia = mes;
+            mes = troca;
+          }
+
+          const data = new Date(
+            Number(m[3]),
+            mes - 1,
+            dia,
+            Number(m[4] || 0),
+            Number(m[5] || 0),
+            Number(m[6] || 0),
+            0
+          );
+          return Number.isFinite(data.getTime()) ? data.getTime() : 0;
+        }
+
+        const nativo = new Date(texto).getTime();
+        return Number.isFinite(nativo) ? nativo : 0;
+      }
+
+      function ordenarSugestoesFiscalizacaoCronologicamente_(lista) {
+        return (Array.isArray(lista) ? lista : [])
+          .slice()
+          .sort((a, b) => {
+            const ta = timestampSugestaoFiscalizacao_(a);
+            const tb = timestampSugestaoFiscalizacao_(b);
+
+            if (ta > 0 && tb > 0 && ta !== tb) return ta - tb;
+            if (ta > 0 && !(tb > 0)) return -1;
+            if (!(ta > 0) && tb > 0) return 1;
+
+            const tituloA = String(a?.nomeFantasia || a?.razaoSocial || '');
+            const tituloB = String(b?.nomeFantasia || b?.razaoSocial || '');
+            return tituloA.localeCompare(tituloB, 'pt-BR', { sensitivity: 'base' });
+          });
+      }
+
       function atualizarResumoSugestoesUi_() {
         const r = resumoSugestoesFiscalizacao || {};
         const total = Number(r.total || 0);
@@ -12228,8 +12291,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (preparedInspectionsStatus) {
           const atualizado = rotuloAtualizacaoSugestoes_();
           preparedInspectionsStatus.textContent =
-            `${sugestoesFiscalizacao.length} local${sugestoesFiscalizacao.length === 1 ? '' : 'is'} sugerido${sugestoesFiscalizacao.length === 1 ? '' : 's'}${atualizado ? ` • ${atualizado}` : ''} • prioridade operacional.`;
+            `${sugestoesFiscalizacao.length} local${sugestoesFiscalizacao.length === 1 ? '' : 'is'} sugerido${sugestoesFiscalizacao.length === 1 ? '' : 's'}${atualizado ? ` • ${atualizado}` : ''} • mais antigos primeiro.`;
         }
+
+        sugestoesFiscalizacao = ordenarSugestoesFiscalizacaoCronologicamente_(sugestoesFiscalizacao);
 
         preparedInspectionsList.innerHTML = sugestoesFiscalizacao.map(item => {
           const titulo = item.nomeFantasia || item.razaoSocial || 'Edificação sem nome informado';
@@ -12570,7 +12635,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             consulta: 'sugestoes_fiscalizacao',
             filtros: { limite: 200, forcarAtualizacao: Boolean(forcarAtualizacao) }
           }, 60000);
-          sugestoesFiscalizacao = Array.isArray(r?.itens) ? r.itens : [];
+          sugestoesFiscalizacao = ordenarSugestoesFiscalizacaoCronologicamente_(
+            Array.isArray(r?.itens) ? r.itens : []
+          );
           resumoSugestoesFiscalizacao = r?.resumo || {
             total: sugestoesFiscalizacao.length,
             alta: sugestoesFiscalizacao.filter(i => normalize(i.prioridade) === normalize('Alta')).length,
@@ -14146,7 +14213,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bb', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99be', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.

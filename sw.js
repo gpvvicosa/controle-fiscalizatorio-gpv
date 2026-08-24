@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260822-v23-9-99-metas-vicosa-bb';
-const VERSION = '23.9.99bb';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260824-v23-9-99-sugestoes-cronologicas-be';
+const VERSION = '23.9.99ay';
 
 const CORE_SHELL = [
   './',
