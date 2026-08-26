@@ -22,10 +22,13 @@
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
       const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV2Cronologica';
       const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
+      const PANEL_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
       const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
-      const SUGGESTIONS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+      const GOALS_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
+      const SUGGESTIONS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
       const SUGGESTIONS_REFRESH_SOFT_MS = 5 * 60 * 1000;
+      const API_READ_RETRY_DELAY_MS = 700;
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
@@ -478,6 +481,46 @@
         return '';
       }
 
+      const API_CONFIG_READ_QUERIES = new Set([
+        '',
+        'registros',
+        'registro',
+        'registro_extras',
+        'responsavel_telefone',
+        'responsavel_cpf',
+        'duplicidade',
+        'estabelecimento_historico',
+        'pscip',
+        'encerramento_fiscal',
+        'processo_pf',
+        'rascunhos',
+        'rascunho',
+        'rascunho_estado',
+        'sistema_status',
+        'metas',
+        'programadas',
+        'sugestoes_fiscalizacao',
+        'ddus'
+      ]);
+
+      function requisicaoLeituraPodeRepetir_(action, data = {}) {
+        const acao = String(action || '').trim().toLowerCase();
+        if (acao === 'ping' || acao === 'cnpj' || acao === 'users') return true;
+        if (acao !== 'config') return false;
+        return API_CONFIG_READ_QUERIES.has(String(data?.consulta || '').trim().toLowerCase());
+      }
+
+      function erroTransitorioGateway_(erro) {
+        const status = Number(erro?.status || 0);
+        const codigo = String(erro?.code || '').trim().toUpperCase();
+        if (['RESPONSE_FORMAT', 'UPSTREAM_FORMAT', 'REQUEST_TIMEOUT', 'NETWORK_ERROR'].includes(codigo)) return true;
+        return [408, 425, 429, 500, 502, 503, 504].includes(status);
+      }
+
+      function esperarApi_(ms) {
+        return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms || 0))));
+      }
+
       async function gatewayRequest_(action, data = {}, timeoutMs = 30000) {
         if (!navigator.onLine) throw new Error('Sem conexão com a internet.');
         if (!API_URL || API_URL.includes('COLE_AQUI')) {
@@ -499,22 +542,46 @@
             cache: 'no-store',
             signal: controller.signal
           });
+          const textoResposta = await response.text();
           let result = null;
-          try { result = await response.json(); } catch (e) {}
-          if (!response.ok || !result || result.ok === false) {
+          try {
+            result = textoResposta ? JSON.parse(textoResposta) : null;
+          } catch (e) {
+            result = null;
+          }
+
+          if (!result || typeof result !== 'object') {
+            const error = new Error('O serviço respondeu temporariamente em formato inválido.');
+            error.code = 'RESPONSE_FORMAT';
+            error.status = response.status || 502;
+            throw error;
+          }
+
+          if (!response.ok || result.ok === false) {
             const message = result?.error || result?.message || `Falha na comunicação (HTTP ${response.status}).`;
             const error = new Error(message);
             error.code = String(result?.code || '');
             error.status = response.status;
+            error.upstreamStatus = Number(result?.upstreamStatus || 0);
             throw error;
           }
+
           return result;
         } catch (error) {
           if (error?.name === 'AbortError') {
             const timeoutError = new Error('A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.');
             timeoutError.code = 'REQUEST_TIMEOUT';
+            timeoutError.status = 408;
             throw timeoutError;
           }
+
+          if (error instanceof TypeError && !error?.code) {
+            const networkError = new Error('A comunicação com o serviço foi interrompida temporariamente.');
+            networkError.code = 'NETWORK_ERROR';
+            networkError.status = 503;
+            throw networkError;
+          }
+
           throw error;
         } finally {
           clearTimeout(timer);
@@ -527,23 +594,41 @@
           error.code = 'AUTH_REQUIRED';
           throw error;
         }
+
         const sessionToken = String(authState.sessionToken || '').trim();
         if (!sessionToken) {
           const error = new Error('Entre com seu Nº BM para continuar.');
           error.code = 'AUTH_REQUIRED';
           throw error;
         }
-        try {
-          const result = await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs);
-          atualizarPerfilLocalPorResposta_(result);
-          return result;
-        } catch (error) {
-          if (error?.code === 'AUTH_REQUIRED' || error?.status === 401) {
-            limparSessaoLocalBm_();
-            mostrarTelaLoginBm_('Sua identificação precisa ser confirmada novamente.');
+
+        const podeRepetir = requisicaoLeituraPodeRepetir_(action, data);
+        const tentativas = podeRepetir ? 2 : 1;
+        let ultimoErro = null;
+
+        for (let tentativa = 1; tentativa <= tentativas; tentativa += 1) {
+          try {
+            const result = await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs);
+            atualizarPerfilLocalPorResposta_(result);
+            return result;
+          } catch (error) {
+            ultimoErro = error;
+
+            if (error?.code === 'AUTH_REQUIRED' || error?.status === 401) {
+              limparSessaoLocalBm_();
+              mostrarTelaLoginBm_('Sua identificação precisa ser confirmada novamente.');
+              throw error;
+            }
+
+            if (tentativa >= tentativas || !podeRepetir || !erroTransitorioGateway_(error)) {
+              throw error;
+            }
+
+            await esperarApi_(API_READ_RETRY_DELAY_MS * tentativa);
           }
-          throw error;
         }
+
+        throw ultimoErro || new Error('Não foi possível concluir a comunicação.');
       }
 
       async function authRequest_(data = {}, timeoutMs = 30000) {
@@ -3805,14 +3890,27 @@
       async function carregarMetas_(forcar = false) {
         if (metasCarregando) return;
         const cache = lerStorageJson_(GOALS_CACHE_STORAGE, {});
-        const cacheValido = cache?.resposta && cache?.salvoEm && (Date.now() - Number(cache.salvoEm) <= GOALS_CACHE_TTL_MS);
-        if (metasMensaisAtual && !forcar) { renderizarMetas_(metasMensaisAtual); return; }
-        if (!metasMensaisAtual && cacheValido) {
+        const idadeCache = cache?.salvoEm ? Math.max(0, Date.now() - Number(cache.salvoEm)) : Infinity;
+        const cacheDisponivel = Boolean(cache?.resposta && cache?.salvoEm && idadeCache <= GOALS_CACHE_STALE_MS);
+        const cacheFresco = cacheDisponivel && idadeCache <= GOALS_CACHE_TTL_MS;
+
+        if (metasMensaisAtual && !forcar) {
+          renderizarMetas_(metasMensaisAtual);
+          return;
+        }
+
+        if (!metasMensaisAtual && cacheDisponivel) {
           metasMensaisAtual = cache.resposta;
           renderizarMetas_(metasMensaisAtual);
+          if (!cacheFresco && dashboardGoalsSubtitle) {
+            dashboardGoalsSubtitle.textContent += ' Última atualização salva; conferindo dados atuais...';
+          }
         }
+
         if (!navigator.onLine) {
-          if (!cacheValido && dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Conecte-se à internet para atualizar as metas.';
+          if (!cacheDisponivel && dashboardGoalsSubtitle) {
+            dashboardGoalsSubtitle.textContent = 'Conecte-se à internet para atualizar as metas.';
+          }
           return;
         }
         metasCarregando = true;
@@ -3822,7 +3920,14 @@
           gravarStorageJson_(GOALS_CACHE_STORAGE, { salvoEm: Date.now(), resposta: metasMensaisAtual });
           renderizarMetas_(metasMensaisAtual);
         } catch (erro) {
-          if (!cacheValido && dashboardGoalsSubtitle) dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora.';
+          if (cacheDisponivel && metasMensaisAtual) {
+            renderizarMetas_(metasMensaisAtual);
+            if (dashboardGoalsSubtitle) {
+              dashboardGoalsSubtitle.textContent += ' Últimos dados válidos mantidos; atualização temporariamente indisponível.';
+            }
+          } else if (dashboardGoalsSubtitle) {
+            dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora. O sistema tentará novamente na próxima atualização.';
+          }
         } finally { metasCarregando = false; }
       }
 
@@ -3985,8 +4090,15 @@
         const mapa = lerStorageJson_(PANEL_CACHE_STORAGE, {});
         const item = mapa[chave];
         if (!item || !item.salvoEm || !item.resposta) return null;
-        if (Date.now() - Number(item.salvoEm) > PANEL_CACHE_TTL_MS) return null;
-        return item;
+
+        const idade = Math.max(0, Date.now() - Number(item.salvoEm));
+        if (idade > PANEL_CACHE_STALE_MS) return null;
+
+        return {
+          ...item,
+          idade,
+          desatualizado: idade > PANEL_CACHE_TTL_MS
+        };
       }
 
       function salvarCachePainel_(chave, resposta) {
@@ -4065,8 +4177,8 @@
         recordsStatus.className = origemCache ? 'records-status cached' : 'records-status';
         if (origemCache) {
           recordsStatus.innerHTML = navigator.onLine
-            ? `<strong>Painel aberto com a última consulta.</strong> Atualizando os dados em segundo plano...`
-            : `<strong>Offline:</strong> exibindo a última consulta salva neste aparelho.`;
+            ? `<strong>Última consulta válida exibida.</strong> Conferindo dados mais recentes em segundo plano...`
+            : `<strong>Offline:</strong> exibindo a última consulta válida salva neste aparelho.`;
           return;
         }
         recordsStatus.innerHTML = rotuloMulta
@@ -4145,8 +4257,8 @@
           if (cache?.resposta) {
             recordsStatus.className = 'records-status cached';
             recordsStatus.innerHTML = buscaAtiva
-              ? '<strong>Não foi possível concluir a busca agora.</strong> Os últimos resultados salvos continuam visíveis.'
-              : '<strong>Não foi possível atualizar agora.</strong> A última consulta salva continua disponível.';
+              ? '<strong>Serviço temporariamente instável.</strong> Os últimos resultados válidos continuam visíveis; tente novamente em instantes.'
+              : '<strong>Atualização temporariamente indisponível.</strong> Os últimos dados válidos continuam visíveis e serão atualizados na próxima tentativa.';
           } else {
             recordsStatus.className = 'records-status error';
             recordsStatus.textContent = erro?.message || (buscaAtiva ? 'Não foi possível concluir a busca.' : 'Não foi possível carregar o Painel Fiscalizatório.');
@@ -12805,8 +12917,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           });
           atualizarResumoSugestoesUi_();
         } catch (erro) {
-          if (!sugestoesFiscalizacaoCarregadas && preparedInspectionsStatus) {
-            preparedInspectionsStatus.textContent = erro?.message || 'Não foi possível carregar as sugestões.';
+          if (sugestoesFiscalizacaoCarregadas && preparedInspectionsStatus && filtroPreparacoes === 'sugestoes') {
+            preparedInspectionsStatus.textContent = 'Últimas sugestões válidas mantidas. A atualização do servidor está temporariamente indisponível.';
+          } else if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.textContent = 'Não foi possível atualizar as sugestões agora. Tente novamente em instantes.';
           }
         } finally {
           sugestoesFiscalizacaoAtualizando = false;
@@ -14365,7 +14479,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bi', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bj', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Durante a fase de atualizações, verifica em segundo plano sem avisos.
