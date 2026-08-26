@@ -449,6 +449,178 @@
         return `${DRAFT_KEY}:finalizados:${draftUserId_()}`;
       }
 
+      function draftAssinaturasFinalizadasKey_() {
+        return `${DRAFT_KEY}:assinaturas-finalizadas:${draftUserId_()}`;
+      }
+
+      function assinaturaRascunhoPayload_(payload = {}) {
+        const p = payload && typeof payload === 'object' ? payload : {};
+        const preparacaoId = String(p._appPreparacaoId || '').trim();
+        if (preparacaoId) return `prep:${preparacaoId}`;
+
+        const dduId = String(p._appDduId || '').trim();
+        if (dduId) return `ddu:${dduId}`;
+
+        const eventoDeclaracao = String(p.eventoDeclaracaoNumero || '').trim();
+        if (eventoDeclaracao) return `evento:${normalize(eventoDeclaracao)}`;
+
+        const documento = digits(p.cnpj || '');
+        const pscip = String(p.pscip || '').trim().toUpperCase().replace(/\s+/g, '');
+        const endereco = normalize(p.endereco || '').replace(/\s+/g, ' ').trim();
+        const numero = normalize(p.numero || '').replace(/\s+/g, ' ').trim();
+        const tipo = normalize(p.tipoVistoria || '').replace(/\s+/g, ' ').trim();
+        const nome = normalize(p.nomeFantasia || p.razaoSocial || '').replace(/\s+/g, ' ').trim();
+
+        if (documento.length >= 11 && endereco) {
+          return `doc:${documento}|end:${endereco}|num:${numero}|tipo:${tipo}`;
+        }
+        if (pscip && endereco) {
+          return `pscip:${pscip}|end:${endereco}|num:${numero}|tipo:${tipo}`;
+        }
+        if (nome && endereco) {
+          return `nome:${nome}|end:${endereco}|num:${numero}|tipo:${tipo}`;
+        }
+        return '';
+      }
+
+      function lerAssinaturasFinalizadasLocais_() {
+        try {
+          const bruto = JSON.parse(localStorage.getItem(draftAssinaturasFinalizadasKey_()) || '{}');
+          if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return {};
+          const limite = Date.now() - 1000 * 60 * 60 * 24 * 7;
+          const limpo = {};
+          Object.entries(bruto).forEach(([assinatura, encerradoEm]) => {
+            const data = Number(encerradoEm || 0);
+            if (assinatura && data >= limite) limpo[assinatura] = data;
+          });
+          if (Object.keys(limpo).length !== Object.keys(bruto).length) {
+            localStorage.setItem(draftAssinaturasFinalizadasKey_(), JSON.stringify(limpo));
+          }
+          return limpo;
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function marcarAssinaturaFinalizadaLocal_(payload) {
+        const assinatura = assinaturaRascunhoPayload_(payload);
+        if (!assinatura) return '';
+        try {
+          const mapa = lerAssinaturasFinalizadasLocais_();
+          mapa[assinatura] = Date.now();
+          localStorage.setItem(draftAssinaturasFinalizadasKey_(), JSON.stringify(mapa));
+        } catch (e) {}
+        return assinatura;
+      }
+
+      function assinaturaFinalizadaLocal_(payload) {
+        const assinatura = assinaturaRascunhoPayload_(payload);
+        if (!assinatura) return false;
+        return Boolean(lerAssinaturasFinalizadasLocais_()[assinatura]);
+      }
+
+      function lerRascunhoLocalPorId_(recordId) {
+        try {
+          const raw = localStorage.getItem(draftKeyAtual_(recordId));
+          if (!raw) return null;
+          const draft = JSON.parse(raw);
+          return draft && typeof draft === 'object' ? draft : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function removerRascunhosLocaisRelacionados_(payloadFinal, recordIdFinal = '') {
+        const assinaturaFinal = assinaturaRascunhoPayload_(payloadFinal);
+        const idsRemovidos = new Set();
+        const removerId = id => {
+          const rid = String(id || '').trim();
+          if (!rid || idsRemovidos.has(rid)) return;
+          idsRemovidos.add(rid);
+          marcarRascunhoFinalizadoLocal_(rid);
+          removerRascunhoLocal_(rid);
+        };
+
+        removerId(recordIdFinal || payloadFinal?._appRegistroId || '');
+
+        if (assinaturaFinal) {
+          for (const item of lerIndiceRascunhosLocais_()) {
+            const draft = lerRascunhoLocalPorId_(item && item.id);
+            if (!draft?.payload) continue;
+            if (assinaturaRascunhoPayload_(draft.payload) === assinaturaFinal) removerId(item.id);
+          }
+
+          // Defesa para chaves antigas que ficaram fora do índice local.
+          try {
+            const prefixo = `${DRAFT_KEY}:${draftUserId_()}:`;
+            const reservadas = new Set([
+              draftIndexKey_(),
+              draftFinalizadosKey_(),
+              draftAssinaturasFinalizadasKey_()
+            ]);
+            const chaves = [];
+            for (let i = 0; i < localStorage.length; i += 1) {
+              const chave = localStorage.key(i);
+              if (chave && chave.startsWith(prefixo) && !reservadas.has(chave)) chaves.push(chave);
+            }
+            chaves.forEach(chave => {
+              try {
+                const draft = JSON.parse(localStorage.getItem(chave) || '{}');
+                if (assinaturaRascunhoPayload_(draft?.payload || {}) !== assinaturaFinal) return;
+                localStorage.removeItem(chave);
+                const id = String(draft?.recordId || draft?.payload?._appRegistroId || '').trim();
+                if (id) marcarRascunhoFinalizadoLocal_(id);
+              } catch (e) {}
+            });
+          } catch (e) {}
+        }
+
+        // Remove também o formato de rascunho único das versões antigas quando
+        // ele representa a mesma vistoria que acabou de ser concluída.
+        [`${DRAFT_KEY}:${draftUserId_()}`, DRAFT_KEY].forEach(chave => {
+          try {
+            const raw = localStorage.getItem(chave);
+            if (!raw) return;
+            const draft = JSON.parse(raw);
+            const assinatura = assinaturaRascunhoPayload_(draft?.payload || {});
+            if (!assinaturaFinal || assinatura === assinaturaFinal) localStorage.removeItem(chave);
+          } catch (e) {}
+        });
+
+        return assinaturaFinal;
+      }
+
+      function deduplicarRascunhosLocais_() {
+        const vistos = new Map();
+        for (const item of lerIndiceRascunhosLocais_()) {
+          const rid = String(item?.id || '').trim();
+          if (!rid) continue;
+          const draft = lerRascunhoLocalPorId_(rid);
+          if (!draft?.payload) {
+            removerRascunhoLocal_(rid);
+            continue;
+          }
+          const assinatura = assinaturaRascunhoPayload_(draft.payload);
+          if (!assinatura) continue;
+          if (assinaturaFinalizadaLocal_(draft.payload)) {
+            removerRascunhoLocal_(rid);
+            continue;
+          }
+          const anterior = vistos.get(assinatura);
+          if (!anterior) {
+            vistos.set(assinatura, { id: rid, savedAt: Number(draft.savedAt || item.savedAt || 0) });
+            continue;
+          }
+          const atualSavedAt = Number(draft.savedAt || item.savedAt || 0);
+          if (atualSavedAt > anterior.savedAt) {
+            removerRascunhoLocal_(anterior.id);
+            vistos.set(assinatura, { id: rid, savedAt: atualSavedAt });
+          } else {
+            removerRascunhoLocal_(rid);
+          }
+        }
+      }
+
       function lerRascunhosFinalizadosLocais_() {
         try {
           const bruto = JSON.parse(localStorage.getItem(draftFinalizadosKey_()) || '{}');
@@ -509,13 +681,20 @@
       }
 
       function obterRascunhoLocalMaisRecente_() {
+        deduplicarRascunhosLocais_();
         const limite = Date.now() - 1000 * 60 * 60 * 24 * 3;
         for (const item of lerIndiceRascunhosLocais_()) {
           if (Number(item.savedAt || 0) < limite) { removerRascunhoLocal_(item.id); continue; }
           if (rascunhoFinalizadoLocal_(item.id)) { removerRascunhoLocal_(item.id); continue; }
           try {
             const raw = localStorage.getItem(draftKeyAtual_(item.id));
-            if (raw) return raw;
+            if (!raw) continue;
+            const draft = JSON.parse(raw);
+            if (draft?.payload && assinaturaFinalizadaLocal_(draft.payload)) {
+              removerRascunhoLocal_(item.id);
+              continue;
+            }
+            return raw;
           } catch (e) {}
         }
         return '';
@@ -6394,9 +6573,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ultimoRegistroParaOrientacoes = { ...payload };
         const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
         enfileirarRegistro(payload);
-        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: registroEncerradoId }, 12000).catch(() => {});
-        encerrarEstadoLocalVistoria_(registroEncerradoId);
-        resetForm(true);
+        if (navigator.onLine) {
+          apiRequest('config', {
+            consulta: 'rascunho_encerrar',
+            id: registroEncerradoId,
+            payload
+          }, 12000).catch(() => {});
+        }
+        encerrarEstadoLocalVistoria_(registroEncerradoId, payload);
+        resetForm(true, true);
         mostrarSucesso(
           'Vistoria salva no aparelho',
           'A internet está indisponível. O registro foi guardado neste celular e ficará na fila para envio quando a conexão voltar.'
@@ -11213,6 +11398,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!usuarioPodeOperar_() || !navigator.onLine) return false;
         if (rascunhoFinalizadoLocal_(currentRecordId)) return false;
         const payload = buildPayload();
+        if (assinaturaFinalizadaLocal_(payload)) return false;
         payload._appRegistroId = currentRecordId;
         try {
           await apiRequest('config', { consulta: 'rascunho_salvar', estado, payload }, 18000);
@@ -11331,8 +11517,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (rascunhoFinalizadoLocal_(currentRecordId)) return;
         try {
+          const payloadAtual = buildPayload();
+          if (assinaturaFinalizadaLocal_(payloadAtual)) return;
           const savedAt = Date.now();
-          localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt, recordId: currentRecordId, payload: buildPayload() }));
+          localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt, recordId: currentRecordId, payload: payloadAtual }));
           registrarRascunhoLocal_(currentRecordId, savedAt);
           atualizarEstadoSalvamentoIrregularidades_(navigator.onLine ? 'local' : 'offline', navigator.onLine ? '✓ Salva neste aparelho' : '☁ Salva — aguardando sincronização');
           draftStatus.textContent = '✓ Rascunho salvo';
@@ -11379,9 +11567,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 const d = JSON.parse(legado);
                 const rid = String(d?.recordId || d?.payload?._appRegistroId || criarIdRegistro());
                 d.recordId = rid;
-                localStorage.setItem(draftKeyAtual_(rid), JSON.stringify(d));
-                registrarRascunhoLocal_(rid, d.savedAt || Date.now());
-                raw = JSON.stringify(d);
+                if (d?.payload && assinaturaFinalizadaLocal_(d.payload)) {
+                  marcarRascunhoFinalizadoLocal_(rid);
+                } else {
+                  localStorage.setItem(draftKeyAtual_(rid), JSON.stringify(d));
+                  registrarRascunhoLocal_(rid, d.savedAt || Date.now());
+                  raw = JSON.stringify(d);
+                }
               } catch (e) {}
               localStorage.removeItem(chaveLegadaUsuario);
               localStorage.removeItem(DRAFT_KEY);
@@ -11463,6 +11655,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function prepararFormularioNovaVistoria_(origem = 'Nova vistoria') {
+        deduplicarRascunhosLocais_();
         if (rascunhoEmAndamento_()) {
           saveDraft();
           sincronizarRascunhoCompartilhado_('em_andamento', true).catch(() => {});
@@ -11472,11 +11665,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return true;
       }
 
-      function encerrarEstadoLocalVistoria_(recordId) {
+      function encerrarEstadoLocalVistoria_(recordId, payloadFinal = null) {
         const rid = String(recordId || '').trim();
         if (!rid) return;
 
         marcarRascunhoFinalizadoLocal_(rid);
+        if (payloadFinal && typeof payloadFinal === 'object') {
+          marcarAssinaturaFinalizadaLocal_(payloadFinal);
+        }
 
         clearTimeout(saveTimer);
         clearTimeout(sharedDraftSyncTimer);
@@ -11495,16 +11691,35 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         pscipLookupSequencia += 1;
         encerramentoFiscalSequencia += 1;
 
-        removerRascunhoLocal_(rid);
+        removerRascunhosLocaisRelacionados_(payloadFinal || { _appRegistroId: rid }, rid);
       }
 
-      function resetForm(preservarRascunhoAtual = false) {
+      function limparCamposFormularioEncerrado_() {
+        try {
+          form.querySelectorAll('input, textarea, select').forEach(el => {
+            const tipo = String(el.type || '').toLowerCase();
+            if (tipo === 'button' || tipo === 'submit' || tipo === 'reset' || tipo === 'file') return;
+            if (tipo === 'checkbox' || tipo === 'radio') {
+              el.checked = false;
+              return;
+            }
+            if (el.tagName === 'SELECT') {
+              el.selectedIndex = 0;
+              return;
+            }
+            el.value = '';
+          });
+        } catch (e) {}
+      }
+
+      function resetForm(preservarRascunhoAtual = false, limpezaForte = false) {
         restaurarPainelProgramadas_(false);
         preparacaoEmUsoId = '';
         dduEmUsoId = '';
         dduEmUsoNumero = '';
         processoAcessoriaVinculado = null;
         form.reset();
+        if (limpezaForte) limparCamposFormularioEncerrado_();
         limparStatusLocalizacao_();
         if (!preservarRascunhoAtual) removerRascunhoLocal_(currentRecordId);
         currentRecordId = criarIdRegistro();
@@ -11825,9 +12040,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // evita perda de dados caso a conexão oscile durante o envio.
         const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
         enfileirarRegistro(payload);
-        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: registroEncerradoId }, 12000).catch(() => {});
-        encerrarEstadoLocalVistoria_(registroEncerradoId);
-        resetForm(true);
+        if (navigator.onLine) {
+          apiRequest('config', {
+            consulta: 'rascunho_encerrar',
+            id: registroEncerradoId,
+            payload
+          }, 12000).catch(() => {});
+        }
+        encerrarEstadoLocalVistoria_(registroEncerradoId, payload);
+        resetForm(true, true);
 
         if (!navigator.onLine) {
           mostrarSucesso(
@@ -15101,7 +15322,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       document.getElementById('closeSuccessBtn').addEventListener('click', () => {
         const parcial = successScreen.classList.contains('partial-success');
         successScreen.classList.remove('show');
-        if (!parcial) resetForm();
+        if (!parcial) resetForm(false, true);
       });
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
@@ -15428,7 +15649,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bp', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
