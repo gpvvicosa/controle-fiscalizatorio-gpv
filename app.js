@@ -501,6 +501,7 @@
         'programadas',
         'sugestoes_fiscalizacao',
         'reds_modelos',
+        'geocodificar_localizacao',
         'ddus'
       ]);
 
@@ -1049,6 +1050,14 @@
       const dduProtocolInput = document.getElementById('dduProtocol');
       const priorProcessAlert = document.getElementById('priorProcessAlert');
       const cnpjStatus = document.getElementById('cnpjStatus');
+      const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
+      const locationAddressStatus = document.getElementById('locationAddressStatus');
+      const localizacaoLatitudeInput = document.getElementById('localizacaoLatitude');
+      const localizacaoLongitudeInput = document.getElementById('localizacaoLongitude');
+      const localizacaoCoordenadasInput = document.getElementById('localizacaoCoordenadas');
+      const localizacaoPrecisaoInput = document.getElementById('localizacaoPrecisao');
+      const localizacaoCapturadaEmInput = document.getElementById('localizacaoCapturadaEm');
+      const localizacaoEnderecoIdentificadoInput = document.getElementById('localizacaoEnderecoIdentificado');
       const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
       const establishmentHistoryResults = document.getElementById('establishmentHistoryResults');
       const identificadorInput = document.getElementById('cnpj');
@@ -6086,6 +6095,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
           ['Situação atual do PSCIP', valorCampoFicha_(registro, 'Situação atual do PSCIP')]
         ];
+        const localizacao = registro?.localizacao && String(registro.localizacao.coordenadas || '').trim()
+          ? [['Coordenadas', String(registro.localizacao.coordenadas || '').trim()]]
+          : [];
         const responsavel = [
           ['Responsável / vínculo', valorCampoFicha_(registro, 'Responsável')],
           ['Nome', valorCampoFicha_(registro, 'Nome')],
@@ -6157,6 +6169,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
           montarGrupoFicha_('Edificação', local) +
+          montarGrupoFicha_('Localização capturada', localizacao, 'record-location-captured') +
           montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel);
 
         recordDetailTitle.textContent = 'Ficha do Processo';
@@ -8919,6 +8932,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           numero: value('numero'),
           complemento: value('complemento'),
           bairro: value('bairro'),
+          localizacaoLatitude: value('localizacaoLatitude'),
+          localizacaoLongitude: value('localizacaoLongitude'),
+          localizacaoCoordenadas: value('localizacaoCoordenadas'),
+          localizacaoPrecisao: value('localizacaoPrecisao'),
+          localizacaoCapturadaEm: value('localizacaoCapturadaEm'),
+          localizacaoEnderecoIdentificado: value('localizacaoEnderecoIdentificado'),
           demandaPrincipal: eventoDeclaratorio ? 'Eventos declaratórios' : value('demandaPrincipal'),
           dataRenovacaoAvcb: ehDemandaRenovacaoAvcb_() ? formatarDataRenovacaoAvcbDigitacao_(value('dataRenovacaoAvcb')) : '',
           categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : value('categoriaMeta'),
@@ -8961,11 +8980,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function validateRequired(showMessage = true) {
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const localizacaoCapturada = localizacaoValidaFormulario_();
         const checks = [
           ['tipoVistoria', 'Tipo de vistoria'],
           ['sancao', 'Situação / resultado'],
           ['vistoriadorResponsavel', 'Vistoriador responsável'],
-          ['endereco', eventoDeclaratorio ? 'Endereço do evento' : 'Endereço'],
+          ...(!localizacaoCapturada ? [['endereco', eventoDeclaratorio ? 'Endereço do evento ou localização atual' : 'Endereço ou localização atual']] : []),
           ...(eventoDeclaratorio
             ? [
                 ['eventoDeclaracaoNumero', 'Nº da declaração INFOSCIP'],
@@ -9282,6 +9302,258 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           field.readOnly = false;
           field.style.background = '';
         }
+      }
+
+      function coordenadaDecimalTexto_(valor) {
+        const numero = Number(valor);
+        if (!Number.isFinite(numero)) return '';
+        return String(numero);
+      }
+
+      function localizacaoValidaFormulario_() {
+        const lat = Number(localizacaoLatitudeInput?.value);
+        const lon = Number(localizacaoLongitudeInput?.value);
+        return Number.isFinite(lat) && Number.isFinite(lon) &&
+          lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+      }
+
+      function limparStatusLocalizacao_() {
+        if (locationAddressStatus) {
+          locationAddressStatus.hidden = true;
+          locationAddressStatus.className = 'location-address-status';
+          locationAddressStatus.innerHTML = '';
+        }
+      }
+
+      function mostrarStatusLocalizacao_(html, tipo = 'info') {
+        if (!locationAddressStatus) return;
+        locationAddressStatus.hidden = false;
+        locationAddressStatus.className = `location-address-status ${tipo === 'error' ? 'is-error' : 'is-info'}`;
+        locationAddressStatus.innerHTML = html;
+      }
+
+      function enderecoLocalizacaoHtml_(resultado) {
+        const logradouro = String(resultado?.logradouro || '').trim();
+        const numero = String(resultado?.numero || '').trim();
+        const bairro = String(resultado?.bairro || '').trim();
+        const cidade = String(resultado?.cidade || '').trim();
+        const uf = String(resultado?.uf || '').trim();
+        const cep = String(resultado?.cep || '').trim();
+
+        const primeira = [
+          [logradouro, numero].filter(Boolean).join(', '),
+          bairro
+        ].filter(Boolean).join(' — ');
+
+        const segundaCidade = [cidade, uf].filter(Boolean).join(' — ');
+        const segunda = [segundaCidade, cep ? `CEP ${cep}` : ''].filter(Boolean).join(' — ');
+
+        const linhas = [primeira, segunda].filter(Boolean);
+        return linhas.length
+          ? `<strong>Endereço identificado:</strong>${linhas.map(linha => `<div>${escapeHtml(linha)}</div>`).join('')}`
+          : '';
+      }
+
+      function aplicarCidadeLocalizacao_(cidade) {
+        const informada = String(cidade || '').trim();
+        if (!informada || !citySelect) return;
+
+        const opcao = findCityOption(informada);
+        if (opcao) {
+          citySelect.value = opcao.value;
+          if (otherCity) otherCity.value = '';
+        } else {
+          citySelect.value = 'Outro';
+          if (otherCity) otherCity.value = informada;
+        }
+        syncOtherCity();
+      }
+
+      function aplicarEnderecoDaLocalizacao_(resultado, substituir = false) {
+        if (!resultado || typeof resultado !== 'object') return;
+
+        const enderecoAtual = String(value('endereco') || '').trim();
+        const numeroAtual = String(value('numero') || '').trim();
+        const bairroAtual = String(value('bairro') || '').trim();
+
+        if (substituir || !enderecoAtual) {
+          const campo = document.getElementById('endereco');
+          if (campo && resultado.logradouro) campo.value = String(resultado.logradouro);
+        }
+        if (substituir || !numeroAtual) {
+          const campo = document.getElementById('numero');
+          if (campo && resultado.numero) campo.value = String(resultado.numero);
+        }
+        if (substituir || !bairroAtual) {
+          const campo = document.getElementById('bairro');
+          if (campo && resultado.bairro) campo.value = String(resultado.bairro);
+        }
+
+        aplicarCidadeLocalizacao_(resultado.cidade);
+
+        if (localizacaoEnderecoIdentificadoInput) {
+          localizacaoEnderecoIdentificadoInput.value = String(resultado.enderecoIdentificado || '').trim();
+        }
+
+        const html = enderecoLocalizacaoHtml_(resultado);
+        if (html) mostrarStatusLocalizacao_(html, 'info');
+
+        syncResponsibleAddress();
+        scheduleDraftSave();
+      }
+
+      async function identificarEnderecoPorLocalizacao_(silencioso = false, substituir = false) {
+        if (!localizacaoValidaFormulario_() || !navigator.onLine) return null;
+
+        if (!silencioso) {
+          mostrarStatusLocalizacao_('<strong>Localização capturada.</strong><div>Identificando o endereço...</div>', 'info');
+        }
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'geocodificar_localizacao',
+            latitude: localizacaoLatitudeInput?.value || '',
+            longitude: localizacaoLongitudeInput?.value || ''
+          }, 25000);
+
+          if (!resposta?.ok) throw new Error(resposta?.error || 'Endereço não identificado.');
+
+          const temEndereco = [
+            resposta.logradouro, resposta.numero, resposta.bairro, resposta.cidade, resposta.uf, resposta.cep
+          ].some(valor => String(valor || '').trim());
+
+          if (!temEndereco) {
+            if (!silencioso) {
+              mostrarStatusLocalizacao_(
+                '<strong>Localização capturada.</strong><div>Não foi possível identificar o endereço automaticamente. Você pode continuar o preenchimento.</div>',
+                'error'
+              );
+            }
+            return resposta;
+          }
+
+          aplicarEnderecoDaLocalizacao_(resposta, substituir);
+          return resposta;
+        } catch (erro) {
+          if (!silencioso) {
+            mostrarStatusLocalizacao_(
+              '<strong>Localização capturada.</strong><div>O endereço não pôde ser identificado agora. As coordenadas foram preservadas.</div>',
+              'error'
+            );
+          }
+          return null;
+        }
+      }
+
+      function restaurarStatusLocalizacao_() {
+        if (!localizacaoValidaFormulario_()) {
+          limparStatusLocalizacao_();
+          return;
+        }
+
+        const enderecoIdentificado = String(localizacaoEnderecoIdentificadoInput?.value || '').trim();
+        if (enderecoIdentificado) {
+          const linhas = enderecoIdentificado.split(/\s*\|\s*/).filter(Boolean);
+          mostrarStatusLocalizacao_(
+            `<strong>Endereço identificado:</strong>${linhas.map(linha => `<div>${escapeHtml(linha)}</div>`).join('')}`,
+            'info'
+          );
+          return;
+        }
+
+        if (!navigator.onLine) {
+          mostrarStatusLocalizacao_(
+            '<strong>Localização capturada.</strong><div>Sem internet para identificar o endereço neste momento.</div>',
+            'info'
+          );
+          return;
+        }
+
+        mostrarStatusLocalizacao_(
+          '<strong>Localização capturada.</strong><div>O endereço poderá ser identificado automaticamente.</div>',
+          'info'
+        );
+      }
+
+      async function usarLocalizacaoAtual_() {
+        if (!navigator.geolocation) {
+          await avisarGpv_('Este aparelho ou navegador não disponibiliza a localização atual.', 'Localização indisponível');
+          return;
+        }
+
+        const enderecoPreenchido = [
+          value('endereco'), value('numero'), value('bairro')
+        ].some(valor => String(valor || '').trim());
+
+        let substituir = false;
+        if (enderecoPreenchido) {
+          substituir = await confirmarGpv_(
+            'Já existem dados de endereço preenchidos. Deseja usar a localização atual e substituir os campos que forem identificados?',
+            'Usar localização atual',
+            { rotuloConfirmar: 'Usar localização', rotuloCancelar: 'Cancelar' }
+          );
+          if (!substituir) return;
+        }
+
+        if (useCurrentLocationBtn) {
+          useCurrentLocationBtn.disabled = true;
+          useCurrentLocationBtn.querySelector('span')?.replaceChildren(document.createTextNode('Obtendo localização...'));
+        }
+
+        mostrarStatusLocalizacao_('<strong>Obtendo localização atual...</strong><div>Aguarde o posicionamento do aparelho.</div>', 'info');
+
+        navigator.geolocation.getCurrentPosition(async posicao => {
+          const lat = coordenadaDecimalTexto_(posicao?.coords?.latitude);
+          const lon = coordenadaDecimalTexto_(posicao?.coords?.longitude);
+
+          if (!lat || !lon) {
+            mostrarStatusLocalizacao_(
+              '<strong>Não foi possível obter a localização.</strong><div>Tente novamente em um local com melhor recepção do GPS.</div>',
+              'error'
+            );
+          } else {
+            if (localizacaoLatitudeInput) localizacaoLatitudeInput.value = lat;
+            if (localizacaoLongitudeInput) localizacaoLongitudeInput.value = lon;
+            if (localizacaoCoordenadasInput) localizacaoCoordenadasInput.value = `${lat}, ${lon}`;
+            if (localizacaoPrecisaoInput) localizacaoPrecisaoInput.value = Number.isFinite(Number(posicao?.coords?.accuracy))
+              ? String(Math.round(Number(posicao.coords.accuracy)))
+              : '';
+            if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
+            if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
+
+            scheduleDraftSave();
+
+            if (navigator.onLine) {
+              await identificarEnderecoPorLocalizacao_(false, substituir);
+            } else {
+              mostrarStatusLocalizacao_(
+                '<strong>Localização capturada.</strong><div>Sem internet para identificar o endereço agora. As coordenadas serão mantidas no registro.</div>',
+                'info'
+              );
+            }
+          }
+
+          if (useCurrentLocationBtn) {
+            useCurrentLocationBtn.disabled = false;
+            useCurrentLocationBtn.querySelector('span')?.replaceChildren(document.createTextNode('Usar localização atual'));
+          }
+        }, async erro => {
+          let mensagem = 'Não foi possível obter a localização atual.';
+          if (erro?.code === 1) mensagem = 'A permissão de localização foi negada. Autorize o acesso à localização para usar esta função.';
+          if (erro?.code === 2) mensagem = 'A localização não está disponível neste momento. Verifique se o GPS/localização do aparelho está ativado.';
+          if (erro?.code === 3) mensagem = 'O aparelho demorou para obter a localização. Tente novamente.';
+
+          mostrarStatusLocalizacao_(`<strong>Localização não capturada.</strong><div>${escapeHtml(mensagem)}</div>`, 'error');
+
+          if (useCurrentLocationBtn) {
+            useCurrentLocationBtn.disabled = false;
+            useCurrentLocationBtn.querySelector('span')?.replaceChildren(document.createTextNode('Usar localização atual'));
+          }
+        }, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 60000
+        });
       }
 
       function showCnpjStatus(message, type = 'info') {
@@ -11027,6 +11299,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
         restaurarOcupacoesSelecionadas(p.ocupacao);
+        restaurarStatusLocalizacao_();
         aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
         if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
         syncOtherCity(); syncLicenciamento(); syncPscip_(); syncNotificado(); sincronizarDemandasEspeciais_(); atualizarCampoRenovacaoAvcb_(); atualizarVerificacaoMetasFiscalizacao_();
@@ -11085,6 +11358,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           });
           restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
           restaurarOcupacoesSelecionadas(p.ocupacao);
+          restaurarStatusLocalizacao_();
           aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
           if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
           syncOtherCity();
@@ -11113,7 +11387,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (!p) return false;
           if (Date.now() - Number(draft.savedAt || 0) > 1000 * 60 * 60 * 24 * 3) return false;
           const campos = [
-            'tipoVistoria','nomeFantasia','razaoSocial','cnpj','pf','reds','endereco','numero','bairro',
+            'tipoVistoria','nomeFantasia','razaoSocial','cnpj','pf','reds','endereco','numero','bairro','localizacaoCoordenadas',
             'demandaPrincipal','sancao','responsavel','nomeResponsavel','cpf','telefone','pscip','ocupacao',
             'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado',
             '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
@@ -11143,6 +11417,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         dduEmUsoNumero = '';
         processoAcessoriaVinculado = null;
         form.reset();
+        limparStatusLocalizacao_();
         if (!preservarRascunhoAtual) removerRascunhoLocal_(currentRecordId);
         currentRecordId = criarIdRegistro();
         citySelect.value = appConfig?.padroes?.cidade || 'Viçosa';
@@ -11239,7 +11514,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['CPF/CNPJ do organizador', payload?.eventoOrganizadorDocumento || '—'],
           ['Telefone do organizador', payload?.eventoTelefoneOrganizador || '—'],
           ['Cidade', payload?.cidade || '—'],
-          ['Local do evento', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || '—'],
+          ['Local do evento', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || (String(payload?.localizacaoCoordenadas || '').trim() ? 'Localização capturada — endereço ainda não identificado' : '—')],
           ['Responsável que acompanhou', payload?.nomeResponsavel || '—'],
           ['CPF do responsável', payload?.cpf ? formatarCpfTela_(payload.cpf) : '—'],
           ['Telefone do responsável', payload?.telefone || '—'],
@@ -11255,7 +11530,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Estabelecimento', payload?.nomeFantasia || payload?.razaoSocial || '—'],
           ['CNPJ / CPF', idFormatado || '—'],
           ['Cidade', payload?.cidade || '—'],
-          ['Endereço', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || '—'],
+          ['Endereço', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || (String(payload?.localizacaoCoordenadas || '').trim() ? 'Localização capturada — endereço ainda não identificado' : '—')],
           ['Responsável / RT', payload?.nomeResponsavel || '—'],
           ['Telefone', payload?.telefone || '—'],
           ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
@@ -14825,6 +15100,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       appMoreMenu?.addEventListener('click', event => event.stopPropagation());
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
       accessGuidanceContinueBtn?.addEventListener('click', fecharAvisoAcessoGeral_);
+      useCurrentLocationBtn?.addEventListener('click', () => { void usarLocalizacaoAtual_(); });
       systemManualBtn?.addEventListener('click', abrirManualSistema_);
       redsTemplatesMenuBtn?.addEventListener('click', abrirHistoricosPadraoReds_);
       redsTemplatesCloseBtn?.addEventListener('click', fecharHistoricosPadraoReds_);
@@ -15014,6 +15290,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarStatusConexao();
         if (authEnterBtn) authEnterBtn.disabled = false;
         if (authOfflineNote) authOfflineNote.hidden = true;
+        if (localizacaoValidaFormulario_() && !String(localizacaoEnderecoIdentificadoInput?.value || '').trim()) {
+          setTimeout(() => { void identificarEnderecoPorLocalizacao_(true, false); }, 200);
+        }
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
         setTimeout(() => { void processarFilaFotosPendentes_(); }, 250);
         if (usuarioPodeOperar_()) {
@@ -15056,7 +15335,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bn', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bo', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos

@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99bn">
+  <link rel="stylesheet" href="styles.css?v=23.9.99bo">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1085,6 +1085,20 @@
             <div class="field wide">
               <label class="required" for="endereco">Endereço / logradouro</label>
               <input id="endereco" name="endereco" autocomplete="off" placeholder="Ex.: Rua dos Passos">
+              <div class="address-location-tools">
+                <button class="address-location-btn" id="useCurrentLocationBtn" type="button">
+                  <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg>
+                  <span>Usar localização atual</span>
+                </button>
+                <span class="address-location-hint">Use quando não souber o endereço do local.</span>
+              </div>
+              <div class="location-address-status" id="locationAddressStatus" hidden aria-live="polite"></div>
+              <input id="localizacaoLatitude" name="localizacaoLatitude" type="hidden">
+              <input id="localizacaoLongitude" name="localizacaoLongitude" type="hidden">
+              <input id="localizacaoCoordenadas" name="localizacaoCoordenadas" type="hidden">
+              <input id="localizacaoPrecisao" name="localizacaoPrecisao" type="hidden">
+              <input id="localizacaoCapturadaEm" name="localizacaoCapturadaEm" type="hidden">
+              <input id="localizacaoEnderecoIdentificado" name="localizacaoEnderecoIdentificado" type="hidden">
             </div>
             <div class="field quarter mobile-half">
               <label for="numero">Nº</label>
@@ -2068,7 +2082,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99bn"></script>
+  <script src="app.js?v=23.9.99bo"></script>
 
   </div>
   

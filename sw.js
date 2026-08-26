@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-historicos-reds-bn';
-const VERSION = '23.9.99bn';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-localizacao-endereco-bo';
+const VERSION = '23.9.99bo';
 
 const CORE_SHELL = [
   './',

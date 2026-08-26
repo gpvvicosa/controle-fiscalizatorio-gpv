@@ -12020,3 +12020,84 @@ body.record-correction-open{overflow:hidden}
     width: 100%;
   }
 }
+
+
+/* ==========================================================================
+   V23.9.99bo — Captura de localização atual no endereço da vistoria
+   ========================================================================== */
+.address-location-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px 12px;
+  margin-top: 9px;
+}
+.address-location-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #b9c8bd;
+  border-radius: 11px;
+  padding: 8px 12px;
+  background: #f5faf6;
+  color: #1f5e37;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.address-location-btn:hover {
+  background: #edf7ef;
+  border-color: #8fb39a;
+}
+.address-location-btn:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+.address-location-btn .ui-icon {
+  width: 18px;
+  height: 18px;
+}
+.address-location-hint {
+  color: #736c68;
+  font-size: 10.8px;
+  line-height: 1.35;
+}
+.location-address-status {
+  margin-top: 9px;
+  border: 1px solid #c9d8cd;
+  border-radius: 11px;
+  padding: 10px 12px;
+  background: #f5faf6;
+  color: #31533d;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.location-address-status strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #214b31;
+}
+.location-address-status.is-info {
+  border-color: #c9d8cd;
+  background: #f5faf6;
+  color: #31533d;
+}
+.location-address-status.is-error {
+  border-color: #ead4b3;
+  background: #fff9ed;
+  color: #765018;
+}
+@media (max-width: 620px) {
+  .address-location-tools {
+    align-items: stretch;
+  }
+  .address-location-btn {
+    width: 100%;
+  }
+  .address-location-hint {
+    width: 100%;
+  }
+}
