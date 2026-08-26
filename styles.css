@@ -11693,3 +11693,330 @@ body.record-correction-open{overflow:hidden}
     transition: none;
   }
 }
+
+
+/* ==========================================================================
+   V23.9.99bn — Históricos padrão REDS editáveis
+   ========================================================================== */
+.reds-templates-overlay {
+  z-index: 11240;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.reds-templates-card {
+  width: min(1180px, 96vw);
+  max-width: 1180px;
+  height: min(820px, 92vh);
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.reds-templates-head {
+  flex: 0 0 auto;
+}
+.reds-templates-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: #991b1b;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.reds-templates-layout {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+  border-top: 1px solid #e7dddd;
+}
+.reds-templates-sidebar {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  background: #fbf8f6;
+  border-right: 1px solid #e7dddd;
+}
+.reds-templates-sidebar-head {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+.reds-templates-sidebar-head strong {
+  color: #352929;
+  font-size: 14px;
+}
+.reds-templates-sidebar-head span {
+  color: #786b6b;
+  font-size: 11.5px;
+}
+.reds-templates-list {
+  display: grid;
+  gap: 7px;
+}
+.reds-template-group-label {
+  margin: 9px 4px 2px;
+  color: #7d2024;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.reds-template-item {
+  width: 100%;
+  border: 1px solid #e2d7d7;
+  border-radius: 12px;
+  padding: 10px 11px;
+  background: #fff;
+  color: #3c3030;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.reds-template-item:hover {
+  border-color: #b98789;
+  background: #fffdfc;
+}
+.reds-template-item.active {
+  border-color: #8b151b;
+  background: #fff5f5;
+  box-shadow: 0 0 0 2px rgba(139,21,27,.08);
+}
+.reds-template-item strong {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.reds-template-item span {
+  display: block;
+  margin-top: 4px;
+  color: #877777;
+  font-size: 10.5px;
+}
+.reds-template-item span.customized {
+  color: #12663a;
+  font-weight: 800;
+}
+.reds-templates-editor {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 20px 22px;
+  background: #fff;
+}
+.reds-templates-empty {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  padding: 30px;
+  color: #716565;
+  text-align: center;
+}
+.reds-templates-empty strong {
+  color: #3b3030;
+  font-size: 18px;
+}
+.reds-templates-model-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.reds-templates-model-head > div {
+  min-width: 0;
+}
+.reds-templates-model-head span:first-child {
+  color: #8a7272;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.reds-templates-model-head h3 {
+  margin: 3px 0 0;
+  color: #2f2525;
+  font-size: 18px;
+  line-height: 1.25;
+}
+.reds-template-state {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: #f1eee9;
+  color: #625858;
+  font-size: 10.5px;
+  font-weight: 900;
+}
+.reds-template-state.customized {
+  background: #e9f8ef;
+  color: #17683c;
+}
+.reds-template-label {
+  display: grid;
+  gap: 7px;
+  color: #403333;
+  font-size: 12.5px;
+  font-weight: 900;
+}
+#redsTemplateText,
+#redsTemplatePreviewText {
+  width: 100%;
+  min-height: 310px;
+  resize: vertical;
+  border: 1px solid #d8cece;
+  border-radius: 13px;
+  padding: 13px 14px;
+  background: #fff;
+  color: #282121;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+#redsTemplateText:focus {
+  outline: 0;
+  border-color: #991b1b;
+  box-shadow: 0 0 0 3px rgba(153,27,27,.08);
+}
+#redsTemplatePreviewText {
+  min-height: 230px;
+  background: #faf8f5;
+}
+.reds-template-counter {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 2px 13px;
+  color: #817474;
+  font-size: 10.5px;
+}
+.reds-template-markers,
+.reds-template-preview {
+  margin-top: 14px;
+  padding: 13px;
+  border: 1px solid #eadfdf;
+  border-radius: 13px;
+  background: #fcfaf8;
+}
+.reds-template-section-title {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 9px;
+}
+.reds-template-section-title strong {
+  color: #443737;
+  font-size: 12.5px;
+}
+.reds-template-section-title span {
+  color: #817171;
+  font-size: 10.8px;
+  line-height: 1.35;
+}
+.reds-template-marker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.reds-template-marker {
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: #f1e9e9;
+  color: #6e2529;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.reds-template-marker.none {
+  background: #f1f1ef;
+  color: #77716d;
+  font-family: inherit;
+}
+.reds-template-warning {
+  margin-top: 9px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: #fff1cf;
+  color: #744d00;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+.reds-template-message {
+  min-height: 19px;
+  margin-top: 10px;
+  color: #665959;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.reds-template-message.error {
+  color: #a11b1b;
+}
+.reds-template-message.success {
+  color: #16713e;
+}
+.reds-templates-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 13px;
+}
+.reds-templates-actions .btn {
+  min-height: 42px;
+}
+
+@media (max-width: 820px) {
+  .reds-templates-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+  .reds-templates-card {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .reds-templates-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .reds-templates-sidebar {
+    max-height: 200px;
+    border-right: 0;
+    border-bottom: 1px solid #e7dddd;
+    padding: 10px 12px;
+  }
+  .reds-templates-sidebar-head {
+    margin-bottom: 7px;
+  }
+  .reds-template-group-label {
+    margin-top: 7px;
+  }
+  .reds-template-item {
+    padding: 8px 10px;
+  }
+  .reds-templates-editor {
+    padding: 14px 12px 20px;
+  }
+  .reds-templates-model-head {
+    display: grid;
+    gap: 8px;
+  }
+  .reds-template-state {
+    justify-self: start;
+  }
+  #redsTemplateText {
+    min-height: 280px;
+  }
+  .reds-templates-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .reds-templates-actions .btn {
+    width: 100%;
+  }
+}

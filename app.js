@@ -500,6 +500,7 @@
         'metas',
         'programadas',
         'sugestoes_fiscalizacao',
+        'reds_modelos',
         'ddus'
       ]);
 
@@ -668,6 +669,26 @@
       const changePinBtn = document.getElementById('changePinBtn');
       const forgetSavedPinBtn = document.getElementById('forgetSavedPinBtn');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
+      const redsTemplatesMenuBtn = document.getElementById('redsTemplatesMenuBtn');
+      const redsTemplatesModal = document.getElementById('redsTemplatesModal');
+      const redsTemplatesCloseBtn = document.getElementById('redsTemplatesCloseBtn');
+      const redsTemplatesList = document.getElementById('redsTemplatesList');
+      const redsTemplatesEmpty = document.getElementById('redsTemplatesEmpty');
+      const redsTemplatesEditorPanel = document.getElementById('redsTemplatesEditorPanel');
+      const redsTemplateGroup = document.getElementById('redsTemplateGroup');
+      const redsTemplateName = document.getElementById('redsTemplateName');
+      const redsTemplateState = document.getElementById('redsTemplateState');
+      const redsTemplateText = document.getElementById('redsTemplateText');
+      const redsTemplateCharCount = document.getElementById('redsTemplateCharCount');
+      const redsTemplateUpdatedBy = document.getElementById('redsTemplateUpdatedBy');
+      const redsTemplateMarkers = document.getElementById('redsTemplateMarkers');
+      const redsTemplateMarkerWarning = document.getElementById('redsTemplateMarkerWarning');
+      const redsTemplatePreviewPanel = document.getElementById('redsTemplatePreviewPanel');
+      const redsTemplatePreviewText = document.getElementById('redsTemplatePreviewText');
+      const redsTemplateMessage = document.getElementById('redsTemplateMessage');
+      const redsTemplatePreviewBtn = document.getElementById('redsTemplatePreviewBtn');
+      const redsTemplateRestoreBtn = document.getElementById('redsTemplateRestoreBtn');
+      const redsTemplateSaveBtn = document.getElementById('redsTemplateSaveBtn');
       const systemManualBtn = document.getElementById('systemManualBtn');
       const systemManualModal = document.getElementById('systemManualModal');
       const systemManualCloseBtn = document.getElementById('systemManualCloseBtn');
@@ -1091,6 +1112,12 @@
       let recordStatusRegistroAtual = null;
       let recordCorrectionRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
+      let redsTemplatesOverrides_ = {};
+      let redsTemplatesMetadata_ = {};
+      let redsTemplatesCarregados_ = false;
+      let redsTemplatesCarregadosEm_ = 0;
+      let redsTemplateAtualId_ = '';
+      let redsTemplateCarregando_ = false;
       let recordDetailReturnContext = '';
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
@@ -1198,6 +1225,7 @@
           usefulLinksBtn,
           aboutSystemBtn,
           manageUsersBtn,
+          redsTemplatesMenuBtn,
           loggedUserBadge,
           adminSheetMenuLink,
           dashboardSheetHeaderLink,
@@ -1225,7 +1253,9 @@
           if (usefulLinksBtn) usefulLinksBtn.hidden = false;
           if (aboutSystemBtn) aboutSystemBtn.hidden = false;
           if (manageUsersBtn) manageUsersBtn.hidden = false;
+          if (redsTemplatesMenuBtn) redsTemplatesMenuBtn.hidden = false;
           if (syncSummary) syncSummary.hidden = false;
+          carregarModelosRedsPersonalizados_(false).catch(() => {});
         } else {
           if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
           if (submitBtn) submitBtn.textContent = 'Finalizar treinamento';
@@ -3398,6 +3428,7 @@
         if (elementoVisivelNavegacao_(cityCheckModal)) return { id: 'city-check', fechar: () => cityCheckKeepBtn?.click() };
         if (elementoVisivelNavegacao_(changePinModal)) return { id: 'change-pin', fechar: () => fecharAlterarSenha_() };
         if (elementoVisivelNavegacao_(userManagerModal)) return { id: 'user-manager', fechar: () => fecharGerenciadorUsuarios_() };
+        if (elementoVisivelNavegacao_(redsTemplatesModal)) return { id: 'reds-templates', fechar: () => fecharHistoricosPadraoReds_() };
         if (elementoVisivelNavegacao_(prepareInspectionModal)) return { id: 'prepare-inspection', fechar: () => fecharModalPreparacao_() };
         if (elementoVisivelNavegacao_(dduRegisterModal)) return { id: 'ddu-register', fechar: () => fecharCadastroDdu_() };
         if (elementoVisivelNavegacao_(duvidasModal)) return { id: 'duvidas', fechar: () => fecharDuvidas_() };
@@ -4752,17 +4783,392 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       });
 
+      const REDS_TEMPLATE_CATALOG = Object.freeze([
+        { id: 'liberacao.liberado', grupo: 'Liberação', grupoId: 'liberacao', chave: 'liberado', titulo: RELATORIOS_REDS_LIBERACAO.liberado.titulo },
+        { id: 'liberacao.liberadoPendencia', grupo: 'Liberação', grupoId: 'liberacao', chave: 'liberadoPendencia', titulo: RELATORIOS_REDS_LIBERACAO.liberadoPendencia.titulo },
+        { id: 'liberacao.parcial', grupo: 'Liberação', grupoId: 'liberacao', chave: 'parcial', titulo: RELATORIOS_REDS_LIBERACAO.parcial.titulo },
+        { id: 'liberacao.notificado', grupo: 'Liberação', grupoId: 'liberacao', chave: 'notificado', titulo: RELATORIOS_REDS_LIBERACAO.notificado.titulo },
+
+        { id: 'fiscalizacao.ddu', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'ddu', titulo: RELATORIOS_REDS_FISCALIZACAO.ddu.titulo },
+        { id: 'fiscalizacao.brigadaVencida', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'brigadaVencida', titulo: RELATORIOS_REDS_FISCALIZACAO.brigadaVencida.titulo },
+        { id: 'fiscalizacao.renovacaoAvcb', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'renovacaoAvcb', titulo: RELATORIOS_REDS_FISCALIZACAO.renovacaoAvcb.titulo },
+        { id: 'fiscalizacao.avcbVencido', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'avcbVencido', titulo: RELATORIOS_REDS_FISCALIZACAO.avcbVencido.titulo },
+        { id: 'fiscalizacao.acessoriaLicenciado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'acessoriaLicenciado', titulo: RELATORIOS_REDS_FISCALIZACAO.acessoriaLicenciado.titulo },
+        { id: 'fiscalizacao.acessoriaDispensado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'acessoriaDispensado', titulo: RELATORIOS_REDS_FISCALIZACAO.acessoriaDispensado.titulo },
+        { id: 'fiscalizacao.comPscipSemAvcb', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'comPscipSemAvcb', titulo: RELATORIOS_REDS_FISCALIZACAO.comPscipSemAvcb.titulo },
+        { id: 'fiscalizacao.eventoDeclaratorioConforme', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'eventoDeclaratorioConforme', titulo: RELATORIOS_REDS_FISCALIZACAO.eventoDeclaratorioConforme.titulo },
+        { id: 'fiscalizacao.irregular', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'irregular', titulo: RELATORIOS_REDS_FISCALIZACAO.irregular.titulo },
+        { id: 'fiscalizacao.semAvcb', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'semAvcb', titulo: RELATORIOS_REDS_FISCALIZACAO.semAvcb.titulo },
+        { id: 'fiscalizacao.regularizado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'regularizado', titulo: RELATORIOS_REDS_FISCALIZACAO.regularizado.titulo },
+        { id: 'fiscalizacao.dispensado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'dispensado', titulo: RELATORIOS_REDS_FISCALIZACAO.dispensado.titulo },
+        { id: 'fiscalizacao.localFechado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'localFechado', titulo: RELATORIOS_REDS_FISCALIZACAO.localFechado.titulo }
+      ]);
+
+      const REDS_TEMPLATE_EXEMPLOS = Object.freeze({
+        '{{PSCIP}}': 'PRJ2026001234',
+        '{{PF}}': '2026-FIS012345',
+        '{{AUTO}}': '2026-AIA000123',
+        '{{DDU}}': 'DDU 123456',
+        '{{PSCIP_TRECHO}}': ', VINCULADA AO PSCIP Nº PRJ2026001234',
+        '{{LICENCA}}': 'AVCB Nº 123456',
+        '{{OCUPACAO}}': 'A-2, C-2, F-8 e D-1',
+        '{{AREA}}': '1.250',
+        '{{SITUACAO_PSCIP}}': 'APROVADO',
+        '{{DATA_RENOVACAO_AVCB}}': '15/08/2026',
+        '{{DOCUMENTO_LICENCA_NOME}}': 'AUTO DE VISTORIA DO CORPO DE BOMBEIROS (AVCB)',
+        '{{EVENTO_RISCO}}': 'RISCO BAIXO',
+        '{{EVENTO_DECLARACAO}}': '2026RME01234',
+        '{{EVENTO_NOME}}': 'EVENTO DE EXEMPLO',
+        '{{EVENTO_ORGANIZADOR}}': 'ORGANIZADOR DE EXEMPLO',
+        '{{EVENTO_DOCUMENTO}}': '00.000.000/0001-00',
+        '{{AREA_PARCIAL_DESC}}': 'O PAVIMENTO TÉRREO',
+        '{{AREA_PARCIAL}}': '420'
+      });
+
+      function modeloRedsPadraoPorId_(id) {
+        const item = REDS_TEMPLATE_CATALOG.find(modelo => modelo.id === String(id || ''));
+        if (!item) return null;
+        const origem = item.grupoId === 'liberacao'
+          ? RELATORIOS_REDS_LIBERACAO[item.chave]
+          : RELATORIOS_REDS_FISCALIZACAO[item.chave];
+        return origem ? { ...origem, id: item.id, grupo: item.grupo, grupoId: item.grupoId, chave: item.chave } : null;
+      }
+
+      function modeloRedsEfetivoPorId_(id) {
+        const padrao = modeloRedsPadraoPorId_(id);
+        if (!padrao) return null;
+        const personalizado = String(redsTemplatesOverrides_?.[id] || '');
+        return {
+          ...padrao,
+          texto: personalizado || padrao.texto,
+          personalizado: Boolean(personalizado),
+          metadata: redsTemplatesMetadata_?.[id] || null
+        };
+      }
+
+      function modeloRedsEfetivo_(grupoId, chave) {
+        return modeloRedsEfetivoPorId_(`${grupoId}.${chave}`);
+      }
+
+      function marcadoresTextoReds_(texto) {
+        const encontrados = String(texto || '').match(/\{\{[A-Z0-9_]+\}\}/g) || [];
+        return [...new Set(encontrados)];
+      }
+
+      function formatarDataHoraModeloReds_(valor) {
+        const data = valor ? new Date(valor) : null;
+        if (!data || Number.isNaN(data.getTime())) return '';
+        try {
+          return data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        } catch (e) {
+          return data.toLocaleString('pt-BR');
+        }
+      }
+
+      function textoExemploModeloReds_(texto) {
+        let saida = String(texto || '');
+        Object.entries(REDS_TEMPLATE_EXEMPLOS).forEach(([marcador, valor]) => {
+          saida = saida.replaceAll(marcador, valor);
+        });
+        return saida;
+      }
+
+      function definirMensagemModeloReds_(texto = '', tipo = '') {
+        if (!redsTemplateMessage) return;
+        redsTemplateMessage.textContent = String(texto || '');
+        redsTemplateMessage.classList.toggle('error', tipo === 'error');
+        redsTemplateMessage.classList.toggle('success', tipo === 'success');
+      }
+
+      function atualizarMarcadoresModeloReds_() {
+        const modelo = modeloRedsPadraoPorId_(redsTemplateAtualId_);
+        if (!modelo || !redsTemplateText || !redsTemplateMarkers || !redsTemplateMarkerWarning) return;
+
+        const obrigatorios = marcadoresTextoReds_(modelo.texto);
+        const atuais = new Set(marcadoresTextoReds_(redsTemplateText.value));
+        const ausentes = obrigatorios.filter(marcador => !atuais.has(marcador));
+
+        redsTemplateMarkers.innerHTML = obrigatorios.length
+          ? obrigatorios.map(marcador => `<span class="reds-template-marker">${escapeHtml(marcador)}</span>`).join('')
+          : '<span class="reds-template-marker none">Este modelo não utiliza marcadores automáticos.</span>';
+
+        redsTemplateMarkerWarning.hidden = !ausentes.length;
+        redsTemplateMarkerWarning.textContent = ausentes.length
+          ? `Atenção: ${ausentes.length === 1 ? 'o marcador' : 'os marcadores'} ${ausentes.join(', ')} ${ausentes.length === 1 ? 'foi removido' : 'foram removidos'} do texto. Salve somente se isso for intencional.`
+          : '';
+
+        if (redsTemplateCharCount) {
+          redsTemplateCharCount.textContent = `${redsTemplateText.value.length} / 7000`;
+        }
+      }
+
+      function renderizarListaModelosReds_() {
+        if (!redsTemplatesList) return;
+        let grupoAnterior = '';
+        const html = [];
+
+        REDS_TEMPLATE_CATALOG.forEach(item => {
+          if (item.grupo !== grupoAnterior) {
+            grupoAnterior = item.grupo;
+            html.push(`<div class="reds-template-group-label">${escapeHtml(item.grupo)}</div>`);
+          }
+
+          const personalizado = Boolean(String(redsTemplatesOverrides_?.[item.id] || ''));
+          html.push(
+            `<button class="reds-template-item${item.id === redsTemplateAtualId_ ? ' active' : ''}" type="button" data-reds-template-id="${escapeHtml(item.id)}">
+              <strong>${escapeHtml(item.titulo)}</strong>
+              <span class="${personalizado ? 'customized' : ''}">${personalizado ? 'Personalizado' : 'Padrão original'}</span>
+            </button>`
+          );
+        });
+
+        redsTemplatesList.innerHTML = html.join('');
+      }
+
+      function selecionarModeloReds_(id) {
+        const modelo = modeloRedsEfetivoPorId_(id);
+        if (!modelo || !redsTemplatesEditorPanel || !redsTemplatesEmpty || !redsTemplateText) return;
+
+        redsTemplateAtualId_ = id;
+        redsTemplatesEmpty.hidden = true;
+        redsTemplatesEditorPanel.hidden = false;
+
+        if (redsTemplateGroup) redsTemplateGroup.textContent = modelo.grupo;
+        if (redsTemplateName) redsTemplateName.textContent = modelo.titulo;
+        if (redsTemplateState) {
+          redsTemplateState.textContent = modelo.personalizado ? 'Personalizado' : 'Padrão original';
+          redsTemplateState.classList.toggle('customized', modelo.personalizado);
+        }
+
+        redsTemplateText.value = modelo.texto;
+        if (redsTemplateRestoreBtn) redsTemplateRestoreBtn.disabled = !modelo.personalizado;
+        if (redsTemplatePreviewPanel) redsTemplatePreviewPanel.hidden = true;
+        if (redsTemplatePreviewText) redsTemplatePreviewText.value = '';
+        definirMensagemModeloReds_('');
+
+        const meta = modelo.metadata || {};
+        if (redsTemplateUpdatedBy) {
+          const autor = [meta.usuario, meta.bm ? `BM ${meta.bm}` : ''].filter(Boolean).join(' • ');
+          const data = formatarDataHoraModeloReds_(meta.atualizadoEm);
+          redsTemplateUpdatedBy.textContent = modelo.personalizado && (autor || data)
+            ? `Última alteração: ${[autor, data].filter(Boolean).join(' • ')}`
+            : '';
+        }
+
+        atualizarMarcadoresModeloReds_();
+        renderizarListaModelosReds_();
+      }
+
+      async function carregarModelosRedsPersonalizados_(forcar = false) {
+        if (!usuarioPodeOperar_() || redsTemplateCarregando_) return;
+        const agora = Date.now();
+
+        if (
+          !forcar &&
+          redsTemplatesCarregados_ &&
+          agora - Number(redsTemplatesCarregadosEm_ || 0) < 5 * 60 * 1000
+        ) {
+          return;
+        }
+
+        redsTemplateCarregando_ = true;
+        try {
+          const resposta = await apiRequest('config', { consulta: 'reds_modelos' }, 30000);
+          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível carregar os históricos padrão.');
+
+          redsTemplatesOverrides_ = resposta.modelos && typeof resposta.modelos === 'object'
+            ? { ...resposta.modelos }
+            : {};
+          redsTemplatesMetadata_ = resposta.metadata && typeof resposta.metadata === 'object'
+            ? { ...resposta.metadata }
+            : {};
+          redsTemplatesCarregados_ = true;
+          redsTemplatesCarregadosEm_ = Date.now();
+
+          renderizarListaModelosReds_();
+
+          if (redsTemplateAtualId_) selecionarModeloReds_(redsTemplateAtualId_);
+
+          if (recordRedsRegistroAtual) {
+            const situacao = recordRedsRegistroAtual?.situacaoAtual ||
+              valorCampoFicha_(recordRedsRegistroAtual, 'Sanção');
+            renderizarRelatorioReds_(recordRedsRegistroAtual, situacao);
+          }
+        } catch (erro) {
+          if (redsTemplatesModal && !redsTemplatesModal.hidden) {
+            definirMensagemModeloReds_(
+              erro?.message || 'Não foi possível atualizar os modelos agora. Os textos padrão locais continuam disponíveis.',
+              'error'
+            );
+          }
+        } finally {
+          redsTemplateCarregando_ = false;
+        }
+      }
+
+      async function abrirHistoricosPadraoReds_() {
+        fecharMenuMais_();
+
+        if (!usuarioPodeOperar_()) {
+          await avisarGpv_('Esta configuração está disponível somente para usuários GPV.', 'Acesso restrito');
+          return;
+        }
+
+        if (!redsTemplatesModal) return;
+
+        redsTemplatesModal.hidden = false;
+        document.body.classList.add('reds-templates-open');
+        definirMensagemModeloReds_('Carregando configurações...');
+
+        await carregarModelosRedsPersonalizados_(true);
+
+        renderizarListaModelosReds_();
+        if (!redsTemplateAtualId_ && REDS_TEMPLATE_CATALOG.length) {
+          selecionarModeloReds_(REDS_TEMPLATE_CATALOG[0].id);
+        } else if (redsTemplateAtualId_) {
+          selecionarModeloReds_(redsTemplateAtualId_);
+        }
+
+        definirMensagemModeloReds_('');
+        setTimeout(() => redsTemplatesCloseBtn?.focus(), 0);
+      }
+
+      function fecharHistoricosPadraoReds_() {
+        if (!redsTemplatesModal) return;
+        redsTemplatesModal.hidden = true;
+        document.body.classList.remove('reds-templates-open');
+        if (redsTemplatePreviewPanel) redsTemplatePreviewPanel.hidden = true;
+        definirMensagemModeloReds_('');
+      }
+
+      function visualizarExemploModeloReds_() {
+        if (!redsTemplateText || !redsTemplatePreviewPanel || !redsTemplatePreviewText) return;
+        redsTemplatePreviewText.value = textoExemploModeloReds_(redsTemplateText.value);
+        redsTemplatePreviewPanel.hidden = false;
+        redsTemplatePreviewPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      async function salvarModeloRedsAtual_() {
+        if (!usuarioPodeOperar_() || !redsTemplateAtualId_ || !redsTemplateText || !redsTemplateSaveBtn) return;
+
+        const modeloPadrao = modeloRedsPadraoPorId_(redsTemplateAtualId_);
+        const texto = String(redsTemplateText.value || '').trim();
+
+        if (!texto) {
+          definirMensagemModeloReds_('O texto do histórico não pode ficar vazio.', 'error');
+          redsTemplateText.focus();
+          return;
+        }
+
+        const obrigatorios = modeloPadrao ? marcadoresTextoReds_(modeloPadrao.texto) : [];
+        const atuais = new Set(marcadoresTextoReds_(texto));
+        const ausentes = obrigatorios.filter(marcador => !atuais.has(marcador));
+
+        if (ausentes.length) {
+          const prosseguir = await confirmarGpv_(
+            `Você removeu ${ausentes.length === 1 ? 'o marcador' : 'os marcadores'} ${ausentes.join(', ')}. O relatório deixará de preencher automaticamente ${ausentes.length === 1 ? 'esse campo' : 'esses campos'}. Deseja salvar mesmo assim?`,
+            'Marcador removido',
+            { rotuloConfirmar: 'Salvar mesmo assim', rotuloCancelar: 'Revisar texto' }
+          );
+          if (!prosseguir) return;
+        }
+
+        redsTemplateSaveBtn.disabled = true;
+        if (redsTemplateRestoreBtn) redsTemplateRestoreBtn.disabled = true;
+        definirMensagemModeloReds_('Salvando alteração...');
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'reds_modelo_salvar',
+            modeloId: redsTemplateAtualId_,
+            texto
+          }, 30000);
+
+          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível salvar o histórico.');
+
+          redsTemplatesOverrides_[redsTemplateAtualId_] = String(resposta.texto || texto);
+          redsTemplatesMetadata_[redsTemplateAtualId_] = resposta.metadata || {};
+          redsTemplatesCarregados_ = true;
+          redsTemplatesCarregadosEm_ = Date.now();
+
+          selecionarModeloReds_(redsTemplateAtualId_);
+          definirMensagemModeloReds_('Histórico padrão atualizado para todos os usuários GPV.', 'success');
+
+          if (recordRedsRegistroAtual) {
+            const situacao = recordRedsRegistroAtual?.situacaoAtual ||
+              valorCampoFicha_(recordRedsRegistroAtual, 'Sanção');
+            renderizarRelatorioReds_(recordRedsRegistroAtual, situacao);
+          }
+        } catch (erro) {
+          definirMensagemModeloReds_(erro?.message || 'Falha ao salvar o histórico.', 'error');
+        } finally {
+          redsTemplateSaveBtn.disabled = false;
+          if (redsTemplateRestoreBtn) {
+            redsTemplateRestoreBtn.disabled = !Boolean(String(redsTemplatesOverrides_?.[redsTemplateAtualId_] || ''));
+          }
+        }
+      }
+
+      async function restaurarModeloRedsAtual_() {
+        if (!usuarioPodeOperar_() || !redsTemplateAtualId_ || !redsTemplateRestoreBtn) return;
+
+        const modelo = modeloRedsEfetivoPorId_(redsTemplateAtualId_);
+        if (!modelo?.personalizado) return;
+
+        const confirmou = await confirmarGpv_(
+          `Restaurar "${modelo.titulo}" para o texto original do aplicativo? A personalização atual será removida.`,
+          'Restaurar histórico padrão',
+          { rotuloConfirmar: 'Restaurar padrão', rotuloCancelar: 'Cancelar' }
+        );
+        if (!confirmou) return;
+
+        redsTemplateRestoreBtn.disabled = true;
+        if (redsTemplateSaveBtn) redsTemplateSaveBtn.disabled = true;
+        definirMensagemModeloReds_('Restaurando texto original...');
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'reds_modelo_restaurar',
+            modeloId: redsTemplateAtualId_
+          }, 30000);
+
+          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível restaurar o histórico.');
+
+          delete redsTemplatesOverrides_[redsTemplateAtualId_];
+          delete redsTemplatesMetadata_[redsTemplateAtualId_];
+          redsTemplatesCarregadosEm_ = Date.now();
+
+          selecionarModeloReds_(redsTemplateAtualId_);
+          definirMensagemModeloReds_('Texto original restaurado.', 'success');
+
+          if (recordRedsRegistroAtual) {
+            const situacao = recordRedsRegistroAtual?.situacaoAtual ||
+              valorCampoFicha_(recordRedsRegistroAtual, 'Sanção');
+            renderizarRelatorioReds_(recordRedsRegistroAtual, situacao);
+          }
+        } catch (erro) {
+          definirMensagemModeloReds_(erro?.message || 'Falha ao restaurar o histórico.', 'error');
+        } finally {
+          if (redsTemplateSaveBtn) redsTemplateSaveBtn.disabled = false;
+          if (redsTemplateRestoreBtn) {
+            redsTemplateRestoreBtn.disabled = !Boolean(String(redsTemplatesOverrides_?.[redsTemplateAtualId_] || ''));
+          }
+        }
+      }
+
       let recordRedsRegistroAtual = null;
 
       function modeloRelatorioRedsLiberacao_(registro, situacao) {
         const n = normalize(situacao);
         const tipoLiberacao = normalize(valorCampoFicha_(registro, 'Tipo da liberação'));
         const parcial = tipoLiberacao === normalize('Parcial');
-        if (n === normalize('Notificado')) return parcial ? null : RELATORIOS_REDS_LIBERACAO.notificado;
+        if (n === normalize('Notificado')) return parcial ? null : modeloRedsEfetivo_('liberacao', 'notificado');
         if (n !== normalize('Liberado')) return null;
-        if (parcial) return RELATORIOS_REDS_LIBERACAO.parcial;
+        if (parcial) return modeloRedsEfetivo_('liberacao', 'parcial');
         const pendencia = normalize(valorCampoFicha_(registro, 'Pendência documental'));
-        return pendencia === normalize('Sim') ? RELATORIOS_REDS_LIBERACAO.liberadoPendencia : RELATORIOS_REDS_LIBERACAO.liberado;
+        return pendencia === normalize('Sim')
+          ? modeloRedsEfetivo_('liberacao', 'liberadoPendencia')
+          : modeloRedsEfetivo_('liberacao', 'liberado');
       }
 
       function sugestaoModeloFiscalizacao_(registro, situacao) {
@@ -4832,7 +5238,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const option = document.createElement('option'); option.value = valor; option.textContent = rotulo; recordRedsModelSelect.appendChild(option);
         });
         const sugerido = sugestaoModeloFiscalizacao_(registro, situacao);
-        recordRedsModelSelect.value = RELATORIOS_REDS_FISCALIZACAO[sugerido] ? sugerido : opcoes[0][0];
+        recordRedsModelSelect.value = modeloRedsEfetivo_('fiscalizacao', sugerido) ? sugerido : opcoes[0][0];
         return recordRedsModelSelect.value;
       }
 
@@ -4910,7 +5316,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const situacao = registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção');
         if (tipo.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao))) return;
         const chaveModelo = recordRedsModelSelect?.value || sugestaoModeloFiscalizacao_(registro, situacao);
-        const modelo = RELATORIOS_REDS_FISCALIZACAO[chaveModelo];
+        const modelo = modeloRedsEfetivo_('fiscalizacao', chaveModelo);
         if (!modelo) {
           recordRedsReportPanel.hidden = true;
           recordRedsReportText.value = '';
@@ -4922,6 +5328,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function renderizarRelatorioReds_(registro, situacao) {
         if (!recordRedsReportPanel || !recordRedsReportText || !recordRedsReportModel) return;
+
+        if (
+          usuarioPodeOperar_() &&
+          (!redsTemplatesCarregados_ || Date.now() - Number(redsTemplatesCarregadosEm_ || 0) > 5 * 60 * 1000)
+        ) {
+          carregarModelosRedsPersonalizados_(false).catch(() => {});
+        }
         recordRedsRegistroAtual = registro;
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
@@ -14413,6 +14826,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
       accessGuidanceContinueBtn?.addEventListener('click', fecharAvisoAcessoGeral_);
       systemManualBtn?.addEventListener('click', abrirManualSistema_);
+      redsTemplatesMenuBtn?.addEventListener('click', abrirHistoricosPadraoReds_);
+      redsTemplatesCloseBtn?.addEventListener('click', fecharHistoricosPadraoReds_);
+      redsTemplatesModal?.addEventListener('click', event => {
+        if (event.target === redsTemplatesModal) fecharHistoricosPadraoReds_();
+      });
+      redsTemplatesList?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-reds-template-id]');
+        if (botao) selecionarModeloReds_(String(botao.dataset.redsTemplateId || ''));
+      });
+      redsTemplateText?.addEventListener('input', () => {
+        atualizarMarcadoresModeloReds_();
+        if (redsTemplatePreviewPanel) redsTemplatePreviewPanel.hidden = true;
+        definirMensagemModeloReds_('');
+      });
+      redsTemplatePreviewBtn?.addEventListener('click', visualizarExemploModeloReds_);
+      redsTemplateSaveBtn?.addEventListener('click', salvarModeloRedsAtual_);
+      redsTemplateRestoreBtn?.addEventListener('click', restaurarModeloRedsAtual_);
       duvidasMenuBtn?.addEventListener('click', abrirDuvidas_);
       duvidasCloseBtn?.addEventListener('click', fecharDuvidas_);
       duvidasNovaConversaBtn?.addEventListener('click', () => {
@@ -14626,7 +15056,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bm', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bn', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos

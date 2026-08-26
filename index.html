@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99be">
+  <link rel="stylesheet" href="styles.css?v=23.9.99bn">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -204,6 +204,10 @@
     <button class="app-more-menu-item" id="updateAppBtn" data-menu-tone="amber" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7.2 7.2 0 1 0 1 7"/><path d="M19 4.5V8h-3.5"/></svg>
       <span><strong>Atualizar app</strong><small>Buscar a versão mais recente</small></span>
+    </button>
+    <button class="app-more-menu-item" id="redsTemplatesMenuBtn" data-menu-tone="crimson" type="button" role="menuitem" hidden>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M17.5 14.5l2 2-4 4H13.5v-2z"/></svg>
+      <span><strong>Históricos padrão REDS</strong><small>Revisar e atualizar os textos-modelo dos relatórios</small></span>
     </button>
     <button class="app-more-menu-item" id="prepareInspectionBtn" data-menu-tone="red" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
@@ -1650,6 +1654,81 @@
   </div>
 
 
+  <div class="review-overlay reds-templates-overlay" id="redsTemplatesModal" hidden>
+    <section class="review-card reds-templates-card" role="dialog" aria-modal="true" aria-labelledby="redsTemplatesTitle">
+      <div class="review-head reds-templates-head">
+        <div>
+          <span class="reds-templates-kicker">Configuração GPV</span>
+          <h2 id="redsTemplatesTitle">Históricos padrão REDS</h2>
+          <p>Edite os textos-modelo usados na Ficha do Processo. As alterações ficam disponíveis para todos os usuários GPV.</p>
+        </div>
+        <button class="icon-btn" id="redsTemplatesCloseBtn" type="button" aria-label="Fechar">×</button>
+      </div>
+
+      <div class="reds-templates-layout">
+        <aside class="reds-templates-sidebar">
+          <div class="reds-templates-sidebar-head">
+            <strong>Modelos disponíveis</strong>
+            <span>4 de liberação • 13 de fiscalização</span>
+          </div>
+          <div class="reds-templates-list" id="redsTemplatesList"></div>
+        </aside>
+
+        <main class="reds-templates-editor">
+          <div class="reds-templates-empty" id="redsTemplatesEmpty">
+            <strong>Selecione um modelo</strong>
+            <span>Escolha um histórico à esquerda para visualizar ou editar o texto.</span>
+          </div>
+
+          <div id="redsTemplatesEditorPanel" hidden>
+            <div class="reds-templates-model-head">
+              <div>
+                <span id="redsTemplateGroup">Modelo REDS</span>
+                <h3 id="redsTemplateName">—</h3>
+              </div>
+              <span class="reds-template-state" id="redsTemplateState">Padrão original</span>
+            </div>
+
+            <label class="reds-template-label" for="redsTemplateText">
+              Texto do histórico
+              <textarea id="redsTemplateText" maxlength="7000" spellcheck="true"></textarea>
+            </label>
+
+            <div class="reds-template-counter">
+              <span id="redsTemplateCharCount">0 / 7000</span>
+              <span id="redsTemplateUpdatedBy"></span>
+            </div>
+
+            <section class="reds-template-markers">
+              <div class="reds-template-section-title">
+                <strong>Marcadores do modelo</strong>
+                <span>O sistema substitui estes campos automaticamente ao gerar o relatório.</span>
+              </div>
+              <div class="reds-template-marker-list" id="redsTemplateMarkers"></div>
+              <div class="reds-template-warning" id="redsTemplateMarkerWarning" hidden></div>
+            </section>
+
+            <section class="reds-template-preview" id="redsTemplatePreviewPanel" hidden>
+              <div class="reds-template-section-title">
+                <strong>Visualização de exemplo</strong>
+                <span>Dados fictícios apenas para conferir a redação e os marcadores.</span>
+              </div>
+              <textarea id="redsTemplatePreviewText" readonly aria-label="Exemplo do histórico REDS"></textarea>
+            </section>
+
+            <div class="reds-template-message" id="redsTemplateMessage" role="status" aria-live="polite"></div>
+
+            <div class="reds-templates-actions">
+              <button class="btn btn-secondary" id="redsTemplatePreviewBtn" type="button">Visualizar exemplo</button>
+              <button class="btn btn-secondary" id="redsTemplateRestoreBtn" type="button">Restaurar padrão</button>
+              <button class="btn btn-primary" id="redsTemplateSaveBtn" type="button">Salvar alteração</button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+  </div>
+
   <div class="review-overlay" id="prepareInspectionModal" hidden>
     <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="prepareInspectionTitle">
       <div class="review-head">
@@ -1989,7 +2068,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99bm"></script>
+  <script src="app.js?v=23.9.99bn"></script>
 
   </div>
   
