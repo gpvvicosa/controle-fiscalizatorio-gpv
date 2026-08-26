@@ -6445,7 +6445,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         const pf = String(processPfInput?.value || '').trim();
-        const vinculado = processoAcessoriaVinculado && pf && String(processoAcessoriaVinculado.pf || '').trim() === pf;
+        const vinculado = processoAcessoriaVinculado &&
+          pf &&
+          normalize(processoAcessoriaVinculado.pf || '') === normalize(pf);
         if (!vinculado) {
           acessoriaVinculoStatus.textContent = 'Localize e selecione um processo fiscalizatório anterior de local já autuado.';
           acessoriaVinculoStatus.className = 'lookup-status show info';
@@ -8614,10 +8616,42 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (ehVistoriaAcessoria_()) {
           const pfAtual = String(value('pf') || '').trim();
-          const vinculoOk = processoAcessoriaVinculado && pfAtual && String(processoAcessoriaVinculado.pf || '').trim() === pfAtual;
-          if (!pfAtual) { processPfInput?.classList.add('invalid'); missing.push('Nº do PF anterior'); first = first || processPfInput; }
+
+          if (
+            pfAtual &&
+            (!processoAcessoriaVinculado ||
+              normalize(processoAcessoriaVinculado.pf || '') !== normalize(pfAtual))
+          ) {
+            const candidatoExato = (Array.isArray(processoPfCandidatos) ? processoPfCandidatos : [])
+              .find(item => normalize(item?.pf || '') === normalize(pfAtual));
+
+            if (candidatoExato) {
+              processoAcessoriaVinculado = { ...candidatoExato };
+              processoPfAutoAtual = pfAtual;
+              atualizarVinculoAcessoria_();
+              renderizarAlertaProcessoAnterior_([
+                candidatoExato,
+                ...processoPfCandidatos.filter(item =>
+                  normalize(item?.pf || '') !== normalize(pfAtual)
+                )
+              ]);
+            }
+          }
+
+          const vinculoOk = processoAcessoriaVinculado &&
+            pfAtual &&
+            normalize(processoAcessoriaVinculado.pf || '') === normalize(pfAtual);
+
+          if (!pfAtual) {
+            processPfInput?.classList.add('invalid');
+            missing.push('Nº do PF anterior');
+            first = first || processPfInput;
+          }
+
           if (!vinculoOk) {
-            if (showMessage) showError('Vistoria Acessória exige selecionar um processo fiscalizatório anterior de local já autuado. Use a busca do PF antes de concluir.');
+            if (showMessage) {
+              showError('Vistoria Acessória exige um processo fiscalizatório anterior vinculado. Aguarde a localização do PF ou confira se o número informado corresponde ao processo encontrado.');
+            }
             processPfInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return false;
           }
@@ -10206,8 +10240,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (inputPf && candidato.pf) {
           const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
           const atual = String(inputPf.value || '').trim();
-          if (!(automatico && atual && atual !== autoAtual)) {
-            inputPf.value = String(candidato.pf).trim();
+          const pfCandidato = String(candidato.pf || '').trim();
+          const atualEhMesmoPf = Boolean(atual && normalize(atual) === normalize(pfCandidato));
+
+          // V23.9.99bm — na Vistoria Acessória, um PF já preenchido não pode
+          // impedir o vínculo quando a consulta encontrou exatamente o mesmo PF.
+          // Continua protegendo contra sobrescrever automaticamente um PF diferente.
+          if (!(automatico && atual && atual !== autoAtual && !atualEhMesmoPf)) {
+            inputPf.value = pfCandidato;
             if (prepare) preparePfAutoAtual = inputPf.value;
             else {
               processoPfAutoAtual = inputPf.value;
@@ -10270,6 +10310,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.'; status.className = 'lookup-status show info'; }
           return;
         }
+        if (!prepare && ehVistoriaAcessoria_()) {
+          const pfDigitado = String(processPfInput?.value || '').trim();
+          const candidatoExato = pfDigitado
+            ? candidatos.find(item => normalize(item?.pf || '') === normalize(pfDigitado))
+            : null;
+
+          if (candidatoExato) {
+            aplicarPfLocalizado_(origem, candidatoExato, true);
+            return;
+          }
+        }
+
         if (candidatos.length === 1) {
           aplicarPfLocalizado_(origem, candidatos[0], true);
           return;
@@ -14005,7 +14057,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         scheduleDraftSave();
       });
       processPfInput?.addEventListener('input', () => {
-        if (ehVistoriaAcessoria_() && processoAcessoriaVinculado && String(processPfInput.value || '').trim() !== String(processoAcessoriaVinculado.pf || '').trim()) {
+        if (
+          ehVistoriaAcessoria_() &&
+          processoAcessoriaVinculado &&
+          normalize(processPfInput.value || '') !== normalize(processoAcessoriaVinculado.pf || '')
+        ) {
           processoAcessoriaVinculado = null;
           sincronizarVistoriaAcessoria_();
         }
@@ -14570,7 +14626,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bl', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bm', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos

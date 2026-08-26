@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-pscip-dispensado-bl';
-const VERSION = '23.9.99bl';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-acessoria-vinculo-pf-bm';
+const VERSION = '23.9.99bm';
 
 const CORE_SHELL = [
   './',
