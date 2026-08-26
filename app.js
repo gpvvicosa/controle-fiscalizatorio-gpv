@@ -10794,7 +10794,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Responsável / RT', payload?.nomeResponsavel || '—'],
           ['Telefone', payload?.telefone || '—'],
           ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
-          ['Possui PSCIP?', payload?._appPossuiPscip === 'sim' ? 'Sim' : (payload?._appPossuiPscip === 'nao' ? 'Não' : '—')],
+          ['Possui PSCIP?', payload?._appPossuiPscip === 'sim'
+            ? 'Sim'
+            : (payload?._appPossuiPscip === 'nao'
+              ? 'Não'
+              : (payload?._appPossuiPscip === 'dispensado' ? 'Dispensado' : '—'))],
           ['Nº PSCIP', payload?.pscip || '—'],
           ['Situação atual do PSCIP', payload?.situacaoPscip || '—'],
           ...(normalize(payload?.demandaPrincipal || '') === normalize('DDU') ? [['Protocolo DDU', payload?.dduProtocol || '—']] : []),
@@ -14566,7 +14570,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bk', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bl', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
