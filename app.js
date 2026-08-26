@@ -445,6 +445,45 @@
         return `${DRAFT_KEY}:${draftUserId_()}:${rid || 'sem-registro'}`;
       }
 
+      function draftFinalizadosKey_() {
+        return `${DRAFT_KEY}:finalizados:${draftUserId_()}`;
+      }
+
+      function lerRascunhosFinalizadosLocais_() {
+        try {
+          const bruto = JSON.parse(localStorage.getItem(draftFinalizadosKey_()) || '{}');
+          if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return {};
+          const limite = Date.now() - 1000 * 60 * 60 * 24 * 7;
+          const limpo = {};
+          Object.entries(bruto).forEach(([id, encerradoEm]) => {
+            const data = Number(encerradoEm || 0);
+            if (id && data >= limite) limpo[id] = data;
+          });
+          if (Object.keys(limpo).length !== Object.keys(bruto).length) {
+            localStorage.setItem(draftFinalizadosKey_(), JSON.stringify(limpo));
+          }
+          return limpo;
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function rascunhoFinalizadoLocal_(recordId) {
+        const rid = String(recordId || '').trim();
+        if (!rid) return false;
+        return Boolean(lerRascunhosFinalizadosLocais_()[rid]);
+      }
+
+      function marcarRascunhoFinalizadoLocal_(recordId) {
+        const rid = String(recordId || '').trim();
+        if (!rid) return;
+        try {
+          const mapa = lerRascunhosFinalizadosLocais_();
+          mapa[rid] = Date.now();
+          localStorage.setItem(draftFinalizadosKey_(), JSON.stringify(mapa));
+        } catch (e) {}
+      }
+
       function lerIndiceRascunhosLocais_() {
         try {
           const lista = JSON.parse(localStorage.getItem(draftIndexKey_()) || '[]');
@@ -473,6 +512,7 @@
         const limite = Date.now() - 1000 * 60 * 60 * 24 * 3;
         for (const item of lerIndiceRascunhosLocais_()) {
           if (Number(item.savedAt || 0) < limite) { removerRascunhoLocal_(item.id); continue; }
+          if (rascunhoFinalizadoLocal_(item.id)) { removerRascunhoLocal_(item.id); continue; }
           try {
             const raw = localStorage.getItem(draftKeyAtual_(item.id));
             if (raw) return raw;
@@ -515,7 +555,14 @@
       function erroTransitorioGateway_(erro) {
         const status = Number(erro?.status || 0);
         const codigo = String(erro?.code || '').trim().toUpperCase();
-        if (['RESPONSE_FORMAT', 'UPSTREAM_FORMAT', 'REQUEST_TIMEOUT', 'NETWORK_ERROR'].includes(codigo)) return true;
+        if ([
+          'RESPONSE_FORMAT',
+          'UPSTREAM_FORMAT',
+          'REQUEST_TIMEOUT',
+          'NETWORK_ERROR',
+          'GEOCODIFICACAO_INDISPONIVEL',
+          'GEOCODIFICACAO_FORMATO'
+        ].includes(codigo)) return true;
         return [408, 425, 429, 500, 502, 503, 504].includes(status);
       }
 
@@ -6345,10 +6392,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
         ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
+        const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
         enfileirarRegistro(payload);
-        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: currentRecordId }, 12000).catch(() => {});
-        removerRascunhoLocal_(currentRecordId);
-        resetForm();
+        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: registroEncerradoId }, 12000).catch(() => {});
+        encerrarEstadoLocalVistoria_(registroEncerradoId);
+        resetForm(true);
         mostrarSucesso(
           'Vistoria salva no aparelho',
           'A internet está indisponível. O registro foi guardado neste celular e ficará na fila para envio quando a conexão voltar.'
@@ -9348,7 +9396,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const segundaCidade = [cidade, uf].filter(Boolean).join(' — ');
         const segunda = [segundaCidade, cep ? `CEP ${cep}` : ''].filter(Boolean).join(' — ');
 
-        const linhas = [primeira, segunda].filter(Boolean);
+        let linhas = [primeira, segunda].filter(Boolean);
+
+        if (!linhas.length) {
+          const fallback = String(resultado?.enderecoIdentificado || '').trim();
+          if (fallback) linhas = fallback.split(/\s*\|\s*/).filter(Boolean);
+        }
+
         return linhas.length
           ? `<strong>Endereço identificado:</strong>${linhas.map(linha => `<div>${escapeHtml(linha)}</div>`).join('')}`
           : '';
@@ -9419,7 +9473,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (!resposta?.ok) throw new Error(resposta?.error || 'Endereço não identificado.');
 
           const temEndereco = [
-            resposta.logradouro, resposta.numero, resposta.bairro, resposta.cidade, resposta.uf, resposta.cep
+            resposta.logradouro,
+            resposta.numero,
+            resposta.bairro,
+            resposta.cidade,
+            resposta.uf,
+            resposta.cep,
+            resposta.enderecoIdentificado
           ].some(valor => String(valor || '').trim());
 
           if (!temEndereco) {
@@ -11151,6 +11211,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       let sharedDraftSyncTimer = null;
       async function sincronizarRascunhoCompartilhado_(estado = 'em_andamento', silencioso = true) {
         if (!usuarioPodeOperar_() || !navigator.onLine) return false;
+        if (rascunhoFinalizadoLocal_(currentRecordId)) return false;
         const payload = buildPayload();
         payload._appRegistroId = currentRecordId;
         try {
@@ -11268,6 +11329,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
           return;
         }
+        if (rascunhoFinalizadoLocal_(currentRecordId)) return;
         try {
           const savedAt = Date.now();
           localStorage.setItem(draftKeyAtual_(), JSON.stringify({ savedAt, recordId: currentRecordId, payload: buildPayload() }));
@@ -11408,6 +11470,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         resetForm(true);
         if (appStatus) appStatus.textContent = `${origem}: novo preenchimento iniciado. Os demais rascunhos foram preservados.`;
         return true;
+      }
+
+      function encerrarEstadoLocalVistoria_(recordId) {
+        const rid = String(recordId || '').trim();
+        if (!rid) return;
+
+        marcarRascunhoFinalizadoLocal_(rid);
+
+        clearTimeout(saveTimer);
+        clearTimeout(sharedDraftSyncTimer);
+        clearTimeout(cnpjTimer);
+        clearTimeout(responsavelLookupTimer);
+        clearTimeout(responsavelCpfLookupTimer);
+        clearTimeout(estabelecimentoLookupTimer);
+        clearTimeout(pscipLookupTimer);
+        clearTimeout(encerramentoFiscalTimer);
+
+        // Invalida respostas assíncronas iniciadas pelo formulário que acabou de ser encerrado.
+        cnpjConsultaSequencia += 1;
+        responsavelLookupSequencia += 1;
+        responsavelCpfLookupSequencia += 1;
+        estabelecimentoLookupSequencia += 1;
+        pscipLookupSequencia += 1;
+        encerramentoFiscalSequencia += 1;
+
+        removerRascunhoLocal_(rid);
       }
 
       function resetForm(preservarRascunhoAtual = false) {
@@ -11735,10 +11823,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // Estratégia local-first: antes de qualquer tentativa de internet, a vistoria
         // entra na fila do aparelho. Isso torna o botão praticamente imediato e
         // evita perda de dados caso a conexão oscile durante o envio.
+        const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
         enfileirarRegistro(payload);
-        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: currentRecordId }, 12000).catch(() => {});
-        removerRascunhoLocal_(currentRecordId);
-        resetForm();
+        if (navigator.onLine) apiRequest('config', { consulta: 'rascunho_encerrar', id: registroEncerradoId }, 12000).catch(() => {});
+        encerrarEstadoLocalVistoria_(registroEncerradoId);
+        resetForm(true);
 
         if (!navigator.onLine) {
           mostrarSucesso(
@@ -15009,7 +15098,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (confirmou) resetForm();
       });
       document.getElementById('newRecordBtn').addEventListener('click', () => { successScreen.classList.remove('show'); resetForm(); });
-      document.getElementById('closeSuccessBtn').addEventListener('click', () => successScreen.classList.remove('show'));
+      document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+        const parcial = successScreen.classList.contains('partial-success');
+        successScreen.classList.remove('show');
+        if (!parcial) resetForm();
+      });
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
@@ -15335,7 +15428,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bo', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bp', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos

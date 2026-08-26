@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-localizacao-endereco-bo';
-const VERSION = '23.9.99bo';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-localizacao-encerramento-bp';
+const VERSION = '23.9.99bp';
 
 const CORE_SHELL = [
   './',
@@ -9,6 +9,7 @@ const CORE_SHELL = [
   `./ocupacoes.js?v=${VERSION}`,
   `./notificacoes-infoscip.js?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
+  './app.js?v=23.9.99bo',
   './manifest.webmanifest?v=23.9.99p',
   './offline.html'
 ];
