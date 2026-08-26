@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-comunicacao-resiliente-bj';
-const VERSION = '23.9.99ay';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260826-v23-9-99-atualizacao-automatica-bk';
+const VERSION = '23.9.99bk';
 
 const CORE_SHELL = [
   './',

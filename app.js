@@ -1700,16 +1700,73 @@
         }
       }
 
+      function appTemInteracaoCriticaParaAtualizacao_() {
+        if (sendingQueue) return true;
+
+        // Se o militar estiver preenchendo uma vistoria e existir conteúdo em
+        // rascunho, a atualização é adiada até ele sair dessa tela.
+        if (
+          authState.sessionToken &&
+          usuarioPodeOperar_() &&
+          vistaAtualNavegacao_() === 'form' &&
+          rascunhoEmAndamento_()
+        ) {
+          return true;
+        }
+
+        // Não recarrega enquanto houver uma etapa/modal operacional aberta.
+        try {
+          if (camadaNavegacaoAtiva_()) return true;
+        } catch (e) {}
+
+        return false;
+      }
+
       function appPodeAplicarAtualizacaoSilenciosa_() {
-        // Para incomodar o mínimo possível, nunca recarrega uma sessão autenticada.
-        // A versão nova entra naturalmente na próxima abertura/recarregamento.
-        return !authState.sessionToken && Boolean(authGate && authGate.classList.contains('show'));
+        if (!swAtualizacaoPendente_ || swRecarregamentoAtualizacaoEmCurso_) return false;
+        return !appTemInteracaoCriticaParaAtualizacao_();
+      }
+
+      function agendarNovaTentativaAtualizacaoSilenciosa_() {
+        if (!swAtualizacaoPendente_ || swTimerAtualizacaoAdiada_) return;
+
+        swTimerAtualizacaoAdiada_ = setTimeout(() => {
+          swTimerAtualizacaoAdiada_ = null;
+          aplicarAtualizacaoSilenciosaSeSeguro_();
+        }, 45 * 1000);
       }
 
       function aplicarAtualizacaoSilenciosaSeSeguro_() {
-        if (!swAtualizacaoPendente_ || !appPodeAplicarAtualizacaoSilenciosa_()) return false;
+        if (!swAtualizacaoPendente_) return false;
+
+        if (!appPodeAplicarAtualizacaoSilenciosa_()) {
+          agendarNovaTentativaAtualizacaoSilenciosa_();
+          return false;
+        }
+
+        // Se houver um rascunho preservado enquanto o usuário está no Painel,
+        // reforça a gravação local antes da recarga.
+        try {
+          if (usuarioPodeOperar_() && rascunhoEmAndamento_()) saveDraft();
+        } catch (e) {}
+
         swAtualizacaoPendente_ = false;
-        window.location.reload();
+        swRecarregamentoAtualizacaoEmCurso_ = true;
+
+        if (swTimerAtualizacaoAdiada_) {
+          clearTimeout(swTimerAtualizacaoAdiada_);
+          swTimerAtualizacaoAdiada_ = null;
+        }
+
+        // A sessão BM permanece no armazenamento local. Somente a interface e
+        // os arquivos do aplicativo são recarregados.
+        try {
+          sessionStorage.setItem('gpv_auto_update_applied_v1', String(Date.now()));
+        } catch (e) {}
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('appAtualizado', Date.now().toString());
+        window.location.replace(url.toString());
         return true;
       }
 
@@ -1731,7 +1788,7 @@
       async function verificarAtualizacaoSilenciosaPwa_(forcar = false) {
         if (!navigator.onLine || !('serviceWorker' in navigator)) return;
         const agora = Date.now();
-        if (!forcar && agora - swUltimaVerificacaoSilenciosa_ < 20 * 60 * 1000) return;
+        if (!forcar && agora - swUltimaVerificacaoSilenciosa_ < 10 * 60 * 1000) return;
         swUltimaVerificacaoSilenciosa_ = agora;
         try {
           const registro = swRegistroSilencioso_ || await navigator.serviceWorker.getRegistration();
@@ -1772,6 +1829,8 @@
       let swRegistroSilencioso_ = null;
       let swUltimaVerificacaoSilenciosa_ = 0;
       let swAtualizacaoPendente_ = false;
+      let swRecarregamentoAtualizacaoEmCurso_ = false;
+      let swTimerAtualizacaoAdiada_ = null;
       let sancaoDefinidaAutomaticamente = false;
       let sancaoAntesDoAutomatico = '';
       let cpfCopiadoDoIdentificador = '';
@@ -2949,6 +3008,10 @@
         recordsTabBtn?.classList.toggle('active', painel);
         formTabBtn?.setAttribute('aria-pressed', String(!painel));
         recordsTabBtn?.setAttribute('aria-pressed', String(painel));
+
+        if (painel && swAtualizacaoPendente_) {
+          setTimeout(() => aplicarAtualizacaoSilenciosaSeSeguro_(), 150);
+        }
       }
 
       function atualizarVistaNaUrl_(modo) {
@@ -14364,14 +14427,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         authPinToggleBtn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
         authPinToggleBtn.title = mostrar ? 'Ocultar senha' : 'Mostrar senha';
       });
+      let appOcultadoEm_ = 0;
+
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && authState.sessionToken) validarSessaoLocalAtivaBm_();
-        if (document.visibilityState === 'visible') { verificarAtualizacaoSilenciosaPwa_(); aplicarAtualizacaoSilenciosaSeSeguro_(); }
+        if (document.visibilityState === 'hidden') {
+          appOcultadoEm_ = Date.now();
+          return;
+        }
+
+        if (document.visibilityState === 'visible') {
+          if (authState.sessionToken) validarSessaoLocalAtivaBm_();
+
+          const ficouForaPor = appOcultadoEm_ ? Date.now() - appOcultadoEm_ : 0;
+          const forcarVerificacao = ficouForaPor >= 15 * 60 * 1000;
+
+          verificarAtualizacaoSilenciosaPwa_(forcarVerificacao);
+          aplicarAtualizacaoSilenciosaSeSeguro_();
+          appOcultadoEm_ = 0;
+        }
       });
+
       window.addEventListener('focus', () => {
         if (authState.sessionToken) validarSessaoLocalAtivaBm_();
         verificarAtualizacaoSilenciosaPwa_();
         aplicarAtualizacaoSilenciosaSeSeguro_();
+      });
+
+      // Também cobre restauração da aba pelo histórico/BFCache do navegador.
+      window.addEventListener('pageshow', event => {
+        if (event.persisted) {
+          verificarAtualizacaoSilenciosaPwa_(true);
+          aplicarAtualizacaoSilenciosaSeSeguro_();
+        }
       });
       authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); authPendingUserId = ''; authPendingBm = ''; });
       authForm?.addEventListener('submit', async event => {
@@ -14479,11 +14566,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bj', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bk', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
-            // Durante a fase de atualizações, verifica em segundo plano sem avisos.
-            setInterval(() => verificarAtualizacaoSilenciosaPwa_(), 30 * 60 * 1000);
+            // Verificação periódica para aparelhos/abas que permanecem abertos
+            // por muitas horas ou dias.
+            setInterval(() => {
+              verificarAtualizacaoSilenciosaPwa_();
+              aplicarAtualizacaoSilenciosaSeSeguro_();
+            }, 30 * 60 * 1000);
           } catch (e) {}
         });
       }
