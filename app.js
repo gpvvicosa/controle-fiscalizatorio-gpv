@@ -1451,7 +1451,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99bw';
+      const APP_REVISION_UI_ = '23.9.99bx';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -1750,7 +1750,7 @@
         try {
           const nomes = (await caches.keys()).filter(nome => nome.startsWith('gpv-vistorias-pwa-'));
           if (!nomes.length) return 'Nenhum cache do app localizado';
-          const atual = nomes.find(nome => nome.includes('infoscip-bw')) || nomes[nomes.length - 1];
+          const atual = nomes.find(nome => nome.includes('localizacao-bx')) || nomes[nomes.length - 1];
           const cache = await caches.open(atual);
           const entradas = await cache.keys();
           return `${atual} • ${entradas.length} arquivo(s)`;
@@ -10950,6 +10950,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : '';
       }
 
+      function enderecoLocalizacaoTexto_(resultado) {
+        const logradouro = String(resultado?.logradouro || '').trim();
+        const numero = String(resultado?.numero || '').trim();
+        const bairro = String(resultado?.bairro || '').trim();
+        const cidade = String(resultado?.cidade || '').trim();
+        const uf = String(resultado?.uf || '').trim();
+        const cep = String(resultado?.cep || '').trim();
+        const linhas = [
+          [[logradouro, numero].filter(Boolean).join(', '), bairro].filter(Boolean).join(' — '),
+          [[cidade, uf].filter(Boolean).join(' — '), cep ? `CEP ${cep}` : ''].filter(Boolean).join(' — ')
+        ].filter(Boolean);
+        if (linhas.length) return linhas.join('\n');
+        return String(resultado?.enderecoIdentificado || '').trim().replace(/\s*\|\s*/g, '\n');
+      }
+
+      function enderecoAtualFormularioTexto_() {
+        const cidade = citySelect?.value === 'Outro'
+          ? String(otherCity?.value || '').trim()
+          : String(citySelect?.value || '').trim();
+        return [
+          [String(value('endereco') || '').trim(), String(value('numero') || '').trim()].filter(Boolean).join(', '),
+          String(value('bairro') || '').trim(),
+          cidade
+        ].filter(Boolean).join(' — ');
+      }
+
       function aplicarCidadeLocalizacao_(cidade) {
         const informada = String(cidade || '').trim();
         if (!informada || !citySelect) return;
@@ -10988,7 +11014,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         aplicarCidadeLocalizacao_(resultado.cidade);
 
         if (localizacaoEnderecoIdentificadoInput) {
-          localizacaoEnderecoIdentificadoInput.value = String(resultado.enderecoIdentificado || '').trim();
+          const identificado = String(resultado.enderecoIdentificado || enderecoLocalizacaoTexto_(resultado).replace(/\n/g, ' | ')).trim();
+          localizacaoEnderecoIdentificadoInput.value = identificado;
         }
 
         const html = enderecoLocalizacaoHtml_(resultado);
@@ -10999,8 +11026,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConsultaRetornoLiberacao_(250);
       }
 
-      async function identificarEnderecoPorLocalizacao_(silencioso = false, substituir = false) {
+      let localizacaoConsultaSequencia_ = 0;
+
+      async function identificarEnderecoPorLocalizacao_(silencioso = false) {
         if (!localizacaoValidaFormulario_() || !navigator.onLine) return null;
+        const sequencia = ++localizacaoConsultaSequencia_;
 
         if (!silencioso) {
           mostrarStatusLocalizacao_('<strong>Localização capturada.</strong><div>Identificando o endereço...</div>', 'info');
@@ -11012,6 +11042,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             latitude: localizacaoLatitudeInput?.value || '',
             longitude: localizacaoLongitudeInput?.value || ''
           }, 25000);
+
+          if (sequencia !== localizacaoConsultaSequencia_) return null;
 
           if (!resposta?.ok) throw new Error(resposta?.error || 'Endereço não identificado.');
 
@@ -11035,9 +11067,41 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             return resposta;
           }
 
-          aplicarEnderecoDaLocalizacao_(resposta, substituir);
+          const enderecoEncontrado = enderecoLocalizacaoTexto_(resposta);
+          if (localizacaoEnderecoIdentificadoInput) {
+            localizacaoEnderecoIdentificadoInput.value = String(resposta.enderecoIdentificado || enderecoEncontrado.replace(/\n/g, ' | ')).trim();
+          }
+          scheduleDraftSave();
+
+          const enderecoAtual = enderecoAtualFormularioTexto_();
+          const mensagem = [
+            'Endereço encontrado pela localização:',
+            enderecoEncontrado,
+            enderecoAtual ? `\nEndereço atualmente preenchido:\n${enderecoAtual}` : '',
+            '\nDeseja usar o endereço encontrado nos campos desta vistoria?'
+          ].filter(Boolean).join('\n');
+          const usarEndereco = await confirmarGpv_(
+            mensagem,
+            'Endereço identificado',
+            {
+              tom: 'info',
+              rotuloConfirmar: 'Usar endereço',
+              rotuloCancelar: enderecoAtual ? 'Manter endereço atual' : 'Não usar'
+            }
+          );
+
+          if (sequencia !== localizacaoConsultaSequencia_) return resposta;
+          if (usarEndereco) {
+            aplicarEnderecoDaLocalizacao_(resposta, true);
+            const html = enderecoLocalizacaoHtml_(resposta);
+            if (html) mostrarStatusLocalizacao_(`${html}<div><strong>Endereço aplicado ao formulário.</strong></div>`, 'info');
+          } else {
+            const html = enderecoLocalizacaoHtml_(resposta);
+            if (html) mostrarStatusLocalizacao_(`${html}<div>O endereço encontrado não foi aplicado. As coordenadas foram preservadas.</div>`, 'info');
+          }
           return resposta;
         } catch (erro) {
+          if (sequencia !== localizacaoConsultaSequencia_) return null;
           if (!silencioso) {
             mostrarStatusLocalizacao_(
               '<strong>Localização capturada.</strong><div>O endereço não pôde ser identificado agora. As coordenadas foram preservadas.</div>',
@@ -11084,20 +11148,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
 
-        const enderecoPreenchido = [
-          value('endereco'), value('numero'), value('bairro')
-        ].some(valor => String(valor || '').trim());
-
-        let substituir = false;
-        if (enderecoPreenchido) {
-          substituir = await confirmarGpv_(
-            'Já existem dados de endereço preenchidos. Deseja usar a localização atual e substituir os campos que forem identificados?',
-            'Usar localização atual',
-            { rotuloConfirmar: 'Usar localização', rotuloCancelar: 'Cancelar' }
-          );
-          if (!substituir) return;
-        }
-
         if (useCurrentLocationBtn) {
           useCurrentLocationBtn.disabled = true;
           useCurrentLocationBtn.querySelector('span')?.replaceChildren(document.createTextNode('Obtendo localização...'));
@@ -11127,7 +11177,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             scheduleDraftSave();
 
             if (navigator.onLine) {
-              await identificarEnderecoPorLocalizacao_(false, substituir);
+              await identificarEnderecoPorLocalizacao_(false);
             } else {
               mostrarStatusLocalizacao_(
                 '<strong>Localização capturada.</strong><div>Sem internet para identificar o endereço agora. As coordenadas serão mantidas no registro.</div>',
@@ -17295,7 +17345,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (authEnterBtn) authEnterBtn.disabled = false;
         if (authOfflineNote) authOfflineNote.hidden = true;
         if (localizacaoValidaFormulario_() && !String(localizacaoEnderecoIdentificadoInput?.value || '').trim()) {
-          setTimeout(() => { void identificarEnderecoPorLocalizacao_(true, false); }, 200);
+          setTimeout(() => { void identificarEnderecoPorLocalizacao_(true); }, 200);
         }
         if (ehFluxoLiberacao_()) setTimeout(() => { void consultarRetornoLiberacao_(); }, 450);
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
@@ -17340,7 +17390,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bw', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bx', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos

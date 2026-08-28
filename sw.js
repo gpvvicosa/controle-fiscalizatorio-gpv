@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-infoscip-bw';
-const VERSION = '23.9.99bw';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-localizacao-bx';
+const VERSION = '23.9.99bx';
 
 const CORE_SHELL = [
   './',
