@@ -17,6 +17,7 @@
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
       const APP_VERSION = '23.9.99';
+      const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
@@ -513,7 +514,7 @@
         try {
           const bruto = JSON.parse(localStorage.getItem(draftAssinaturasFinalizadasKey_()) || '{}');
           if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return {};
-          const limite = Date.now() - 1000 * 60 * 60 * 24 * 7;
+          const limite = Date.now() - DRAFT_FINALIZED_RETENTION_MS;
           const limpo = {};
           Object.entries(bruto).forEach(([assinatura, encerradoEm]) => {
             const data = Number(encerradoEm || 0);
@@ -651,7 +652,7 @@
         try {
           const bruto = JSON.parse(localStorage.getItem(draftFinalizadosKey_()) || '{}');
           if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return {};
-          const limite = Date.now() - 1000 * 60 * 60 * 24 * 7;
+          const limite = Date.now() - DRAFT_FINALIZED_RETENTION_MS;
           const limpo = {};
           Object.entries(bruto).forEach(([id, encerradoEm]) => {
             const data = Number(encerradoEm || 0);
@@ -706,24 +707,189 @@
         } catch (e) {}
       }
 
-      function obterRascunhoLocalMaisRecente_() {
+      function rascunhoPayloadTemConteudo_(p = {}) {
+        if (!p || typeof p !== 'object') return false;
+        const campos = [
+          'tipoVistoria','nomeFantasia','razaoSocial','cnpj','pf','reds','endereco','numero','bairro','localizacaoCoordenadas',
+          'demandaPrincipal','sancao','responsavel','nomeResponsavel','cpf','telefone','pscip','ocupacao',
+          'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado',
+          '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
+        ];
+        if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
+        const notificacoes = String(p.notificacoesLiberacao || '').trim();
+        return Boolean(notificacoes && notificacoes !== '[]');
+      }
+
+      function listarRascunhosLocaisAtivos_() {
         deduplicarRascunhosLocais_();
-        const limite = Date.now() - 1000 * 60 * 60 * 24 * 3;
+        const ativos = [];
         for (const item of lerIndiceRascunhosLocais_()) {
-          if (Number(item.savedAt || 0) < limite) { removerRascunhoLocal_(item.id); continue; }
-          if (rascunhoFinalizadoLocal_(item.id)) { removerRascunhoLocal_(item.id); continue; }
-          try {
-            const raw = localStorage.getItem(draftKeyAtual_(item.id));
-            if (!raw) continue;
-            const draft = JSON.parse(raw);
-            if (draft?.payload && assinaturaFinalizadaLocal_(draft.payload)) {
-              removerRascunhoLocal_(item.id);
-              continue;
-            }
-            return raw;
-          } catch (e) {}
+          const rid = String(item?.id || '').trim();
+          if (!rid) continue;
+          if (rascunhoFinalizadoLocal_(rid)) {
+            removerRascunhoLocal_(rid);
+            continue;
+          }
+          const draft = lerRascunhoLocalPorId_(rid);
+          if (!draft?.payload) {
+            removerRascunhoLocal_(rid);
+            continue;
+          }
+          if (assinaturaFinalizadaLocal_(draft.payload)) {
+            removerRascunhoLocal_(rid);
+            continue;
+          }
+          if (!rascunhoPayloadTemConteudo_(draft.payload)) {
+            removerRascunhoLocal_(rid);
+            continue;
+          }
+          ativos.push({
+            id: rid,
+            savedAt: Number(draft.savedAt || item.savedAt || 0),
+            payload: draft.payload
+          });
         }
-        return '';
+        ativos.sort((a, b) => Number(b.savedAt || 0) - Number(a.savedAt || 0));
+        return ativos;
+      }
+
+      function obterRascunhoLocalMaisRecente_() {
+        const item = listarRascunhosLocaisAtivos_()[0];
+        if (!item) return '';
+        return JSON.stringify({ savedAt: item.savedAt, recordId: item.id, payload: item.payload });
+      }
+
+      function textoUltimaAlteracaoRascunho_(savedAt) {
+        const quando = Number(savedAt || 0);
+        if (!quando) return 'data não informada';
+        const diferenca = Math.max(0, Date.now() - quando);
+        const minuto = 60 * 1000;
+        const hora = 60 * minuto;
+        const dia = 24 * hora;
+        if (diferenca < minuto) return 'agora';
+        if (diferenca < hora) {
+          const n = Math.max(1, Math.floor(diferenca / minuto));
+          return `há ${n} min`;
+        }
+        if (diferenca < dia) {
+          const n = Math.max(1, Math.floor(diferenca / hora));
+          return `há ${n} h`;
+        }
+        if (diferenca < 7 * dia) {
+          const n = Math.max(1, Math.floor(diferenca / dia));
+          return `há ${n} dia${n === 1 ? '' : 's'}`;
+        }
+        try {
+          return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(quando));
+        } catch (_) {
+          return new Date(quando).toLocaleString('pt-BR');
+        }
+      }
+
+      function tituloRascunhoLocal_(item) {
+        const p = item?.payload || {};
+        return String(
+          p.nomeFantasia || p.razaoSocial || p.eventoNome || p.endereco || p.demandaPrincipal || p.tipoVistoria || 'Vistoria em andamento'
+        ).trim();
+      }
+
+      function subtituloRascunhoLocal_(item) {
+        const p = item?.payload || {};
+        const partes = [];
+        const local = [p.endereco, p.numero].filter(Boolean).join(', ');
+        if (local && normalize(local) !== normalize(tituloRascunhoLocal_(item))) partes.push(local);
+        if (p.cidade) partes.push(String(p.cidade));
+        partes.push(`Última alteração ${textoUltimaAlteracaoRascunho_(item?.savedAt)}`);
+        return partes.filter(Boolean).join(' · ');
+      }
+
+      function atualizarResumoRascunhosLocais_() {
+        const row = document.getElementById('localDraftSummaryRow');
+        const card = document.getElementById('localDraftSummaryCard');
+        const title = document.getElementById('localDraftSummaryTitle');
+        const text = document.getElementById('localDraftSummaryText');
+        const count = document.getElementById('localDraftSummaryCount');
+        if (!row || !card || !title || !text || !count) return [];
+        const todos = usuarioPodeOperar_() ? listarRascunhosLocaisAtivos_() : [];
+        let lista = todos;
+        try {
+          if (rascunhoAtualEmAndamento_()) {
+            const atual = String(currentRecordId || '');
+            lista = todos.filter(item => String(item.id || '') !== atual);
+          }
+        } catch (_) {}
+        if (!lista.length) {
+          row.hidden = true;
+          return lista;
+        }
+        row.hidden = false;
+        count.textContent = String(lista.length);
+        title.textContent = lista.length === 1 ? 'Vistoria em andamento' : 'Vistorias em andamento';
+        if (lista.length === 1) {
+          text.textContent = `${tituloRascunhoLocal_(lista[0])} · Última alteração ${textoUltimaAlteracaoRascunho_(lista[0].savedAt)}`;
+          card.setAttribute('aria-label', `Continuar vistoria em andamento: ${tituloRascunhoLocal_(lista[0])}`);
+        } else {
+          text.textContent = `${lista.length} rascunhos preservados neste aparelho · toque para escolher`;
+          card.setAttribute('aria-label', `Escolher entre ${lista.length} vistorias em andamento`);
+        }
+        return lista;
+      }
+
+      function rascunhoAtualEmAndamento_() {
+        if (!usuarioPodeOperar_()) return false;
+        try {
+          const draft = lerRascunhoLocalPorId_(currentRecordId);
+          if (draft?.payload && !rascunhoFinalizadoLocal_(currentRecordId) && !assinaturaFinalizadaLocal_(draft.payload)) {
+            if (rascunhoPayloadTemConteudo_(draft.payload)) return true;
+          }
+          return rascunhoPayloadTemConteudo_(buildPayload());
+        } catch (_) {
+          return false;
+        }
+      }
+
+      async function abrirRascunhoLocalPorId_(recordId) {
+        const rid = String(recordId || '').trim();
+        if (!rid) return false;
+        const draft = lerRascunhoLocalPorId_(rid);
+        if (!draft?.payload || rascunhoFinalizadoLocal_(rid) || assinaturaFinalizadaLocal_(draft.payload)) {
+          removerRascunhoLocal_(rid);
+          atualizarResumoRascunhosLocais_();
+          if (appStatus) appStatus.textContent = 'Esse rascunho não está mais disponível.';
+          return false;
+        }
+        if (String(currentRecordId || '') !== rid && rascunhoAtualEmAndamento_()) saveDraft();
+        currentRecordId = rid;
+        applyPayload(draft.payload, rid);
+        await mostrarVistaFormulario_();
+        if (draftStatus) draftStatus.textContent = '✓ Rascunho retomado';
+        if (appStatus) appStatus.textContent = `Vistoria retomada — última alteração ${textoUltimaAlteracaoRascunho_(draft.savedAt)}.`;
+        atualizarResumoRascunhosLocais_();
+        const alvo = document.getElementById('cidadeSecao')?.hidden ? document.getElementById('tipoVistoriaSecao') : document.getElementById('cidadeSecao');
+        setTimeout(() => alvo?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+        return true;
+      }
+
+      async function abrirListaRascunhosLocais_() {
+        const lista = atualizarResumoRascunhosLocais_();
+        if (!lista.length) {
+          if (appStatus) appStatus.textContent = 'Nenhuma vistoria em andamento foi encontrada neste aparelho.';
+          return;
+        }
+        if (lista.length === 1) {
+          await abrirRascunhoLocalPorId_(lista[0].id);
+          return;
+        }
+        const escolhido = await escolherOpcaoGpv_(
+          'Selecione a vistoria que deseja continuar. Os demais rascunhos permanecerão preservados.',
+          lista.slice(0, 30).map(item => ({
+            valor: item.id,
+            titulo: tituloRascunhoLocal_(item),
+            subtitulo: subtituloRascunhoLocal_(item)
+          })),
+          'Vistorias em andamento'
+        );
+        if (escolhido) await abrirRascunhoLocalPorId_(escolhido);
       }
 
       const API_CONFIG_READ_QUERIES = new Set([
@@ -2532,7 +2698,7 @@
         // Se houver um rascunho preservado enquanto o usuário está no Painel,
         // reforça a gravação local antes da recarga.
         try {
-          if (usuarioPodeOperar_() && rascunhoEmAndamento_()) saveDraft();
+          if (usuarioPodeOperar_() && rascunhoAtualEmAndamento_()) saveDraft();
         } catch (e) {}
 
         swAtualizacaoPendente_ = false;
@@ -4338,6 +4504,7 @@
         marcarAbaApp_('form');
         fecharDetalheRegistro_({ restaurarContexto: false });
         atualizarVistaNaUrl_('form');
+        atualizarResumoRascunhosLocais_();
         window.scrollTo({ top: 0, behavior: 'smooth' });
         if (usuarioEmTreinamento_()) {
           if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
@@ -13200,6 +13367,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           registrarRascunhoLocal_(currentRecordId, savedAt);
           atualizarEstadoSalvamentoIrregularidades_(navigator.onLine ? 'local' : 'offline', navigator.onLine ? '✓ Salva neste aparelho' : '☁ Salva — aguardando sincronização');
           draftStatus.textContent = '✓ Rascunho salvo';
+          atualizarResumoRascunhosLocais_();
           setTimeout(() => { draftStatus.textContent = 'Rascunho automático'; }, 1600);
         } catch (e) {}
       }
@@ -13236,9 +13404,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function restoreDraft() {
         try {
-          let raw = obterRascunhoLocalMaisRecente_();
           // Migra eventual rascunho único das versões anteriores para o modelo multi-rascunho.
-          if (!raw && authState.usuario?.id) {
+          if (authState.usuario?.id) {
             const chaveLegadaUsuario = `${DRAFT_KEY}:${draftUserId_()}`;
             const legado = localStorage.getItem(chaveLegadaUsuario) || localStorage.getItem(DRAFT_KEY);
             if (legado) {
@@ -13248,100 +13415,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 d.recordId = rid;
                 if (d?.payload && assinaturaFinalizadaLocal_(d.payload)) {
                   marcarRascunhoFinalizadoLocal_(rid);
-                } else {
+                } else if (d?.payload && rascunhoPayloadTemConteudo_(d.payload)) {
                   localStorage.setItem(draftKeyAtual_(rid), JSON.stringify(d));
                   registrarRascunhoLocal_(rid, d.savedAt || Date.now());
-                  raw = JSON.stringify(d);
                 }
               } catch (e) {}
               localStorage.removeItem(chaveLegadaUsuario);
               localStorage.removeItem(DRAFT_KEY);
             }
           }
-          if (!raw) return;
-          const draft = JSON.parse(raw);
-          if (!draft?.payload) return;
-          if (Date.now() - Number(draft.savedAt || 0) > 1000 * 60 * 60 * 24 * 3) {
-            removerRascunhoLocal_(draft.recordId || draft.payload?._appRegistroId || currentRecordId);
-            return;
+          deduplicarRascunhosLocais_();
+          const lista = atualizarResumoRascunhosLocais_();
+          if (draftStatus && lista.length) {
+            draftStatus.textContent = lista.length === 1 ? '1 rascunho preservado' : `${lista.length} rascunhos preservados`;
           }
-          const p = draft.payload;
-          limparProtecaoEdicaoResponsavel_();
-          preparacaoEmUsoId = String(p._appPreparacaoId || '');
-          dduEmUsoId = String(p._appDduId || '');
-          dduEmUsoNumero = String(p._appDduNumero || p.dduProtocol || '');
-          processoAcessoriaVinculado = p._appAcessoriaPfVinculado ? { pf: String(p._appAcessoriaPfVinculado), sancao: String(p._appAcessoriaSituacaoAnterior || p.acessoriaSituacaoAnterior || '') } : null;
-          aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
-          currentRecordId = String(draft.recordId || p._appRegistroId || currentRecordId || criarIdRegistro());
-          atualizarBotaoCancelarPreenchimentoTopo_();
-          sancaoAntesDoAutomatico = String(p._appSancaoAntesAuto || '');
-          if (licenciamentoSelect) licenciamentoSelect.value = String(p._appLicenciamento || '');
-          if (possuiPscipSelect) possuiPscipSelect.value = String(p._appPossuiPscip || (p.pscip ? 'sim' : ''));
-          sancaoDefinidaAutomaticamente = ['nao_possui','vencido'].includes(String(p._appLicenciamento || '')) && normalize(p.demandaPrincipal) !== normalize('Vistoria Acessória');
-          const cityOptions = Array.from(citySelect.options).map(o => o.value);
-          if (cityOptions.includes(p.cidade)) {
-            citySelect.value = p.cidade;
-          } else if (p.cidade) {
-            citySelect.value = 'Outro';
-            otherCity.value = p.cidade;
-          }
-          Object.entries(p).forEach(([key, val]) => {
-            if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key.startsWith('_app')) return;
-            const el = document.getElementById(key);
-            if (el) el.value = val == null ? '' : val;
-          });
-          protegerCamposResponsavelPreenchidos_();
-          restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
-          restaurarOcupacoesSelecionadas(p.ocupacao);
-          restaurarStatusLocalizacao_();
-          aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
-          if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
-          syncOtherCity();
-          syncLicenciamento();
-          syncPscip_();
-          const tipoId = tipoIdentificador_(value('cnpj'));
-          atualizarInterfaceIdentificador_(tipoId);
-          if (tipoId === 'cpf') sincronizarIdentificadorComCpf_(value('cnpj'));
-          if (tipoId === 'cnpj') cnpjAssociadoDadosEmpresa = digits(value('cnpj'));
-          telefoneResponsavelAssociado = digits(value('telefone'));
-          syncNotificado();
-          sincronizarDemandasEspeciais_();
-          atualizarVerificacaoMetasFiscalizacao_();
-          if (preparacaoEmUsoId) setTimeout(() => rolarParaFormularioProgramado_(), 0);
-          appStatus.textContent = 'Rascunho anterior recuperado.';
+          // V23.9.99cb: rascunhos antigos não são abertos automaticamente.
+          // O militar escolhe conscientemente qual vistoria deseja retomar.
         } catch (e) {}
       }
 
       function rascunhoEmAndamento_() {
         if (!usuarioPodeOperar_()) return false;
-        try {
-          const raw = obterRascunhoLocalMaisRecente_();
-          if (!raw) return false;
-          const draft = JSON.parse(raw);
-          const p = draft && draft.payload ? draft.payload : null;
-          if (!p) return false;
-          if (Date.now() - Number(draft.savedAt || 0) > 1000 * 60 * 60 * 24 * 3) return false;
-          const campos = [
-            'tipoVistoria','nomeFantasia','razaoSocial','cnpj','pf','reds','endereco','numero','bairro','localizacaoCoordenadas',
-            'demandaPrincipal','sancao','responsavel','nomeResponsavel','cpf','telefone','pscip','ocupacao',
-            'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado',
-            '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
-          ];
-          if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
-          const notificacoes = String(p.notificacoesLiberacao || '').trim();
-          return !!(notificacoes && notificacoes !== '[]');
-        } catch (e) {
-          return false;
-        }
+        try { return listarRascunhosLocaisAtivos_().length > 0; } catch (_) { return false; }
       }
 
       function prepararFormularioNovaVistoria_(origem = 'Nova vistoria') {
         deduplicarRascunhosLocais_();
-        if (rascunhoEmAndamento_()) {
+        if (rascunhoAtualEmAndamento_()) {
           saveDraft();
           sincronizarRascunhoCompartilhado_('em_andamento', true).catch(() => {});
         }
         resetForm(true);
+        atualizarResumoRascunhosLocais_();
         if (appStatus) appStatus.textContent = `${origem}: novo preenchimento iniciado. Os demais rascunhos foram preservados.`;
         return true;
       }
@@ -13463,6 +13568,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         mostrarMetaOcupacao(null);
         esconderResultadosOcupacao();
         atualizarVerificacaoMetasFiscalizacao_();
+        atualizarResumoRascunhosLocais_();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
@@ -16356,7 +16462,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // abre o rascunho compartilhado em vez de criar outra vistoria.
         if (item.vistoriaIniciada && item.rascunhoId && navigator.onLine) {
           try {
-            if (rascunhoEmAndamento_()) {
+            if (rascunhoAtualEmAndamento_()) {
               saveDraft();
               await sincronizarRascunhoCompartilhado_('em_andamento', true);
             }
@@ -16542,6 +16648,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       fluxoLiberacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('liberacao'));
       document.getElementById('partialBtn')?.addEventListener('click', concluirParcialmente_);
       document.getElementById('continueSharedBtn')?.addEventListener('click', continuarRascunhoCompartilhado_);
+      document.getElementById('localDraftSummaryCard')?.addEventListener('click', abrirListaRascunhosLocais_);
+      document.getElementById('localDraftNewBtn')?.addEventListener('click', async () => {
+        if (!prepararFormularioNovaVistoria_('Nova vistoria')) return;
+        await mostrarVistaFormulario_();
+      });
       loggedUserBadge?.addEventListener('click', abrirPreparacoesDoUsuario_);
       loggedUserBadge?.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); abrirPreparacoesDoUsuario_(); }
@@ -17635,7 +17746,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ca', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos

@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99ca">
+  <link rel="stylesheet" href="styles.css?v=23.9.99cb">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -575,7 +575,7 @@
           <div class="tutorial-step-icon">📶</div>
           <h3>3. Online e offline</h3>
           <p>A faixa estreita de conexão ocupa a largura da página: <strong>verde forte com indicador em movimento</strong> significa conexão disponível; <strong>vermelha forte pulsante</strong> significa que o aparelho está sem internet.</p>
-          <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho. Ao usar <strong>Nova vistoria</strong>, o sistema inicia um formulário limpo; se existir um rascunho realmente em andamento, pede confirmação antes de apagá-lo. Se você registrar uma vistoria sem sinal, ela permanece segura na fila offline e será enviada quando a conexão voltar.</p>
+          <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho e não expira após poucos dias. Ao abrir o app, as vistorias em andamento aparecem para retomada; você escolhe qual continuar. <strong>Nova vistoria</strong> inicia um formulário limpo sem apagar os demais rascunhos. Um rascunho só é removido quando a vistoria é registrada, cancelada conscientemente ou quando você usa <strong>Limpar</strong> no preenchimento correspondente. Se você registrar sem sinal, a vistoria permanece segura na fila offline e será enviada quando a conexão voltar.</p>
           <p class="tutorial-note"><strong>DDU:</strong> o atalho na área de Vistoria aparece somente quando existir pelo menos uma demanda DDU pendente. Ao iniciar um DDU ou uma Vistoria Programada, o formulário é limpo antes de receber os dados daquele atendimento.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="4">
@@ -857,6 +857,16 @@
     <form id="vistoriaForm" novalidate>
       <section class="section essential inspection-flow-section" id="tipoVistoriaSecao">
         <div class="section-body">
+          <div class="programmed-summary-row" id="localDraftSummaryRow" hidden>
+            <button type="button" class="programmed-summary-card" id="localDraftSummaryCard" aria-label="Continuar vistoria em andamento">
+              <span class="programmed-summary-icon" aria-hidden="true">📝</span>
+              <span class="programmed-summary-copy"><strong id="localDraftSummaryTitle">Vistoria em andamento</strong><small id="localDraftSummaryText">Rascunho preservado neste aparelho</small></span>
+              <span class="programmed-summary-count" id="localDraftSummaryCount">1</span>
+            </button>
+            <button type="button" class="programmed-quick-add-btn" id="localDraftNewBtn" aria-label="Iniciar nova vistoria sem apagar os rascunhos existentes">
+              <span aria-hidden="true">＋</span><span class="programmed-quick-add-label">Nova vistoria</span>
+            </button>
+          </div>
           <div class="inspection-overview-grid operational-shortcuts-grid" aria-label="Pendências operacionais">
             <button type="button" class="ddu-summary-card" id="dduSummaryCard" aria-label="Abrir demandas DDU" hidden>
               <span class="ddu-summary-icon">181</span>
@@ -2269,10 +2279,10 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.99ca"></script>
-  <script src="ocupacoes.js?v=23.9.99ca"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99ca"></script>
-  <script src="app.js?v=23.9.99ca"></script>
+  <script src="config.js?v=23.9.99cb"></script>
+  <script src="ocupacoes.js?v=23.9.99cb"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99cb"></script>
+  <script src="app.js?v=23.9.99cb"></script>
 
   </div>
   
