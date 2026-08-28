@@ -1071,6 +1071,12 @@
       const recordHistoryCount = document.getElementById('recordHistoryCount');
       const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
       const recordAuditPanel = document.getElementById('recordAuditPanel');
+      const recordInfoscipHistoryPanel = document.getElementById('recordInfoscipHistoryPanel');
+      const recordInfoscipHistoryModel = document.getElementById('recordInfoscipHistoryModel');
+      const recordInfoscipHistoryText = document.getElementById('recordInfoscipHistoryText');
+      const recordInfoscipCopyBtn = document.getElementById('recordInfoscipCopyBtn');
+      const recordInfoscipCopyStatus = document.getElementById('recordInfoscipCopyStatus');
+      const recordInfoscipModelSelect = document.getElementById('recordInfoscipModelSelect');
       const recordRedsReportPanel = document.getElementById('recordRedsReportPanel');
       const recordRedsReportModel = document.getElementById('recordRedsReportModel');
       const recordRedsReportText = document.getElementById('recordRedsReportText');
@@ -1445,7 +1451,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99bu';
+      const APP_REVISION_UI_ = '23.9.99bv';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -1744,7 +1750,7 @@
         try {
           const nomes = (await caches.keys()).filter(nome => nome.startsWith('gpv-vistorias-pwa-'));
           if (!nomes.length) return 'Nenhum cache do app localizado';
-          const atual = nomes.find(nome => nome.includes('programada-bu')) || nomes[nomes.length - 1];
+          const atual = nomes.find(nome => nome.includes('infoscip-bv')) || nomes[nomes.length - 1];
           const cache = await caches.open(atual);
           const entradas = await cache.keys();
           return `${atual} • ${entradas.length} arquivo(s)`;
@@ -5258,6 +5264,9 @@
         recordHistoryTimeline.innerHTML = '';
         recordHistoryPanel.hidden = true;
         recordDetailLoading.hidden = false;
+        if (recordInfoscipHistoryPanel) recordInfoscipHistoryPanel.hidden = true;
+        if (recordInfoscipHistoryText) recordInfoscipHistoryText.value = '';
+        if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
         if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
@@ -5653,6 +5662,65 @@ O RESPONSÁVEL FOI ORIENTADO A MANTER AS MEDIDAS DE SEGURANÇA EM CONDIÇÕES PE
 ENTRETANTO, COMO O ESTABELECIMENTO ENCONTRAVA-SE FECHADO E/OU NÃO FOI LOCALIZADO RESPONSÁVEL PARA ACOMPANHAR A GUARNIÇÃO, NÃO FOI POSSÍVEL REALIZAR A VISTORIA.
 
 UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
+        }
+      });
+
+      // Textos próprios para o campo Histórico do INFOSCIP Fiscalização.
+      // São objetivos e, por definição operacional, não exibem números de
+      // PSCIP, DDU ou Auto de Infração. Os relatórios completos do REDS
+      // permanecem independentes e inalterados.
+      const HISTORICOS_INFOSCIP_FISCALIZACAO = Object.freeze({
+        ddu: {
+          titulo: 'DDU — fiscalização autuada',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA EM ATENDIMENTO A DEMANDA RECEBIDA PELO DDU. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB VÁLIDO. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+        },
+        brigadaVencida: {
+          titulo: 'Fiscalização — brigada vencida',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+        },
+        renovacaoAvcb: {
+          titulo: 'Fiscalização — Renovação AVCB',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO POSSUI AVCB RENOVADO EM {{DATA_RENOVACAO_AVCB}} E QUE AS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO ENCONTRAVAM-SE INSTALADAS EM CONFORMIDADE COM O PROJETO APROVADO.`
+        },
+        avcbVencido: {
+          titulo: 'Fiscalização — AVCB vencido',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO FUNCIONA COM AVCB/CLCB VENCIDO. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À RENOVAÇÃO DO LICENCIAMENTO.`
+        },
+        acessoriaLicenciado: {
+          titulo: 'Vistoria Acessória — regularizada — com licenciamento',
+          texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES DO PROCESSO FISCALIZATÓRIO Nº {{PF}}. CONSTATADO QUE AS IRREGULARIDADES FORAM SANADAS. A EDIFICAÇÃO POSSUI {{DOCUMENTO_LICENCA_NOME}} VÁLIDO E ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
+        },
+        acessoriaDispensado: {
+          titulo: 'Vistoria Acessória — regularizada — dispensada de licenciamento',
+          texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES DO PROCESSO FISCALIZATÓRIO Nº {{PF}}. CONSTATADO QUE AS IRREGULARIDADES FORAM SANADAS. A EDIFICAÇÃO ENQUADRA-SE COMO DISPENSADA DE LICENCIAMENTO, POSSUI AS MEDIDAS DE SEGURANÇA APLICÁVEIS E ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
+        },
+        comPscipSemAvcb: {
+          titulo: 'Fiscalização — com PSCIP — sem AVCB',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO POSSUI PSCIP NA SITUAÇÃO {{SITUACAO_PSCIP}}, PORÉM AINDA NÃO POSSUI AVCB/CLCB. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
+        },
+        eventoDeclaratorioConforme: {
+          titulo: 'Fiscalização — evento declaratório conforme',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA NO EVENTO {{EVENTO_NOME}}, DECLARAÇÃO INFOSCIP Nº {{EVENTO_DECLARACAO}}, CLASSIFICADO COMO {{EVENTO_RISCO}}. CONSTATADO QUE O LOCAL E AS MEDIDAS DE SEGURANÇA ESTÃO DE ACORDO COM A DECLARAÇÃO. O RESPONSÁVEL FOI ORIENTADO A MANTER AS SAÍDAS DE EMERGÊNCIA DESOBSTRUÍDAS E A RESPEITAR A CAPACIDADE MÁXIMA DE PÚBLICO INFORMADA.`
+        },
+        irregular: {
+          titulo: 'Fiscalização — irregularidade / autuação',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. FORAM CONSTATADAS IRREGULARIDADES NAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO, REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}. FOI LAVRADO AUTO DE INFRAÇÃO ADMINISTRATIVA E O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+        },
+        semAvcb: {
+          titulo: 'Fiscalização — sem AVCB/CLCB',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES NAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO. IRREGULARIDADES REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
+        },
+        regularizado: {
+          titulo: 'Fiscalização — regularizada com AVCB/CLCB',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO POSSUI AVCB/CLCB VÁLIDO E QUE AS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO ESTÃO EM CONFORMIDADE COM O LICENCIAMENTO. A EDIFICAÇÃO ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
+        },
+        dispensado: {
+          titulo: 'Fiscalização — dispensada de licenciamento / regular',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO ENQUADRA-SE COMO DISPENSADA DE LICENCIAMENTO E POSSUI AS MEDIDAS DE SEGURANÇA APLICÁVEIS EM CONFORMIDADE COM A LEGISLAÇÃO VIGENTE. A EDIFICAÇÃO ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
+        },
+        localFechado: {
+          titulo: 'Fiscalização — local fechado / vistoria não realizada',
+          texto: `COMPARECIMENTO REALIZADO PARA VISTORIA DE FISCALIZAÇÃO. O ESTABELECIMENTO ENCONTRAVA-SE FECHADO E/OU NÃO FOI LOCALIZADO RESPONSÁVEL PARA ACOMPANHAR A VISTORIA, IMPOSSIBILITANDO SUA REALIZAÇÃO. UMA NOVA TENTATIVA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       });
 
@@ -6115,6 +6183,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return recordRedsModelSelect.value;
       }
 
+      function preencherSelectModelosInfoscipFiscalizacao_(chaveInicial = '') {
+        if (!recordInfoscipModelSelect || !recordRedsModelSelect) return '';
+        const opcoes = Array.from(recordRedsModelSelect.options)
+          .filter(option => HISTORICOS_INFOSCIP_FISCALIZACAO[option.value]);
+
+        recordInfoscipModelSelect.innerHTML = '';
+        opcoes.forEach(optionReds => {
+          const option = document.createElement('option');
+          option.value = optionReds.value;
+          option.textContent = HISTORICOS_INFOSCIP_FISCALIZACAO[optionReds.value]?.titulo || optionReds.textContent;
+          recordInfoscipModelSelect.appendChild(option);
+        });
+
+        if (!opcoes.length) return '';
+        const selecionada = HISTORICOS_INFOSCIP_FISCALIZACAO[chaveInicial]
+          ? chaveInicial
+          : opcoes[0].value;
+        recordInfoscipModelSelect.value = selecionada;
+        return recordInfoscipModelSelect.value;
+      }
+
+      function atualizarTextoHistoricoInfoscipFiscalizacao_() {
+        const registro = recordRedsRegistroAtual;
+        if (!registro || !recordInfoscipHistoryPanel || !recordInfoscipHistoryText || !recordInfoscipHistoryModel) return;
+
+        const chave = String(recordInfoscipModelSelect?.value || recordRedsModelSelect?.value || '');
+        const modelo = HISTORICOS_INFOSCIP_FISCALIZACAO[chave];
+        if (!modelo) {
+          recordInfoscipHistoryPanel.hidden = true;
+          recordInfoscipHistoryText.value = '';
+          return;
+        }
+
+        recordInfoscipHistoryModel.textContent = `${modelo.titulo} — confira o texto antes de copiar.`;
+        recordInfoscipHistoryText.value = montarTextoRedsFiscalizacao_(modelo, registro);
+        recordInfoscipHistoryPanel.hidden = false;
+        if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
+      }
+
       function codigosOcupacaoRelatorio_(valor) {
         const texto = String(valor || '').toUpperCase();
         const encontrados = [];
@@ -6209,6 +6316,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           carregarModelosRedsPersonalizados_(false).catch(() => {});
         }
         recordRedsRegistroAtual = registro;
+        if (recordInfoscipHistoryPanel) recordInfoscipHistoryPanel.hidden = true;
+        if (recordInfoscipHistoryText) recordInfoscipHistoryText.value = '';
+        if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const ehLiberacao = tipo.includes('liberacao') || demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao));
@@ -6240,6 +6350,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             return;
           }
           atualizarTextoRelatorioRedsFiscalizacao_();
+          const escolhidoInfoscip = preencherSelectModelosInfoscipFiscalizacao_(escolhido);
+          if (escolhidoInfoscip) atualizarTextoHistoricoInfoscipFiscalizacao_();
         }
         recordRedsReportPanel.hidden = false;
         if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = '';
@@ -6291,6 +6403,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         } catch (erro) {
           if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = 'Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.';
+        }
+      }
+
+      async function copiarHistoricoInfoscipFiscalizacao_() {
+        const texto = String(recordInfoscipHistoryText?.value || '');
+        if (!texto) return;
+        try {
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
+          else {
+            recordInfoscipHistoryText.focus();
+            recordInfoscipHistoryText.select();
+            document.execCommand('copy');
+          }
+          if (recordInfoscipCopyStatus) {
+            recordInfoscipCopyStatus.textContent = 'Histórico copiado. Pronto para colar no INFOSCIP Fiscalização.';
+          }
+          if (recordInfoscipCopyBtn) {
+            const original = recordInfoscipCopyBtn.textContent;
+            recordInfoscipCopyBtn.textContent = 'Copiado ✓';
+            setTimeout(() => { recordInfoscipCopyBtn.textContent = original; }, 1800);
+          }
+        } catch (erro) {
+          if (recordInfoscipCopyStatus) {
+            recordInfoscipCopyStatus.textContent = 'Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.';
+          }
         }
       }
 
@@ -7128,6 +7265,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailScreen.classList.add('show');
         recordDetailScreen.setAttribute('aria-hidden', 'false');
         document.body.classList.add('detail-open');
+        if (recordInfoscipHistoryPanel) recordInfoscipHistoryPanel.hidden = true;
+        if (recordInfoscipHistoryText) recordInfoscipHistoryText.value = '';
+        if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
         if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
@@ -16455,8 +16595,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       pendenciaDocumentalSelect?.addEventListener('change', scheduleDraftSave);
       situacaoMultaInfoscipSelect?.addEventListener('change', () => { scheduleDraftSave(); agendarConsultaEncerramentoFiscal_(); });
+      recordInfoscipCopyBtn?.addEventListener('click', copiarHistoricoInfoscipFiscalizacao_);
+      recordInfoscipModelSelect?.addEventListener('change', atualizarTextoHistoricoInfoscipFiscalizacao_);
       recordRedsCopyBtn?.addEventListener('click', copiarRelatorioReds_);
-      recordRedsModelSelect?.addEventListener('change', atualizarTextoRelatorioRedsFiscalizacao_);
+      recordRedsModelSelect?.addEventListener('change', () => {
+        atualizarTextoRelatorioRedsFiscalizacao_();
+        if (recordInfoscipModelSelect && HISTORICOS_INFOSCIP_FISCALIZACAO[recordRedsModelSelect.value]) {
+          recordInfoscipModelSelect.value = recordRedsModelSelect.value;
+          atualizarTextoHistoricoInfoscipFiscalizacao_();
+        }
+      });
       recordAutoNumberInput?.addEventListener('input', atualizarTextoRelatorioRedsFiscalizacao_);
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
       recordWhatsappPhoneInput?.addEventListener('input', atualizarWhatsAppFicha_);
@@ -17192,7 +17340,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bu', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bv', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos

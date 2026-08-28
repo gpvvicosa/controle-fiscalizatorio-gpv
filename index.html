@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99bu">
+  <link rel="stylesheet" href="styles.css?v=23.9.99bv">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1620,6 +1620,24 @@
           <div class="record-notifications-list" id="recordNotificationsList"></div>
           <div class="record-notifications-status" id="recordNotificationsStatus" role="status" aria-live="polite"></div>
         </section>
+        <section class="record-infoscip-history" id="recordInfoscipHistoryPanel" hidden>
+          <div class="record-infoscip-history-head">
+            <div>
+              <h3>Histórico para INFOSCIP Fiscalização</h3>
+              <span id="recordInfoscipHistoryModel">Texto objetivo conforme o resultado da vistoria.</span>
+            </div>
+          </div>
+          <div class="record-infoscip-history-tools">
+            <label for="recordInfoscipModelSelect">Modelo do histórico
+              <select id="recordInfoscipModelSelect" class="record-infoscip-model-select"></select>
+            </label>
+          </div>
+          <div class="record-infoscip-copy-row">
+            <button class="record-infoscip-copy-btn" id="recordInfoscipCopyBtn" type="button">Copiar histórico</button>
+          </div>
+          <textarea id="recordInfoscipHistoryText" class="record-infoscip-history-text" readonly aria-label="Histórico para copiar no INFOSCIP Fiscalização"></textarea>
+          <div class="record-infoscip-copy-status" id="recordInfoscipCopyStatus" role="status" aria-live="polite"></div>
+        </section>
         <section class="record-reds-report" id="recordRedsReportPanel" hidden>
           <div class="record-reds-report-head">
             <div>
@@ -2231,10 +2249,10 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.99bu"></script>
-  <script src="ocupacoes.js?v=23.9.99bu"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99bu"></script>
-  <script src="app.js?v=23.9.99bu"></script>
+  <script src="config.js?v=23.9.99bv"></script>
+  <script src="ocupacoes.js?v=23.9.99bv"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99bv"></script>
+  <script src="app.js?v=23.9.99bv"></script>
 
   </div>
   
