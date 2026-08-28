@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99bo">
+  <link rel="stylesheet" href="styles.css?v=23.9.99br">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -1121,6 +1121,103 @@
         </div>
       </section>
 
+      <section class="section release-return-section" id="retornoLiberacaoSecao" hidden>
+        <div class="section-head">
+          <div class="section-icon" aria-hidden="true">↩️</div>
+          <div class="head-text">
+            <h2>Retorno de vistoria de liberação</h2>
+            <p>Quando houver vistoria de liberação anterior no mesmo local, vincule o retorno e confira as notificações anteriores.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="return-release-detected" id="retornoLiberacaoDetectado">
+            <div class="return-release-alert">
+              <strong>Vistoria de liberação anterior encontrada</strong>
+              <span id="retornoLiberacaoResumoAnterior">Confira o registro anterior antes de continuar.</span>
+            </div>
+
+            <div class="field wide" id="retornoLiberacaoEscolhaWrap">
+              <label for="retornoLiberacaoAnteriorSelect">Vistoria anterior</label>
+              <select id="retornoLiberacaoAnteriorSelect"></select>
+              <div class="hint" id="retornoLiberacaoCorrespondencia"></div>
+            </div>
+
+            <div class="return-release-question">
+              <strong>Esta vistoria é um retorno da vistoria anterior?</strong>
+              <div class="return-release-answer-actions">
+                <button class="btn btn-secondary" id="retornoLiberacaoSimBtn" type="button">Sim, é retorno</button>
+                <button class="btn btn-secondary" id="retornoLiberacaoNaoBtn" type="button">Não, é nova vistoria</button>
+              </div>
+              <input id="retornoLiberacao" name="retornoLiberacao" type="hidden">
+            </div>
+          </div>
+
+          <div class="return-release-details" id="retornoLiberacaoDetalhes" hidden>
+            <div class="return-release-prior-card">
+              <div>
+                <span>Vistoria vinculada</span>
+                <strong id="retornoLiberacaoAnteriorTitulo">—</strong>
+                <small id="retornoLiberacaoAnteriorMeta"></small>
+              </div>
+              <button class="btn btn-secondary" id="retornoLiberacaoAbrirFichaBtn" type="button">Abrir ficha anterior</button>
+            </div>
+
+            <input id="retornoLiberacaoChaveAnterior" name="retornoLiberacaoChaveAnterior" type="hidden">
+            <input id="retornoLiberacaoLinhaAnterior" name="retornoLiberacaoLinhaAnterior" type="hidden">
+            <input id="retornoLiberacaoDataAnterior" name="retornoLiberacaoDataAnterior" type="hidden">
+            <input id="retornoLiberacaoSituacaoAnterior" name="retornoLiberacaoSituacaoAnterior" type="hidden">
+            <input id="retornoLiberacaoPscipAnterior" name="retornoLiberacaoPscipAnterior" type="hidden">
+            <textarea id="retornoLiberacaoNotificacoesOriginais" name="retornoLiberacaoNotificacoesOriginais" hidden></textarea>
+            <textarea id="retornoLiberacaoPendencias" name="retornoLiberacaoPendencias" hidden></textarea>
+
+            <section class="return-release-subsection">
+              <div class="return-release-subsection-head">
+                <div>
+                  <strong>Notificações da vistoria anterior</strong>
+                  <span id="retornoLiberacaoNotificacoesInfo">O app tentará recuperar as notificações já lançadas.</span>
+                </div>
+              </div>
+              <div class="return-release-pendencies" id="retornoLiberacaoPendenciasLista"></div>
+              <div class="return-release-no-notifications" id="retornoLiberacaoSemNotificacoes" hidden>
+                Nenhuma notificação detalhada foi localizada para a vistoria anterior. Você pode informar as pendências manualmente ou anexar o documento.
+              </div>
+              <div class="field wide">
+                <label for="retornoLiberacaoNotificacoesManual">Complemento / notificações da vistoria anterior</label>
+                <textarea id="retornoLiberacaoNotificacoesManual" name="retornoLiberacaoNotificacoesManual" rows="4" maxlength="12000" placeholder="Use quando as notificações anteriores não estiverem disponíveis no app ou quando precisar complementar as informações."></textarea>
+              </div>
+            </section>
+
+            <section class="return-release-subsection">
+              <div class="return-release-subsection-head">
+                <div>
+                  <strong>Documento da notificação anterior</strong>
+                  <span>Você pode anexar o PDF ou informar um link do Drive. O PDF anexado fica armazenado no Drive e pode ser aberto dentro do app.</span>
+                </div>
+              </div>
+
+              <div class="return-release-document-actions">
+                <label class="btn btn-secondary return-release-file-label" for="retornoLiberacaoPdfInput">Anexar PDF</label>
+                <input id="retornoLiberacaoPdfInput" type="file" accept="application/pdf,.pdf" hidden>
+                <button class="btn btn-secondary" id="retornoLiberacaoAbrirDocumentoBtn" type="button" hidden>Abrir PDF no app</button>
+              </div>
+              <div class="return-release-upload-status" id="retornoLiberacaoPdfStatus"></div>
+
+              <div class="field wide">
+                <label for="retornoLiberacaoDocumentoLink">Link da notificação</label>
+                <div class="return-release-link-row">
+                  <input id="retornoLiberacaoDocumentoLink" name="retornoLiberacaoDocumentoLink" type="url" inputmode="url" autocomplete="off" placeholder="Cole o link do arquivo no Google Drive ou outro endereço HTTPS">
+                  <button class="btn btn-secondary" id="retornoLiberacaoAbrirLinkBtn" type="button">Abrir link</button>
+                </div>
+              </div>
+
+              <input id="retornoLiberacaoDocumentoFileId" name="retornoLiberacaoDocumentoFileId" type="hidden">
+              <input id="retornoLiberacaoDocumentoNome" name="retornoLiberacaoDocumentoNome" type="hidden">
+              <input id="retornoLiberacaoDocumentoUrl" name="retornoLiberacaoDocumentoUrl" type="hidden">
+            </section>
+          </div>
+        </div>
+      </section>
+
       <section class="section essential vistoria-flow-section" id="responsavelSecao" hidden>
         <div class="section-head">
           <div class="section-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.8-4 3-6 6.5-6s5.7 2 6.5 6"/></svg></div>
@@ -1743,6 +1840,26 @@
     </section>
   </div>
 
+  <div class="review-overlay return-pdf-overlay" id="retornoLiberacaoPdfModal" hidden>
+    <section class="review-card return-pdf-card" role="dialog" aria-modal="true" aria-labelledby="retornoLiberacaoPdfTitle">
+      <div class="review-head">
+        <div>
+          <h2 id="retornoLiberacaoPdfTitle">Notificação da vistoria</h2>
+          <p id="retornoLiberacaoPdfSubtitle">Documento vinculado ao retorno de vistoria de liberação.</p>
+        </div>
+        <button class="icon-btn" id="retornoLiberacaoPdfCloseBtn" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div class="return-pdf-viewer-wrap">
+        <div class="return-pdf-loading" id="retornoLiberacaoPdfLoading">Carregando documento...</div>
+        <iframe id="retornoLiberacaoPdfFrame" title="Visualizador da notificação em PDF" loading="lazy"></iframe>
+      </div>
+      <div class="return-pdf-actions">
+        <button class="btn btn-secondary" id="retornoLiberacaoPdfExternalBtn" type="button" hidden>Abrir fora do app</button>
+        <button class="btn btn-primary" id="retornoLiberacaoPdfDoneBtn" type="button">Fechar</button>
+      </div>
+    </section>
+  </div>
+
   <div class="review-overlay" id="prepareInspectionModal" hidden>
     <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="prepareInspectionTitle">
       <div class="review-head">
@@ -2082,7 +2199,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99bo"></script>
+  <script src="app.js?v=23.9.99br"></script>
 
   </div>
   

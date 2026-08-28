@@ -720,6 +720,8 @@
         'programadas',
         'sugestoes_fiscalizacao',
         'reds_modelos',
+        'retorno_liberacao_candidatos',
+        'retorno_liberacao_documento',
         'geocodificar_localizacao',
         'ddus'
       ]);
@@ -1278,6 +1280,46 @@
       const cnpjStatus = document.getElementById('cnpjStatus');
       const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
       const locationAddressStatus = document.getElementById('locationAddressStatus');
+
+      const retornoLiberacaoSecao = document.getElementById('retornoLiberacaoSecao');
+      const retornoLiberacaoResumoAnterior = document.getElementById('retornoLiberacaoResumoAnterior');
+      const retornoLiberacaoAnteriorSelect = document.getElementById('retornoLiberacaoAnteriorSelect');
+      const retornoLiberacaoCorrespondencia = document.getElementById('retornoLiberacaoCorrespondencia');
+      const retornoLiberacaoSimBtn = document.getElementById('retornoLiberacaoSimBtn');
+      const retornoLiberacaoNaoBtn = document.getElementById('retornoLiberacaoNaoBtn');
+      const retornoLiberacaoInput = document.getElementById('retornoLiberacao');
+      const retornoLiberacaoDetalhes = document.getElementById('retornoLiberacaoDetalhes');
+      const retornoLiberacaoAnteriorTitulo = document.getElementById('retornoLiberacaoAnteriorTitulo');
+      const retornoLiberacaoAnteriorMeta = document.getElementById('retornoLiberacaoAnteriorMeta');
+      const retornoLiberacaoAbrirFichaBtn = document.getElementById('retornoLiberacaoAbrirFichaBtn');
+      const retornoLiberacaoChaveAnteriorInput = document.getElementById('retornoLiberacaoChaveAnterior');
+      const retornoLiberacaoLinhaAnteriorInput = document.getElementById('retornoLiberacaoLinhaAnterior');
+      const retornoLiberacaoDataAnteriorInput = document.getElementById('retornoLiberacaoDataAnterior');
+      const retornoLiberacaoSituacaoAnteriorInput = document.getElementById('retornoLiberacaoSituacaoAnterior');
+      const retornoLiberacaoPscipAnteriorInput = document.getElementById('retornoLiberacaoPscipAnterior');
+      const retornoLiberacaoNotificacoesOriginaisInput = document.getElementById('retornoLiberacaoNotificacoesOriginais');
+      const retornoLiberacaoPendenciasInput = document.getElementById('retornoLiberacaoPendencias');
+      const retornoLiberacaoPendenciasLista = document.getElementById('retornoLiberacaoPendenciasLista');
+      const retornoLiberacaoSemNotificacoes = document.getElementById('retornoLiberacaoSemNotificacoes');
+      const retornoLiberacaoNotificacoesInfo = document.getElementById('retornoLiberacaoNotificacoesInfo');
+      const retornoLiberacaoNotificacoesManualInput = document.getElementById('retornoLiberacaoNotificacoesManual');
+      const retornoLiberacaoPdfInput = document.getElementById('retornoLiberacaoPdfInput');
+      const retornoLiberacaoAbrirDocumentoBtn = document.getElementById('retornoLiberacaoAbrirDocumentoBtn');
+      const retornoLiberacaoPdfStatus = document.getElementById('retornoLiberacaoPdfStatus');
+      const retornoLiberacaoDocumentoLinkInput = document.getElementById('retornoLiberacaoDocumentoLink');
+      const retornoLiberacaoAbrirLinkBtn = document.getElementById('retornoLiberacaoAbrirLinkBtn');
+      const retornoLiberacaoDocumentoFileIdInput = document.getElementById('retornoLiberacaoDocumentoFileId');
+      const retornoLiberacaoDocumentoNomeInput = document.getElementById('retornoLiberacaoDocumentoNome');
+      const retornoLiberacaoDocumentoUrlInput = document.getElementById('retornoLiberacaoDocumentoUrl');
+
+      const retornoLiberacaoPdfModal = document.getElementById('retornoLiberacaoPdfModal');
+      const retornoLiberacaoPdfCloseBtn = document.getElementById('retornoLiberacaoPdfCloseBtn');
+      const retornoLiberacaoPdfDoneBtn = document.getElementById('retornoLiberacaoPdfDoneBtn');
+      const retornoLiberacaoPdfFrame = document.getElementById('retornoLiberacaoPdfFrame');
+      const retornoLiberacaoPdfLoading = document.getElementById('retornoLiberacaoPdfLoading');
+      const retornoLiberacaoPdfTitle = document.getElementById('retornoLiberacaoPdfTitle');
+      const retornoLiberacaoPdfSubtitle = document.getElementById('retornoLiberacaoPdfSubtitle');
+      const retornoLiberacaoPdfExternalBtn = document.getElementById('retornoLiberacaoPdfExternalBtn');
       const localizacaoLatitudeInput = document.getElementById('localizacaoLatitude');
       const localizacaoLongitudeInput = document.getElementById('localizacaoLongitude');
       const localizacaoCoordenadasInput = document.getElementById('localizacaoCoordenadas');
@@ -1353,6 +1395,12 @@
       let redsTemplatesCarregadosEm_ = 0;
       let redsTemplateAtualId_ = '';
       let redsTemplateCarregando_ = false;
+      let retornoLiberacaoCandidatos_ = [];
+      let retornoLiberacaoConsultaTimer_ = null;
+      let retornoLiberacaoConsultaSequencia_ = 0;
+      let retornoLiberacaoConsultaAssinatura_ = '';
+      let retornoLiberacaoDocumentoBlobUrl_ = '';
+      let retornoLiberacaoDocumentoExterno_ = '';
       let recordDetailReturnContext = '';
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
@@ -6391,6 +6439,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailGroups.innerHTML =
           avisoSugestao +
           blocoObservacoesSugestao +
+          montarBlocoRetornoLiberacaoFicha_(registro) +
           montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary') +
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
@@ -7444,6 +7493,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } else {
           syncLicenciamento();
         }
+        if (f === 'liberacao') agendarConsultaRetornoLiberacao_(300);
+        else resetarRetornoLiberacao_();
         aplicarModoEventoDeclaratorio_({ silencioso: true });
         syncNotificado();
         atualizarVerificacaoMetasFiscalizacao_();
@@ -9200,6 +9251,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           eventoOrganizador: eventoDeclaratorio ? value('eventoOrganizador') : '',
           eventoOrganizadorDocumento: eventoDeclaratorio ? value('eventoOrganizadorDocumento') : '',
           eventoTelefoneOrganizador: eventoDeclaratorio ? value('eventoTelefoneOrganizador') : '',
+          retornoLiberacao: ehFluxoLiberacao_() ? value('retornoLiberacao') : '',
+          retornoLiberacaoChaveAnterior: ehFluxoLiberacao_() ? value('retornoLiberacaoChaveAnterior') : '',
+          retornoLiberacaoLinhaAnterior: ehFluxoLiberacao_() ? value('retornoLiberacaoLinhaAnterior') : '',
+          retornoLiberacaoDataAnterior: ehFluxoLiberacao_() ? value('retornoLiberacaoDataAnterior') : '',
+          retornoLiberacaoSituacaoAnterior: ehFluxoLiberacao_() ? value('retornoLiberacaoSituacaoAnterior') : '',
+          retornoLiberacaoPscipAnterior: ehFluxoLiberacao_() ? value('retornoLiberacaoPscipAnterior') : '',
+          retornoLiberacaoNotificacoesOriginais: ehFluxoLiberacao_() ? value('retornoLiberacaoNotificacoesOriginais') : '',
+          retornoLiberacaoPendencias: ehFluxoLiberacao_() ? value('retornoLiberacaoPendencias') : '',
+          retornoLiberacaoNotificacoesManual: ehFluxoLiberacao_() ? value('retornoLiberacaoNotificacoesManual') : '',
+          retornoLiberacaoDocumentoFileId: ehFluxoLiberacao_() ? value('retornoLiberacaoDocumentoFileId') : '',
+          retornoLiberacaoDocumentoNome: ehFluxoLiberacao_() ? value('retornoLiberacaoDocumentoNome') : '',
+          retornoLiberacaoDocumentoUrl: ehFluxoLiberacao_() ? value('retornoLiberacaoDocumentoUrl') : '',
+          retornoLiberacaoDocumentoLink: ehFluxoLiberacao_() ? value('retornoLiberacaoDocumentoLink') : '',
           notificacoesLiberacao: ehFluxoLiberacao_() ? serializarNotificacoesLiberacao_() : ''
         };
       }
@@ -9537,6 +9601,558 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      function respostaRetornoLiberacaoAtual_() {
+        return String(retornoLiberacaoInput?.value || '').trim().toLowerCase();
+      }
+
+      function candidatoRetornoLiberacaoSelecionado_() {
+        const chave = String(retornoLiberacaoAnteriorSelect?.value || retornoLiberacaoChaveAnteriorInput?.value || '');
+        return retornoLiberacaoCandidatos_.find(item => String(item.chave || '') === chave) || null;
+      }
+
+      function limparDocumentoRetornoLiberacao_() {
+        if (retornoLiberacaoDocumentoFileIdInput) retornoLiberacaoDocumentoFileIdInput.value = '';
+        if (retornoLiberacaoDocumentoNomeInput) retornoLiberacaoDocumentoNomeInput.value = '';
+        if (retornoLiberacaoDocumentoUrlInput) retornoLiberacaoDocumentoUrlInput.value = '';
+        if (retornoLiberacaoAbrirDocumentoBtn) retornoLiberacaoAbrirDocumentoBtn.hidden = true;
+        if (retornoLiberacaoPdfStatus) {
+          retornoLiberacaoPdfStatus.textContent = '';
+          retornoLiberacaoPdfStatus.className = 'return-release-upload-status';
+        }
+      }
+
+      function resetarRetornoLiberacao_(opcoes = {}) {
+        clearTimeout(retornoLiberacaoConsultaTimer_);
+        retornoLiberacaoConsultaSequencia_ += 1;
+        retornoLiberacaoConsultaAssinatura_ = '';
+        retornoLiberacaoCandidatos_ = [];
+
+        if (retornoLiberacaoSecao) retornoLiberacaoSecao.hidden = true;
+        if (retornoLiberacaoDetalhes) retornoLiberacaoDetalhes.hidden = true;
+        if (retornoLiberacaoAnteriorSelect) retornoLiberacaoAnteriorSelect.innerHTML = '';
+        if (retornoLiberacaoInput) retornoLiberacaoInput.value = '';
+        if (retornoLiberacaoChaveAnteriorInput) retornoLiberacaoChaveAnteriorInput.value = '';
+        if (retornoLiberacaoLinhaAnteriorInput) retornoLiberacaoLinhaAnteriorInput.value = '';
+        if (retornoLiberacaoDataAnteriorInput) retornoLiberacaoDataAnteriorInput.value = '';
+        if (retornoLiberacaoSituacaoAnteriorInput) retornoLiberacaoSituacaoAnteriorInput.value = '';
+        if (retornoLiberacaoPscipAnteriorInput) retornoLiberacaoPscipAnteriorInput.value = '';
+        if (retornoLiberacaoNotificacoesOriginaisInput) retornoLiberacaoNotificacoesOriginaisInput.value = '';
+        if (retornoLiberacaoPendenciasInput) retornoLiberacaoPendenciasInput.value = '';
+        if (retornoLiberacaoPendenciasLista) retornoLiberacaoPendenciasLista.innerHTML = '';
+        if (retornoLiberacaoSemNotificacoes) retornoLiberacaoSemNotificacoes.hidden = true;
+        if (retornoLiberacaoNotificacoesInfo) retornoLiberacaoNotificacoesInfo.textContent = 'O app tentará recuperar as notificações já lançadas.';
+        if (retornoLiberacaoNotificacoesManualInput && !opcoes.preservarManual) retornoLiberacaoNotificacoesManualInput.value = '';
+        if (retornoLiberacaoDocumentoLinkInput && !opcoes.preservarDocumento) retornoLiberacaoDocumentoLinkInput.value = '';
+        if (!opcoes.preservarDocumento) limparDocumentoRetornoLiberacao_();
+
+        retornoLiberacaoSimBtn?.classList.remove('is-selected');
+        retornoLiberacaoNaoBtn?.classList.remove('is-selected');
+      }
+
+      function extrairPendenciasRetornoLiberacao_(json) {
+        const itens = [];
+        let locais = [];
+        try {
+          locais = typeof json === 'string' ? JSON.parse(json || '[]') : (Array.isArray(json) ? json : []);
+        } catch (e) {
+          locais = [];
+        }
+        if (!Array.isArray(locais)) return itens;
+
+        locais.forEach((local, indiceLocal) => {
+          const irregularidades = Array.isArray(local?.irregularidades) ? local.irregularidades : [];
+          irregularidades.forEach((item, indiceItem) => {
+            const id = String(item?.id || `ret-${indiceLocal + 1}-${indiceItem + 1}`);
+            const localTexto = [local?.tipoLocal, local?.complemento].filter(Boolean).join(' — ');
+            const descricao = String(item?.descricao || item?.textoTecnico || item?.itemIrregular || '').trim();
+            itens.push({
+              id,
+              local: localTexto,
+              tipo: String(item?.tipoIrregularidade || '').trim(),
+              item: String(item?.itemIrregular || '').trim(),
+              descricao,
+              status: 'Não verificado'
+            });
+          });
+        });
+        return itens;
+      }
+
+      function lerPendenciasRetornoLiberacaoCampo_() {
+        try {
+          const itens = JSON.parse(String(retornoLiberacaoPendenciasInput?.value || '[]'));
+          return Array.isArray(itens) ? itens : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function salvarPendenciasRetornoLiberacaoCampo_(itens) {
+        if (!retornoLiberacaoPendenciasInput) return;
+        retornoLiberacaoPendenciasInput.value = JSON.stringify(Array.isArray(itens) ? itens : []);
+        scheduleDraftSave();
+      }
+
+      function renderizarPendenciasRetornoLiberacao_(itens) {
+        const lista = Array.isArray(itens) ? itens : [];
+        if (!retornoLiberacaoPendenciasLista || !retornoLiberacaoSemNotificacoes) return;
+
+        retornoLiberacaoSemNotificacoes.hidden = Boolean(lista.length);
+        retornoLiberacaoPendenciasLista.innerHTML = lista.map((item, indice) => {
+          const titulo = item.item || item.tipo || `Irregularidade ${indice + 1}`;
+          const detalhe = item.descricao || 'Irregularidade registrada na vistoria anterior.';
+          const local = item.local ? `Local: ${item.local}` : '';
+          const status = String(item.status || 'Não verificado');
+          return `<article class="return-release-pendency" data-return-pendency-id="${escapeAttr(item.id)}">
+            <div class="return-release-pendency-main">
+              <strong>${escapeHtml(titulo)}</strong>
+              <span>${escapeHtml(detalhe)}</span>
+              ${local ? `<small>${escapeHtml(local)}</small>` : ''}
+            </div>
+            <label>
+              <span class="sr-only">Situação no retorno</span>
+              <select data-return-pendency-status="${escapeAttr(item.id)}">
+                ${['Não verificado','Regularizado','Continua irregular'].map(opcao => `<option value="${escapeAttr(opcao)}"${normalize(opcao) === normalize(status) ? ' selected' : ''}>${escapeHtml(opcao)}</option>`).join('')}
+              </select>
+            </label>
+          </article>`;
+        }).join('');
+
+        salvarPendenciasRetornoLiberacaoCampo_(lista);
+      }
+
+      function aplicarCandidatoRetornoLiberacao_(candidato, opcoes = {}) {
+        if (!candidato) return;
+
+        if (retornoLiberacaoChaveAnteriorInput) retornoLiberacaoChaveAnteriorInput.value = String(candidato.chave || '');
+        if (retornoLiberacaoLinhaAnteriorInput) retornoLiberacaoLinhaAnteriorInput.value = String(candidato.linha || '');
+        if (retornoLiberacaoDataAnteriorInput) retornoLiberacaoDataAnteriorInput.value = String(candidato.carimbo || '');
+        if (retornoLiberacaoSituacaoAnteriorInput) retornoLiberacaoSituacaoAnteriorInput.value = String(candidato.situacao || '');
+        if (retornoLiberacaoPscipAnteriorInput) retornoLiberacaoPscipAnteriorInput.value = String(candidato.pscip || '');
+        if (retornoLiberacaoNotificacoesOriginaisInput) retornoLiberacaoNotificacoesOriginaisInput.value = String(candidato.notificacoes || '');
+
+        if (retornoLiberacaoAnteriorTitulo) {
+          retornoLiberacaoAnteriorTitulo.textContent = [candidato.carimbo, candidato.situacao].filter(Boolean).join(' • ') || 'Vistoria anterior';
+        }
+        if (retornoLiberacaoAnteriorMeta) {
+          retornoLiberacaoAnteriorMeta.textContent = [
+            candidato.pscip ? `PSCIP ${candidato.pscip}` : '',
+            candidato.reds ? `REDS ${candidato.reds}` : '',
+            candidato.enderecoCompleto || ''
+          ].filter(Boolean).join(' • ');
+        }
+
+        if (retornoLiberacaoResumoAnterior) {
+          retornoLiberacaoResumoAnterior.textContent = [
+            candidato.carimbo || '',
+            candidato.situacao || '',
+            candidato.pscip ? `PSCIP ${candidato.pscip}` : ''
+          ].filter(Boolean).join(' • ');
+        }
+
+        if (retornoLiberacaoCorrespondencia) {
+          retornoLiberacaoCorrespondencia.textContent = Array.isArray(candidato.correspondencias) && candidato.correspondencias.length
+            ? `Correspondência: ${candidato.correspondencias.join(' • ')}`
+            : 'Correspondência pelo endereço informado.';
+        }
+
+        let pendencias = [];
+        if (opcoes.preservarPendencias) {
+          pendencias = lerPendenciasRetornoLiberacaoCampo_();
+        }
+        if (!pendencias.length) pendencias = extrairPendenciasRetornoLiberacao_(candidato.notificacoes || '');
+
+        renderizarPendenciasRetornoLiberacao_(pendencias);
+
+        if (retornoLiberacaoNotificacoesInfo) {
+          retornoLiberacaoNotificacoesInfo.textContent = candidato.notificacoes
+            ? `Notificações recuperadas do registro anterior${candidato.notificacoesDisponiveisAte ? ` • disponíveis na base temporária até ${candidato.notificacoesDisponiveisAte}` : ''}.`
+            : 'Nenhuma notificação detalhada foi localizada para este registro anterior.';
+        }
+      }
+
+      function renderizarCandidatosRetornoLiberacao_() {
+        if (!retornoLiberacaoSecao || !retornoLiberacaoAnteriorSelect) return;
+        if (!ehFluxoLiberacao_() || !retornoLiberacaoCandidatos_.length) {
+          retornoLiberacaoSecao.hidden = true;
+          return;
+        }
+
+        retornoLiberacaoSecao.hidden = false;
+        const chaveAtual = String(retornoLiberacaoChaveAnteriorInput?.value || '');
+        retornoLiberacaoAnteriorSelect.innerHTML = retornoLiberacaoCandidatos_.map((item, indice) => {
+          const label = [
+            item.carimbo || `Vistoria ${indice + 1}`,
+            item.situacao || '',
+            item.pscip ? `PSCIP ${item.pscip}` : '',
+            item.nomeFantasia || item.razaoSocial || ''
+          ].filter(Boolean).join(' — ');
+          return `<option value="${escapeAttr(item.chave || '')}">${escapeHtml(label)}</option>`;
+        }).join('');
+
+        if (chaveAtual && retornoLiberacaoCandidatos_.some(i => String(i.chave) === chaveAtual)) {
+          retornoLiberacaoAnteriorSelect.value = chaveAtual;
+        }
+
+        aplicarCandidatoRetornoLiberacao_(candidatoRetornoLiberacaoSelecionado_(), {
+          preservarPendencias: respostaRetornoLiberacaoAtual_() === 'sim'
+        });
+
+        const resposta = respostaRetornoLiberacaoAtual_();
+        retornoLiberacaoSimBtn?.classList.toggle('is-selected', resposta === 'sim');
+        retornoLiberacaoNaoBtn?.classList.toggle('is-selected', resposta === 'nao');
+        if (retornoLiberacaoDetalhes) retornoLiberacaoDetalhes.hidden = resposta !== 'sim';
+      }
+
+      function filtrosRetornoLiberacaoAtuais_() {
+        return {
+          cidade: cityValue() || 'Viçosa',
+          identificador: digits(value('cnpj')),
+          pscip: projetoPscipOperacional_(value('pscip')),
+          endereco: String(value('endereco') || '').trim(),
+          numero: String(value('numero') || '').trim()
+        };
+      }
+
+      function assinaturaConsultaRetornoLiberacao_(filtros) {
+        return [
+          normalize(filtros.cidade || ''),
+          String(filtros.identificador || ''),
+          normalize(filtros.pscip || ''),
+          normalize(filtros.endereco || ''),
+          normalize(filtros.numero || '')
+        ].join('|');
+      }
+
+      async function consultarRetornoLiberacao_() {
+        clearTimeout(retornoLiberacaoConsultaTimer_);
+        if (!ehFluxoLiberacao_()) {
+          resetarRetornoLiberacao_();
+          return;
+        }
+
+        const filtros = filtrosRetornoLiberacaoAtuais_();
+        if (normalize(filtros.endereco).length < 3) {
+          if (!String(retornoLiberacaoChaveAnteriorInput?.value || '').trim()) resetarRetornoLiberacao_({ preservarManual: true, preservarDocumento: true });
+          return;
+        }
+
+        if (!navigator.onLine) return;
+
+        const assinatura = assinaturaConsultaRetornoLiberacao_(filtros);
+        if (assinatura === retornoLiberacaoConsultaAssinatura_ && retornoLiberacaoCandidatos_.length) return;
+        retornoLiberacaoConsultaAssinatura_ = assinatura;
+        const sequencia = ++retornoLiberacaoConsultaSequencia_;
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'retorno_liberacao_candidatos',
+            filtros
+          }, 25000);
+
+          if (sequencia !== retornoLiberacaoConsultaSequencia_) return;
+          retornoLiberacaoCandidatos_ = Array.isArray(resposta?.candidatos) ? resposta.candidatos : [];
+
+          if (!retornoLiberacaoCandidatos_.length) {
+            if (!String(retornoLiberacaoChaveAnteriorInput?.value || '').trim()) {
+              resetarRetornoLiberacao_({ preservarManual: true, preservarDocumento: true });
+            }
+            return;
+          }
+
+          renderizarCandidatosRetornoLiberacao_();
+        } catch (erro) {
+          if (sequencia !== retornoLiberacaoConsultaSequencia_) return;
+          // A conferência de retorno é auxiliar. Falha de consulta não bloqueia a vistoria.
+        }
+      }
+
+      function agendarConsultaRetornoLiberacao_(espera = 650) {
+        clearTimeout(retornoLiberacaoConsultaTimer_);
+        if (!ehFluxoLiberacao_()) return;
+        retornoLiberacaoConsultaTimer_ = setTimeout(() => { void consultarRetornoLiberacao_(); }, Math.max(50, Number(espera || 0)));
+      }
+
+      function responderPerguntaRetornoLiberacao_(resposta) {
+        const candidato = candidatoRetornoLiberacaoSelecionado_();
+        if (!candidato) return;
+
+        const sim = resposta === 'sim';
+        if (retornoLiberacaoInput) retornoLiberacaoInput.value = sim ? 'Sim' : 'Não';
+        retornoLiberacaoSimBtn?.classList.toggle('is-selected', sim);
+        retornoLiberacaoNaoBtn?.classList.toggle('is-selected', !sim);
+        if (retornoLiberacaoDetalhes) retornoLiberacaoDetalhes.hidden = !sim;
+
+        if (sim) {
+          aplicarCandidatoRetornoLiberacao_(candidato, { preservarPendencias: false });
+        } else {
+          if (retornoLiberacaoPendenciasInput) retornoLiberacaoPendenciasInput.value = '';
+          if (retornoLiberacaoNotificacoesOriginaisInput) retornoLiberacaoNotificacoesOriginaisInput.value = '';
+        }
+        scheduleDraftSave();
+      }
+
+      function restaurarRetornoLiberacaoDoPayload_(payload) {
+        const p = payload && typeof payload === 'object' ? payload : {};
+        const resposta = normalize(p.retornoLiberacao || '');
+        const chave = String(p.retornoLiberacaoChaveAnterior || '').trim();
+        if (!ehFluxoLiberacao_() || (!chave && resposta !== normalize('Não'))) return;
+
+        if (retornoLiberacaoInput) retornoLiberacaoInput.value = resposta === normalize('Sim') ? 'Sim' : 'Não';
+        if (retornoLiberacaoChaveAnteriorInput) retornoLiberacaoChaveAnteriorInput.value = chave;
+        if (retornoLiberacaoLinhaAnteriorInput) retornoLiberacaoLinhaAnteriorInput.value = String(p.retornoLiberacaoLinhaAnterior || '');
+        if (retornoLiberacaoDataAnteriorInput) retornoLiberacaoDataAnteriorInput.value = String(p.retornoLiberacaoDataAnterior || '');
+        if (retornoLiberacaoSituacaoAnteriorInput) retornoLiberacaoSituacaoAnteriorInput.value = String(p.retornoLiberacaoSituacaoAnterior || '');
+        if (retornoLiberacaoPscipAnteriorInput) retornoLiberacaoPscipAnteriorInput.value = String(p.retornoLiberacaoPscipAnterior || '');
+        if (retornoLiberacaoNotificacoesOriginaisInput) retornoLiberacaoNotificacoesOriginaisInput.value = String(p.retornoLiberacaoNotificacoesOriginais || '');
+        if (retornoLiberacaoPendenciasInput) retornoLiberacaoPendenciasInput.value = String(p.retornoLiberacaoPendencias || '');
+        if (retornoLiberacaoDocumentoFileIdInput) retornoLiberacaoDocumentoFileIdInput.value = String(p.retornoLiberacaoDocumentoFileId || '');
+        if (retornoLiberacaoDocumentoNomeInput) retornoLiberacaoDocumentoNomeInput.value = String(p.retornoLiberacaoDocumentoNome || '');
+        if (retornoLiberacaoDocumentoUrlInput) retornoLiberacaoDocumentoUrlInput.value = String(p.retornoLiberacaoDocumentoUrl || '');
+        if (retornoLiberacaoAbrirDocumentoBtn) retornoLiberacaoAbrirDocumentoBtn.hidden = !String(p.retornoLiberacaoDocumentoFileId || '');
+        if (retornoLiberacaoPdfStatus && p.retornoLiberacaoDocumentoNome) {
+          retornoLiberacaoPdfStatus.textContent = `PDF vinculado: ${p.retornoLiberacaoDocumentoNome}`;
+          retornoLiberacaoPdfStatus.className = 'return-release-upload-status success';
+        }
+
+        const candidatoRestaurado = {
+          chave,
+          linha: p.retornoLiberacaoLinhaAnterior || '',
+          carimbo: p.retornoLiberacaoDataAnterior || '',
+          situacao: p.retornoLiberacaoSituacaoAnterior || '',
+          pscip: p.retornoLiberacaoPscipAnterior || '',
+          notificacoes: p.retornoLiberacaoNotificacoesOriginais || '',
+          enderecoCompleto: '',
+          correspondencias: ['vínculo salvo no rascunho']
+        };
+
+        retornoLiberacaoCandidatos_ = chave ? [candidatoRestaurado] : [];
+        if (chave) {
+          retornoLiberacaoSecao.hidden = false;
+          retornoLiberacaoAnteriorSelect.innerHTML = `<option value="${escapeAttr(chave)}">${escapeHtml([candidatoRestaurado.carimbo, candidatoRestaurado.situacao, candidatoRestaurado.pscip].filter(Boolean).join(' — ') || 'Vistoria anterior vinculada')}</option>`;
+          aplicarCandidatoRetornoLiberacao_(candidatoRestaurado, { preservarPendencias: true });
+        }
+
+        retornoLiberacaoSimBtn?.classList.toggle('is-selected', resposta === normalize('Sim'));
+        retornoLiberacaoNaoBtn?.classList.toggle('is-selected', resposta === normalize('Não'));
+        if (retornoLiberacaoDetalhes) retornoLiberacaoDetalhes.hidden = resposta !== normalize('Sim');
+
+        if (navigator.onLine) agendarConsultaRetornoLiberacao_(400);
+      }
+
+      function arquivoParaDataUrl_(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => reject(new Error('Não foi possível ler o PDF.'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function anexarPdfRetornoLiberacao_(file) {
+        if (!file) return;
+        if (!usuarioPodeOperar_()) {
+          await avisarGpv_('O perfil de consulta não pode anexar documentos.', 'Acesso restrito');
+          return;
+        }
+        if (!navigator.onLine) {
+          await avisarGpv_('Conecte-se à internet para enviar o PDF ao Drive.', 'PDF da notificação');
+          return;
+        }
+        if (String(file.type || '').toLowerCase() !== 'application/pdf' && !/\.pdf$/i.test(file.name || '')) {
+          await avisarGpv_('Selecione um arquivo PDF.', 'Documento inválido');
+          return;
+        }
+        if (Number(file.size || 0) > 6 * 1024 * 1024) {
+          await avisarGpv_('O PDF deve ter no máximo 6 MB.', 'Arquivo muito grande');
+          return;
+        }
+
+        if (retornoLiberacaoPdfStatus) {
+          retornoLiberacaoPdfStatus.textContent = 'Enviando PDF para o Drive...';
+          retornoLiberacaoPdfStatus.className = 'return-release-upload-status';
+        }
+
+        try {
+          const dataUrl = await arquivoParaDataUrl_(file);
+          const resposta = await apiRequest('config', {
+            consulta: 'retorno_liberacao_documento_salvar',
+            dataUrl,
+            nome: file.name || 'notificacao.pdf',
+            registroId: currentRecordId,
+            chaveAnterior: value('retornoLiberacaoChaveAnterior'),
+            edificacao: value('nomeFantasia') || value('razaoSocial') || value('endereco') || 'Edificação',
+            pscip: value('pscip'),
+            substituirFileId: value('retornoLiberacaoDocumentoFileId')
+          }, 45000);
+
+          if (!resposta?.ok || !resposta.fileId) throw new Error(resposta?.error || 'O servidor não confirmou o PDF.');
+
+          if (retornoLiberacaoDocumentoFileIdInput) retornoLiberacaoDocumentoFileIdInput.value = String(resposta.fileId || '');
+          if (retornoLiberacaoDocumentoNomeInput) retornoLiberacaoDocumentoNomeInput.value = String(resposta.nome || file.name || '');
+          if (retornoLiberacaoDocumentoUrlInput) retornoLiberacaoDocumentoUrlInput.value = String(resposta.url || '');
+          if (retornoLiberacaoAbrirDocumentoBtn) retornoLiberacaoAbrirDocumentoBtn.hidden = false;
+          if (retornoLiberacaoPdfStatus) {
+            retornoLiberacaoPdfStatus.textContent = `✓ PDF salvo: ${resposta.nome || file.name}`;
+            retornoLiberacaoPdfStatus.className = 'return-release-upload-status success';
+          }
+          scheduleDraftSave();
+        } catch (erro) {
+          if (retornoLiberacaoPdfStatus) {
+            retornoLiberacaoPdfStatus.textContent = erro?.message || 'Não foi possível enviar o PDF.';
+            retornoLiberacaoPdfStatus.className = 'return-release-upload-status error';
+          }
+        } finally {
+          if (retornoLiberacaoPdfInput) retornoLiberacaoPdfInput.value = '';
+        }
+      }
+
+      function fecharVisualizadorRetornoLiberacao_() {
+        if (!retornoLiberacaoPdfModal) return;
+        retornoLiberacaoPdfModal.hidden = true;
+        document.body.classList.remove('return-pdf-open');
+        if (retornoLiberacaoPdfFrame) retornoLiberacaoPdfFrame.src = 'about:blank';
+        if (retornoLiberacaoDocumentoBlobUrl_) {
+          try { URL.revokeObjectURL(retornoLiberacaoDocumentoBlobUrl_); } catch (e) {}
+          retornoLiberacaoDocumentoBlobUrl_ = '';
+        }
+        retornoLiberacaoDocumentoExterno_ = '';
+        if (retornoLiberacaoPdfExternalBtn) retornoLiberacaoPdfExternalBtn.hidden = true;
+      }
+
+      function abrirModalRetornoLiberacaoBase_(titulo, subtitulo) {
+        if (!retornoLiberacaoPdfModal) return;
+        retornoLiberacaoPdfModal.hidden = false;
+        document.body.classList.add('return-pdf-open');
+        if (retornoLiberacaoPdfTitle) retornoLiberacaoPdfTitle.textContent = titulo || 'Notificação da vistoria';
+        if (retornoLiberacaoPdfSubtitle) retornoLiberacaoPdfSubtitle.textContent = subtitulo || 'Documento vinculado à vistoria.';
+        if (retornoLiberacaoPdfLoading) {
+          retornoLiberacaoPdfLoading.hidden = false;
+          retornoLiberacaoPdfLoading.textContent = 'Carregando documento...';
+        }
+        if (retornoLiberacaoPdfFrame) retornoLiberacaoPdfFrame.src = 'about:blank';
+      }
+
+      function bytesBase64ParaBlob_(base64, mime = 'application/pdf') {
+        const binario = atob(String(base64 || ''));
+        const bytes = new Uint8Array(binario.length);
+        for (let i = 0; i < binario.length; i += 1) bytes[i] = binario.charCodeAt(i);
+        return new Blob([bytes], { type: mime || 'application/pdf' });
+      }
+
+      async function abrirDocumentoRetornoLiberacaoNoApp_(dados = {}) {
+        const fileId = String(dados.fileId || '').trim();
+        const url = String(dados.url || '').trim();
+        const nome = String(dados.nome || 'Notificação da vistoria').trim();
+
+        abrirModalRetornoLiberacaoBase_(nome, 'Documento da notificação anterior');
+
+        if (fileId) {
+          try {
+            const resposta = await apiRequest('config', {
+              consulta: 'retorno_liberacao_documento',
+              fileId
+            }, 35000);
+
+            if (!resposta?.ok || !resposta.base64) throw new Error(resposta?.error || 'Documento não disponível.');
+            const blob = bytesBase64ParaBlob_(resposta.base64, resposta.mimeType || 'application/pdf');
+            retornoLiberacaoDocumentoBlobUrl_ = URL.createObjectURL(blob);
+            if (retornoLiberacaoPdfFrame) retornoLiberacaoPdfFrame.src = retornoLiberacaoDocumentoBlobUrl_;
+            if (retornoLiberacaoPdfLoading) retornoLiberacaoPdfLoading.hidden = true;
+            retornoLiberacaoDocumentoExterno_ = url || String(resposta.url || '');
+            if (retornoLiberacaoPdfExternalBtn) retornoLiberacaoPdfExternalBtn.hidden = !retornoLiberacaoDocumentoExterno_;
+            return;
+          } catch (erro) {
+            if (retornoLiberacaoPdfLoading) retornoLiberacaoPdfLoading.textContent = erro?.message || 'Não foi possível abrir o PDF.';
+            retornoLiberacaoDocumentoExterno_ = url;
+            if (retornoLiberacaoPdfExternalBtn) retornoLiberacaoPdfExternalBtn.hidden = !url;
+            return;
+          }
+        }
+
+        if (url) {
+          retornoLiberacaoDocumentoExterno_ = url;
+          if (retornoLiberacaoPdfFrame) retornoLiberacaoPdfFrame.src = url;
+          if (retornoLiberacaoPdfLoading) retornoLiberacaoPdfLoading.hidden = true;
+          if (retornoLiberacaoPdfExternalBtn) retornoLiberacaoPdfExternalBtn.hidden = false;
+          return;
+        }
+
+        if (retornoLiberacaoPdfLoading) retornoLiberacaoPdfLoading.textContent = 'Nenhum documento foi informado.';
+      }
+
+      function abrirLinkRetornoLiberacao_() {
+        const url = String(retornoLiberacaoDocumentoLinkInput?.value || '').trim();
+        if (!/^https:\/\//i.test(url)) {
+          avisarGpv_('Informe um link HTTPS válido.', 'Link da notificação');
+          return;
+        }
+        void abrirDocumentoRetornoLiberacaoNoApp_({ url, nome: 'Notificação — link informado' });
+      }
+
+      function pendenciasRetornoFichaHtml_(retorno) {
+        let itens = [];
+        try {
+          itens = typeof retorno?.pendencias === 'string' ? JSON.parse(retorno.pendencias || '[]') : (Array.isArray(retorno?.pendencias) ? retorno.pendencias : []);
+        } catch (e) {
+          itens = [];
+        }
+        if (!Array.isArray(itens) || !itens.length) return '';
+        return `<div class="record-return-items">${itens.map((item, indice) => `<div class="record-return-item">
+          <strong>${escapeHtml(item.item || item.tipo || `Irregularidade ${indice + 1}`)}</strong>
+          ${item.descricao ? `<span>${escapeHtml(item.descricao)}</span>` : ''}
+          <small>Situação no retorno: ${escapeHtml(item.status || 'Não verificado')}</small>
+        </div>`).join('')}</div>`;
+      }
+
+      function montarBlocoRetornoLiberacaoFicha_(registro) {
+        const retorno = registro?.retornoLiberacao || null;
+        const posteriores = Array.isArray(registro?.retornosPosterioresLiberacao) ? registro.retornosPosterioresLiberacao : [];
+        if (!retorno && !posteriores.length) return '';
+
+        let html = '<section class="record-detail-group record-return-release"><h3>Retorno de vistoria de liberação</h3>';
+
+        if (retorno) {
+          html += `<div class="record-return-header">
+            <div>
+              <strong>Esta vistoria é retorno de uma vistoria anterior</strong>
+              <span>${escapeHtml([retorno.dataAnterior, retorno.situacaoAnterior, retorno.pscipAnterior ? `PSCIP ${retorno.pscipAnterior}` : ''].filter(Boolean).join(' • '))}</span>
+            </div>
+          </div>`;
+
+          html += pendenciasRetornoFichaHtml_(retorno);
+
+          if (retorno.notificacoesManual) {
+            html += `<div class="record-return-item"><strong>Complemento das notificações anteriores</strong><span>${escapeHtml(retorno.notificacoesManual)}</span></div>`;
+          }
+
+          html += '<div class="record-return-actions">';
+          if (retorno.chaveAnterior) {
+            html += `<button class="btn btn-secondary" type="button" data-return-open-record="${escapeAttr(retorno.chaveAnterior)}" data-return-open-line="${escapeAttr(retorno.linhaAnterior || '')}">Ver vistoria anterior</button>`;
+          }
+          if (retorno.documentoFileId || retorno.documentoLink) {
+            html += `<button class="btn btn-primary" type="button" data-return-open-document data-return-file-id="${escapeAttr(retorno.documentoFileId || '')}" data-return-document-name="${escapeAttr(retorno.documentoNome || 'Notificação da vistoria')}" data-return-document-url="${escapeAttr(retorno.documentoLink || retorno.documentoUrl || '')}">Abrir notificação</button>`;
+          }
+          if (retorno.documentoLink) {
+            html += `${botaoCopiarValorFichaHtml_('Link da notificação', retorno.documentoLink)}`;
+          }
+          html += '</div>';
+        }
+
+        if (posteriores.length) {
+          html += `<div class="record-return-items"><strong>Retornos vinculados a esta vistoria</strong>${posteriores.map(item => `<div class="record-return-item">
+            <strong>${escapeHtml([item.dataAtual, item.situacaoAtual].filter(Boolean).join(' • ') || 'Retorno posterior')}</strong>
+            <span>${escapeHtml(item.pscipAtual ? `PSCIP ${item.pscipAtual}` : '')}</span>
+            <div class="record-return-actions">
+              ${item.chaveAtual ? `<button class="btn btn-secondary" type="button" data-return-open-record="${escapeAttr(item.chaveAtual)}" data-return-open-line="${escapeAttr(item.linhaAtual || '')}">Ver vistoria de retorno</button>` : ''}
+            </div>
+          </div>`).join('')}</div>`;
+        }
+
+        html += '</section>';
+        return html;
+      }
+
       function coordenadaDecimalTexto_(valor) {
         const numero = Number(valor);
         if (!Number.isFinite(numero)) return '';
@@ -9639,6 +10255,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         syncResponsibleAddress();
         scheduleDraftSave();
+        agendarConsultaRetornoLiberacao_(250);
       }
 
       async function identificarEnderecoPorLocalizacao_(silencioso = false, substituir = false) {
@@ -11548,6 +12165,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
+        restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
         restaurarStatusLocalizacao_();
         aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
@@ -11773,6 +12391,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacoesSelecionadas = [];
         notificacoesLiberacaoDraft = [];
         renderizarNotificacoesLiberacao_();
+        resetarRetornoLiberacao_();
         ocupacaoInput.value = '';
         renderizarOcupacoesSelecionadas();
         mostrarMetaOcupacao(null);
@@ -14975,6 +15594,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         abrirPreparacaoComEscolha_(item);
       });
       recordDetailGroups?.addEventListener('click', event => {
+        const abrirRegistroRetorno = event.target.closest('[data-return-open-record]');
+        if (abrirRegistroRetorno) {
+          event.preventDefault();
+          const chave = String(abrirRegistroRetorno.dataset.returnOpenRecord || '');
+          const linha = Number(abrirRegistroRetorno.dataset.returnOpenLine || 0);
+          if (chave) abrirDetalheRegistro_(chave, linha, { contexto: 'return-release-link' });
+          return;
+        }
+
+        const abrirDocumentoRetorno = event.target.closest('[data-return-open-document]');
+        if (abrirDocumentoRetorno) {
+          event.preventDefault();
+          void abrirDocumentoRetornoLiberacaoNoApp_({
+            fileId: abrirDocumentoRetorno.dataset.returnFileId || '',
+            nome: abrirDocumentoRetorno.dataset.returnDocumentName || 'Notificação da vistoria',
+            url: abrirDocumentoRetorno.dataset.returnDocumentUrl || ''
+          });
+          return;
+        }
+
         const reabrir = event.target.closest('[data-ficha-reopen-suggestion]');
         if (reabrir) {
           event.preventDefault();
@@ -15001,9 +15640,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       form.addEventListener('input', event => {
         if (event.target.classList.contains('invalid') && String(event.target.value || '').trim()) event.target.classList.remove('invalid');
         if (document.getElementById('mesmoEnderecoResponsavel').checked && ['endereco','numero','complemento','bairro'].includes(event.target.id)) syncResponsibleAddress();
+        if (ehFluxoLiberacao_() && ['endereco','numero','cnpj','pscip'].includes(event.target.id)) {
+          agendarConsultaRetornoLiberacao_(650);
+        }
         scheduleDraftSave();
       });
-      form.addEventListener('change', scheduleDraftSave);
+      form.addEventListener('change', event => {
+        if (ehFluxoLiberacao_() && ['endereco','numero','cnpj','pscip','cidade','cidadeOutro'].includes(event.target.id)) {
+          agendarConsultaRetornoLiberacao_(250);
+        }
+        scheduleDraftSave();
+      });
       areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
@@ -15415,6 +16062,51 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
       accessGuidanceContinueBtn?.addEventListener('click', fecharAvisoAcessoGeral_);
       useCurrentLocationBtn?.addEventListener('click', () => { void usarLocalizacaoAtual_(); });
+
+      retornoLiberacaoAnteriorSelect?.addEventListener('change', () => {
+        aplicarCandidatoRetornoLiberacao_(candidatoRetornoLiberacaoSelecionado_(), { preservarPendencias: false });
+        if (respostaRetornoLiberacaoAtual_() === 'sim') scheduleDraftSave();
+      });
+      retornoLiberacaoSimBtn?.addEventListener('click', () => responderPerguntaRetornoLiberacao_('sim'));
+      retornoLiberacaoNaoBtn?.addEventListener('click', () => responderPerguntaRetornoLiberacao_('nao'));
+      retornoLiberacaoAbrirFichaBtn?.addEventListener('click', () => {
+        const candidato = candidatoRetornoLiberacaoSelecionado_();
+        if (candidato?.chave) abrirDetalheRegistro_(candidato.chave, Number(candidato.linha || 0), { contexto: 'return-release-form' });
+      });
+      retornoLiberacaoPendenciasLista?.addEventListener('change', event => {
+        const select = event.target.closest('[data-return-pendency-status]');
+        if (!select) return;
+        const id = String(select.dataset.returnPendencyStatus || '');
+        const itens = lerPendenciasRetornoLiberacaoCampo_();
+        const item = itens.find(i => String(i.id || '') === id);
+        if (item) {
+          item.status = String(select.value || 'Não verificado');
+          salvarPendenciasRetornoLiberacaoCampo_(itens);
+        }
+      });
+      retornoLiberacaoNotificacoesManualInput?.addEventListener('input', scheduleDraftSave);
+      retornoLiberacaoDocumentoLinkInput?.addEventListener('input', scheduleDraftSave);
+      retornoLiberacaoPdfInput?.addEventListener('change', () => {
+        const file = retornoLiberacaoPdfInput.files?.[0] || null;
+        if (file) void anexarPdfRetornoLiberacao_(file);
+      });
+      retornoLiberacaoAbrirDocumentoBtn?.addEventListener('click', () => {
+        void abrirDocumentoRetornoLiberacaoNoApp_({
+          fileId: value('retornoLiberacaoDocumentoFileId'),
+          nome: value('retornoLiberacaoDocumentoNome') || 'Notificação da vistoria',
+          url: value('retornoLiberacaoDocumentoUrl')
+        });
+      });
+      retornoLiberacaoAbrirLinkBtn?.addEventListener('click', abrirLinkRetornoLiberacao_);
+      retornoLiberacaoPdfCloseBtn?.addEventListener('click', fecharVisualizadorRetornoLiberacao_);
+      retornoLiberacaoPdfDoneBtn?.addEventListener('click', fecharVisualizadorRetornoLiberacao_);
+      retornoLiberacaoPdfModal?.addEventListener('click', event => {
+        if (event.target === retornoLiberacaoPdfModal) fecharVisualizadorRetornoLiberacao_();
+      });
+      retornoLiberacaoPdfExternalBtn?.addEventListener('click', () => {
+        if (retornoLiberacaoDocumentoExterno_) window.open(retornoLiberacaoDocumentoExterno_, '_blank', 'noopener');
+      });
+
       systemManualBtn?.addEventListener('click', abrirManualSistema_);
       redsTemplatesMenuBtn?.addEventListener('click', abrirHistoricosPadraoReds_);
       redsTemplatesCloseBtn?.addEventListener('click', fecharHistoricosPadraoReds_);
@@ -15595,7 +16287,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharVisualizadorRetornoLiberacao_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
@@ -15607,6 +16299,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (localizacaoValidaFormulario_() && !String(localizacaoEnderecoIdentificadoInput?.value || '').trim()) {
           setTimeout(() => { void identificarEnderecoPorLocalizacao_(true, false); }, 200);
         }
+        if (ehFluxoLiberacao_()) setTimeout(() => { void consultarRetornoLiberacao_(); }, 450);
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
         setTimeout(() => { void processarFilaFotosPendentes_(); }, 250);
         if (usuarioPodeOperar_()) {
@@ -15649,7 +16342,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99br', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
