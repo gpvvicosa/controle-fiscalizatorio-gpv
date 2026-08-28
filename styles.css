@@ -12793,3 +12793,94 @@ a.btn {
     font-size: .86rem;
   }
 }
+
+
+/* =========================================================
+   V23.9.99cf — identidade externa "App do Vistoriador"
+   Restrita à tela de acesso; a identidade interna da unidade permanece inalterada.
+   ========================================================= */
+.auth-gate{
+  background:
+    linear-gradient(180deg,rgba(45,3,5,.74),rgba(64,5,7,.90) 54%,rgba(31,2,4,.96)),
+    url("assets/splash-app-vistoriador.webp?v=23.9.99cf") center 30%/cover no-repeat!important;
+  animation:none!important;
+}
+.auth-gate::before{
+  width:66vmin!important;
+  max-width:620px!important;
+  aspect-ratio:1!important;
+  left:-18vmin!important;
+  top:-18vmin!important;
+  border-radius:28%!important;
+  background:url("assets/app-vistoriador-icon-512.png?v=23.9.99cf") center/contain no-repeat!important;
+  filter:none!important;
+  opacity:.075!important;
+  transform:rotate(-10deg)!important;
+  animation:none!important;
+}
+.auth-gate::after{
+  width:min(80vw,900px)!important;
+  aspect-ratio:1!important;
+  right:-38vw!important;
+  bottom:-38vh!important;
+  background:radial-gradient(circle,rgba(247,188,52,.20),rgba(247,188,52,0) 65%)!important;
+  filter:blur(4px)!important;
+  opacity:.7!important;
+  animation:none!important;
+}
+.auth-gate.show .auth-card{
+  width:min(440px,100%)!important;
+  max-height:min(94dvh,820px)!important;
+  overflow:auto!important;
+  background:linear-gradient(180deg,rgba(76,10,12,.94),rgba(45,5,7,.96))!important;
+  border:1px solid rgba(246,190,55,.42)!important;
+  box-shadow:0 30px 90px rgba(20,0,1,.55),0 0 0 1px rgba(255,255,255,.04)!important;
+  color:#fff!important;
+  scrollbar-width:thin;
+}
+.auth-logo-wrap{
+  width:104px!important;
+  height:104px!important;
+  margin:-2px auto 13px!important;
+  border-radius:25px!important;
+  background:#5b090c!important;
+  border:1px solid rgba(246,190,55,.48)!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.30),0 0 28px rgba(246,190,55,.10)!important;
+}
+.auth-logo-wrap img{width:98px!important;height:98px!important;border-radius:22px!important;object-fit:cover!important;filter:none!important}
+.auth-kicker{color:#f4bd43!important;font-size:11px!important;letter-spacing:.14em!important}
+.auth-card h1{color:#fff!important;font-size:29px!important;letter-spacing:-.02em!important;margin-top:7px!important}
+.auth-subtitle{color:#efdcd7!important;max-width:340px!important}
+.auth-subtitle strong{color:#ffd36a!important}
+.auth-label{color:#f7e9e4!important}
+.auth-input{
+  border:1px solid rgba(246,190,55,.35)!important;
+  background:rgba(255,255,255,.075)!important;
+  color:#fff!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important;
+}
+.auth-input::placeholder{color:rgba(255,255,255,.46)!important}
+.auth-input:focus{border-color:#f4bd43!important;box-shadow:0 0 0 4px rgba(244,189,67,.15)!important}
+.auth-enter-btn{
+  background:linear-gradient(135deg,#f2b934,#ffd468)!important;
+  color:#3b0708!important;
+  box-shadow:0 10px 25px rgba(0,0,0,.28)!important;
+}
+.auth-pin-toggle{color:#f5dba1!important;background:transparent!important}
+.auth-save-password{background:rgba(255,255,255,.055)!important;border-color:rgba(246,190,55,.20)!important}
+.auth-save-password input{accent-color:#f3be42!important}
+.auth-save-password strong{color:#fff!important}
+.auth-save-password small{color:#d9c7c3!important}
+.auth-message{color:#ffd0d0!important}
+.auth-offline-note{background:rgba(132,15,21,.42)!important;color:#ffd8d8!important;border:1px solid rgba(255,160,160,.20)!important}
+.auth-device-choice,.auth-profile-choice,.auth-pin-setup{background:rgba(255,255,255,.06)!important;border-color:rgba(246,190,55,.22)!important}
+.auth-device-choice>strong,.auth-profile-choice>strong,.auth-pin-setup>strong{color:#ffd36a!important}
+.auth-device-choice>span,.auth-profile-choice>span,.auth-pin-setup>span{color:#e3d4cf!important}
+.auth-device-profile-btn,.auth-profile-btn,.auth-other-bm-btn{background:rgba(255,255,255,.08)!important;border-color:rgba(246,190,55,.22)!important;color:#fff!important}
+.auth-device-profile-btn span,.auth-profile-btn span{color:#d9c7c3!important}
+@media(max-width:600px){
+  .auth-gate{padding:12px!important;background-position:center 24%!important}
+  .auth-gate.show .auth-card{padding:20px 17px 18px!important;border-radius:24px!important}
+  .auth-logo-wrap,.auth-logo-wrap img{width:88px!important;height:88px!important}
+  .auth-card h1{font-size:25px!important}
+}

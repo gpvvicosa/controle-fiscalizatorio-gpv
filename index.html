@@ -4,34 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#52080c">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Vistorias GPV">
-  <meta name="description" content="Controle Fiscalizatório GPV Viçosa — registro de vistorias com suporte offline.">
-  <meta name="application-name" content="Controle Fiscalizatório GPV Viçosa">
+  <meta name="apple-mobile-web-app-title" content="App do Vistoriador">
+  <meta name="description" content="App do Vistoriador — apoio ao registro e acompanhamento de vistorias, com suporte offline.">
+  <meta name="application-name" content="App do Vistoriador">
 
   <!-- Miniatura ao compartilhar em WhatsApp, Facebook, LinkedIn e similares -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
-  <meta property="og:site_name" content="Controle Fiscalizatório GPV Viçosa">
-  <meta property="og:title" content="Controle Fiscalizatório — GPV Viçosa">
-  <meta property="og:description" content="PWA institucional para registro de vistorias do GPV Viçosa, com suporte offline.">
+  <meta property="og:site_name" content="App do Vistoriador">
+  <meta property="og:title" content="App do Vistoriador">
+  <meta property="og:description" content="Aplicativo de apoio ao registro e acompanhamento de vistorias, com suporte offline.">
   <meta property="og:url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/">
-  <meta property="og:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/icon-512.png">
-  <meta property="og:image:secure_url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/icon-512.png">
-  <meta property="og:image:type" content="image/png">
-  <meta property="og:image:width" content="512">
-  <meta property="og:image:height" content="512">
-  <meta property="og:image:alt" content="Controle Fiscalizatório GPV Viçosa">
+  <meta property="og:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador.jpg?v=23.9.99cf">
+  <meta property="og:image:secure_url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador.jpg?v=23.9.99cf">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="675">
+  <meta property="og:image:alt" content="App do Vistoriador">
 
   <!-- Miniatura em serviços que leem Twitter Cards -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Controle Fiscalizatório — GPV Viçosa">
-  <meta name="twitter:description" content="PWA institucional para registro de vistorias do GPV Viçosa, com suporte offline.">
-  <meta name="twitter:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/icon-512.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="App do Vistoriador">
+  <meta name="twitter:description" content="Aplicativo de apoio ao registro e acompanhamento de vistorias, com suporte offline.">
+  <meta name="twitter:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador.jpg?v=23.9.99cf">
 
   <link rel="canonical" href="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/">
-  <title>Controle de Vistorias — GPV Viçosa</title>
+  <title>App do Vistoriador</title>
   <script id="gpv-early-entry-route">
     (function () {
       document.documentElement.classList.add('gpv-booting');
@@ -43,10 +44,10 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="manifest" href="manifest.webmanifest?v=23.9.99p">
-  <link rel="preload" as="image" href="assets/splash-gpv.png?v=23.9.99q" fetchpriority="high">
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
-  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest?v=23.9.99cf">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99cf" fetchpriority="high">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192.png?v=23.9.99cf">
+  <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192.png?v=23.9.99cf">
   <style id="gpv-critical-boot">
     html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif}
     html,body{background:#efe6dc}
@@ -54,11 +55,11 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(145deg,#3b0508 0%,#720e14 58%,#3f0609 100%)}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99cf") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
-    .auth-card{width:min(430px,100%);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;padding:24px 20px;text-align:center}
-    .auth-logo-wrap{width:112px;height:112px;margin:0 auto 12px}
-    .auth-logo-wrap img{display:block;width:112px;height:112px;object-fit:contain}
+    .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
+    .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
+    .auth-logo-wrap img{display:block;width:104px;height:104px;object-fit:cover}
     .loading.show{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;background:
       radial-gradient(circle at 18% 15%,rgba(255,190,35,.15),transparent 30%),
       radial-gradient(circle at 82% 78%,rgba(196,27,33,.30),transparent 35%),
@@ -68,7 +69,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99ce">
+  <link rel="stylesheet" href="styles.css?v=23.9.99cf">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -76,10 +77,10 @@
   <div class="auth-gate" id="authGate" aria-hidden="false">
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-logo-wrap" aria-hidden="true">
-        <img src="assets/logo-gpv.png?v=23.1" width="512" height="512" alt="">
+        <img src="assets/app-vistoriador-icon-512.png?v=23.9.99cf" width="512" height="512" alt="">
       </div>
-      <span class="auth-kicker">Acesso institucional</span>
-      <h1 id="authTitle">Controle Fiscalizatório</h1>
+      <span class="auth-kicker">Controle Fiscalizatório</span>
+      <h1 id="authTitle">App do Vistoriador</h1>
       <p class="auth-subtitle" id="authSubtitle">Informe seu <strong>Nº BM e senha</strong> para acessar o aplicativo.</p>
 
       <div class="auth-device-choice" id="authDeviceChoice" hidden>
@@ -665,7 +666,7 @@
     <div class="install-panel" id="installPanel" hidden>
       <div class="install-copy">
         <strong>Instalar no celular</strong>
-        <span id="installText">Instale o Controle Fiscalizatório para abrir como aplicativo e manter a interface disponível offline.</span>
+        <span id="installText">Instale o App do Vistoriador para abrir como aplicativo e manter a interface disponível offline.</span>
       </div>
       <button class="pending-send-btn" id="installBtn" type="button">Instalar app</button>
     </div>
@@ -2217,7 +2218,7 @@
   <div class="loading show gpv-image-splash" id="loadingOverlay">
     <img
       class="gpv-splash-art"
-      src="assets/splash-gpv.png?v=23.9.99q"
+      src="assets/splash-app-vistoriador.webp?v=23.9.99cf"
       alt=""
       aria-hidden="true"
       width="941"
@@ -2226,7 +2227,7 @@
       decoding="sync"
     >
     <div class="gpv-splash-status" role="status" aria-live="polite">
-      <span id="loadingText">Preparando o Controle Fiscalizatório...</span>
+      <span id="loadingText">Preparando o App do Vistoriador...</span>
       <small id="loadingSubtext" hidden></small>
       <div class="gpv-splash-progress" aria-hidden="true"><i></i></div>
     </div>
@@ -2287,10 +2288,10 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.99ce"></script>
-  <script src="ocupacoes.js?v=23.9.99ce"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99ce"></script>
-  <script src="app.js?v=23.9.99ce"></script>
+  <script src="config.js?v=23.9.99cf"></script>
+  <script src="ocupacoes.js?v=23.9.99cf"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99cf"></script>
+  <script src="app.js?v=23.9.99cf"></script>
 
   </div>
   

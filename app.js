@@ -2699,7 +2699,7 @@
           loadingSubtext.hidden = true;
           loadingSubtext.textContent = '';
         }
-        if (loadingText) loadingText.textContent = 'Preparando o Controle Fiscalizatório...';
+        if (loadingText) loadingText.textContent = 'Preparando o App do Vistoriador...';
       }
 
       function agendarNovaTentativaAtualizacaoSilenciosa_() {
@@ -2836,7 +2836,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ce', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cf', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -17904,7 +17904,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         event.preventDefault();
         deferredInstallPrompt = event;
         installPanel.hidden = false;
-        installText.textContent = 'Instale o Controle Fiscalizatório para abrir como aplicativo e trabalhar com a interface disponível offline.';
+        installText.textContent = 'Instale o App do Vistoriador para abrir como aplicativo e trabalhar com a interface disponível offline.';
       });
       window.addEventListener('appinstalled', () => {
         deferredInstallPrompt = null;
@@ -17933,7 +17933,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ce', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cf', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
