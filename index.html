@@ -64,9 +64,11 @@
       radial-gradient(circle at 82% 78%,rgba(196,27,33,.30),transparent 35%),
       linear-gradient(145deg,#360407 0%,#680b10 52%,#250306 100%)}
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
+    .gpv-splash-status #loadingSubtext{display:block;margin-top:7px;font-size:.82rem;line-height:1.35;font-weight:600;opacity:.88;text-align:center}
+    .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99cd">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ce">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -387,8 +389,8 @@
 
         <section class="system-manual-section" id="manualSec10">
           <h3>10. Publicação e manutenção</h3>
-          <p>No GitHub, substitua somente os arquivos indicados no pacote, faça o commit e aguarde o GitHub Pages publicar. O PWA verifica novas versões silenciosamente em segundo plano e aplica a versão nova na próxima abertura sem interromper uma vistoria em andamento.</p>
-          <p>O comando <strong>Mais → Atualizar app</strong> continua disponível para uma atualização manual quando necessário. No Apps Script, substitua somente os arquivos indicados e atualize a implantação existente por uma nova versão.</p>
+          <p>No GitHub, substitua somente os arquivos indicados no pacote, faça o commit e aguarde o GitHub Pages publicar. Com internet, o PWA verifica uma nova versão logo na abertura. Se houver atualização, exibe a tela de atualização e aplica a nova versão automaticamente antes do trabalho, sem interromper uma vistoria em andamento.</p>
+          <p>Com internet, o aplicativo verifica novas versões automaticamente na abertura e aplica a atualização antes do início da vistoria, quando for seguro. O comando <strong>Mais → Atualizar app</strong> continua disponível como alternativa manual. No Apps Script, substitua somente os arquivos indicados e atualize a implantação existente por uma nova versão.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
@@ -615,7 +617,7 @@
         <article class="tutorial-step" data-tutorial-step="9">
           <div class="tutorial-step-icon">⬇️</div>
           <h3>9. Instalar e manter o app atualizado</h3>
-          <p>No Android/Chrome, use o menu do navegador e escolha <strong>Instalar aplicativo</strong>. No iPhone/iPad, use <strong>Compartilhar → Adicionar à Tela de Início</strong>. Quando houver uma nova versão, abra <strong>Mais → Atualizar app</strong>.</p>
+          <p>No Android/Chrome, use o menu do navegador e escolha <strong>Instalar aplicativo</strong>. No iPhone/iPad, use <strong>Compartilhar → Adicionar à Tela de Início</strong>. Com internet, novas versões são verificadas automaticamente ao abrir o app; <strong>Mais → Atualizar app</strong> permanece disponível para atualização manual.</p>
           <p class="tutorial-note"><strong>Pronto.</strong> Você pode abrir este tutorial novamente a qualquer momento pelo menu Mais.</p>
         </article>
       </div>
@@ -2225,6 +2227,7 @@
     >
     <div class="gpv-splash-status" role="status" aria-live="polite">
       <span id="loadingText">Preparando o Controle Fiscalizatório...</span>
+      <small id="loadingSubtext" hidden></small>
       <div class="gpv-splash-progress" aria-hidden="true"><i></i></div>
     </div>
   </div>
@@ -2284,10 +2287,10 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.99cd"></script>
-  <script src="ocupacoes.js?v=23.9.99cd"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99cd"></script>
-  <script src="app.js?v=23.9.99cd"></script>
+  <script src="config.js?v=23.9.99ce"></script>
+  <script src="ocupacoes.js?v=23.9.99ce"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99ce"></script>
+  <script src="app.js?v=23.9.99ce"></script>
 
   </div>
   

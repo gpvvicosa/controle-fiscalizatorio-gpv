@@ -1091,6 +1091,7 @@
       const clearBtn = document.getElementById('clearBtn');
       const loadingOverlay = document.getElementById('loadingOverlay');
       const loadingText = document.getElementById('loadingText');
+      const loadingSubtext = document.getElementById('loadingSubtext');
       const errorBox = document.getElementById('errorBox');
       const draftStatus = document.getElementById('draftStatus');
       const appStatus = document.getElementById('appStatus');
@@ -2679,6 +2680,28 @@
         return !appTemInteracaoCriticaParaAtualizacao_();
       }
 
+      function mostrarAtualizacaoAutomatica_() {
+        if (!loadingOverlay || !loadingText) return;
+        document.documentElement.classList.add('gpv-booting');
+        loadingOverlay.dataset.autoUpdate = '1';
+        loadingText.textContent = 'Atualizando o aplicativo...';
+        if (loadingSubtext) {
+          loadingSubtext.textContent = 'Preparando a versão mais recente. Não feche o aplicativo.';
+          loadingSubtext.hidden = false;
+        }
+        loadingOverlay.classList.add('show');
+      }
+
+      function encerrarVisualAtualizacaoAutomatica_() {
+        if (!loadingOverlay || loadingOverlay.dataset.autoUpdate !== '1') return;
+        delete loadingOverlay.dataset.autoUpdate;
+        if (loadingSubtext) {
+          loadingSubtext.hidden = true;
+          loadingSubtext.textContent = '';
+        }
+        if (loadingText) loadingText.textContent = 'Preparando o Controle Fiscalizatório...';
+      }
+
       function agendarNovaTentativaAtualizacaoSilenciosa_() {
         if (!swAtualizacaoPendente_ || swTimerAtualizacaoAdiada_) return;
 
@@ -2710,30 +2733,81 @@
           swTimerAtualizacaoAdiada_ = null;
         }
 
-        // A sessão BM permanece no armazenamento local. Somente a interface e
-        // os arquivos do aplicativo são recarregados.
+        // Quando a atualização foi encontrada durante a abertura, mantém o splash
+        // animado visível até a nova versão assumir o controle.
+        if (swAtualizacaoDetectadaNaAbertura_ || swVerificacaoAberturaEmCurso_) {
+          mostrarAtualizacaoAutomatica_();
+        }
+
+        // A sessão BM, os rascunhos, o IndexedDB e a fila offline permanecem no
+        // armazenamento local. Somente a interface e os arquivos do app recarregam.
         try {
           sessionStorage.setItem('gpv_auto_update_applied_v1', String(Date.now()));
         } catch (e) {}
 
         const url = new URL(window.location.href);
         url.searchParams.set('appAtualizado', Date.now().toString());
-        window.location.replace(url.toString());
+        // Pequeno frame permite que a mensagem/animação seja pintada antes da troca.
+        requestAnimationFrame(() => window.location.replace(url.toString()));
         return true;
+      }
+
+      function acompanharWorkerAtualizacao_(worker) {
+        if (!worker || worker.__gpvObservadoAtualizacao) return;
+        worker.__gpvObservadoAtualizacao = true;
+
+        const veioDeAtualizacao = Boolean(swControladorExistiaNaAbertura_ || navigator.serviceWorker.controller);
+        if (veioDeAtualizacao && swVerificacaoAberturaEmCurso_) {
+          swAtualizacaoDetectadaNaAbertura_ = true;
+          swWorkerAtualizacaoAbertura_ = worker;
+          mostrarAtualizacaoAutomatica_();
+        }
+
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && (swControladorExistiaNaAbertura_ || navigator.serviceWorker.controller)) {
+            if (swVerificacaoAberturaEmCurso_) {
+              swAtualizacaoDetectadaNaAbertura_ = true;
+              swWorkerAtualizacaoAbertura_ = worker;
+              mostrarAtualizacaoAutomatica_();
+            }
+            // O novo SW ainda pode estar concluindo a ativação. Marca como
+            // pendente, mas deixa controllerchange/activated efetuar a recarga.
+            swAtualizacaoPendente_ = true;
+          }
+          if (worker.state === 'activated' && swAtualizacaoPendente_) {
+            aplicarAtualizacaoSilenciosaSeSeguro_();
+          }
+        });
       }
 
       function observarAtualizacaoSilenciosaPwa_(registro) {
         if (!registro) return;
         swRegistroSilencioso_ = registro;
+        if (registro.installing) acompanharWorkerAtualizacao_(registro.installing);
         registro.addEventListener('updatefound', () => {
           const worker = registro.installing;
           if (!worker) return;
-          worker.addEventListener('statechange', () => {
-            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-              swAtualizacaoPendente_ = true;
-              aplicarAtualizacaoSilenciosaSeSeguro_();
-            }
-          });
+          acompanharWorkerAtualizacao_(worker);
+        });
+      }
+
+      function esperarWorkerAtualizacaoAbertura_(worker, timeoutMs = 6500) {
+        if (!worker) return Promise.resolve();
+        if (['activated', 'redundant'].includes(worker.state)) return Promise.resolve();
+        return new Promise(resolve => {
+          let finalizado = false;
+          const terminar = () => {
+            if (finalizado) return;
+            finalizado = true;
+            clearTimeout(timer);
+            worker.removeEventListener('statechange', conferir);
+            resolve();
+          };
+          const conferir = () => {
+            if (['activated', 'redundant'].includes(worker.state)) terminar();
+          };
+          const timer = setTimeout(terminar, timeoutMs);
+          worker.addEventListener('statechange', conferir);
         });
       }
 
@@ -2749,6 +2823,55 @@
             await registro.update();
           }
         } catch (e) {}
+      }
+
+      async function prepararAtualizacaoAutomaticaNaAbertura_() {
+        if (!('serviceWorker' in navigator)) {
+          swVerificacaoAberturaEmCurso_ = false;
+          return;
+        }
+
+        try {
+          // Se já existe um SW, conecta o observador antes de buscar a versão nova.
+          let registro = await navigator.serviceWorker.getRegistration();
+          if (!registro) {
+            registro = await Promise.race([
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ce', { updateViaCache: 'none' }),
+              new Promise(resolve => setTimeout(() => resolve(null), 3500))
+            ]);
+          }
+
+          if (registro) {
+            observarAtualizacaoSilenciosaPwa_(registro);
+            swRegistroSilencioso_ = registro;
+          }
+
+          if (!navigator.onLine || !registro) return;
+
+          // A abertura nunca fica presa indefinidamente por uma rede ruim. A checagem
+          // tem janela curta; se o download continuar em segundo plano, a aplicação
+          // só recarrega quando estiver seguro (nunca no meio de uma vistoria).
+          await Promise.race([
+            registro.update().catch(() => null),
+            new Promise(resolve => setTimeout(resolve, 1400))
+          ]);
+
+          if (registro.installing) {
+            acompanharWorkerAtualizacao_(registro.installing);
+            swWorkerAtualizacaoAbertura_ = registro.installing;
+          }
+
+          if (swAtualizacaoDetectadaNaAbertura_ && swWorkerAtualizacaoAbertura_ && !swRecarregamentoAtualizacaoEmCurso_) {
+            await esperarWorkerAtualizacaoAbertura_(swWorkerAtualizacaoAbertura_, 6500);
+          }
+        } catch (e) {
+          // Falha de rede/checagem não impede a abertura: o shell em cache continua válido.
+        } finally {
+          swVerificacaoAberturaEmCurso_ = false;
+          if (!swRecarregamentoAtualizacaoEmCurso_) {
+            encerrarVisualAtualizacaoAutomatica_();
+          }
+        }
       }
       let saveTimer = null;
       let cnpjTimer = null;
@@ -2790,6 +2913,10 @@
       let swAtualizacaoPendente_ = false;
       let swRecarregamentoAtualizacaoEmCurso_ = false;
       let swTimerAtualizacaoAdiada_ = null;
+      let swVerificacaoAberturaEmCurso_ = true;
+      let swAtualizacaoDetectadaNaAbertura_ = false;
+      let swWorkerAtualizacaoAbertura_ = null;
+      const swControladorExistiaNaAbertura_ = Boolean(navigator.serviceWorker?.controller);
       let sancaoDefinidaAutomaticamente = false;
       let sancaoAntesDoAutomatico = '';
       let cpfCopiadoDoIdentificador = '';
@@ -17798,16 +17925,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+          // Na primeira instalação não há versão anterior para substituir; evita
+          // uma recarga sem necessidade. Nas atualizações, aplica automaticamente.
+          if (!swControladorExistiaNaAbertura_ && !swAtualizacaoDetectadaNaAbertura_ && !swAtualizacaoPendente_) return;
           swAtualizacaoPendente_ = true;
           aplicarAtualizacaoSilenciosaSeSeguro_();
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cd', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ce', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
-            await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
-            // por muitas horas ou dias.
+            // por muitas horas ou dias. Atualizações encontradas durante uma
+            // vistoria ficam preparadas e só entram quando a interação for segura.
             setInterval(() => {
               verificarAtualizacaoSilenciosaPwa_();
               aplicarAtualizacaoSilenciosaSeSeguro_();
@@ -17824,5 +17954,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       renderizarNotificacoesLiberacao_();
       atualizarStatusConexao();
       carregarSessaoLocalBm_();
-      inicializarFilaOffline().then(inicializarAutenticacaoBm_).catch(inicializarAutenticacaoBm_);
+
+      (async () => {
+        // Primeiro verifica a atualização, com limite de espera. Só depois libera
+        // login/dados; assim uma versão pendente entra antes de o militar iniciar
+        // ou retomar uma vistoria.
+        await prepararAtualizacaoAutomaticaNaAbertura_();
+        if (swRecarregamentoAtualizacaoEmCurso_) return;
+        try {
+          await inicializarFilaOffline();
+        } catch (e) {}
+        await inicializarAutenticacaoBm_();
+      })();
     })();

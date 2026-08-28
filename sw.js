@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-reds-mobile-cd';
-const VERSION = '23.9.99cd';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-atualizacao-automatica-ce';
+const VERSION = '23.9.99ce';
 
 const CORE_SHELL = [
   './',
