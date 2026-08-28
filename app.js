@@ -1586,6 +1586,7 @@
       const reviewConfirmBtn = document.getElementById('reviewConfirmBtn');
       const usefulLinksModal = document.getElementById('usefulLinksModal');
       const usefulLinksCloseBtn = document.getElementById('usefulLinksCloseBtn');
+      const redsMobileAppLink = document.getElementById('redsMobileAppLink');
       const aboutSystemModal = document.getElementById('aboutSystemModal');
       const aboutSystemCloseBtn = document.getElementById('aboutSystemCloseBtn');
       const aboutSystemGrid = document.getElementById('aboutSystemGrid');
@@ -14706,8 +14707,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      const REDS_MOBILE_SCHEME_ = 'com.sidsmobile://';
+      const REDS_WEB_URL_ = 'https://web.sids.mg.gov.br/reds/';
+
+      function ehAndroid_() {
+        return /Android/i.test(String(navigator.userAgent || ''));
+      }
+
+      function atualizarVisibilidadeRedsMobile_() {
+        if (redsMobileAppLink) redsMobileAppLink.hidden = !ehAndroid_();
+      }
+
       function abrirLinksUteis_() {
         fecharMenuMais_();
+        atualizarVisibilidadeRedsMobile_();
         if (usefulLinksModal) usefulLinksModal.hidden = false;
         document.body.classList.add('useful-links-open');
         setTimeout(() => usefulLinksCloseBtn?.focus(), 0);
@@ -14716,6 +14729,48 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function fecharLinksUteis_() {
         if (usefulLinksModal) usefulLinksModal.hidden = true;
         document.body.classList.remove('useful-links-open');
+      }
+
+      function abrirRedsMobile_(event) {
+        event?.preventDefault();
+        if (!ehAndroid_()) return;
+
+        let appAssumiuAbertura = document.hidden;
+        const marcarSaida = () => {
+          if (document.hidden) appAssumiuAbertura = true;
+        };
+        const marcarBlur = () => { appAssumiuAbertura = true; };
+        document.addEventListener('visibilitychange', marcarSaida);
+        window.addEventListener('blur', marcarBlur, { once: true });
+
+        const limparObservacao = () => {
+          document.removeEventListener('visibilitychange', marcarSaida);
+          window.removeEventListener('blur', marcarBlur);
+        };
+
+        setTimeout(async () => {
+          limparObservacao();
+          if (appAssumiuAbertura || document.hidden) return;
+
+          const abrirWeb = await confirmarGpv_(
+            'Não foi possível confirmar a abertura do REDS Mobile neste aparelho. Deseja abrir o REDS pela web?',
+            'REDS Mobile',
+            {
+              tom: 'info',
+              rotuloConfirmar: 'Abrir REDS Web',
+              rotuloCancelar: 'Fechar'
+            }
+          );
+          if (abrirWeb) {
+            window.open(REDS_WEB_URL_, '_blank', 'noopener,noreferrer');
+          }
+        }, 1600);
+
+        try {
+          window.location.href = REDS_MOBILE_SCHEME_;
+        } catch (erro) {
+          limparObservacao();
+        }
       }
 
       async function abrirSobreSistema_() {
@@ -17487,6 +17542,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       usefulLinksBtn?.addEventListener('click', abrirLinksUteis_);
       usefulLinksCloseBtn?.addEventListener('click', fecharLinksUteis_);
       usefulLinksModal?.addEventListener('click', event => { if (event.target === usefulLinksModal) fecharLinksUteis_(); });
+      redsMobileAppLink?.addEventListener('click', abrirRedsMobile_);
+      atualizarVisibilidadeRedsMobile_();
       tutorialCloseBtn?.addEventListener('click', fecharTutorial_);
       tutorialModal?.addEventListener('click', event => { if (event.target === tutorialModal) fecharTutorial_(); });
       tutorialPrevBtn?.addEventListener('click', () => { tutorialStepIndex -= 1; renderizarTutorial_(); });
@@ -17746,7 +17803,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cc', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cd', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
