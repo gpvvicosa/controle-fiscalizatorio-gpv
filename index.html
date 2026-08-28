@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99bz">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ca">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -181,65 +181,29 @@
       <div class="app-more-menu-head-copy"><strong>Mais opções</strong><span>Recursos auxiliares</span></div>
       <button class="app-more-menu-close" id="appMoreMenuCloseBtn" type="button" aria-label="Fechar menu Mais">×</button>
     </div>
-    <button class="app-more-menu-item" id="tutorialMenuBtn" data-menu-tone="blue" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h10.8A2.7 2.7 0 0 1 19 7.2v12.3H8.1a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M8.1 19.5A2.6 2.6 0 0 1 10.7 17H19M9 8.5h6M9 12h6"/></svg>
-      <span><strong>Tutorial</strong><small>Guia rápido para usar o aplicativo</small></span>
+    <button class="app-more-menu-item" id="changePinBtn" data-menu-tone="green" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>
+      <span><strong>Alterar minha senha</strong><small>Trocar a senha de 6 dígitos deste usuário</small></span>
     </button>
-    <button class="app-more-menu-item" id="systemManualBtn" data-menu-tone="cyan" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h10.8A2.7 2.7 0 0 1 19 7.2v12.3H8.1a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M8.1 19.5A2.6 2.6 0 0 1 10.7 17H19M9 8.5h6M9 12h6M9 15.5h4"/></svg>
-      <span><strong>Manual do Sistema</strong><small>Consulta operacional com índice clicável</small></span>
-    </button>
-    <button class="app-more-menu-item" id="duvidasMenuBtn" data-menu-tone="blue" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14v10H9l-4 3z"/><path d="M9.2 9.2a2.8 2.8 0 0 1 5.3 1.2c0 2-2.5 2-2.5 3.5M12 16.3h.01"/></svg>
-      <span><strong>Dúvidas</strong><small>Pergunte sobre o app, procedimentos e Instruções Técnicas</small></span>
-    </button>
-    <a class="app-more-menu-item" id="technicalInstructionsMenuLink" data-menu-tone="red" href="instrucoes-tecnicas/index.html" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 4.5h6.2A3.3 3.3 0 0 1 14 7.8v11.7H7.7a3.2 3.2 0 0 0-3.2 3.2z"/><path d="M19.5 4.5h-2.2A3.3 3.3 0 0 0 14 7.8v11.7h2.3a3.2 3.2 0 0 1 3.2 3.2z"/><path d="M7.5 9h3M7.5 12h3M16.5 9h1M16.5 12h1"/></svg>
-      <span><strong>Instruções Técnicas CBMMG</strong><small>Pesquisar e consultar o acervo técnico</small></span>
-    </a>
-    <a class="app-more-menu-item" id="adminSheetMenuLink" data-menu-tone="green" href="#" target="_blank" rel="noopener" role="menuitem" hidden>
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
-      <span><strong>Planilha Excel</strong><small>Abrir a planilha administrativa</small></span>
-    </a>
     <button class="app-more-menu-item" id="updateAppBtn" data-menu-tone="amber" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7.2 7.2 0 1 0 1 7"/><path d="M19 4.5V8h-3.5"/></svg>
       <span><strong>Atualizar app</strong><small>Buscar a versão mais recente</small></span>
-    </button>
-    <button class="app-more-menu-item" id="redsTemplatesMenuBtn" data-menu-tone="crimson" type="button" role="menuitem" hidden>
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M17.5 14.5l2 2-4 4H13.5v-2z"/></svg>
-      <span><strong>Históricos padrão REDS</strong><small>Revisar e atualizar os textos-modelo dos relatórios</small></span>
-    </button>
-    <button class="app-more-menu-item" id="prepareInspectionBtn" data-menu-tone="red" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
-      <span><strong>Cadastrar vistoria</strong><small>Cadastrar uma vistoria antes do deslocamento</small></span>
     </button>
     <button class="app-more-menu-item" id="registerDduBtn" data-menu-tone="crimson" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5M8 12h8M8 16h6"/></svg>
       <span><strong>Cadastrar DDU</strong><small>Disque Denúncia 181 • anexar PDF e definir prazo</small></span>
     </button>
-    <button class="app-more-menu-item" id="usefulLinksBtn" data-menu-tone="violet" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5l3-3M8.2 15.8l-1.3 1.3a3.5 3.5 0 0 1-5-5l3.2-3.2a3.5 3.5 0 0 1 5 0M15.8 8.2l1.3-1.3a3.5 3.5 0 1 1 5 5l-3.2 3.2a3.5 3.5 0 0 1-5 0"/></svg>
-      <span><strong>Links úteis</strong><small>INFOSCIP, DDU, REDS e projetos/documentos</small></span>
-    </button>
-    <button class="app-more-menu-item" id="goalsMenuBtn" data-menu-tone="emerald" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7"/><path d="M3 19h18"/></svg>
-      <span><strong>Metas do mês</strong><small>Acompanhar o realizado e o que falta para Viçosa</small></span>
+    <button class="app-more-menu-item" id="prepareInspectionBtn" data-menu-tone="red" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
+      <span><strong>Cadastrar vistoria</strong><small>Cadastrar uma vistoria antes do deslocamento</small></span>
     </button>
     <button class="app-more-menu-item" id="appDiagnosticsBtn" data-menu-tone="amber" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="9"/></svg>
       <span><strong>Diagnóstico do app</strong><small>Versão, conexão, interface e recuperação de travamentos</small></span>
     </button>
-    <button class="app-more-menu-item" id="aboutSystemBtn" data-menu-tone="cyan" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v6M12 7.5h.01"/></svg>
-      <span><strong>Sobre o sistema</strong><small>Versão, sincronização e serviços</small></span>
-    </button>
-    <button class="app-more-menu-item" id="deviceNameBtn" data-menu-tone="slate" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><path d="M10 17.5h4"/></svg>
-      <span><strong>Identificar aparelho</strong><small id="deviceNameMenuText">Definir nome deste celular ou tablet</small></span>
-    </button>
-    <button class="app-more-menu-item" id="changePinBtn" data-menu-tone="green" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>
-      <span><strong>Alterar minha senha</strong><small>Trocar a senha de 6 dígitos deste usuário</small></span>
+    <button class="app-more-menu-item" id="duvidasMenuBtn" data-menu-tone="blue" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14v10H9l-4 3z"/><path d="M9.2 9.2a2.8 2.8 0 0 1 5.3 1.2c0 2-2.5 2-2.5 3.5M12 16.3h.01"/></svg>
+      <span><strong>Dúvidas</strong><small>Pergunte sobre o app, procedimentos e Instruções Técnicas</small></span>
     </button>
     <button class="app-more-menu-item" id="forgetSavedPinBtn" data-menu-tone="amber" type="button" role="menuitem" hidden>
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2-4.9"/><path d="M5 4v5h5"/><path d="M10 12h7M14 9l3 3-3 3"/></svg>
@@ -249,13 +213,49 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.5-5 5.5-5s4.9 1.8 5.5 5M16 8h5M18.5 5.5v5"/></svg>
       <span><strong>Gerenciar usuários</strong><small>Incluir, editar, redefinir senha ou excluir Nº BM</small></span>
     </button>
+    <button class="app-more-menu-item" id="redsTemplatesMenuBtn" data-menu-tone="crimson" type="button" role="menuitem" hidden>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M17.5 14.5l2 2-4 4H13.5v-2z"/></svg>
+      <span><strong>Históricos padrão REDS</strong><small>Revisar e atualizar os textos-modelo dos relatórios</small></span>
+    </button>
+    <button class="app-more-menu-item" id="deviceNameBtn" data-menu-tone="slate" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.8" width="12" height="18.4" rx="2.4"/><path d="M10 17.5h4"/></svg>
+      <span><strong>Identificar aparelho</strong><small id="deviceNameMenuText">Definir nome deste celular ou tablet</small></span>
+    </button>
+    <a class="app-more-menu-item" id="technicalInstructionsMenuLink" data-menu-tone="red" href="instrucoes-tecnicas/index.html" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 4.5h6.2A3.3 3.3 0 0 1 14 7.8v11.7H7.7a3.2 3.2 0 0 0-3.2 3.2z"/><path d="M19.5 4.5h-2.2A3.3 3.3 0 0 0 14 7.8v11.7h2.3a3.2 3.2 0 0 1 3.2 3.2z"/><path d="M7.5 9h3M7.5 12h3M16.5 9h1M16.5 12h1"/></svg>
+      <span><strong>Instruções Técnicas CBMMG</strong><small>Pesquisar e consultar o acervo técnico</small></span>
+    </a>
+    <button class="app-more-menu-item" id="usefulLinksBtn" data-menu-tone="violet" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5l3-3M8.2 15.8l-1.3 1.3a3.5 3.5 0 0 1-5-5l3.2-3.2a3.5 3.5 0 0 1 5 0M15.8 8.2l1.3-1.3a3.5 3.5 0 1 1 5 5l-3.2 3.2a3.5 3.5 0 0 1-5 0"/></svg>
+      <span><strong>Links úteis</strong><small>Sistemas e portais institucionais</small></span>
+    </button>
+    <button class="app-more-menu-item" id="systemManualBtn" data-menu-tone="cyan" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h10.8A2.7 2.7 0 0 1 19 7.2v12.3H8.1a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M8.1 19.5A2.6 2.6 0 0 1 10.7 17H19M9 8.5h6M9 12h6M9 15.5h4"/></svg>
+      <span><strong>Manual do Sistema</strong><small>Consulta operacional com índice clicável</small></span>
+    </button>
+    <button class="app-more-menu-item" id="goalsMenuBtn" data-menu-tone="emerald" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7"/><path d="M3 19h18"/></svg>
+      <span><strong>Metas do mês</strong><small>Acompanhar o realizado e o que falta para Viçosa</small></span>
+    </button>
+    <a class="app-more-menu-item" id="adminSheetMenuLink" data-menu-tone="green" href="#" target="_blank" rel="noopener" role="menuitem" hidden>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M4.5 8.5h15M9.5 8.5v12M14.5 8.5v12M4.5 13.5h15"/></svg>
+      <span><strong>Planilha Excel</strong><small>Abrir a planilha administrativa</small></span>
+    </a>
+    <button class="app-more-menu-item" id="logoutUserBtn" data-menu-tone="rose" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
+      <span><strong>Sair</strong><small id="loggedUserMenuText">Desconectar o usuário atual</small></span>
+    </button>
+    <button class="app-more-menu-item" id="aboutSystemBtn" data-menu-tone="cyan" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v6M12 7.5h.01"/></svg>
+      <span><strong>Sobre o sistema</strong><small>Versão, sincronização e serviços</small></span>
+    </button>
     <button class="app-more-menu-item" id="switchUserBtn" data-menu-tone="indigo" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M2.8 18c.5-3 2.3-4.8 5.2-4.8 1.6 0 2.9.5 3.8 1.4M16 8h5M18.5 5.5v5"/></svg>
       <span><strong>Trocar usuário</strong><small>Voltar para a lista de usuários deste aparelho</small></span>
     </button>
-    <button class="app-more-menu-item" id="logoutUserBtn" data-menu-tone="rose" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
-      <span><strong>Sair</strong><small id="loggedUserMenuText">Desconectar o usuário atual</small></span>
+    <button class="app-more-menu-item" id="tutorialMenuBtn" data-menu-tone="blue" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h10.8A2.7 2.7 0 0 1 19 7.2v12.3H8.1a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M8.1 19.5A2.6 2.6 0 0 1 10.7 17H19M9 8.5h6M9 12h6"/></svg>
+      <span><strong>Tutorial</strong><small>Guia rápido para usar o aplicativo</small></span>
     </button>
   </div>
 
@@ -609,7 +609,7 @@
         <article class="tutorial-step" data-tutorial-step="8">
           <div class="tutorial-step-icon">⋯</div>
           <h3>8. Usar o menu Mais</h3>
-          <p>Em <strong>Mais</strong>, os três primeiros recursos permanecem nesta ordem: <strong>Tutorial</strong>, <strong>Planilha Excel</strong> e <strong>Atualizar app</strong>. Abaixo ficam <strong>Gerenciar usuários</strong>, <strong>Trocar usuário</strong> e <strong>Sair</strong>.</p>
+          <p>Em <strong>Mais</strong>, os recursos são apresentados em <strong>ordem alfabética</strong>. Algumas opções aparecem somente para os perfis que possuem a permissão correspondente.</p>
           <p class="tutorial-note">Usuários autorizados também podem abrir a planilha diretamente pelo botão <strong>Planilha</strong> disponível no Painel.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="9">
@@ -2117,14 +2117,9 @@
         <button class="review-close" id="usefulLinksCloseBtn" type="button" aria-label="Fechar links úteis">×</button>
       </header>
       <div class="useful-links-grid">
-        <a class="useful-link-card" href="https://www.prevencaobombeiros.mg.gov.br/lops/login.do" target="_blank" rel="noopener noreferrer">
-          <span class="useful-link-icon" aria-hidden="true">🛡️</span>
-          <span><strong>INFOSCIP Liberação</strong><small>Licenciamento e liberação</small></span>
-          <span class="useful-link-arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="useful-link-card" href="https://www.fiscalizacaobombeiros.mg.gov.br/#/home" target="_blank" rel="noopener noreferrer">
-          <span class="useful-link-icon" aria-hidden="true">📋</span>
-          <span><strong>INFOSCIP Fiscalização</strong><small>Processos fiscalizatórios</small></span>
+        <a class="useful-link-card" href="https://www.bombeiros.mg.gov.br/" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">🚒</span>
+          <span><strong>Bombeiros MG</strong><small>Portal institucional do CBMMG</small></span>
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
         <a class="useful-link-card" href="https://web.sids.mg.gov.br/ddu/#/dashboard" target="_blank" rel="noopener noreferrer">
@@ -2132,14 +2127,39 @@
           <span><strong>DDU</strong><small>Painel e consultas operacionais</small></span>
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
-        <a class="useful-link-card" href="https://web.sids.mg.gov.br/reds/externo/inicio.do?operation=load" target="_blank" rel="noopener noreferrer">
-          <span class="useful-link-icon" aria-hidden="true">🚒</span>
-          <span><strong>REDS</strong><small>Registro de eventos de defesa social</small></span>
-          <span class="useful-link-arrow" aria-hidden="true">↗</span>
-        </a>
         <a class="useful-link-card" href="https://drive.google.com/drive/folders/1PIUdvpri1dnd4WxRDSUbh5u9K42CFSD3?usp=drive_link" target="_blank" rel="noopener noreferrer">
           <span class="useful-link-icon" aria-hidden="true">📁</span>
           <span><strong>Google Drive — Projetos / documentos</strong><small>Acessar arquivos de projetos</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://www.fiscalizacaobombeiros.mg.gov.br" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">📋</span>
+          <span><strong>INFOSCIP Fiscalização</strong><small>Processos fiscalizatórios</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://www.prevencaobombeiros.mg.gov.br/lops/login.do" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">🛡️</span>
+          <span><strong>INFOSCIP Liberação</strong><small>Licenciamento e liberação</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://intranet.bombeiros.mg.gov.br/admin" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">🔐</span>
+          <span><strong>Intranet CBMMG</strong><small>Acesso aos serviços internos</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://www.bombeiros.mg.gov.br/normastecnicas" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">📚</span>
+          <span><strong>Normas Técnicas CBMMG</strong><small>Normas e referências técnicas oficiais</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://www.prevencaobombeiros.mg.gov.br/" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">🧯</span>
+          <span><strong>Prevenção Bombeiros</strong><small>Portal de prevenção e segurança contra incêndio</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="useful-link-card" href="https://web.sids.mg.gov.br/reds/" target="_blank" rel="noopener noreferrer">
+          <span class="useful-link-icon" aria-hidden="true">📝</span>
+          <span><strong>REDS</strong><small>Registro de eventos de defesa social</small></span>
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
       </div>
@@ -2249,10 +2269,10 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.99bz"></script>
-  <script src="ocupacoes.js?v=23.9.99bz"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99bz"></script>
-  <script src="app.js?v=23.9.99bz"></script>
+  <script src="config.js?v=23.9.99ca"></script>
+  <script src="ocupacoes.js?v=23.9.99ca"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99ca"></script>
+  <script src="app.js?v=23.9.99ca"></script>
 
   </div>
   
