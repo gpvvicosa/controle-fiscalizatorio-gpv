@@ -414,6 +414,23 @@
       box-shadow: 0 0 0 3px rgba(217,45,32,.10);
     }
     .invalid { border-color: var(--danger) !important; background: #fffafa !important; }
+    .invalid.validation-guided-current {
+      border-color: #b42318 !important;
+      background: #fff4f3 !important;
+      box-shadow: 0 0 0 4px rgba(180,35,24,.14) !important;
+    }
+    .required-field-guidance {
+      width: 100%;
+      margin-top: 8px;
+      padding: 9px 10px;
+      border: 1px solid #fecdca;
+      border-radius: 9px;
+      background: #fff1f0;
+      color: #912018;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.4;
+    }
 
     .inline-check {
       display: flex;

@@ -1451,13 +1451,16 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99bx';
+      const APP_REVISION_UI_ = '23.9.99by';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
       let watchdogInterfaceTimer_ = null;
       let ultimaInvalidacaoRetornoInterface_ = 0;
       let ultimoToqueAcao_ = { elemento: null, em: 0 };
+      let validacaoGuiadaAtiva_ = false;
+      let validacaoGuiadaAtual_ = null;
+      let validacaoGuiadaTimer_ = null;
       const UI_LOCK_MODAL_MAP_ = [
         ['mobile-choice-open', () => mobileChoiceState?.overlay && !mobileChoiceState.overlay.hidden],
         ['detail-open', () => recordDetailScreen && recordDetailScreen.classList.contains('show')],
@@ -9562,18 +9565,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         const candidatos = flattenNotificacoesLiberacao_(true);
         if (!candidatos.length) {
-          if (mostrarMensagem) showError('Para concluir a vistoria de liberação como Notificado, registre ao menos uma irregularidade.');
-          notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return false;
+          return mostrarPendenciaValidacaoGuiada_(
+            notificacoesAdicionarLocalBtn,
+            'Para concluir a vistoria de liberação como Notificado, registre ao menos uma irregularidade.',
+            1,
+            mostrarMensagem,
+            notificacoesLiberacaoSecao
+          );
         }
 
         // V23.9.99: no campo, basta a descrição objetiva. Tipo/local/item podem ser
         // complementados posteriormente no Pelotão sem bloquear o encerramento.
         const comDescricao = candidatos.filter(({ irregularidade }) => String(irregularidade?.descricao || irregularidade?.itemIrregular || '').trim());
         if (!comDescricao.length) {
-          if (mostrarMensagem) showError('Informe ao menos uma descrição objetiva da irregularidade constatada.');
-          notificacoesLiberacaoSecao?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return false;
+          const descricao = notificacoesLiberacaoLista?.querySelector('[data-notification-field="descricao"]');
+          return mostrarPendenciaValidacaoGuiada_(
+            descricao,
+            'Informe ao menos uma descrição objetiva da irregularidade constatada.',
+            1,
+            mostrarMensagem,
+            notificacoesLiberacaoSecao
+          );
         }
         return true;
       }
@@ -10010,7 +10022,82 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (details) details.open = true;
       }
 
+      function limparOrientacaoCampoObrigatorio_() {
+        document.querySelectorAll('.required-field-guidance').forEach(el => el.remove());
+        document.querySelectorAll('.validation-guided-current').forEach(el => {
+          el.classList.remove('validation-guided-current');
+          if (el.getAttribute('aria-invalid') === 'true') el.removeAttribute('aria-invalid');
+        });
+      }
+
+      function encerrarValidacaoGuiada_() {
+        validacaoGuiadaAtiva_ = false;
+        validacaoGuiadaAtual_ = null;
+        if (validacaoGuiadaTimer_) clearTimeout(validacaoGuiadaTimer_);
+        validacaoGuiadaTimer_ = null;
+        limparOrientacaoCampoObrigatorio_();
+      }
+
+      function mostrarPendenciaValidacaoGuiada_(element, mensagem, total = 1, showMessage = true, scrollTarget = null) {
+        limparOrientacaoCampoObrigatorio_();
+        validacaoGuiadaAtiva_ = true;
+        validacaoGuiadaAtual_ = element || null;
+
+        const texto = String(mensagem || 'Preencha este campo para continuar.').trim();
+        const textoCompleto = total > 1
+          ? `Há ${total} pendências obrigatórias. ${texto} Depois de corrigir este campo, o app levará você à próxima pendência.`
+          : texto;
+
+        if (element) {
+          openParentDetails(element);
+          element.classList.add('invalid', 'validation-guided-current');
+          element.setAttribute('aria-invalid', 'true');
+        }
+
+        const host = element?.closest('.field')
+          || scrollTarget?.querySelector?.('.section-body')
+          || element?.parentElement
+          || scrollTarget;
+        if (host) {
+          const hint = document.createElement('div');
+          hint.className = 'required-field-guidance';
+          hint.setAttribute('role', 'alert');
+          hint.setAttribute('aria-live', 'assertive');
+          hint.textContent = textoCompleto;
+          host.appendChild(hint);
+        }
+
+        if (showMessage) showError(textoCompleto);
+
+        const alvoRolagem = element || scrollTarget;
+        if (alvoRolagem?.scrollIntoView) {
+          setTimeout(() => {
+            try { alvoRolagem.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+            if (element && !element.disabled && !element.readOnly) {
+              setTimeout(() => {
+                try { element.focus({ preventScroll: true }); } catch (e) { try { element.focus(); } catch (_) {} }
+              }, 220);
+            }
+          }, 30);
+        }
+        return false;
+      }
+
+      function agendarAvancoValidacaoGuiada_(event) {
+        if (!validacaoGuiadaAtiva_ || !validacaoGuiadaAtual_) return;
+        const alvo = event?.target;
+        if (!alvo || alvo !== validacaoGuiadaAtual_) return;
+        if (validacaoGuiadaTimer_) clearTimeout(validacaoGuiadaTimer_);
+        const campoEsperado = validacaoGuiadaAtual_;
+        validacaoGuiadaTimer_ = setTimeout(() => {
+          validacaoGuiadaTimer_ = null;
+          if (!validacaoGuiadaAtiva_ || validacaoGuiadaAtual_ !== campoEsperado) return;
+          validateRequired(true);
+        }, 140);
+      }
+
       function validateRequired(showMessage = true) {
+        limparOrientacaoCampoObrigatorio_();
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const eventoDeclaratorio = ehEventoDeclaratorio_();
         const localizacaoCapturada = localizacaoValidaFormulario_();
@@ -10115,11 +10202,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
 
           if (!vinculoOk) {
-            if (showMessage) {
-              showError('Vistoria Acessória exige um processo fiscalizatório anterior vinculado. Aguarde a localização do PF ou confira se o número informado corresponde ao processo encontrado.');
-            }
-            processPfInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+            return mostrarPendenciaValidacaoGuiada_(
+              processPfInput,
+              'Vistoria Acessória exige um processo fiscalizatório anterior vinculado. Aguarde a localização do PF ou confira se o número informado corresponde ao processo encontrado.',
+              1,
+              showMessage
+            );
           }
           const resultadoAcessoria = normalize(value('acessoriaResultado'));
           if (!resultadoAcessoria) { acessoriaResultadoSelect?.classList.add('invalid'); missing.push('Resultado da Vistoria Acessória'); first = first || acessoriaResultadoSelect; }
@@ -10127,9 +10215,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const lic = value('licenciamento');
             if (!['possui','dispensado'].includes(lic)) {
               licenciamentoSelect?.classList.add('invalid');
-              if (showMessage) showError('Para concluir a Vistoria Acessória com irregularidades sanadas, informe licenciamento válido ou dispensado de licenciamento.');
-              licenciamentoSelect?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              return false;
+              return mostrarPendenciaValidacaoGuiada_(
+                licenciamentoSelect,
+                'Para concluir a Vistoria Acessória com irregularidades sanadas, informe licenciamento válido ou dispensado de licenciamento.',
+                1,
+                showMessage
+              );
             }
             if (lic === 'possui') {
               if (!String(value('acessoriaTipoLicenca') || '').trim()) { acessoriaTipoLicencaSelect?.classList.add('invalid'); missing.push('Documento de licenciamento'); first = first || acessoriaTipoLicencaSelect; }
@@ -10154,9 +10245,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const area = numeroAreaM2_(value('area'));
           if (!Number.isFinite(area) || area <= 0) {
             if (areaInput) areaInput.classList.add('invalid');
-            if (showMessage) showError('Informe uma área válida da edificação em metros quadrados.');
-            if (areaInput) { openParentDetails(areaInput); areaInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-            return false;
+            return mostrarPendenciaValidacaoGuiada_(
+              areaInput,
+              'Informe uma área válida da edificação em metros quadrados.',
+              1,
+              showMessage
+            );
           }
         }
         if (!eventoDeclaratorio) {
@@ -10164,46 +10258,67 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (identificador && ![11, 14].includes(identificador.length)) {
             const el = document.getElementById('cnpj');
             el.classList.add('invalid');
-            if (showMessage) showError('Informe um CNPJ com 14 dígitos ou um CPF com 11 dígitos.');
-            openParentDetails(el);
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+            return mostrarPendenciaValidacaoGuiada_(
+              el,
+              'Informe um CNPJ com 14 dígitos ou um CPF com 11 dígitos.',
+              1,
+              showMessage
+            );
           }
         } else {
           if (!declaracaoEventoValida_(value('eventoDeclaracaoNumero'))) {
             eventoDeclaracaoNumeroInput?.classList.add('invalid');
-            if (showMessage) showError('Informe o Nº da declaração INFOSCIP no padrão ano + letras do código + sequência numérica. Ex.: 2026RME09669.');
-            eventoDeclaracaoNumeroInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+            return mostrarPendenciaValidacaoGuiada_(
+              eventoDeclaracaoNumeroInput,
+              'Informe o Nº da declaração INFOSCIP no padrão ano + letras do código + sequência numérica. Ex.: 2026RME09669.',
+              1,
+              showMessage
+            );
           }
           const documentoOrganizador = digits(value('eventoOrganizadorDocumento'));
           if (documentoOrganizador && ![11, 14].includes(documentoOrganizador.length)) {
             eventoOrganizadorDocumentoInput?.classList.add('invalid');
-            if (showMessage) showError('Informe o CPF/CNPJ do organizador com 11 ou 14 dígitos, ou deixe o campo em branco.');
-            eventoOrganizadorDocumentoInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+            return mostrarPendenciaValidacaoGuiada_(
+              eventoOrganizadorDocumentoInput,
+              'Informe o CPF/CNPJ do organizador com 11 ou 14 dígitos, ou deixe o campo em branco.',
+              1,
+              showMessage
+            );
           }
           const cpfResponsavel = digits(value('cpf'));
           if (cpfResponsavel && cpfResponsavel.length !== 11) {
             cpfInput?.classList.add('invalid');
-            if (showMessage) showError('Informe o CPF do responsável que acompanhou a vistoria com 11 dígitos, ou deixe o campo em branco.');
-            cpfInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+            return mostrarPendenciaValidacaoGuiada_(
+              cpfInput,
+              'Informe o CPF do responsável que acompanhou a vistoria com 11 dígitos, ou deixe o campo em branco.',
+              1,
+              showMessage
+            );
           }
           const inicio = value('eventoInicio');
           const termino = value('eventoTermino');
           if (inicio && termino && new Date(termino).getTime() < new Date(inicio).getTime()) {
-            document.getElementById('eventoTermino')?.classList.add('invalid');
-            if (showMessage) showError('O término do evento não pode ser anterior ao início.');
-            document.getElementById('eventoTermino')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+            const eventoTerminoInput = document.getElementById('eventoTermino');
+            eventoTerminoInput?.classList.add('invalid');
+            return mostrarPendenciaValidacaoGuiada_(
+              eventoTerminoInput,
+              'O término do evento não pode ser anterior ao início.',
+              1,
+              showMessage
+            );
           }
         }
         if (missing.length) {
-          if (showMessage) showError('Preencha os campos obrigatórios: ' + missing.join(', ') + '.');
-          if (first) { openParentDetails(first); first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-          return false;
+          const rotuloAtual = missing[0] || 'Campo obrigatório';
+          const totalPendencias = Math.max(1, document.querySelectorAll('.invalid').length);
+          return mostrarPendenciaValidacaoGuiada_(
+            first,
+            `Preencha este campo: ${rotuloAtual}.`,
+            totalPendencias,
+            showMessage
+          );
         }
+        encerrarValidacaoGuiada_();
         hideError();
         return true;
       }
@@ -11183,6 +11298,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 '<strong>Localização capturada.</strong><div>Sem internet para identificar o endereço agora. As coordenadas serão mantidas no registro.</div>',
                 'info'
               );
+            }
+
+            // V23.9.99by — quando Endereço era a pendência atual, uma localização
+            // GPS válida já satisfaz a mesma exigência e a validação segue para o
+            // próximo campo sem obrigar o militar a tocar novamente em Registrar.
+            if (validacaoGuiadaAtiva_ && validacaoGuiadaAtual_?.id === 'endereco' && localizacaoValidaFormulario_()) {
+              setTimeout(() => validateRequired(true), 120);
             }
           }
 
@@ -16569,7 +16691,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           // Qualquer edição manual invalida respostas antigas ainda em trânsito.
           if (event.target.id !== 'telefone' && event.target.id !== 'cpf') invalidarConsultasResponsavel_();
         }
-        if (event.target.classList.contains('invalid') && String(event.target.value || '').trim()) event.target.classList.remove('invalid');
+        if (event.target.classList.contains('invalid') && String(event.target.value || '').trim() && (!validacaoGuiadaAtiva_ || event.target !== validacaoGuiadaAtual_)) event.target.classList.remove('invalid');
         if (document.getElementById('mesmoEnderecoResponsavel').checked && ['endereco','numero','complemento','bairro'].includes(event.target.id)) syncResponsibleAddress();
         if (ehFluxoLiberacao_() && ['endereco','numero','cnpj','pscip'].includes(event.target.id)) {
           agendarConsultaRetornoLiberacao_(650);
@@ -16580,7 +16702,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (ehFluxoLiberacao_() && ['endereco','numero','cnpj','pscip','cidade','cidadeOutro'].includes(event.target.id)) {
           agendarConsultaRetornoLiberacao_(250);
         }
+        agendarAvancoValidacaoGuiada_(event);
         scheduleDraftSave();
+      });
+      form.addEventListener('focusout', event => {
+        agendarAvancoValidacaoGuiada_(event);
       });
       areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
@@ -17390,7 +17516,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bx', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99by', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
