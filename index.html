@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99br">
+  <link rel="stylesheet" href="styles.css?v=23.9.99bs">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -225,6 +225,10 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7"/><path d="M3 19h18"/></svg>
       <span><strong>Metas do mês</strong><small>Acompanhar o realizado e o que falta para Viçosa</small></span>
     </button>
+    <button class="app-more-menu-item" id="appDiagnosticsBtn" data-menu-tone="amber" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="9"/></svg>
+      <span><strong>Diagnóstico do app</strong><small>Versão, conexão, interface e recuperação de travamentos</small></span>
+    </button>
     <button class="app-more-menu-item" id="aboutSystemBtn" data-menu-tone="cyan" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v6M12 7.5h.01"/></svg>
       <span><strong>Sobre o sistema</strong><small>Versão, sincronização e serviços</small></span>
@@ -253,6 +257,28 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
       <span><strong>Sair</strong><small id="loggedUserMenuText">Desconectar o usuário atual</small></span>
     </button>
+  </div>
+
+  <div class="review-overlay app-diagnostics-overlay" id="appDiagnosticsModal" hidden>
+    <section class="review-card app-diagnostics-card" role="dialog" aria-modal="true" aria-labelledby="appDiagnosticsTitle">
+      <header class="app-diagnostics-header">
+        <div>
+          <span>Controle Fiscalizatório — GPV Viçosa</span>
+          <h2 id="appDiagnosticsTitle">Diagnóstico do app</h2>
+          <p>Informações deste aparelho para identificar travamentos e estados inconsistentes da interface.</p>
+        </div>
+        <button class="review-close" id="appDiagnosticsCloseBtn" type="button" aria-label="Fechar diagnóstico">×</button>
+      </header>
+      <div class="app-diagnostics-body">
+        <div class="app-diagnostics-status" id="appDiagnosticsStatus"></div>
+        <div class="app-diagnostics-grid" id="appDiagnosticsGrid"></div>
+        <div class="app-diagnostics-error" id="appDiagnosticsLastError" hidden></div>
+        <div class="app-diagnostics-actions">
+          <button class="btn btn-secondary" id="appDiagnosticsRefreshBtn" type="button">Atualizar diagnóstico</button>
+          <button class="btn btn-primary" id="appDiagnosticsRepairBtn" type="button">Tentar destravar interface</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="review-overlay system-manual-overlay" id="systemManualModal" hidden>
@@ -1227,6 +1253,13 @@
           </div>
         </div>
         <div class="section-body">
+          <div class="responsible-edit-toolbar">
+            <div>
+              <strong>Dados recuperados continuam editáveis</strong>
+              <span>Altere somente o que precisar. O app não deve sobrescrever uma alteração manual.</span>
+            </div>
+            <button class="btn btn-secondary" id="limparResponsavelBtn" type="button">Limpar dados do responsável</button>
+          </div>
           <div class="grid">
             <div class="field wide responsible-phone-first" id="responsavelTelefoneWrap">
               <label for="telefone">Telefone do responsável / RT</label>
@@ -2199,7 +2232,7 @@
   <script src="config.js?v=23.9.94"></script>
   <script src="ocupacoes.js?v=23.9.94"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99e"></script>
-  <script src="app.js?v=23.9.99br"></script>
+  <script src="app.js?v=23.9.99bs"></script>
 
   </div>
   

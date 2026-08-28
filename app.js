@@ -1278,6 +1278,16 @@
       const dduProtocolInput = document.getElementById('dduProtocol');
       const priorProcessAlert = document.getElementById('priorProcessAlert');
       const cnpjStatus = document.getElementById('cnpjStatus');
+      const limparResponsavelBtn = document.getElementById('limparResponsavelBtn');
+      const appDiagnosticsBtn = document.getElementById('appDiagnosticsBtn');
+      const appDiagnosticsModal = document.getElementById('appDiagnosticsModal');
+      const appDiagnosticsCloseBtn = document.getElementById('appDiagnosticsCloseBtn');
+      const appDiagnosticsGrid = document.getElementById('appDiagnosticsGrid');
+      const appDiagnosticsStatus = document.getElementById('appDiagnosticsStatus');
+      const appDiagnosticsLastError = document.getElementById('appDiagnosticsLastError');
+      const appDiagnosticsRefreshBtn = document.getElementById('appDiagnosticsRefreshBtn');
+      const appDiagnosticsRepairBtn = document.getElementById('appDiagnosticsRepairBtn');
+
       const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
       const locationAddressStatus = document.getElementById('locationAddressStatus');
 
@@ -1401,6 +1411,26 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
+      const APP_REVISION_UI_ = '23.9.99bs';
+      const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
+      let ultimaRecuperacaoInterface_ = '';
+      let watchdogInterfaceTimer_ = null;
+      const UI_LOCK_MODAL_MAP_ = [
+        ['mobile-choice-open', () => mobileChoiceState?.overlay && !mobileChoiceState.overlay.hidden],
+        ['detail-open', () => recordDetailScreen && recordDetailScreen.classList.contains('show')],
+        ['duvidas-open', () => duvidasModal && !duvidasModal.hidden],
+        ['gpv-dialog-open', () => document.querySelector('.gpv-dialog-overlay:not([hidden])')],
+        ['record-correction-open', () => recordCorrectionModal && !recordCorrectionModal.hidden],
+        ['record-status-update-open', () => recordStatusUpdateModal && !recordStatusUpdateModal.hidden],
+        ['reds-templates-open', () => redsTemplatesModal && !redsTemplatesModal.hidden],
+        ['return-pdf-open', () => retornoLiberacaoPdfModal && !retornoLiberacaoPdfModal.hidden],
+        ['system-manual-open', () => systemManualModal && !systemManualModal.hidden],
+        ['tutorial-open', () => tutorialModal && !tutorialModal.hidden],
+        ['useful-links-open', () => usefulLinksModal && !usefulLinksModal.hidden],
+        ['user-manager-open', () => userManagerModal && !userManagerModal.hidden],
+        ['about-open', () => aboutSystemModal && !aboutSystemModal.hidden],
+        ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden]
+      ];
       let recordDetailReturnContext = '';
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
@@ -1418,6 +1448,179 @@
         linhaSelecionada: 0,
         prazoMulta: ''
       };
+
+      function registrarFalhaInterface_(tipo, detalhe) {
+        try {
+          const registro = {
+            em: new Date().toISOString(),
+            tipo: String(tipo || 'erro'),
+            detalhe: String(detalhe || '').slice(0, 1000),
+            versao: APP_REVISION_UI_
+          };
+          localStorage.setItem(APP_LAST_ERROR_KEY_, JSON.stringify(registro));
+        } catch (e) {}
+      }
+
+      window.addEventListener('error', event => {
+        const mensagem = [event?.message, event?.filename ? String(event.filename).split('/').pop() : '', event?.lineno ? `linha ${event.lineno}` : '']
+          .filter(Boolean).join(' • ');
+        registrarFalhaInterface_('JavaScript', mensagem || 'Erro não identificado');
+      });
+
+      window.addEventListener('unhandledrejection', event => {
+        const motivo = event?.reason?.message || String(event?.reason || 'Promise rejeitada sem tratamento');
+        registrarFalhaInterface_('Requisição/Promise', motivo);
+      });
+
+      function elementoBloqueadorOrfao_(el) {
+        if (!el || el.hidden) return false;
+        try {
+          const st = getComputedStyle(el);
+          if (st.display === 'none' || st.visibility === 'hidden' || st.pointerEvents === 'none') return false;
+          const opacidade = Number.parseFloat(st.opacity || '1');
+          return opacidade <= 0.01 && st.pointerEvents !== 'none';
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function repararInterfaceOrfa_(motivo = 'watchdog', forcar = false) {
+        if (!document.body) return { corrigidos: 0, detalhes: [] };
+        const detalhes = [];
+        let corrigidos = 0;
+
+        UI_LOCK_MODAL_MAP_.forEach(([classe, estaAberto]) => {
+          if (!document.body.classList.contains(classe)) return;
+          let aberto = false;
+          try { aberto = Boolean(estaAberto()); } catch (e) { aberto = false; }
+          if (!aberto) {
+            document.body.classList.remove(classe);
+            corrigidos += 1;
+            detalhes.push(`classe órfã: ${classe}`);
+          }
+        });
+
+        // Overlays invisíveis com pointer-events ativos podem capturar todos os toques.
+        document.querySelectorAll('.review-overlay, .mobile-choice-overlay, .gpv-dialog-overlay').forEach(el => {
+          if (!elementoBloqueadorOrfao_(el)) return;
+          el.hidden = true;
+          el.setAttribute('aria-hidden', 'true');
+          corrigidos += 1;
+          detalhes.push(`overlay invisível: ${el.id || el.className || 'sem-id'}`);
+        });
+
+        // Em alguns navegadores móveis, uma propriedade inline residual pode sobreviver
+        // ao fechamento de um modal.
+        if (forcar) {
+          ['pointerEvents','touchAction'].forEach(prop => {
+            const atual = String(document.body.style[prop] || '');
+            if (atual && atual !== 'auto' && atual !== 'manipulation') {
+              document.body.style[prop] = '';
+              corrigidos += 1;
+              detalhes.push(`body.${prop}`);
+            }
+          });
+        }
+
+        if (corrigidos) {
+          ultimaRecuperacaoInterface_ = `${new Date().toLocaleString('pt-BR')} — ${motivo}: ${detalhes.join(', ')}`;
+          registrarFalhaInterface_('Interface recuperada', ultimaRecuperacaoInterface_);
+        }
+
+        return { corrigidos, detalhes };
+      }
+
+      function iniciarWatchdogInterface_() {
+        clearInterval(watchdogInterfaceTimer_);
+        watchdogInterfaceTimer_ = setInterval(() => {
+          if (document.visibilityState !== 'visible') return;
+          repararInterfaceOrfa_('verificação automática');
+        }, 20000);
+      }
+
+      function contarRascunhosLocaisDiagnostico_() {
+        try { return lerIndiceRascunhosLocais_().length; } catch (e) { return 0; }
+      }
+
+      function lerUltimaFalhaInterface_() {
+        try { return JSON.parse(localStorage.getItem(APP_LAST_ERROR_KEY_) || 'null'); }
+        catch (e) { return null; }
+      }
+
+      function diagnosticoItemHtml_(rotulo, valor) {
+        return `<div class="app-diagnostics-item"><label>${escapeHtml(rotulo)}</label><strong>${escapeHtml(valor == null ? '—' : String(valor))}</strong></div>`;
+      }
+
+      function atualizarDiagnosticoApp_() {
+        if (!appDiagnosticsGrid || !appDiagnosticsStatus) return;
+        const reparo = repararInterfaceOrfa_('abertura do diagnóstico');
+        const sw = navigator.serviceWorker?.controller?.scriptURL || '';
+        const locks = UI_LOCK_MODAL_MAP_.filter(([classe]) => document.body.classList.contains(classe)).map(([classe]) => classe);
+        const overlaysVisiveis = Array.from(document.querySelectorAll('.review-overlay:not([hidden]), .mobile-choice-overlay:not([hidden]), .gpv-dialog-overlay:not([hidden])'))
+          .filter(el => {
+            try {
+              const st = getComputedStyle(el);
+              return st.display !== 'none' && st.visibility !== 'hidden';
+            } catch (e) { return true; }
+          }).length;
+
+        const itens = [
+          ['Revisão do app', APP_REVISION_UI_],
+          ['Conexão', navigator.onLine ? 'Online' : 'Offline'],
+          ['Service Worker', sw ? 'Ativo' : 'Não controlando esta tela'],
+          ['Rascunhos locais', contarRascunhosLocaisDiagnostico_()],
+          ['Bloqueios ativos', locks.length ? locks.join(', ') : 'Nenhum'],
+          ['Camadas abertas', overlaysVisiveis],
+          ['Usuário', authState.usuario?.nome || 'Sem sessão'],
+          ['Aparelho', nomeDispositivo_() || 'Não identificado']
+        ];
+        appDiagnosticsGrid.innerHTML = itens.map(([r,v]) => diagnosticoItemHtml_(r,v)).join('');
+
+        const ultima = lerUltimaFalhaInterface_();
+        if (appDiagnosticsLastError) {
+          appDiagnosticsLastError.hidden = !ultima;
+          appDiagnosticsLastError.textContent = ultima
+            ? `Último evento registrado\n${ultima.em || ''}\n${ultima.tipo || ''}: ${ultima.detalhe || ''}`
+            : '';
+        }
+
+        if (reparo.corrigidos) {
+          appDiagnosticsStatus.textContent = `A interface tinha ${reparo.corrigidos} bloqueio(s) inconsistente(s) e foi corrigida.`;
+          appDiagnosticsStatus.className = 'app-diagnostics-status warning';
+        } else {
+          appDiagnosticsStatus.textContent = 'Nenhum bloqueio inconsistente foi encontrado neste momento.';
+          appDiagnosticsStatus.className = 'app-diagnostics-status ok';
+        }
+      }
+
+      function abrirDiagnosticoApp_() {
+        fecharMenuMais_();
+        if (!appDiagnosticsModal) return;
+        appDiagnosticsModal.hidden = false;
+        document.body.classList.add('app-diagnostics-open');
+        atualizarDiagnosticoApp_();
+        setTimeout(() => appDiagnosticsCloseBtn?.focus(), 0);
+      }
+
+      function fecharDiagnosticoApp_() {
+        if (!appDiagnosticsModal) return;
+        appDiagnosticsModal.hidden = true;
+        document.body.classList.remove('app-diagnostics-open');
+      }
+
+      async function repararInterfacePeloUsuario_() {
+        const resultado = repararInterfaceOrfa_('ação manual', true);
+        fecharEscolhaMovel_();
+        fecharMenuMais_();
+        // Mantém formulários/rascunhos e não recarrega a página.
+        atualizarDiagnosticoApp_();
+        if (appDiagnosticsStatus) {
+          appDiagnosticsStatus.textContent = resultado.corrigidos
+            ? `Foram corrigidos ${resultado.corrigidos} bloqueio(s) da interface sem apagar o preenchimento.`
+            : 'A interface foi conferida. Nenhum bloqueio órfão foi encontrado.';
+          appDiagnosticsStatus.className = resultado.corrigidos ? 'app-diagnostics-status warning' : 'app-diagnostics-status ok';
+        }
+      }
 
       function perfilAcessoAtual_() {
         return String(authState.usuario?.perfil || 'GPV').trim().toUpperCase() === 'GERAL' ? 'GERAL' : 'GPV';
@@ -2119,6 +2322,13 @@
       let responsavelLookupTimer = null;
       let responsavelLookupSequencia = 0;
       let telefoneResponsavelAssociado = '';
+      const RESPONSAVEL_EDITABLE_FIELDS_ = new Set([
+        'telefone','responsavel','nomeResponsavel','rg','cpf','mae','nascimento',
+        'profissao','estadoCivil','escolaridade','email','enderecoResponsavel'
+      ]);
+      const responsavelCamposEditadosManual_ = new Set();
+      let responsavelEdicaoManualAtiva_ = false;
+      let responsavelLookupAplicacaoId_ = 0;
       let responsavelCpfLookupTimer = null;
       let responsavelCpfLookupSequencia = 0;
       let cpfResponsavelAssociado = '';
@@ -10909,13 +11119,76 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return formatarDataNascimentoDigitacao_(valor);
       }
 
-      function setResponsibleField_(id, valor, formatter = null) {
+      function setResponsibleField_(id, valor, formatter = null, opcoes = {}) {
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el) return false;
+        const forcar = opcoes.forcar === true;
+        if (!forcar && responsavelCamposEditadosManual_.has(id)) return false;
+
         let texto = String(valor == null ? '' : valor).trim();
         if (formatter) texto = formatter(texto);
+
+        // Uma resposta automática nunca apaga um valor digitado manualmente.
+        if (!forcar && responsavelEdicaoManualAtiva_ && String(el.value || '').trim() && !texto) return false;
+
         el.value = texto;
         el.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      }
+
+      function marcarCampoResponsavelEditadoManual_(id) {
+        if (!RESPONSAVEL_EDITABLE_FIELDS_.has(String(id || '')) || preenchendoResponsavelLookup) return;
+        responsavelCamposEditadosManual_.add(String(id));
+        responsavelEdicaoManualAtiva_ = true;
+        const el = document.getElementById(id);
+        el?.classList.add('responsible-manual-edited');
+      }
+
+      function limparProtecaoEdicaoResponsavel_(preservar = []) {
+        const manter = new Set(Array.isArray(preservar) ? preservar : []);
+        Array.from(responsavelCamposEditadosManual_).forEach(id => {
+          if (manter.has(id)) return;
+          responsavelCamposEditadosManual_.delete(id);
+          document.getElementById(id)?.classList.remove('responsible-manual-edited');
+        });
+        responsavelEdicaoManualAtiva_ = responsavelCamposEditadosManual_.size > 0;
+      }
+
+      function invalidarConsultasResponsavel_() {
+        clearTimeout(responsavelLookupTimer);
+        clearTimeout(responsavelCpfLookupTimer);
+        responsavelLookupSequencia += 1;
+        responsavelCpfLookupSequencia += 1;
+      }
+
+      function limparTodosDadosResponsavel_() {
+        invalidarConsultasResponsavel_();
+        preenchendoResponsavelLookup = true;
+        try {
+          RESPONSAVEL_EDITABLE_FIELDS_.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = '';
+            el.classList.remove('responsible-manual-edited');
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          telefoneResponsavelAssociado = '';
+          cpfResponsavelAssociado = '';
+          cpfCopiadoDoIdentificador = '';
+          if (cpfInput) {
+            cpfInput.readOnly = false;
+            cpfInput.classList.remove('cpf-synced-from-identifier');
+          }
+          responsavelCamposEditadosManual_.clear();
+          responsavelEdicaoManualAtiva_ = false;
+          esconderResponsavelLookupResultados_();
+          esconderResponsavelCpfLookupResultados_();
+          clearResponsavelLookupStatus_();
+          clearResponsavelCpfLookupStatus_();
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+        scheduleDraftSave();
       }
 
       function limparDadosResponsavelExcetoTelefone_() {
@@ -10941,23 +11214,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      function aplicarResponsavelEncontrado_(item) {
+      function aplicarResponsavelEncontrado_(item, opcoes = {}) {
         if (!item) return;
+        const aplicacaoId = ++responsavelLookupAplicacaoId_;
+        const forcar = opcoes.forcar === true;
         preenchendoResponsavelLookup = true;
         try {
-          setResponsibleField_('telefone', item.telefone, formatarTelefoneTela_);
-          setResponsibleField_('responsavel', item.responsavel);
-          setResponsibleField_('nomeResponsavel', item.nomeResponsavel);
-          setResponsibleField_('rg', item.rg);
-          setResponsibleField_('cpf', item.cpf, formatarCpfTela_);
-          setResponsibleField_('mae', item.mae);
-          setResponsibleField_('nascimento', item.nascimento, normalizarDataResponsavelParaInput_);
-          setResponsibleField_('profissao', item.profissao);
-          setResponsibleField_('estadoCivil', item.estadoCivil);
-          setResponsibleField_('escolaridade', item.escolaridade);
-          setResponsibleField_('email', item.email);
+          setResponsibleField_('telefone', item.telefone, formatarTelefoneTela_, { forcar });
+          setResponsibleField_('responsavel', item.responsavel, null, { forcar });
+          setResponsibleField_('nomeResponsavel', item.nomeResponsavel, null, { forcar });
+          setResponsibleField_('rg', item.rg, null, { forcar });
+          setResponsibleField_('cpf', item.cpf, formatarCpfTela_, { forcar });
+          setResponsibleField_('mae', item.mae, null, { forcar });
+          setResponsibleField_('nascimento', item.nascimento, normalizarDataResponsavelParaInput_, { forcar });
+          setResponsibleField_('profissao', item.profissao, null, { forcar });
+          setResponsibleField_('estadoCivil', item.estadoCivil, null, { forcar });
+          setResponsibleField_('escolaridade', item.escolaridade, null, { forcar });
+          setResponsibleField_('email', item.email, null, { forcar });
           if (!document.getElementById('mesmoEnderecoResponsavel')?.checked) {
-            setResponsibleField_('enderecoResponsavel', item.enderecoResponsavel);
+            setResponsibleField_('enderecoResponsavel', item.enderecoResponsavel, null, { forcar });
           } else {
             syncResponsibleAddress();
           }
@@ -11063,8 +11338,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         if (telefoneResponsavelAssociado && telefoneResponsavelAssociado !== telefone) {
-          limparDadosResponsavelExcetoTelefone_();
           telefoneResponsavelAssociado = '';
+          cpfResponsavelAssociado = '';
+          // Novo telefone pode representar outra pessoa. Mantemos o que já está visível
+          // e deixamos a nova consulta complementar/substituir apenas campos não editados
+          // manualmente após esta troca.
+          limparProtecaoEdicaoResponsavel_(['telefone']);
         }
 
         responsavelLookupTimer = setTimeout(consultarResponsavelPorTelefone_, 550);
@@ -11185,8 +11464,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         if (cpfResponsavelAssociado && cpfResponsavelAssociado !== cpf) {
-          limparDadosResponsavelExcetoCpf_();
           cpfResponsavelAssociado = '';
+          telefoneResponsavelAssociado = '';
+          limparProtecaoEdicaoResponsavel_(['cpf']);
         }
         responsavelCpfLookupTimer = setTimeout(consultarResponsavelPorCpf_, 500);
       }
@@ -12368,6 +12648,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         clearTimeout(responsavelLookupTimer);
         responsavelLookupSequencia += 1;
         telefoneResponsavelAssociado = '';
+        responsavelCamposEditadosManual_.clear();
+        responsavelEdicaoManualAtiva_ = false;
+        RESPONSAVEL_EDITABLE_FIELDS_.forEach(id => document.getElementById(id)?.classList.remove('responsible-manual-edited'));
         esconderResponsavelLookupResultados_();
         clearTimeout(responsavelCpfLookupTimer);
         responsavelCpfLookupSequencia += 1;
@@ -15638,6 +15921,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
 
       form.addEventListener('input', event => {
+        if (RESPONSAVEL_EDITABLE_FIELDS_.has(String(event.target?.id || '')) && !preenchendoResponsavelLookup) {
+          marcarCampoResponsavelEditadoManual_(event.target.id);
+          // Qualquer edição manual invalida respostas antigas ainda em trânsito.
+          if (event.target.id !== 'telefone' && event.target.id !== 'cpf') invalidarConsultasResponsavel_();
+        }
         if (event.target.classList.contains('invalid') && String(event.target.value || '').trim()) event.target.classList.remove('invalid');
         if (document.getElementById('mesmoEnderecoResponsavel').checked && ['endereco','numero','complemento','bairro'].includes(event.target.id)) syncResponsibleAddress();
         if (ehFluxoLiberacao_() && ['endereco','numero','cnpj','pscip'].includes(event.target.id)) {
@@ -15908,14 +16196,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!botao) return;
         const indice = Number(botao.dataset.responsavelIndex);
         if (!Number.isInteger(indice) || !responsaveisLookupAtual[indice]) return;
-        aplicarResponsavelEncontrado_(responsaveisLookupAtual[indice]);
+        limparProtecaoEdicaoResponsavel_();
+        aplicarResponsavelEncontrado_(responsaveisLookupAtual[indice], { forcar: true });
       });
       responsavelCpfLookupResultados?.addEventListener('click', event => {
         const botao = event.target.closest('[data-responsavel-cpf-index]');
         if (!botao) return;
         const indice = Number(botao.dataset.responsavelCpfIndex);
         if (!Number.isInteger(indice) || !responsaveisCpfLookupAtual[indice]) return;
-        aplicarResponsavelEncontrado_(responsaveisCpfLookupAtual[indice]);
+        limparProtecaoEdicaoResponsavel_();
+        aplicarResponsavelEncontrado_(responsaveisCpfLookupAtual[indice], { forcar: true });
       });
       ocupacaoInput.addEventListener('focus', () => pesquisarOcupacoes(ocupacaoInput.value));
       ocupacaoInput.addEventListener('input', () => {
@@ -16061,6 +16351,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       appMoreMenu?.addEventListener('click', event => event.stopPropagation());
       tutorialMenuBtn?.addEventListener('click', abrirTutorial_);
       accessGuidanceContinueBtn?.addEventListener('click', fecharAvisoAcessoGeral_);
+      limparResponsavelBtn?.addEventListener('click', async () => {
+        const confirmar = await confirmarGpv_(
+          'Serão apagados somente os dados do responsável. Endereço da edificação, PSCIP e demais dados da vistoria serão mantidos.',
+          'Limpar dados do responsável?',
+          { rotuloConfirmar: 'Limpar responsável', rotuloCancelar: 'Cancelar' }
+        );
+        if (confirmar) limparTodosDadosResponsavel_();
+      });
+
+      appDiagnosticsBtn?.addEventListener('click', abrirDiagnosticoApp_);
+      appDiagnosticsCloseBtn?.addEventListener('click', fecharDiagnosticoApp_);
+      appDiagnosticsRefreshBtn?.addEventListener('click', atualizarDiagnosticoApp_);
+      appDiagnosticsRepairBtn?.addEventListener('click', () => { void repararInterfacePeloUsuario_(); });
+      appDiagnosticsModal?.addEventListener('click', event => {
+        if (event.target === appDiagnosticsModal) fecharDiagnosticoApp_();
+      });
+
       useCurrentLocationBtn?.addEventListener('click', () => { void usarLocalizacaoAtual_(); });
 
       retornoLiberacaoAnteriorSelect?.addEventListener('change', () => {
@@ -16208,6 +16515,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         if (document.visibilityState === 'visible') {
+          repararInterfaceOrfa_('retorno ao primeiro plano');
           if (authState.sessionToken) validarSessaoLocalAtivaBm_();
 
           const ficouForaPor = appOcultadoEm_ ? Date.now() - appOcultadoEm_ : 0;
@@ -16220,6 +16528,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
 
       window.addEventListener('focus', () => {
+        repararInterfaceOrfa_('foco da janela');
         if (authState.sessionToken) validarSessaoLocalAtivaBm_();
         verificarAtualizacaoSilenciosaPwa_();
         aplicarAtualizacaoSilenciosaSeSeguro_();
@@ -16227,6 +16536,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       // Também cobre restauração da aba pelo histórico/BFCache do navegador.
       window.addEventListener('pageshow', event => {
+        repararInterfaceOrfa_(event.persisted ? 'restauração BFCache' : 'pageshow');
         if (event.persisted) {
           verificarAtualizacaoSilenciosaPwa_(true);
           aplicarAtualizacaoSilenciosaSeSeguro_();
@@ -16287,7 +16597,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharVisualizadorRetornoLiberacao_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharDiagnosticoApp_(); fecharVisualizadorRetornoLiberacao_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
@@ -16342,7 +16652,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99br', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bs', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
@@ -16356,6 +16666,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       instalarEscolhaMovel_();
+      iniciarWatchdogInterface_();
+      repararInterfaceOrfa_('inicialização');
       inicializarCatalogoNotificacoes_();
       renderizarNotificacoesLiberacao_();
       atualizarStatusConexao();

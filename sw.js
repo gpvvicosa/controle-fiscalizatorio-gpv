@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-retorno-liberacao-br';
-const VERSION = '23.9.99br';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-estabilidade-bs';
+const VERSION = '23.9.99bs';
 
 const CORE_SHELL = [
   './',
@@ -9,7 +9,6 @@ const CORE_SHELL = [
   `./ocupacoes.js?v=${VERSION}`,
   `./notificacoes-infoscip.js?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
-  './app.js?v=23.9.99bo',
   './manifest.webmanifest?v=23.9.99p',
   './offline.html'
 ];
