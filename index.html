@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99cb">
+  <link rel="stylesheet" href="styles.css?v=23.9.99cc">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -197,6 +197,10 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5M4 8v12.5h11"/></svg>
       <span><strong>Cadastrar vistoria</strong><small>Cadastrar uma vistoria antes do deslocamento</small></span>
     </button>
+    <button class="app-more-menu-item" id="usefulLinksBtn" data-menu-tone="violet" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5l3-3M8.2 15.8l-1.3 1.3a3.5 3.5 0 0 1-5-5l3.2-3.2a3.5 3.5 0 0 1 5 0M15.8 8.2l1.3-1.3a3.5 3.5 0 1 1 5 5l-3.2 3.2a3.5 3.5 0 0 1-5 0"/></svg>
+      <span><strong>CBMMG — Acessos úteis</strong><small>Sistemas e portais institucionais</small></span>
+    </button>
     <button class="app-more-menu-item" id="appDiagnosticsBtn" data-menu-tone="amber" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="9"/></svg>
       <span><strong>Diagnóstico do app</strong><small>Versão, conexão, interface e recuperação de travamentos</small></span>
@@ -225,10 +229,6 @@
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 4.5h6.2A3.3 3.3 0 0 1 14 7.8v11.7H7.7a3.2 3.2 0 0 0-3.2 3.2z"/><path d="M19.5 4.5h-2.2A3.3 3.3 0 0 0 14 7.8v11.7h2.3a3.2 3.2 0 0 1 3.2 3.2z"/><path d="M7.5 9h3M7.5 12h3M16.5 9h1M16.5 12h1"/></svg>
       <span><strong>Instruções Técnicas CBMMG</strong><small>Pesquisar e consultar o acervo técnico</small></span>
     </a>
-    <button class="app-more-menu-item" id="usefulLinksBtn" data-menu-tone="violet" type="button" role="menuitem">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5l3-3M8.2 15.8l-1.3 1.3a3.5 3.5 0 0 1-5-5l3.2-3.2a3.5 3.5 0 0 1 5 0M15.8 8.2l1.3-1.3a3.5 3.5 0 1 1 5 5l-3.2 3.2a3.5 3.5 0 0 1-5 0"/></svg>
-      <span><strong>Links úteis</strong><small>Sistemas e portais institucionais</small></span>
-    </button>
     <button class="app-more-menu-item" id="systemManualBtn" data-menu-tone="cyan" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h10.8A2.7 2.7 0 0 1 19 7.2v12.3H8.1a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M8.1 19.5A2.6 2.6 0 0 1 10.7 17H19M9 8.5h6M9 12h6M9 15.5h4"/></svg>
       <span><strong>Manual do Sistema</strong><small>Consulta operacional com índice clicável</small></span>
@@ -2122,9 +2122,9 @@
       <header class="useful-links-header">
         <div>
           <span>Atalhos operacionais</span>
-          <h2 id="usefulLinksTitle">Links úteis</h2>
+          <h2 id="usefulLinksTitle">CBMMG — Acessos úteis</h2>
         </div>
-        <button class="review-close" id="usefulLinksCloseBtn" type="button" aria-label="Fechar links úteis">×</button>
+        <button class="review-close" id="usefulLinksCloseBtn" type="button" aria-label="Fechar CBMMG — Acessos úteis">×</button>
       </header>
       <div class="useful-links-grid">
         <a class="useful-link-card" href="https://www.bombeiros.mg.gov.br/" target="_blank" rel="noopener noreferrer">
@@ -2279,10 +2279,10 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.99cb"></script>
-  <script src="ocupacoes.js?v=23.9.99cb"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99cb"></script>
-  <script src="app.js?v=23.9.99cb"></script>
+  <script src="config.js?v=23.9.99cc"></script>
+  <script src="ocupacoes.js?v=23.9.99cc"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99cc"></script>
+  <script src="app.js?v=23.9.99cc"></script>
 
   </div>
   
