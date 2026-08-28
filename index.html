@@ -66,7 +66,7 @@
     .loading-box{max-width:92vw;padding:22px;border-radius:26px;background:transparent;box-shadow:none;font-weight:700;color:#fff}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99bt">
+  <link rel="stylesheet" href="styles.css?v=23.9.99bu">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -143,7 +143,7 @@
         <span>GPV · 3º Pelotão · Viçosa</span>
       </div>
 
-      <button id="activeInspectionCancelBtn" class="active-inspection-cancel" type="button" hidden>Cancelar preenchimento</button>
+      <button id="activeInspectionCancelBtn" class="active-inspection-cancel" type="button" hidden>Cancelar início da vistoria</button>
       <button id="activeInspectionNotificationsBtn" class="active-inspection-cancel" type="button" hidden>Notificações</button>
       <input id="notificationPhotoInput" type="file" accept="image/*" capture="environment" hidden>
 
@@ -1626,7 +1626,6 @@
               <h3>Relatório para REDS</h3>
               <span id="recordRedsReportModel">Modelo sugerido conforme os dados da vistoria.</span>
             </div>
-            <button class="record-reds-copy-btn" id="recordRedsCopyBtn" type="button">Copiar relatório</button>
           </div>
           <div class="record-reds-tools">
             <label class="record-reds-model-label" for="recordRedsModelSelect">Modelo do histórico
@@ -1640,6 +1639,9 @@
               </div>
               <div id="recordAutoNumberStatus" class="record-auto-number-status" role="status" aria-live="polite"></div>
             </div>
+          </div>
+          <div class="record-reds-copy-row">
+            <button class="record-reds-copy-btn" id="recordRedsCopyBtn" type="button">Copiar relatório</button>
           </div>
           <textarea id="recordRedsReportText" class="record-reds-report-text" readonly aria-label="Relatório para copiar no REDS"></textarea>
           <div class="record-reds-copy-status" id="recordRedsCopyStatus" role="status" aria-live="polite"></div>
@@ -2229,10 +2231,10 @@
       }
     }, 12000);
   </script>
-  <script src="config.js?v=23.9.99bt"></script>
-  <script src="ocupacoes.js?v=23.9.99bt"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99bt"></script>
-  <script src="app.js?v=23.9.99bt"></script>
+  <script src="config.js?v=23.9.99bu"></script>
+  <script src="ocupacoes.js?v=23.9.99bu"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99bu"></script>
+  <script src="app.js?v=23.9.99bu"></script>
 
   </div>
   
@@ -2267,16 +2269,16 @@
     <section class="cancel-fill-dialog" role="dialog" aria-modal="true" aria-labelledby="cancelFillTitle">
       <button id="cancelFillCloseBtn" class="cancel-fill-close" type="button" aria-label="Fechar">×</button>
       <div class="cancel-fill-icon" aria-hidden="true">!</div>
-      <h2 id="cancelFillTitle">Cancelar preenchimento?</h2>
-      <p>O preenchimento iniciado de <strong id="cancelFillName">esta vistoria</strong> será cancelado.</p>
+      <h2 id="cancelFillTitle">Cancelar início da vistoria?</h2>
+      <p>A vistoria já iniciada de <strong id="cancelFillName">esta edificação</strong> será cancelada.</p>
       <div class="cancel-fill-info">
         <strong>A vistoria programada será mantida.</strong>
         <span>Ela continuará disponível e poderá ser iniciada novamente na data prevista.</span>
       </div>
-      <p class="cancel-fill-warning">Os dados lançados somente neste preenchimento serão excluídos.</p>
+      <p class="cancel-fill-warning">Os dados preenchidos depois que esta vistoria foi iniciada serão excluídos.</p>
       <div class="cancel-fill-actions">
         <button id="cancelFillBackBtn" type="button" class="btn btn-secondary">Voltar</button>
-        <button id="cancelFillConfirmBtn" type="button" class="btn btn-danger">Cancelar preenchimento</button>
+        <button id="cancelFillConfirmBtn" type="button" class="btn btn-danger">Cancelar início</button>
       </div>
     </section>
   </div>

@@ -1445,7 +1445,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99bt';
+      const APP_REVISION_UI_ = '23.9.99bu';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -1744,7 +1744,7 @@
         try {
           const nomes = (await caches.keys()).filter(nome => nome.startsWith('gpv-vistorias-pwa-'));
           if (!nomes.length) return 'Nenhum cache do app localizado';
-          const atual = nomes.find(nome => nome.includes('painel-bt')) || nomes[nomes.length - 1];
+          const atual = nomes.find(nome => nome.includes('programada-bu')) || nomes[nomes.length - 1];
           const cache = await caches.open(atual);
           const entradas = await cache.keys();
           return `${atual} • ${entradas.length} arquivo(s)`;
@@ -15592,28 +15592,39 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const cidadeSecao = document.getElementById('cidadeSecao');
         if (!cidadeSecao) return null;
         let barra = document.getElementById('programmedReturnBar');
-        if (barra) return barra;
-        barra = document.createElement('div');
-        barra.id = 'programmedReturnBar';
-        barra.hidden = true;
-        barra.className = 'programmed-return-bar';
-        barra.setAttribute('aria-label', 'Navegação da vistoria programada');
-        barra.innerHTML = `
-          <button type="button" class="btn btn-secondary programmed-return-btn" id="returnToProgrammedBtn">
-            <span aria-hidden="true">←</span><span>Vistorias programadas</span>
-          </button>
-          <button type="button" class="btn btn-secondary programmed-home-btn" id="returnToInspectionHomeBtn">
-            <span class="programmed-home-icon" aria-hidden="true">⌂</span><span>Início da Vistoria</span>
-          </button>`;
-        cidadeSecao.insertBefore(barra, cidadeSecao.firstChild);
-        barra.querySelector('#returnToProgrammedBtn')?.addEventListener('click', () => {
-          restaurarPainelProgramadas_(true);
-          abrirListaProgramadas_(true);
-        });
-        barra.querySelector('#returnToInspectionHomeBtn')?.addEventListener('click', () => {
-          // Apenas volta ao início visual da aba Vistoria. Os dados carregados permanecem no formulário.
-          restaurarPainelProgramadas_(true);
-        });
+        if (!barra) {
+          barra = document.createElement('div');
+          barra.id = 'programmedReturnBar';
+          barra.hidden = true;
+          barra.className = 'programmed-return-bar';
+          barra.setAttribute('aria-label', 'Navegação da vistoria programada');
+          barra.innerHTML = `
+            <button type="button" class="btn btn-secondary programmed-return-btn" id="returnToProgrammedBtn">
+              <span aria-hidden="true">←</span><span>Vistorias programadas</span>
+            </button>
+            <button type="button" class="btn btn-secondary programmed-home-btn" id="returnToInspectionHomeBtn">
+              <span class="programmed-home-icon" aria-hidden="true">⌂</span><span>Início da Vistoria</span>
+            </button>`;
+          cidadeSecao.insertBefore(barra, cidadeSecao.firstChild);
+          barra.querySelector('#returnToProgrammedBtn')?.addEventListener('click', () => {
+            restaurarPainelProgramadas_(true);
+            abrirListaProgramadas_(true);
+          });
+          barra.querySelector('#returnToInspectionHomeBtn')?.addEventListener('click', () => {
+            // Apenas volta ao início visual da aba Vistoria. Os dados carregados permanecem no formulário.
+            restaurarPainelProgramadas_(true);
+          });
+        }
+
+        // O cancelamento pertence à vistoria programada já iniciada. Reposiciona
+        // o mesmo botão e preserva o fluxo compartilhado já validado.
+        const cancelarInicioBtn = document.getElementById('activeInspectionCancelBtn');
+        if (cancelarInicioBtn && cancelarInicioBtn.parentElement !== barra) {
+          cancelarInicioBtn.classList.add('programmed-cancel-start-btn');
+          cancelarInicioBtn.textContent = 'Cancelar início da vistoria';
+          cancelarInicioBtn.title = 'Cancelar esta vistoria iniciada e manter a programação disponível';
+          barra.appendChild(cancelarInicioBtn);
+        }
         return barra;
       }
 
@@ -15754,15 +15765,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           renderizarPreparacoesVistoria_();
           abrirListaProgramadas_(true);
           if (preparedInspectionsStatus) {
-            preparedInspectionsStatus.textContent = '✓ Preenchimento cancelado. A vistoria programada foi mantida e pode ser iniciada novamente.';
+            preparedInspectionsStatus.textContent = '✓ Início cancelado. A vistoria programada foi mantida e pode ser iniciada pelo militar correto.';
           }
-          appStatus.textContent = 'Preenchimento cancelado. A vistoria programada foi mantida.';
+          appStatus.textContent = 'Início da vistoria cancelado. A programação foi mantida.';
         } catch (e) {
           appStatus.textContent = e?.message || 'Não foi possível cancelar o preenchimento.';
         } finally {
           if (btn) {
             btn.disabled = false;
-            btn.textContent = 'Cancelar preenchimento';
+            btn.textContent = 'Cancelar início da vistoria';
           }
         }
       }
@@ -17181,7 +17192,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bt', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bu', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
