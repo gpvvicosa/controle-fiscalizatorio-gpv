@@ -23,6 +23,12 @@
       const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV2Cronologica';
       const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
       const PANEL_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
+      const PANEL_FOREGROUND_REFRESH_MS = 15 * 1000;
+      const PANEL_PERIODIC_REFRESH_MS = 60 * 1000;
+      const PANEL_REQUEST_STALE_MS = 25 * 1000;
+      const PANEL_LAST_SUCCESS_STORAGE = 'gpvPainelUltimaRespostaV1';
+      const PANEL_LAST_ERROR_STORAGE = 'gpvPainelUltimaFalhaV1';
+      const APP_LAST_API_SUCCESS_STORAGE = 'gpvUltimaRespostaApiV1';
       const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -751,12 +757,32 @@
         return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms || 0))));
       }
 
-      async function gatewayRequest_(action, data = {}, timeoutMs = 30000) {
+      function registrarRespostaApiValida_(action, data = {}) {
+        try {
+          localStorage.setItem(APP_LAST_API_SUCCESS_STORAGE, JSON.stringify({
+            em: new Date().toISOString(),
+            acao: String(action || ''),
+            consulta: String(data?.consulta || '')
+          }));
+        } catch (e) {}
+      }
+
+      async function gatewayRequest_(action, data = {}, timeoutMs = 30000, opcoes = {}) {
         if (!navigator.onLine) throw new Error('Sem conexão com a internet.');
         if (!API_URL || API_URL.includes('COLE_AQUI')) {
           throw new Error('A URL da API ainda não foi configurada em config.js.');
         }
         const controller = new AbortController();
+        const sinalExterno = opcoes?.signal || null;
+        let canceladaExternamente = false;
+        const cancelarPorSolicitacaoMaisRecente = () => {
+          canceladaExternamente = true;
+          controller.abort();
+        };
+        if (sinalExterno) {
+          if (sinalExterno.aborted) cancelarPorSolicitacaoMaisRecente();
+          else sinalExterno.addEventListener('abort', cancelarPorSolicitacaoMaisRecente, { once: true });
+        }
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
           const response = await fetch(API_URL, {
@@ -799,6 +825,12 @@
           return result;
         } catch (error) {
           if (error?.name === 'AbortError') {
+            if (canceladaExternamente || sinalExterno?.aborted) {
+              const cancelledError = new Error('A consulta anterior foi substituída por uma atualização mais recente.');
+              cancelledError.code = 'REQUEST_CANCELLED';
+              cancelledError.status = 499;
+              throw cancelledError;
+            }
             const timeoutError = new Error('A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.');
             timeoutError.code = 'REQUEST_TIMEOUT';
             timeoutError.status = 408;
@@ -815,10 +847,11 @@
           throw error;
         } finally {
           clearTimeout(timer);
+          sinalExterno?.removeEventListener?.('abort', cancelarPorSolicitacaoMaisRecente);
         }
       }
 
-      async function apiRequest(action, data = {}, timeoutMs = 30000) {
+      async function apiRequest(action, data = {}, timeoutMs = 30000, opcoes = {}) {
         if (!validarSessaoLocalAtivaBm_()) {
           const error = new Error('Sua sessão expirou. Entre novamente com seu Nº BM.');
           error.code = 'AUTH_REQUIRED';
@@ -838,8 +871,9 @@
 
         for (let tentativa = 1; tentativa <= tentativas; tentativa += 1) {
           try {
-            const result = await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs);
+            const result = await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs, opcoes);
             atualizarPerfilLocalPorResposta_(result);
+            registrarRespostaApiValida_(action, data);
             return result;
           } catch (error) {
             ultimoErro = error;
@@ -1411,10 +1445,13 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99bs';
+      const APP_REVISION_UI_ = '23.9.99bt';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
+      const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
       let watchdogInterfaceTimer_ = null;
+      let ultimaInvalidacaoRetornoInterface_ = 0;
+      let ultimoToqueAcao_ = { elemento: null, em: 0 };
       const UI_LOCK_MODAL_MAP_ = [
         ['mobile-choice-open', () => mobileChoiceState?.overlay && !mobileChoiceState.overlay.hidden],
         ['detail-open', () => recordDetailScreen && recordDetailScreen.classList.contains('show')],
@@ -1429,12 +1466,33 @@
         ['useful-links-open', () => usefulLinksModal && !usefulLinksModal.hidden],
         ['user-manager-open', () => userManagerModal && !userManagerModal.hidden],
         ['about-open', () => aboutSystemModal && !aboutSystemModal.hidden],
-        ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden]
+        ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden],
+        ['access-guidance-open', () => accessGuidanceModal && !accessGuidanceModal.hidden],
+        ['city-check-open', () => cityCheckModal && !cityCheckModal.hidden],
+        ['daily-motivational-open', () => {
+          const modal = document.getElementById('dailyMotivationalOverlay');
+          return modal && !modal.hidden;
+        }],
+        ['inspection-start-choice-open', () => {
+          const modal = document.getElementById('inspectionStartChoiceModal');
+          return modal && !modal.hidden;
+        }],
+        ['more-menu-open', () => appMoreMenu && !appMoreMenu.hidden],
+        ['review-open', () => document.querySelector('.review-overlay:not([hidden])')],
+        ['auth-locked', () => authGate && authGate.classList.contains('show')],
+        ['printing-goals', () => window.matchMedia?.('print')?.matches === true]
       ];
       let recordDetailReturnContext = '';
       let ultimoRegistroConsultaChave = '';
       let recordsSearchTimer = null;
       let recordsSearchPending = false;
+      let recordsRequestSequencia_ = 0;
+      let recordsRequestController_ = null;
+      let recordsRequestStartedAt_ = 0;
+      let recordsForegroundRefreshTimer_ = null;
+      let recordsPeriodicRefreshTimer_ = null;
+      let recordsPostSyncTimers_ = [];
+      let atualizacaoPlanilhaPromise_ = null;
       const recordsState = {
         pagina: 1,
         limite: 25,
@@ -1458,6 +1516,18 @@
             versao: APP_REVISION_UI_
           };
           localStorage.setItem(APP_LAST_ERROR_KEY_, JSON.stringify(registro));
+        } catch (e) {}
+      }
+
+      function registrarRecuperacaoInterface_(motivo, detalhes) {
+        try {
+          const registro = {
+            em: new Date().toISOString(),
+            motivo: String(motivo || 'watchdog'),
+            detalhes: Array.isArray(detalhes) ? detalhes.slice(0, 20) : [],
+            versao: APP_REVISION_UI_
+          };
+          localStorage.setItem(APP_LAST_RECOVERY_KEY_, JSON.stringify(registro));
         } catch (e) {}
       }
 
@@ -1501,7 +1571,21 @@
         });
 
         // Overlays invisíveis com pointer-events ativos podem capturar todos os toques.
-        document.querySelectorAll('.review-overlay, .mobile-choice-overlay, .gpv-dialog-overlay').forEach(el => {
+        document.querySelectorAll([
+          '.review-overlay',
+          '.mobile-choice-overlay',
+          '.gpv-dialog-overlay',
+          '.tutorial-overlay',
+          '.access-guidance-overlay',
+          '.user-manager-overlay',
+          '.record-status-update-overlay',
+          '.record-correction-overlay',
+          '.useful-links-overlay',
+          '.about-overlay',
+          '.city-check-overlay',
+          '.daily-motivational-overlay',
+          '.inspection-start-choice-overlay'
+        ].join(', ')).forEach(el => {
           if (!elementoBloqueadorOrfao_(el)) return;
           el.hidden = true;
           el.setAttribute('aria-hidden', 'true');
@@ -1509,22 +1593,77 @@
           detalhes.push(`overlay invisível: ${el.id || el.className || 'sem-id'}`);
         });
 
+        // A camada pode ter sido ocultada no bloco anterior. Faz uma segunda
+        // conferência para remover, no mesmo ciclo, a classe de bloqueio ligada a ela.
+        UI_LOCK_MODAL_MAP_.forEach(([classe, estaAberto]) => {
+          if (!document.body.classList.contains(classe)) return;
+          let aberto = false;
+          try { aberto = Boolean(estaAberto()); } catch (e) { aberto = false; }
+          if (!aberto) {
+            document.body.classList.remove(classe);
+            corrigidos += 1;
+            detalhes.push(`classe órfã: ${classe}`);
+          }
+        });
+
         // Em alguns navegadores móveis, uma propriedade inline residual pode sobreviver
         // ao fechamento de um modal.
-        if (forcar) {
-          ['pointerEvents','touchAction'].forEach(prop => {
-            const atual = String(document.body.style[prop] || '');
-            if (atual && atual !== 'auto' && atual !== 'manipulation') {
-              document.body.style[prop] = '';
-              corrigidos += 1;
-              detalhes.push(`body.${prop}`);
-            }
-          });
+        ['pointerEvents','touchAction'].forEach(prop => {
+          const atual = String(document.body.style[prop] || '');
+          const bloqueioTotal = atual === 'none';
+          if ((forcar && atual && atual !== 'auto' && atual !== 'manipulation') || bloqueioTotal) {
+            document.body.style[prop] = '';
+            corrigidos += 1;
+            detalhes.push(`body.${prop}`);
+          }
+        });
+
+        const modalInicio = document.getElementById('inspectionStartChoiceModal');
+        if (modalInicio?.dataset.loading === '1') {
+          const iniciouEm = Number(modalInicio.dataset.loadingAt || 0);
+          const expirou = iniciouEm > 0 && Date.now() - iniciouEm > 90000;
+          if (modalInicio.hidden || forcar || expirou) {
+            resetarEstadoEscolhaInicioVistoria_();
+            corrigidos += 1;
+            detalhes.push('botões de início da vistoria');
+          }
+        }
+
+        if (
+          inspectionSuggestionsRefreshBtn?.disabled &&
+          inspectionSuggestionsRefreshBtn.classList.contains('is-loading') &&
+          !sugestoesFiscalizacaoAtualizando
+        ) {
+          inspectionSuggestionsRefreshBtn.disabled = false;
+          inspectionSuggestionsRefreshBtn.classList.remove('is-loading');
+          const texto = inspectionSuggestionsRefreshBtn.querySelector('span');
+          if (texto) texto.textContent = 'Atualizar agora';
+          corrigidos += 1;
+          detalhes.push('botão de atualização das sugestões');
+        }
+
+        if (recordsRefreshBtn?.disabled && !recordsState.carregando) {
+          recordsRefreshBtn.disabled = false;
+          recordsRefreshBtn.classList.remove('is-loading');
+          recordsRefreshBtn.removeAttribute('aria-busy');
+          corrigidos += 1;
+          detalhes.push('botão de atualização do Painel');
+        }
+
+        const consultaPainelExpirada = recordsState.carregando && recordsRequestStartedAt_ > 0 &&
+          Date.now() - recordsRequestStartedAt_ > 90 * 1000;
+        if (consultaPainelExpirada) {
+          cancelarConsultaPainelEmAndamento_('watchdog: consulta sem resposta');
+          corrigidos += 1;
+          detalhes.push('consulta antiga do Painel');
+          if (document.body.classList.contains('records-mode') && navigator.onLine) {
+            agendarAtualizacaoPainelAoRetornar_('watchdog', { forcar: true, atraso: 200 });
+          }
         }
 
         if (corrigidos) {
           ultimaRecuperacaoInterface_ = `${new Date().toLocaleString('pt-BR')} — ${motivo}: ${detalhes.join(', ')}`;
-          registrarFalhaInterface_('Interface recuperada', ultimaRecuperacaoInterface_);
+          registrarRecuperacaoInterface_(motivo, detalhes);
         }
 
         return { corrigidos, detalhes };
@@ -1547,30 +1686,133 @@
         catch (e) { return null; }
       }
 
+      function lerUltimaRecuperacaoInterface_() {
+        try { return JSON.parse(localStorage.getItem(APP_LAST_RECOVERY_KEY_) || 'null'); }
+        catch (e) { return null; }
+      }
+
+      function lerRegistroDiagnostico_(chave) {
+        try { return JSON.parse(localStorage.getItem(chave) || 'null'); }
+        catch (e) { return null; }
+      }
+
+      function formatarDataDiagnostico_(valor) {
+        const data = valor ? new Date(valor) : null;
+        if (!data || Number.isNaN(data.getTime())) return 'Ainda não registrada';
+        return data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
+      }
+
+      function resumoUltimaRespostaApiDiagnostico_() {
+        const item = lerRegistroDiagnostico_(APP_LAST_API_SUCCESS_STORAGE);
+        if (!item?.em) return 'Ainda não registrada';
+        const operacao = [item.acao, item.consulta].filter(Boolean).join(' / ');
+        return `${formatarDataDiagnostico_(item.em)}${operacao ? ` • ${operacao}` : ''}`;
+      }
+
+      function resumoUltimaAtualizacaoPainelDiagnostico_() {
+        const item = lerRegistroDiagnostico_(PANEL_LAST_SUCCESS_STORAGE);
+        if (!item?.em) return 'Ainda não registrada neste aparelho';
+        const total = Number.isFinite(Number(item.total)) ? ` • ${Number(item.total)} registro(s)` : '';
+        return `${formatarDataDiagnostico_(item.em)}${total}`;
+      }
+
+      function resumoConsultaPainelDiagnostico_() {
+        if (!recordsState.carregando || !recordsRequestStartedAt_) return 'Nenhuma consulta em andamento';
+        const segundos = Math.max(0, Math.round((Date.now() - recordsRequestStartedAt_) / 1000));
+        return `Em andamento há ${segundos}s`;
+      }
+
+      function resumoRascunhoAtualDiagnostico_() {
+        if (!usuarioPodeOperar_()) return 'Preenchimento temporário — não gravado';
+        try {
+          const raw = localStorage.getItem(draftKeyAtual_(currentRecordId));
+          if (!raw) return rascunhoEmAndamento_() ? 'Outro rascunho preservado no aparelho' : 'Nenhum rascunho ativo';
+          const draft = JSON.parse(raw);
+          if (!draft?.payload || rascunhoFinalizadoLocal_(currentRecordId)) return 'Nenhum rascunho ativo';
+          const salvoEm = Number(draft.savedAt || 0);
+          const horario = salvoEm
+            ? new Date(salvoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+            : 'horário não identificado';
+          return `Salvo em ${horario} • ID ${String(currentRecordId || '').slice(0, 8) || '—'}`;
+        } catch (e) {
+          return 'Rascunho atual não pôde ser lido';
+        }
+      }
+
+      async function resumoCachePwaDiagnostico_() {
+        if (!('caches' in window)) return 'Indisponível neste navegador';
+        try {
+          const nomes = (await caches.keys()).filter(nome => nome.startsWith('gpv-vistorias-pwa-'));
+          if (!nomes.length) return 'Nenhum cache do app localizado';
+          const atual = nomes.find(nome => nome.includes('painel-bt')) || nomes[nomes.length - 1];
+          const cache = await caches.open(atual);
+          const entradas = await cache.keys();
+          return `${atual} • ${entradas.length} arquivo(s)`;
+        } catch (e) {
+          return 'Não foi possível consultar o cache';
+        }
+      }
+
+      async function resumoServiceWorkerDiagnostico_() {
+        if (!('serviceWorker' in navigator)) return 'Não suportado';
+        try {
+          const registro = await navigator.serviceWorker.getRegistration();
+          const controlador = navigator.serviceWorker.controller;
+          if (!registro && !controlador) return 'Não registrado';
+          const estado = controlador?.state || registro?.active?.state || 'registrado';
+          if (registro?.waiting) return `${estado} • atualização aguardando aplicação`;
+          if (registro?.installing) return `${estado} • atualização instalando`;
+          return controlador ? `${estado} • controlando esta tela` : `${estado} • aguardando controle da tela`;
+        } catch (e) {
+          return navigator.serviceWorker.controller ? 'Ativo' : 'Estado indisponível';
+        }
+      }
+
       function diagnosticoItemHtml_(rotulo, valor) {
         return `<div class="app-diagnostics-item"><label>${escapeHtml(rotulo)}</label><strong>${escapeHtml(valor == null ? '—' : String(valor))}</strong></div>`;
       }
 
-      function atualizarDiagnosticoApp_() {
+      async function atualizarDiagnosticoApp_(opcoes = {}) {
         if (!appDiagnosticsGrid || !appDiagnosticsStatus) return;
-        const reparo = repararInterfaceOrfa_('abertura do diagnóstico');
-        const sw = navigator.serviceWorker?.controller?.scriptURL || '';
+        const reparo = opcoes.ignorarReparo
+          ? { corrigidos: 0, detalhes: [] }
+          : repararInterfaceOrfa_('abertura do diagnóstico');
         const locks = UI_LOCK_MODAL_MAP_.filter(([classe]) => document.body.classList.contains(classe)).map(([classe]) => classe);
-        const overlaysVisiveis = Array.from(document.querySelectorAll('.review-overlay:not([hidden]), .mobile-choice-overlay:not([hidden]), .gpv-dialog-overlay:not([hidden])'))
+        const overlaysVisiveis = Array.from(document.querySelectorAll('[class*="overlay"]:not([hidden])'))
           .filter(el => {
             try {
               const st = getComputedStyle(el);
               return st.display !== 'none' && st.visibility !== 'hidden';
             } catch (e) { return true; }
           }).length;
+        const [serviceWorkerResumo, cacheResumo] = await Promise.all([
+          resumoServiceWorkerDiagnostico_(),
+          resumoCachePwaDiagnostico_()
+        ]);
+        const conexao = navigator.connection?.effectiveType
+          ? `${navigator.onLine ? 'Online' : 'Offline'} • ${navigator.connection.effectiveType}`
+          : (navigator.onLine ? 'Online' : 'Offline');
+        const filaOffline = obterPendentes().length;
+        const recuperacao = lerUltimaRecuperacaoInterface_();
+        const ultimaFalhaPainel = lerRegistroDiagnostico_(PANEL_LAST_ERROR_STORAGE);
 
         const itens = [
           ['Revisão do app', APP_REVISION_UI_],
-          ['Conexão', navigator.onLine ? 'Online' : 'Offline'],
-          ['Service Worker', sw ? 'Ativo' : 'Não controlando esta tela'],
-          ['Rascunhos locais', contarRascunhosLocaisDiagnostico_()],
+          ['Conexão', conexao],
+          ['Service Worker', serviceWorkerResumo],
+          ['Cache do app', cacheResumo],
+          ['Fila offline', filaOffline ? `${filaOffline} vistoria(s) aguardando envio` : 'Sem envios pendentes'],
+          ['Última resposta válida da API', resumoUltimaRespostaApiDiagnostico_()],
+          ['Última atualização do Painel', resumoUltimaAtualizacaoPainelDiagnostico_()],
+          ['Consulta do Painel', resumoConsultaPainelDiagnostico_()],
+          ['Última falha do Painel', ultimaFalhaPainel?.em
+            ? `${formatarDataDiagnostico_(ultimaFalhaPainel.em)} • ${ultimaFalhaPainel.mensagem || 'falha não detalhada'}`
+            : 'Nenhuma registrada'],
+          ['Rascunho atual', resumoRascunhoAtualDiagnostico_()],
+          ['Rascunhos preservados', contarRascunhosLocaisDiagnostico_()],
           ['Bloqueios ativos', locks.length ? locks.join(', ') : 'Nenhum'],
           ['Camadas abertas', overlaysVisiveis],
+          ['Última recuperação', recuperacao?.em ? new Date(recuperacao.em).toLocaleString('pt-BR') : 'Nenhuma'],
           ['Usuário', authState.usuario?.nome || 'Sem sessão'],
           ['Aparelho', nomeDispositivo_() || 'Não identificado']
         ];
@@ -1580,7 +1822,7 @@
         if (appDiagnosticsLastError) {
           appDiagnosticsLastError.hidden = !ultima;
           appDiagnosticsLastError.textContent = ultima
-            ? `Último evento registrado\n${ultima.em || ''}\n${ultima.tipo || ''}: ${ultima.detalhe || ''}`
+            ? `Última falha JavaScript\n${ultima.em || ''}\n${ultima.tipo || ''}: ${ultima.detalhe || ''}`
             : '';
         }
 
@@ -1598,7 +1840,7 @@
         if (!appDiagnosticsModal) return;
         appDiagnosticsModal.hidden = false;
         document.body.classList.add('app-diagnostics-open');
-        atualizarDiagnosticoApp_();
+        void atualizarDiagnosticoApp_();
         setTimeout(() => appDiagnosticsCloseBtn?.focus(), 0);
       }
 
@@ -1613,7 +1855,7 @@
         fecharEscolhaMovel_();
         fecharMenuMais_();
         // Mantém formulários/rascunhos e não recarrega a página.
-        atualizarDiagnosticoApp_();
+        await atualizarDiagnosticoApp_({ ignorarReparo: true });
         if (appDiagnosticsStatus) {
           appDiagnosticsStatus.textContent = resultado.corrigidos
             ? `Foram corrigidos ${resultado.corrigidos} bloqueio(s) da interface sem apagar o preenchimento.`
@@ -2217,15 +2459,13 @@
       }
 
       function appTemInteracaoCriticaParaAtualizacao_() {
-        if (sendingQueue) return true;
+        if (sendingQueue || submitting) return true;
 
-        // Se o militar estiver preenchendo uma vistoria e existir conteúdo em
-        // rascunho, a atualização é adiada até ele sair dessa tela.
+        // Enquanto a tela de vistoria estiver aberta, qualquer atualização fica
+        // adiada, mesmo antes do primeiro salvamento automático do rascunho.
         if (
           authState.sessionToken &&
-          usuarioPodeOperar_() &&
-          vistaAtualNavegacao_() === 'form' &&
-          rascunhoEmAndamento_()
+          vistaAtualNavegacao_() === 'form'
         ) {
           return true;
         }
@@ -3152,8 +3392,23 @@
       }
 
       function atualizarPlanilhaEmSegundoPlano() {
-        if (!navigator.onLine) return;
-        setTimeout(() => { apiRequest('update', {}, 90000).catch(() => {}); }, 120);
+        if (!navigator.onLine) return Promise.resolve(false);
+        if (atualizacaoPlanilhaPromise_) return atualizacaoPlanilhaPromise_;
+
+        atualizacaoPlanilhaPromise_ = esperarApi_(120)
+          .then(() => apiRequest('update', {}, 90000))
+          .then(() => true)
+          .catch(() => false)
+          .finally(() => { atualizacaoPlanilhaPromise_ = null; });
+        return atualizacaoPlanilhaPromise_;
+      }
+
+      function agendarAtualizacoesPainelAposEnvio_() {
+        recordsPostSyncTimers_.forEach(timer => clearTimeout(timer));
+        recordsPostSyncTimers_ = [900, 3500, 8000].map(atraso => setTimeout(() => {
+          if (!navigator.onLine || !document.body.classList.contains('records-mode')) return;
+          void carregarRegistros_(true, { substituirSeAntiga: true, motivo: 'vistoria enviada' });
+        }, atraso));
       }
 
       async function enviarPendentes(automatico = false) {
@@ -3190,7 +3445,17 @@
         atualizarPainelPendentes();
         if (enviados > 0) {
           limparCachesConsulta_();
-          atualizarPlanilhaEmSegundoPlano();
+          const atualizacaoPlanilha = atualizarPlanilhaEmSegundoPlano();
+          agendarAtualizacoesPainelAposEnvio_();
+          void atualizacaoPlanilha.then(atualizou => {
+            if (!atualizou || !navigator.onLine) return;
+            limparCachesConsulta_();
+            if (document.body.classList.contains('records-mode')) {
+              void carregarRegistros_(true, { substituirSeAntiga: true, motivo: 'planilha atualizada' });
+            } else {
+              void preaquecerPainel_();
+            }
+          });
           // Se uma vistoria vinculada a DDU acabou de chegar ao servidor, atualiza o indicador
           // para o ícone desaparecer imediatamente quando não houver mais DDU pendente.
           if (dduConcluidoEnviado) setTimeout(() => { void carregarDdUs_(); }, 250);
@@ -4058,7 +4323,7 @@
         atualizarVistaNaUrl_('records');
         if (opcoes.busca != null && recordsSearch) recordsSearch.value = String(opcoes.busca || '');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        if (opcoes.carregar !== false) carregarRegistros_(true);
+        if (opcoes.carregar !== false) carregarRegistros_(true, { forcar: true, motivo: 'abertura do Painel' });
       }
 
       function preencherSelectConsulta_(select, valores, rotuloTodos) {
@@ -4124,7 +4389,7 @@
         limparFiltrosVisiveisPainel_();
         recordsState.prazoMulta = proximo;
         atualizarEstadoCardsMulta_();
-        carregarRegistros_(true);
+        carregarRegistros_(true, { forcar: true, motivo: 'filtro de prazo' });
       }
 
       function classeStatus_(valor) {
@@ -4734,6 +4999,91 @@
         } catch (erro) {}
       }
 
+      function formatarMomentoPainel_(valor) {
+        const data = valor ? new Date(valor) : null;
+        if (!data || Number.isNaN(data.getTime())) return 'horário não identificado';
+        return data.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+
+      function registrarSucessoPainel_(resposta) {
+        const registro = {
+          em: new Date().toISOString(),
+          total: Number(resposta?.total || 0)
+        };
+        gravarStorageJson_(PANEL_LAST_SUCCESS_STORAGE, registro);
+        try { localStorage.removeItem(PANEL_LAST_ERROR_STORAGE); } catch (e) {}
+        return registro.em;
+      }
+
+      function registrarFalhaPainel_(erro) {
+        gravarStorageJson_(PANEL_LAST_ERROR_STORAGE, {
+          em: new Date().toISOString(),
+          codigo: String(erro?.code || ''),
+          mensagem: String(erro?.message || 'Não foi possível atualizar o Painel.').slice(0, 500)
+        });
+      }
+
+      function ultimaRespostaPainelEm_() {
+        const item = lerRegistroDiagnostico_(PANEL_LAST_SUCCESS_STORAGE);
+        const instante = item?.em ? new Date(item.em).getTime() : 0;
+        return Number.isFinite(instante) ? instante : 0;
+      }
+
+      function cancelarConsultaPainelEmAndamento_(motivo = 'consulta substituída') {
+        if (!recordsState.carregando && !recordsRequestController_) return false;
+        recordsRequestSequencia_ += 1;
+        try { recordsRequestController_?.abort(); } catch (e) {}
+        recordsRequestController_ = null;
+        recordsRequestStartedAt_ = 0;
+        recordsState.carregando = false;
+        recordsSearchPending = false;
+        definirBuscaPainelEmAndamento_(false);
+        if (recordsRefreshBtn) {
+          recordsRefreshBtn.disabled = false;
+          recordsRefreshBtn.classList.remove('is-loading');
+          recordsRefreshBtn.removeAttribute('aria-busy');
+        }
+        atualizarPaginacao_();
+        return Boolean(motivo);
+      }
+
+      function agendarAtualizacaoPainelAoRetornar_(motivo = 'retorno ao app', opcoes = {}) {
+        if (!navigator.onLine || !authState.sessionToken) return;
+        if (document.visibilityState !== 'visible' || !document.body.classList.contains('records-mode')) return;
+
+        const forcar = opcoes.forcar === true;
+        const ultimaResposta = ultimaRespostaPainelEm_();
+        if (!forcar && ultimaResposta && Date.now() - ultimaResposta < PANEL_FOREGROUND_REFRESH_MS) return;
+
+        clearTimeout(recordsForegroundRefreshTimer_);
+        recordsForegroundRefreshTimer_ = setTimeout(() => {
+          recordsForegroundRefreshTimer_ = null;
+          if (!navigator.onLine || document.visibilityState !== 'visible') return;
+          if (!document.body.classList.contains('records-mode')) return;
+          void carregarRegistros_(true, { forcar: true, motivo });
+        }, Math.max(80, Number(opcoes.atraso || 240)));
+      }
+
+      function iniciarAtualizacaoPeriodicaPainel_() {
+        clearInterval(recordsPeriodicRefreshTimer_);
+        recordsPeriodicRefreshTimer_ = setInterval(() => {
+          if (!navigator.onLine || document.visibilityState !== 'visible') return;
+          if (!document.body.classList.contains('records-mode')) return;
+          const ultimaResposta = ultimaRespostaPainelEm_();
+          if (ultimaResposta && Date.now() - ultimaResposta < PANEL_PERIODIC_REFRESH_MS) return;
+          void carregarRegistros_(true, {
+            substituirSeAntiga: true,
+            silenciosa: true,
+            motivo: 'atualização periódica'
+          });
+        }, PANEL_PERIODIC_REFRESH_MS);
+      }
+
       function aplicarRespostaPainel_(resposta, opcoes = {}) {
         recordsState.itens = (Array.isArray(resposta?.itens) ? resposta.itens : []).slice(0, recordsState.limite);
         recordsState.total = Number(resposta?.total || 0);
@@ -4763,16 +5113,18 @@
         const origemCache = opcoes.cache === true;
         recordsStatus.className = origemCache ? 'records-status cached' : 'records-status';
         if (origemCache) {
+          const momentoCache = formatarMomentoPainel_(opcoes.salvoEm);
           recordsStatus.innerHTML = navigator.onLine
-            ? `<strong>Última consulta válida exibida.</strong> Conferindo dados mais recentes em segundo plano...`
-            : `<strong>Offline:</strong> exibindo a última consulta válida salva neste aparelho.`;
+            ? `<strong>Dados salvos de ${momentoCache} exibidos.</strong> Conferindo informações mais recentes... <span class="records-freshness is-cached">Cache identificado</span>`
+            : `<strong>Offline:</strong> exibindo dados salvos de ${momentoCache} neste aparelho. <span class="records-freshness is-cached">Sem consulta ao servidor</span>`;
           return;
         }
-        recordsStatus.innerHTML = rotuloMulta
+        const resumoConsulta = rotuloMulta
           ? `<strong>${recordsState.total}</strong> ${recordsState.total === 1 ? 'edificação' : 'edificações'} ${rotuloMulta}${recordsState.total === 1 ? '' : 's'}. Clique novamente no card para remover o filtro.`
           : (filtrosAtivos
             ? `<strong>${recordsState.total}</strong> resultado${recordsState.total === 1 ? '' : 's'} com os filtros atuais. Os indicadores acima representam o total da base.`
             : `<strong>${recordsState.total}</strong> registro${recordsState.total === 1 ? '' : 's'} na consulta. Mais recentes primeiro.`);
+        recordsStatus.innerHTML = `${resumoConsulta} <span class="records-freshness is-live">Atualizado agora às ${new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</span>`;
       }
 
       function definirBuscaPainelEmAndamento_(ativa) {
@@ -4784,10 +5136,17 @@
         if (recordsSearchActivity) recordsSearchActivity.hidden = !ligada;
       }
 
-      async function carregarRegistros_(reiniciar = true) {
+      async function carregarRegistros_(reiniciar = true, opcoes = {}) {
         if (recordsState.carregando) {
-          if (reiniciar) recordsSearchPending = true;
-          return;
+          const idadeConsulta = recordsRequestStartedAt_ ? Date.now() - recordsRequestStartedAt_ : 0;
+          const substituir = opcoes.forcar === true ||
+            (opcoes.substituirSeAntiga === true && idadeConsulta >= PANEL_REQUEST_STALE_MS);
+          if (substituir) {
+            cancelarConsultaPainelEmAndamento_(opcoes.motivo || 'atualização mais recente');
+          } else {
+            if (reiniciar && opcoes.silenciosa !== true) recordsSearchPending = true;
+            return;
+          }
         }
         if (reiniciar) recordsState.pagina = 1;
 
@@ -4797,7 +5156,7 @@
         const buscaAtiva = Boolean(String(filtros.busca || '').trim());
         const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
         const cache = lerCachePainel_(chaveCache);
-        if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true });
+        if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true, salvoEm: cache.salvoEm });
 
         if (!navigator.onLine) {
           definirBuscaPainelEmAndamento_(false);
@@ -4809,7 +5168,15 @@
         }
 
         recordsState.carregando = true;
-        if (recordsRefreshBtn) recordsRefreshBtn.disabled = true;
+        const requisicaoSequencia = ++recordsRequestSequencia_;
+        const requestController = new AbortController();
+        recordsRequestController_ = requestController;
+        recordsRequestStartedAt_ = Date.now();
+        if (recordsRefreshBtn) {
+          recordsRefreshBtn.disabled = false;
+          recordsRefreshBtn.classList.add('is-loading');
+          recordsRefreshBtn.setAttribute('aria-busy', 'true');
+        }
         atualizarPaginacao_();
         definirBuscaPainelEmAndamento_(buscaAtiva);
 
@@ -4836,16 +5203,21 @@
           const resposta = await apiRequest('config', {
             consulta: 'registros',
             filtros: { ...filtros, offset, limite: limiteApi }
-          }, 50000);
+          }, 40000, { signal: requestController.signal });
+          if (requisicaoSequencia !== recordsRequestSequencia_) return;
           salvarCachePainel_(chaveCache, resposta || {});
+          registrarSucessoPainel_(resposta || {});
           aplicarRespostaPainel_(resposta || {});
           carregarResumoSugestoesFiscalizacao_().catch(() => {});
         } catch (erro) {
+          if (requisicaoSequencia !== recordsRequestSequencia_ || erro?.code === 'REQUEST_CANCELLED') return;
+          registrarFalhaPainel_(erro);
           if (cache?.resposta) {
             recordsStatus.className = 'records-status cached';
+            const momentoCache = formatarMomentoPainel_(cache.salvoEm);
             recordsStatus.innerHTML = buscaAtiva
-              ? '<strong>Serviço temporariamente instável.</strong> Os últimos resultados válidos continuam visíveis; tente novamente em instantes.'
-              : '<strong>Atualização temporariamente indisponível.</strong> Os últimos dados válidos continuam visíveis e serão atualizados na próxima tentativa.';
+              ? `<strong>Serviço temporariamente instável.</strong> Resultados salvos de ${momentoCache} continuam visíveis; tente novamente em instantes.`
+              : `<strong>Atualização temporariamente indisponível.</strong> Dados salvos de ${momentoCache} continuam visíveis e serão conferidos na próxima tentativa.`;
           } else {
             recordsStatus.className = 'records-status error';
             recordsStatus.textContent = erro?.message || (buscaAtiva ? 'Não foi possível concluir a busca.' : 'Não foi possível carregar o Painel Fiscalizatório.');
@@ -4855,14 +5227,22 @@
             }
           }
         } finally {
-          recordsState.carregando = false;
-          if (recordsRefreshBtn) recordsRefreshBtn.disabled = false;
-          definirBuscaPainelEmAndamento_(false);
-          atualizarPaginacao_();
+          if (requisicaoSequencia === recordsRequestSequencia_) {
+            recordsState.carregando = false;
+            if (recordsRequestController_ === requestController) recordsRequestController_ = null;
+            recordsRequestStartedAt_ = 0;
+            if (recordsRefreshBtn) {
+              recordsRefreshBtn.disabled = false;
+              recordsRefreshBtn.classList.remove('is-loading');
+              recordsRefreshBtn.removeAttribute('aria-busy');
+            }
+            definirBuscaPainelEmAndamento_(false);
+            atualizarPaginacao_();
 
-          if (recordsSearchPending) {
-            recordsSearchPending = false;
-            setTimeout(() => carregarRegistros_(true), 20);
+            if (recordsSearchPending) {
+              recordsSearchPending = false;
+              setTimeout(() => carregarRegistros_(true, { motivo: 'consulta pendente' }), 20);
+            }
           }
         }
       }
@@ -6171,7 +6551,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           limparCachesConsulta_();
           appStatus.textContent = `Situação atualizada para ${resposta?.situacaoAtual || novaSituacao} após conferência no INFOSCIP.`;
           await abrirDetalheRegistro_(chave, Number(resposta?.linha || linhaHint));
-          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false);
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'situação alterada' });
         } catch (erro) {
           if (erro?.code === 'REQUEST_TIMEOUT') {
             if (recordStatusUpdateMessage) {
@@ -6184,7 +6564,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               limparCachesConsulta_();
               appStatus.textContent = `Situação atualizada para ${confirmada?.situacaoAtual || novaSituacao} após conferência no INFOSCIP.`;
               await abrirDetalheRegistro_(chave, Number(confirmada?.linhaAtual || linhaHint));
-              if (document.body.classList.contains('records-mode')) void carregarRegistros_(false);
+              if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'situação confirmada' });
               return;
             }
             if (recordStatusUpdateMessage) {
@@ -6520,7 +6900,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const novaChave = String(resposta?.chave || chaveAnterior);
           appStatus.textContent = `${Number(resposta?.alteracoes || alteracoes.length)} correção(ões) salva(s) na vistoria e registrada(s) na auditoria.`;
           await abrirDetalheRegistro_(novaChave, Number(resposta?.linha || linhaHint));
-          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false);
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'registro corrigido' });
         } catch (erro) {
           if (recordCorrectionMessage) {
             recordCorrectionMessage.textContent = erro?.message || 'Não foi possível salvar as correções.';
@@ -6819,7 +7199,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordsStatus.className = 'records-status loading';
         recordsStatus.textContent = 'Confirmando o registro enviado...';
         const chave = await aguardarChaveUltimoRegistro_();
-        await carregarRegistros_(true);
+        await carregarRegistros_(true, { forcar: true, motivo: 'confirmação do envio' });
         if (chave) {
           const item = (recordsState.itens || []).find(registro => registro.chave === chave);
           await abrirDetalheRegistro_(chave, Number(item?.linha || 0));
@@ -7439,10 +7819,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!ehEventoDeclaratorio_() || !eventoResponsavelEhOrganizadorCheck?.checked) return;
         const cpfOrganizador = digits(eventoOrganizadorDocumentoInput?.value || '');
         if (cpfOrganizador.length !== 11) return;
-        setResponsibleField_('cpf', cpfOrganizador, formatarCpfTela_);
-        setResponsibleField_('nomeResponsavel', value('eventoOrganizador'));
-        setResponsibleField_('telefone', value('eventoTelefoneOrganizador'), formatarTelefoneTela_);
-        if (!value('responsavel')) setResponsibleField_('responsavel', 'Organizador do evento');
+        preenchendoResponsavelLookup = true;
+        try {
+          setResponsibleField_('cpf', cpfOrganizador, formatarCpfTela_);
+          setResponsibleField_('nomeResponsavel', value('eventoOrganizador'));
+          setResponsibleField_('telefone', value('eventoTelefoneOrganizador'), formatarTelefoneTela_);
+          if (!value('responsavel')) setResponsibleField_('responsavel', 'Organizador do evento');
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+        if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
         scheduleDraftSave();
       }
 
@@ -9801,13 +10187,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function syncResponsibleAddress() {
         const checked = document.getElementById('mesmoEnderecoResponsavel').checked;
         const field = document.getElementById('enderecoResponsavel');
+        field.readOnly = false;
+        field.style.background = '';
         if (checked) {
-          field.value = [value('endereco'), value('numero'), value('complemento'), value('bairro')].filter(Boolean).join(', ');
-          field.readOnly = true;
-          field.style.background = '#f9fafb';
-        } else {
-          field.readOnly = false;
-          field.style.background = '';
+          preenchendoResponsavelLookup = true;
+          try {
+            setResponsibleField_(
+              'enderecoResponsavel',
+              [value('endereco'), value('numero'), value('complemento'), value('bairro')].filter(Boolean).join(', ')
+            );
+          } finally {
+            preenchendoResponsavelLookup = false;
+          }
         }
       }
 
@@ -10841,11 +11232,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function sincronizarIdentificadorComCpf_(cpf) {
         const d = digits(cpf);
         if (d.length !== 11 || !cpfInput) return;
-        cpfInput.value = formatarCpfTela_(d);
-        cpfCopiadoDoIdentificador = d;
-        cpfInput.readOnly = true;
-        cpfInput.classList.add('cpf-synced-from-identifier');
-        cpfInput.dispatchEvent(new Event('input', { bubbles: true }));
+        const cpfAtual = digits(cpfInput.value);
+        if (
+          responsavelCamposEditadosManual_.has('cpf') ||
+          (cpfAtual && cpfAtual !== d)
+        ) {
+          cpfCopiadoDoIdentificador = '';
+          cpfInput.readOnly = false;
+          cpfInput.classList.remove('cpf-synced-from-identifier');
+          return;
+        }
+        preenchendoResponsavelLookup = true;
+        try {
+          cpfInput.value = formatarCpfTela_(d);
+          cpfCopiadoDoIdentificador = d;
+          cpfInput.readOnly = false;
+          cpfInput.classList.add('cpf-synced-from-identifier');
+          cpfInput.dispatchEvent(new Event('input', { bubbles: true }));
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+        if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
       }
 
       function limparCpfCopiadoSeVirouCnpj_() {
@@ -11154,6 +11561,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         responsavelEdicaoManualAtiva_ = responsavelCamposEditadosManual_.size > 0;
       }
 
+      function protegerCamposResponsavelPreenchidos_() {
+        RESPONSAVEL_EDITABLE_FIELDS_.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el || !String(el.value || '').trim()) return;
+          responsavelCamposEditadosManual_.add(id);
+          el.classList.add('responsible-manual-edited');
+        });
+        responsavelEdicaoManualAtiva_ = responsavelCamposEditadosManual_.size > 0;
+      }
+
+      function liberarProtecaoCampoResponsavel_(id) {
+        const campo = String(id || '');
+        responsavelCamposEditadosManual_.delete(campo);
+        document.getElementById(campo)?.classList.remove('responsible-manual-edited');
+        responsavelEdicaoManualAtiva_ = responsavelCamposEditadosManual_.size > 0;
+      }
+
       function invalidarConsultasResponsavel_() {
         clearTimeout(responsavelLookupTimer);
         clearTimeout(responsavelCpfLookupTimer);
@@ -11175,6 +11599,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           telefoneResponsavelAssociado = '';
           cpfResponsavelAssociado = '';
           cpfCopiadoDoIdentificador = '';
+          const mesmoEndereco = document.getElementById('mesmoEnderecoResponsavel');
+          if (mesmoEndereco) mesmoEndereco.checked = false;
+          if (eventoResponsavelEhOrganizadorCheck) eventoResponsavelEhOrganizadorCheck.checked = false;
+          const enderecoResponsavel = document.getElementById('enderecoResponsavel');
+          if (enderecoResponsavel) {
+            enderecoResponsavel.readOnly = false;
+            enderecoResponsavel.style.background = '';
+          }
           if (cpfInput) {
             cpfInput.readOnly = false;
             cpfInput.classList.remove('cpf-synced-from-identifier');
@@ -11340,10 +11772,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (telefoneResponsavelAssociado && telefoneResponsavelAssociado !== telefone) {
           telefoneResponsavelAssociado = '';
           cpfResponsavelAssociado = '';
-          // Novo telefone pode representar outra pessoa. Mantemos o que já está visível
-          // e deixamos a nova consulta complementar/substituir apenas campos não editados
-          // manualmente após esta troca.
-          limparProtecaoEdicaoResponsavel_(['telefone']);
+          // O novo telefone pode representar outra pessoa, mas campos já alterados
+          // manualmente continuam protegidos contra respostas atrasadas ou automáticas.
         }
 
         responsavelLookupTimer = setTimeout(consultarResponsavelPorTelefone_, 550);
@@ -11466,7 +11896,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (cpfResponsavelAssociado && cpfResponsavelAssociado !== cpf) {
           cpfResponsavelAssociado = '';
           telefoneResponsavelAssociado = '';
-          limparProtecaoEdicaoResponsavel_(['cpf']);
+          // Mantém a proteção dos demais campos já conferidos/alterados pelo militar.
         }
         responsavelCpfLookupTimer = setTimeout(consultarResponsavelPorCpf_, 500);
       }
@@ -12427,6 +12857,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function applyPayload(p, recordId = '') {
         if (!p || typeof p !== 'object') return;
+        limparProtecaoEdicaoResponsavel_();
         preparacaoEmUsoId = String(p._appPreparacaoId || '');
         dduEmUsoId = String(p._appDduId || '');
         dduEmUsoNumero = String(p._appDduNumero || p.dduProtocol || '');
@@ -12444,6 +12875,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
+        protegerCamposResponsavelPreenchidos_();
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
         restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
@@ -12485,6 +12917,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             return;
           }
           const p = draft.payload;
+          limparProtecaoEdicaoResponsavel_();
           preparacaoEmUsoId = String(p._appPreparacaoId || '');
           dduEmUsoId = String(p._appDduId || '');
           dduEmUsoNumero = String(p._appDduNumero || p.dduProtocol || '');
@@ -12508,6 +12941,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const el = document.getElementById(key);
             if (el) el.value = val == null ? '' : val;
           });
+          protegerCamposResponsavelPreenchidos_();
           restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
           restaurarOcupacoesSelecionadas(p.ocupacao);
           restaurarStatusLocalizacao_();
@@ -15398,7 +15832,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (strong) strong.textContent = btn === formBtn ? 'Iniciar preenchimento' : 'Lançar notificações';
         });
         if (fechar) fechar.disabled = false;
-        if (modal) modal.removeAttribute('data-loading');
+        if (modal) {
+          modal.removeAttribute('data-loading');
+          modal.removeAttribute('data-loading-at');
+        }
       }
 
       function fecharEscolhaInicioVistoria_() {
@@ -15440,6 +15877,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
 
             modal.dataset.loading = '1';
+            modal.dataset.loadingAt = String(Date.now());
             formBtn.disabled = true;
             notifBtn.disabled = true;
             if (fechar) fechar.disabled = true;
@@ -15628,7 +16066,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (vistaForcada) mostrarVistaPlanilha_();
           else {
             marcarAbaApp_('records');
-            carregarRegistros_(true);
+            carregarRegistros_(true, { forcar: true, motivo: 'restauração do Painel' });
           }
         } else {
           marcarAbaApp_('form');
@@ -15923,6 +16361,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       form.addEventListener('input', event => {
         if (RESPONSAVEL_EDITABLE_FIELDS_.has(String(event.target?.id || '')) && !preenchendoResponsavelLookup) {
           marcarCampoResponsavelEditadoManual_(event.target.id);
+          if (event.target.id === 'enderecoResponsavel') {
+            const mesmoEndereco = document.getElementById('mesmoEnderecoResponsavel');
+            if (mesmoEndereco?.checked) mesmoEndereco.checked = false;
+          }
           // Qualquer edição manual invalida respostas antigas ainda em trânsito.
           if (event.target.id !== 'telefone' && event.target.id !== 'cpf') invalidarConsultasResponsavel_();
         }
@@ -16126,7 +16568,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           appStatus.textContent = ok ? 'Descrição da notificação copiada.' : 'Não foi possível copiar a descrição automaticamente.';
         }
       });
-      document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', () => { syncResponsibleAddress(); scheduleDraftSave(); });
+      document.getElementById('mesmoEnderecoResponsavel').addEventListener('change', event => {
+        if (event.target.checked) liberarProtecaoCampoResponsavel_('enderecoResponsavel');
+        syncResponsibleAddress();
+        scheduleDraftSave();
+      });
       document.getElementById('cnpj').addEventListener('input', applyIdentificadorMask);
       document.getElementById('cpf').addEventListener('input', applyCpfMask);
       document.getElementById('telefone').addEventListener('input', applyPhoneMask);
@@ -16269,12 +16715,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         await mostrarVistaFormulario_();
       });
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
-      recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false));
+      recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false, { forcar: true, motivo: 'atualização manual' }));
       recordsClearFiltersBtn?.addEventListener('click', () => {
         limparFiltrosVisiveisPainel_();
         recordsState.prazoMulta = '';
         atualizarEstadoCardsMulta_();
-        carregarRegistros_(true);
+        carregarRegistros_(true, { forcar: true, motivo: 'limpeza de filtros' });
       });
       kpiMulta1Card?.addEventListener('click', () => filtrarPorPrazoMulta_('primeira'));
       kpiMulta2Card?.addEventListener('click', () => filtrarPorPrazoMulta_('segunda'));
@@ -16282,28 +16728,28 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         clearTimeout(recordsSearchTimer);
         recordsState.prazoMulta = '';
         atualizarEstadoCardsMulta_();
-        recordsSearchTimer = setTimeout(() => carregarRegistros_(true), 300);
+        recordsSearchTimer = setTimeout(() => carregarRegistros_(true, { forcar: true, motivo: 'nova busca' }), 300);
       });
       [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter, recordsTypeFilter, recordsInspectorFilter, recordsPeriodFilter].forEach(select => {
         select?.addEventListener('change', () => {
           recordsState.prazoMulta = '';
           atualizarEstadoCardsMulta_();
-          carregarRegistros_(true);
+          carregarRegistros_(true, { forcar: true, motivo: 'alteração de filtro' });
         });
       });
-      recordsPrevBtn?.addEventListener('click', () => { if (recordsState.pagina > 1) { recordsState.pagina -= 1; carregarRegistros_(false); } });
-      recordsNextBtn?.addEventListener('click', () => { if (recordsState.pagina < recordsState.totalPaginas) { recordsState.pagina += 1; carregarRegistros_(false); } });
+      recordsPrevBtn?.addEventListener('click', () => { if (recordsState.pagina > 1) { recordsState.pagina -= 1; carregarRegistros_(false, { forcar: true, motivo: 'página anterior' }); } });
+      recordsNextBtn?.addEventListener('click', () => { if (recordsState.pagina < recordsState.totalPaginas) { recordsState.pagina += 1; carregarRegistros_(false, { forcar: true, motivo: 'próxima página' }); } });
       recordsPageButtons?.addEventListener('click', event => {
         const botao = event.target.closest('[data-page]');
         const pagina = Number(botao?.dataset?.page || 0);
         if (!pagina || pagina === recordsState.pagina || recordsState.carregando) return;
         recordsState.pagina = pagina;
-        carregarRegistros_(false);
+        carregarRegistros_(false, { forcar: true, motivo: 'seleção de página' });
       });
       recordsPageSize?.addEventListener('change', () => {
         const limite = Number(recordsPageSize.value || 25);
         recordsState.limite = [8, 15, 25].includes(limite) ? limite : 25;
-        carregarRegistros_(true);
+        carregarRegistros_(true, { forcar: true, motivo: 'quantidade por página' });
       });
       recordsList?.addEventListener('click', event => {
         const card = event.target.closest('.records-card');
@@ -16362,7 +16808,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       appDiagnosticsBtn?.addEventListener('click', abrirDiagnosticoApp_);
       appDiagnosticsCloseBtn?.addEventListener('click', fecharDiagnosticoApp_);
-      appDiagnosticsRefreshBtn?.addEventListener('click', atualizarDiagnosticoApp_);
+      appDiagnosticsRefreshBtn?.addEventListener('click', () => { void atualizarDiagnosticoApp_(); });
       appDiagnosticsRepairBtn?.addEventListener('click', () => { void repararInterfacePeloUsuario_(); });
       appDiagnosticsModal?.addEventListener('click', event => {
         if (event.target === appDiagnosticsModal) fecharDiagnosticoApp_();
@@ -16506,6 +16952,83 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         authPinToggleBtn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
         authPinToggleBtn.title = mostrar ? 'Ocultar senha' : 'Mostrar senha';
       });
+
+      function invalidarConsultasAntigasAoRetornar_() {
+        const agora = Date.now();
+        if (agora - ultimaInvalidacaoRetornoInterface_ < 350) return;
+        ultimaInvalidacaoRetornoInterface_ = agora;
+
+        [
+          cnpjTimer,
+          responsavelLookupTimer,
+          responsavelCpfLookupTimer,
+          estabelecimentoLookupTimer,
+          pscipLookupTimer,
+          encerramentoFiscalTimer,
+          processoPfLookupTimer,
+          preparePfLookupTimer,
+          retornoLiberacaoConsultaTimer_,
+          timerConsultaCnpjPreparacao
+        ].forEach(timer => clearTimeout(timer));
+
+        cnpjConsultaSequencia += 1;
+        responsavelLookupSequencia += 1;
+        responsavelCpfLookupSequencia += 1;
+        estabelecimentoLookupSequencia += 1;
+        pscipLookupSequencia += 1;
+        encerramentoFiscalSequencia += 1;
+        processoPfLookupSequencia += 1;
+        preparePfLookupSequencia += 1;
+        retornoLiberacaoConsultaSequencia_ += 1;
+        cnpjPreparacaoConsultaSequencia += 1;
+        cnpjPreparacaoEmAndamento = null;
+        cnpjPreparacaoEmAndamentoNumero = '';
+        if (recordsState.carregando) cancelarConsultaPainelEmAndamento_('retorno ao app');
+
+        // Reagenda somente consultas compatíveis com os valores atuais. Assim,
+        // respostas antigas são descartadas e o formulário permanece intacto.
+        setTimeout(() => {
+          if (document.visibilityState !== 'visible') return;
+          if (vistaAtualNavegacao_() === 'form') {
+            if (tipoIdentificador_(value('cnpj')) === 'cnpj') {
+              cnpjTimer = setTimeout(() => consultarCnpj(true), 250);
+            }
+            if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
+            else agendarConsultaResponsavelPorTelefone_();
+            agendarConsultaPscip_();
+            agendarConsultaProcessoPf_('form', 350);
+            agendarConsultaEncerramentoFiscal_();
+            if (ehFluxoLiberacao_()) agendarConsultaRetornoLiberacao_(400);
+          }
+
+          const prepareModalAberto = prepareInspectionModal && !prepareInspectionModal.hidden;
+          if (prepareModalAberto) {
+            agendarConsultaProcessoPf_('prepare', 350);
+            if (digits(prepareCnpjInput?.value || '').length === 14) {
+              timerConsultaCnpjPreparacao = setTimeout(() => {
+                timerConsultaCnpjPreparacao = null;
+                void consultarCnpjPreparacao_();
+              }, 350);
+            }
+          }
+        }, 80);
+      }
+
+      // Evita disparos duplicados por dois toques rápidos no mesmo comando sem
+      // interferir em campos de texto, seleções ou cliques programáticos.
+      document.addEventListener('click', event => {
+        if (!event.isTrusted) return;
+        const acao = event.target?.closest?.('button, [role="button"], a.btn');
+        if (!acao || acao.disabled || acao.dataset.allowRapidTap === 'true') return;
+        const agora = performance.now();
+        if (ultimoToqueAcao_.elemento === acao && agora - ultimoToqueAcao_.em < 550) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+        ultimoToqueAcao_ = { elemento: acao, em: agora };
+      }, true);
+
       let appOcultadoEm_ = 0;
 
       document.addEventListener('visibilitychange', () => {
@@ -16515,8 +17038,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         if (document.visibilityState === 'visible') {
+          invalidarConsultasAntigasAoRetornar_();
           repararInterfaceOrfa_('retorno ao primeiro plano');
           if (authState.sessionToken) validarSessaoLocalAtivaBm_();
+          agendarAtualizacaoPainelAoRetornar_('retorno ao primeiro plano');
 
           const ficouForaPor = appOcultadoEm_ ? Date.now() - appOcultadoEm_ : 0;
           const forcarVerificacao = ficouForaPor >= 15 * 60 * 1000;
@@ -16528,15 +17053,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
 
       window.addEventListener('focus', () => {
+        invalidarConsultasAntigasAoRetornar_();
         repararInterfaceOrfa_('foco da janela');
         if (authState.sessionToken) validarSessaoLocalAtivaBm_();
+        agendarAtualizacaoPainelAoRetornar_('foco da janela');
         verificarAtualizacaoSilenciosaPwa_();
         aplicarAtualizacaoSilenciosaSeSeguro_();
       });
 
       // Também cobre restauração da aba pelo histórico/BFCache do navegador.
       window.addEventListener('pageshow', event => {
+        invalidarConsultasAntigasAoRetornar_();
         repararInterfaceOrfa_(event.persisted ? 'restauração BFCache' : 'pageshow');
+        agendarAtualizacaoPainelAoRetornar_(event.persisted ? 'restauração BFCache' : 'pageshow');
         if (event.persisted) {
           verificarAtualizacaoSilenciosaPwa_(true);
           aplicarAtualizacaoSilenciosaSeSeguro_();
@@ -16617,7 +17146,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
         }
         if (document.body.classList.contains('records-mode')) {
-          setTimeout(() => carregarRegistros_(true), 900);
+          setTimeout(() => agendarAtualizacaoPainelAoRetornar_('internet restabelecida', { forcar: true, atraso: 80 }), 900);
         }
         setTimeout(() => verificarAtualizacaoSilenciosaPwa_(true), 1200);
       });
@@ -16652,7 +17181,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bs', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bt', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
@@ -16667,6 +17196,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       instalarEscolhaMovel_();
       iniciarWatchdogInterface_();
+      iniciarAtualizacaoPeriodicaPainel_();
       repararInterfaceOrfa_('inicialização');
       inicializarCatalogoNotificacoes_();
       renderizarNotificacoesLiberacao_();

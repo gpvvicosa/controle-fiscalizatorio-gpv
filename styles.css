@@ -2230,6 +2230,41 @@ body.detail-open { overflow: hidden; }
   }
 }
 
+/* ========================================================================== 
+   V23.9.99bt — atualização resiliente do Painel Fiscalizatório
+   ========================================================================== */
+.records-freshness {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  padding: 2px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  vertical-align: 1px;
+}
+.records-freshness.is-live {
+  color: #17623a;
+  background: #f1faf5;
+  border-color: #b7d9c4;
+}
+.records-freshness.is-cached {
+  color: #68521e;
+  background: #fff9e8;
+  border-color: #dfc980;
+}
+#recordsRefreshBtn.is-loading .ui-icon {
+  animation: gpv-panel-refresh-spin .9s linear infinite;
+}
+@keyframes gpv-panel-refresh-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #recordsRefreshBtn.is-loading .ui-icon { animation: none; }
+}
+
 /* Tablet em paisagem: dashboard compacto com densidade de desktop. */
 @media (min-width: 768px) and (max-width: 1180px) and (orientation: landscape) {
   .page {
@@ -12419,9 +12454,15 @@ body.record-correction-open{overflow:hidden}
 }
 
 
-/* ==========================================================================
+/* ========================================================================== 
    V23.9.99bs — responsável editável + estabilidade de toques
    ========================================================================== */
+button,
+[role="button"],
+a.btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 .responsible-edit-toolbar {
   display: flex;
   justify-content: space-between;
