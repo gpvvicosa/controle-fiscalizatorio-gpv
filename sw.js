@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-validacao-guiada-by';
-const VERSION = '23.9.99by';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260828-v23-9-99-retomada-rapida-bz';
+const VERSION = '23.9.99bz';
 
 const CORE_SHELL = [
   './',
@@ -160,13 +160,57 @@ const OPTIONAL_SHELL = [
   './instrucoes-tecnicas/its/it-45.html'
 ];
 
+async function buscarOpcionalComLimite(request, timeoutMs = 6000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resposta = await fetch(request, { cache: 'no-store', signal: controller.signal });
+    return resposta && resposta.ok ? resposta : null;
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function copiarOpcionaisDaVersaoAnterior(cacheAtual) {
+  const chaves = (await caches.keys()).filter(key =>
+    key.startsWith('gpv-vistorias-pwa-') && key !== CACHE_NAME
+  );
+  if (!chaves.length) return false;
+
+  const cachesAntigos = await Promise.all(chaves.map(key => caches.open(key)));
+  await Promise.allSettled(OPTIONAL_SHELL.map(async url => {
+    const req = new Request(new URL(url, self.location.href).href);
+    for (const cacheAntigo of cachesAntigos) {
+      const resposta = await cacheAntigo.match(req, { ignoreSearch: false });
+      if (resposta) {
+        await cacheAtual.put(req, resposta.clone());
+        return;
+      }
+    }
+
+    // Se este arquivo ainda não existia na versão anterior, tenta baixar apenas ele,
+    // com limite curto para uma conexão ruim não prender a atualização inteira.
+    const nova = await buscarOpcionalComLimite(req);
+    if (nova) await cacheAtual.put(req, nova.clone());
+  }));
+  return true;
+}
+
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // Arquivos críticos: se algum falhar, não instala um shell incompleto.
+    // Arquivos críticos continuam sendo baixados na versão atual.
     await cache.addAll(CORE_SHELL);
-    // Arquivos auxiliares não podem impedir a atualização do aplicativo.
-    await Promise.allSettled(OPTIONAL_SHELL.map(url => cache.add(url)));
+
+    // Em atualização, reaproveita localmente os arquivos auxiliares já armazenados
+    // (Manual/ITs/imagens), evitando baixar novamente dezenas de arquivos após dias sem uso.
+    const migrou = await copiarOpcionaisDaVersaoAnterior(cache);
+    if (!migrou) {
+      // Primeira instalação: mantém o comportamento offline completo.
+      await Promise.allSettled(OPTIONAL_SHELL.map(url => cache.add(url)));
+    }
     await self.skipWaiting();
   })());
 });
@@ -185,23 +229,35 @@ self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-async function networkFirst(request, fallbackUrl = '') {
+async function atualizarCacheEmSegundoPlano(request, cacheKey = request) {
   try {
     const response = await fetch(request, { cache: 'no-store' });
     if (response && response.ok) {
       const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone()).catch(() => {});
+      await cache.put(cacheKey, response.clone());
     }
     return response;
-  } catch (error) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    if (fallbackUrl) {
-      const fallback = await caches.match(fallbackUrl);
-      if (fallback) return fallback;
-    }
-    throw error;
+  } catch (_) {
+    return null;
   }
+}
+
+async function cacheRapidoComAtualizacao(request, fallbackUrl = '', cacheKey = request) {
+  const cached = await caches.match(request);
+  if (cached) return { response: cached, refresh: atualizarCacheEmSegundoPlano(request, cacheKey) };
+
+  if (fallbackUrl) {
+    const fallback = await caches.match(fallbackUrl);
+    if (fallback) return { response: fallback, refresh: atualizarCacheEmSegundoPlano(request, cacheKey) };
+  }
+
+  // Somente quando não existe shell armazenado é necessário aguardar a rede.
+  const response = await fetch(request, { cache: 'no-store' });
+  if (response && response.ok) {
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, response.clone()).catch(() => {});
+  }
+  return { response, refresh: Promise.resolve() };
 }
 
 self.addEventListener('fetch', event => {
@@ -212,7 +268,11 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, './index.html'));
+    event.respondWith((async () => {
+      const resultado = await cacheRapidoComAtualizacao(request, './index.html', './index.html');
+      event.waitUntil(resultado.refresh.catch(() => {}));
+      return resultado.response;
+    })());
     return;
   }
 
@@ -221,7 +281,11 @@ self.addEventListener('fetch', event => {
     /\/(?:styles\.css|app\.js|config\.js|ocupacoes\.js|notificacoes-infoscip\.js)$/.test(url.pathname);
 
   if (arquivoCritico) {
-    event.respondWith(networkFirst(request));
+    event.respondWith((async () => {
+      const resultado = await cacheRapidoComAtualizacao(request);
+      event.waitUntil(resultado.refresh.catch(() => {}));
+      return resultado.response;
+    })());
     return;
   }
 

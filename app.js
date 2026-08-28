@@ -36,6 +36,26 @@
       const SUGGESTIONS_REFRESH_SOFT_MS = 5 * 60 * 1000;
       const API_READ_RETRY_DELAY_MS = 700;
       const DEVICE_NAME_STORAGE = 'gpvVistoriasNomeDispositivoV1';
+      const APP_LAST_ACTIVE_STORAGE = 'gpvUltimaAtividadeAppV1';
+      const APP_LONG_IDLE_MS = 8 * 60 * 60 * 1000;
+      const USERS_CACHE_STORAGE = 'gpvVistoriadoresCacheV1';
+      const DDU_CACHE_STORAGE = 'gpvDdusCacheV1';
+      let appRetomadaAposLongaPausa_ = false;
+
+      function registrarEstadoRetomadaApp_() {
+        const agora = Date.now();
+        let ultimo = 0;
+        try { ultimo = Number(localStorage.getItem(APP_LAST_ACTIVE_STORAGE) || 0); } catch (_) {}
+        appRetomadaAposLongaPausa_ = Boolean(ultimo && agora - ultimo >= APP_LONG_IDLE_MS);
+        try { localStorage.setItem(APP_LAST_ACTIVE_STORAGE, String(agora)); } catch (_) {}
+        return appRetomadaAposLongaPausa_;
+      }
+
+      function marcarAtividadeApp_() {
+        try { localStorage.setItem(APP_LAST_ACTIVE_STORAGE, String(Date.now())); } catch (_) {}
+      }
+
+      registrarEstadoRetomadaApp_();
       let authState = { usuario: null, sessionToken: '' };
       let authPendingUserId = '';
       let authPendingBm = '';
@@ -7762,16 +7782,33 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         aplicar(prepareVistoriador);
       }
 
+      function aplicarCacheVistoriadores_() {
+        let cache = [];
+        try { cache = JSON.parse(localStorage.getItem(USERS_CACHE_STORAGE) || '[]'); } catch (_) { cache = []; }
+        if (!Array.isArray(cache) || !cache.length) return false;
+        usuariosAtivosApp = cache;
+        preencherVistoriadores_();
+        return true;
+      }
+
       async function carregarUsuariosVistoriadores_() {
-        if (!navigator.onLine) return;
+        const tinhaCache = aplicarCacheVistoriadores_();
+        if (!navigator.onLine) {
+          if (!tinhaCache && authState.usuario?.nome) {
+            usuariosAtivosApp = [{ nome: authState.usuario.nome }];
+            preencherVistoriadores_();
+          }
+          return;
+        }
         try {
-          const resposta = await apiRequest('users', {}, 15000);
+          const resposta = await apiRequest('users', {}, 12000);
           usuariosAtivosApp = Array.isArray(resposta?.usuarios)
             ? resposta.usuarios.filter(u => String(u?.perfil || 'GPV').toUpperCase() !== 'GERAL')
             : [];
           preencherVistoriadores_();
+          try { localStorage.setItem(USERS_CACHE_STORAGE, JSON.stringify(usuariosAtivosApp)); } catch (_) {}
         } catch (erro) {
-          if (authState.usuario?.nome) {
+          if (!tinhaCache && authState.usuario?.nome) {
             usuariosAtivosApp = [{ nome: authState.usuario.nome }];
             preencherVistoriadores_();
           }
@@ -14732,23 +14769,53 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const card=(x,concluido=false)=>{const p=classificarPrazoDdu_(x.dataLimite); const end=[x.endereco,x.numero,x.bairro,x.cidade].filter(Boolean).join(', '); let ret=''; if(concluido&&x.excluirArquivoApos){const fim=new Date(x.excluirArquivoApos); if(!Number.isNaN(fim.getTime())){const h=Math.max(0,Math.ceil((fim-Date.now())/3600000));ret=`Concluído • PDF disponível por cerca de ${h} h`;}} return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3><p>${escapeHtml(end)}</p><p>${x.vistoriadorResponsavel?`<b>Vistoriador:</b> ${escapeHtml(x.vistoriadorResponsavel)}`:'Vistoriador não definido'}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O PDF será enviado automaticamente para a lixeira após 24 h.':'PDF disponível enquanto a demanda estiver aberta e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener">Ver PDF</a>`:''}${concluido?'':`<button class="btn btn-primary ddu-start-btn" type="button" data-ddu-start="${escapeAttr(x.id)}">Iniciar fiscalização</button>`}</div></article>`};
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
+      function lerCacheDdus_() {
+        try {
+          const dados = JSON.parse(localStorage.getItem(DDU_CACHE_STORAGE) || 'null');
+          return Array.isArray(dados?.itens) ? dados : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function aplicarCacheDdus_(mensagem = '') {
+        const cache = lerCacheDdus_();
+        if (!cache) return false;
+        ddusAtivos = cache.itens;
+        renderizarDdUs_();
+        if (dduListStatus) dduListStatus.textContent = mensagem || 'Exibindo a última lista sincronizada.';
+        return true;
+      }
+
       async function carregarDdUs_(){
         const inicioLoadingDdu = Date.now();
-        const tempoMinimoLoading = 450;
-        // Até o servidor confirmar uma pendência, não exibimos o ícone DDU.
-        if (dduSummaryCard) dduSummaryCard.hidden = true;
-        dduSummaryCard?.classList.add('is-loading');
-        if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
-          dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
+        const tempoMinimoLoading = 250;
+        const tinhaCache = aplicarCacheDdus_(navigator.onLine ? 'Última lista sincronizada — atualizando...' : 'Offline — exibindo a última lista sincronizada.');
+
+        if (!navigator.onLine) {
+          if (!tinhaCache && dduSummaryCard) dduSummaryCard.hidden = true;
+          return;
         }
-        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label">Atualizando demandas...</span>';
-        if(dduSummaryCount)dduSummaryCount.innerHTML='<span class="ddu-count-loading" aria-hidden="true"></span>';
+
+        // Com cache disponível, mantém o conteúdo útil visível enquanto atualiza.
+        // Sem cache, usa o indicador tradicional de carregamento.
+        if (!tinhaCache) {
+          if (dduSummaryCard) dduSummaryCard.hidden = true;
+          dduSummaryCard?.classList.add('is-loading');
+          if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
+            dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
+          }
+          if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label">Atualizando demandas...</span>';
+          if(dduSummaryCount)dduSummaryCount.innerHTML='<span class="ddu-count-loading" aria-hidden="true"></span>';
+        }
+
         try{
-          const r=await apiRequest('config',{consulta:'ddus'},20000);
+          const r=await apiRequest('config',{consulta:'ddus'},15000);
           const novosDdUs=Array.isArray(r?.itens)?r.itens:[];
           const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
-          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
+          if(espera && !tinhaCache) await new Promise(resolve=>setTimeout(resolve,espera));
           ddusAtivos=novosDdUs;
+          try { localStorage.setItem(DDU_CACHE_STORAGE, JSON.stringify({ salvoEm: Date.now(), itens: ddusAtivos })); } catch (_) {}
           dduSummaryCard?.classList.remove('is-loading');
           dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
           renderizarDdUs_();
@@ -14756,14 +14823,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }catch(e){
           console.error('Falha ao carregar DDU:',e);
           const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
-          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
+          if(espera && !tinhaCache) await new Promise(resolve=>setTimeout(resolve,espera));
           dduSummaryCard?.classList.remove('is-loading');
           dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
-          if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar';
-          if(dduSummaryCount)dduSummaryCount.textContent='';
-          if (dduSummaryCard) dduSummaryCard.hidden = true;
-          dduSummaryCard?.classList.remove('is-danger','is-warning');
-          if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
+          if (tinhaCache) {
+            aplicarCacheDdus_('Não foi possível atualizar agora — exibindo a última lista sincronizada.');
+          } else {
+            if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar';
+            if(dduSummaryCount)dduSummaryCount.textContent='';
+            if (dduSummaryCard) dduSummaryCard.hidden = true;
+            dduSummaryCard?.classList.remove('is-danger','is-warning');
+            if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
+          }
         }
       }
       async function salvarDdu_(){
@@ -15829,32 +15900,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function carregarPreparacoesVistoria_() {
         const inicioLoadingProgramadas = Date.now();
-        if (programmedSummaryRow && navigator.onLine) programmedSummaryRow.hidden = true;
-        const tempoMinimoLoading = 450;
+        const tempoMinimoLoading = 250;
         const cacheKey = 'gpv_preparacoes_cache_v1';
         let cachePreparacoes = [];
         try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
+        const tinhaCache = Array.isArray(cachePreparacoes) && cachePreparacoes.length > 0;
 
-        if (!navigator.onLine) {
+        if (tinhaCache) {
           preparacoesVistoria = cachePreparacoes;
           renderizarPreparacoesVistoria_();
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — exibindo a última lista sincronizada.';
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = navigator.onLine
+            ? 'Última lista sincronizada — atualizando...'
+            : 'Offline — exibindo a última lista sincronizada.';
+        }
+
+        if (!navigator.onLine) {
+          if (!tinhaCache) {
+            preparacoesVistoria = [];
+            renderizarPreparacoesVistoria_();
+            if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — nenhuma programação armazenada neste aparelho.';
+          }
           return;
         }
 
-        preparedInspectionsList?.classList.add('is-loading');
-        if (preparedInspectionsList) {
-          preparedInspectionsList.innerHTML = `
-            <div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Atualizando vistorias programadas">
-              <span class="prepared-loading-track-knob" aria-hidden="true"></span>
-            </div>`;
+        if (!tinhaCache) {
+          if (programmedSummaryRow) programmedSummaryRow.hidden = true;
+          preparedInspectionsList?.classList.add('is-loading');
+          if (preparedInspectionsList) {
+            preparedInspectionsList.innerHTML = `
+              <div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Atualizando vistorias programadas">
+                <span class="prepared-loading-track-knob" aria-hidden="true"></span>
+              </div>`;
+          }
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Atualizando vistorias programadas...';
         }
-        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Atualizando vistorias programadas...';
         try {
           const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
           const novasPreparacoes = Array.isArray(r?.itens) ? r.itens : [];
           const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
+          if (espera && !tinhaCache) await new Promise(resolve => setTimeout(resolve, espera));
           preparacoesVistoria = novasPreparacoes;
           try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
           preparedInspectionsList?.classList.remove('is-loading');
@@ -15862,7 +15946,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           renderizarPreparacoesVistoria_();
         } catch (erro) {
           const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
+          if (espera && !tinhaCache) await new Promise(resolve => setTimeout(resolve, espera));
           preparacoesVistoria = cachePreparacoes;
           preparedInspectionsList?.classList.remove('is-loading');
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = cachePreparacoes.length
@@ -16342,6 +16426,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return true;
       }
 
+      function conexaoAdequadaParaPreaquecimento_() {
+        const conexao = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (conexao?.saveData) return false;
+        const tipo = String(conexao?.effectiveType || '').toLowerCase();
+        return !['slow-2g', '2g'].includes(tipo);
+      }
+
+      function agendarCargaAuxiliarProgressiva_() {
+        if (!navigator.onLine || !usuarioPodeOperar_()) return;
+
+        // Após muitas horas/dias sem uso, evita três consultas simultâneas logo na abertura.
+        // A interface usa o que estiver salvo e confirma os dados atuais em etapas.
+        const longaPausa = appRetomadaAposLongaPausa_;
+        const atrasos = longaPausa
+          ? { usuarios: 900, programadas: 2200, ddu: 3800, painel: 16000 }
+          : { usuarios: 350, programadas: 1000, ddu: 1900, painel: 8000 };
+
+        setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarUsuariosVistoriadores_(); }, atrasos.usuarios);
+        setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarPreparacoesVistoria_(); }, atrasos.programadas);
+        setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarDdUs_(); }, atrasos.ddu);
+        setTimeout(() => {
+          if (
+            document.visibilityState === 'visible' &&
+            navigator.onLine &&
+            !document.body.classList.contains('records-mode') &&
+            conexaoAdequadaParaPreaquecimento_()
+          ) void preaquecerPainel_();
+        }, atrasos.painel);
+      }
+
       async function loadInitialData() {
         let cached = null;
         try { cached = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || 'null'); } catch (e) {}
@@ -16360,6 +16474,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         appStatus.textContent = usuarioPodeOperar_()
           ? (navigator.onLine ? 'Aplicativo pronto. Sincronizando configurações...' : 'Modo offline — aplicativo pronto para preenchimento.')
           : (navigator.onLine ? 'Aplicativo pronto para consulta e treinamento. Atualizando dados...' : 'Sem internet — consultas salvas e preenchimento para conhecimento continuam disponíveis.');
+
+        // Dados auxiliares armazenados são aplicados antes de qualquer consulta online.
+        aplicarCacheVistoriadores_();
+        if (usuarioPodeOperar_()) {
+          try {
+            const cacheProgramadas = JSON.parse(localStorage.getItem('gpv_preparacoes_cache_v1') || '[]');
+            if (Array.isArray(cacheProgramadas) && cacheProgramadas.length) {
+              preparacoesVistoria = cacheProgramadas;
+              renderizarPreparacoesVistoria_();
+            }
+          } catch (_) {}
+          aplicarCacheDdus_();
+        }
 
         if (navigator.onLine) {
           const sincronizarConfigOnline_ = async () => {
@@ -16403,20 +16530,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           appStatus.textContent = 'Este link de notificações exige um usuário com perfil GPV.';
         }
 
-        // V23.9.47: DDU, programações e lista de vistoriadores são dados auxiliares.
-        // A tela principal não fica mais presa ao "Carregando" aguardando essas três consultas.
-        // Cada área mantém seu próprio indicador e termina a atualização em segundo plano.
+        // V23.9.99bz: retomada rápida após horas/dias sem uso. Dados auxiliares
+        // são confirmados de forma progressiva para não disputar a conexão na abertura.
         if (navigator.onLine && usuarioPodeOperar_()) {
-          setTimeout(() => { void processarFilaFotosPendentes_(); }, 2200);
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            Promise.allSettled([
-              carregarUsuariosVistoriadores_(),
-              carregarPreparacoesVistoria_(),
-              carregarDdUs_()
-            ]).catch(() => {});
-          }));
-          // V23.9.65: aquece consultas pesadas sem bloquear a tela de vistoria.
-          setTimeout(() => { void preaquecerPainel_(); }, 4500);
+          setTimeout(() => { void processarFilaFotosPendentes_(); }, appRetomadaAposLongaPausa_ ? 7000 : 3000);
+          agendarCargaAuxiliarProgressiva_();
         }
       }
 
@@ -17369,6 +17487,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
           appOcultadoEm_ = Date.now();
+          marcarAtividadeApp_();
           return;
         }
 
@@ -17516,7 +17635,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99by', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
