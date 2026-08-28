@@ -1451,7 +1451,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99bv';
+      const APP_REVISION_UI_ = '23.9.99bw';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -1750,7 +1750,7 @@
         try {
           const nomes = (await caches.keys()).filter(nome => nome.startsWith('gpv-vistorias-pwa-'));
           if (!nomes.length) return 'Nenhum cache do app localizado';
-          const atual = nomes.find(nome => nome.includes('infoscip-bv')) || nomes[nomes.length - 1];
+          const atual = nomes.find(nome => nome.includes('infoscip-bw')) || nomes[nomes.length - 1];
           const cache = await caches.open(atual);
           const entradas = await cache.keys();
           return `${atual} • ${entradas.length} arquivo(s)`;
@@ -5667,16 +5667,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       // Textos próprios para o campo Histórico do INFOSCIP Fiscalização.
       // São objetivos e, por definição operacional, não exibem números de
-      // PSCIP, DDU ou Auto de Infração. Os relatórios completos do REDS
+      // PSCIP, DDU, Processo Fiscalizatório ou Auto de Infração. Os relatórios completos do REDS
       // permanecem independentes e inalterados.
       const HISTORICOS_INFOSCIP_FISCALIZACAO = Object.freeze({
         ddu: {
           titulo: 'DDU — fiscalização autuada',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA EM ATENDIMENTO A DEMANDA RECEBIDA PELO DDU. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB VÁLIDO. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA EM ATENDIMENTO A DEMANDA RECEBIDA PELO DDU. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB VÁLIDO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
         },
         brigadaVencida: {
           titulo: 'Fiscalização — brigada vencida',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
         },
         renovacaoAvcb: {
           titulo: 'Fiscalização — Renovação AVCB',
@@ -5684,19 +5684,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         },
         avcbVencido: {
           titulo: 'Fiscalização — AVCB vencido',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO FUNCIONA COM AVCB/CLCB VENCIDO. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À RENOVAÇÃO DO LICENCIAMENTO.`
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO FUNCIONA COM AVCB/CLCB VENCIDO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À RENOVAÇÃO DO LICENCIAMENTO.`
         },
         acessoriaLicenciado: {
           titulo: 'Vistoria Acessória — regularizada — com licenciamento',
-          texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES DO PROCESSO FISCALIZATÓRIO Nº {{PF}}. CONSTATADO QUE AS IRREGULARIDADES FORAM SANADAS. A EDIFICAÇÃO POSSUI {{DOCUMENTO_LICENCA_NOME}} VÁLIDO E ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
+          texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES ANTERIORMENTE APONTADAS. CONSTATADO QUE AS IRREGULARIDADES FORAM SANADAS. A EDIFICAÇÃO POSSUI {{DOCUMENTO_LICENCA_NOME}} VÁLIDO E ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
         },
         acessoriaDispensado: {
           titulo: 'Vistoria Acessória — regularizada — dispensada de licenciamento',
-          texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES DO PROCESSO FISCALIZATÓRIO Nº {{PF}}. CONSTATADO QUE AS IRREGULARIDADES FORAM SANADAS. A EDIFICAÇÃO ENQUADRA-SE COMO DISPENSADA DE LICENCIAMENTO, POSSUI AS MEDIDAS DE SEGURANÇA APLICÁVEIS E ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
+          texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES ANTERIORMENTE APONTADAS. CONSTATADO QUE AS IRREGULARIDADES FORAM SANADAS. A EDIFICAÇÃO ENQUADRA-SE COMO DISPENSADA DE LICENCIAMENTO, POSSUI AS MEDIDAS DE SEGURANÇA APLICÁVEIS E ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
         },
         comPscipSemAvcb: {
           titulo: 'Fiscalização — com PSCIP — sem AVCB',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO POSSUI PSCIP NA SITUAÇÃO {{SITUACAO_PSCIP}}, PORÉM AINDA NÃO POSSUI AVCB/CLCB. IRREGULARIDADE REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO POSSUI PSCIP NA SITUAÇÃO {{SITUACAO_PSCIP}}, PORÉM AINDA NÃO POSSUI AVCB/CLCB. CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG.`
         },
         eventoDeclaratorioConforme: {
           titulo: 'Fiscalização — evento declaratório conforme',
@@ -5704,11 +5704,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         },
         irregular: {
           titulo: 'Fiscalização — irregularidade / autuação',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. FORAM CONSTATADAS IRREGULARIDADES NAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO, REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}. FOI LAVRADO AUTO DE INFRAÇÃO ADMINISTRATIVA E O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. FORAM CONSTATADAS IRREGULARIDADES NAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
         },
         semAvcb: {
           titulo: 'Fiscalização — sem AVCB/CLCB',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES NAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO. IRREGULARIDADES REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, COM LAVRATURA DE AUTO DE INFRAÇÃO ADMINISTRATIVA. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES NAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
         },
         regularizado: {
           titulo: 'Fiscalização — regularizada com AVCB/CLCB',
@@ -17340,7 +17340,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bv', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99bw', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             await verificarAtualizacaoSilenciosaPwa_(true);
             // Verificação periódica para aparelhos/abas que permanecem abertos
