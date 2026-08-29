@@ -13652,3 +13652,53 @@ body:not(.records-mode) .app-credit{
     background:rgba(255,250,248,.94)!important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99cp — fundo institucional mais visível
+   Ajuste exclusivamente visual da home: marfim/rosé institucional com cartões claros.
+   ============================================================================= */
+body:not(.records-mode){
+  background:
+    radial-gradient(circle at 2% 7%, rgba(133,18,24,.11) 0, rgba(133,18,24,0) 27%),
+    radial-gradient(circle at 98% 32%, rgba(193,133,43,.12) 0, rgba(193,133,43,0) 29%),
+    linear-gradient(180deg,#f3dfda 0%,#eedbd4 47%,#f5e7e1 100%) !important;
+}
+body:not(.records-mode) .page{
+  background:transparent !important;
+}
+body:not(.records-mode) .app-view-nav{
+  background:rgba(255,246,243,.97) !important;
+  border-color:rgba(143,23,28,.16) !important;
+  box-shadow:0 5px 18px rgba(92,22,26,.055) !important;
+}
+body:not(.records-mode) .inspection-flow-section{
+  background:linear-gradient(180deg,rgba(255,249,247,.91),rgba(255,245,241,.84)) !important;
+  border-color:rgba(143,23,28,.16) !important;
+}
+body:not(.records-mode) .programmed-summary-card,
+body:not(.records-mode) .programmed-quick-add-btn{
+  background:rgba(255,247,245,.94) !important;
+}
+body:not(.records-mode) .inspection-flow-grid-after-programmed .inspection-flow-card{
+  background:rgba(255,255,255,.96) !important;
+}
+body:not(.records-mode) .app-credit{
+  background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,244,239,.36)) !important;
+  border-top-color:rgba(143,23,28,.15) !important;
+  border-radius:14px 14px 0 0;
+}
+@media(max-width:760px){
+  body:not(.records-mode){
+    background:
+      radial-gradient(circle at 0% 4%, rgba(133,18,24,.12) 0, rgba(133,18,24,0) 24%),
+      radial-gradient(circle at 100% 35%, rgba(193,133,43,.13) 0, rgba(193,133,43,0) 26%),
+      linear-gradient(180deg,#f2dcd6 0%,#ecd7cf 51%,#f4e5df 100%) !important;
+  }
+  body:not(.records-mode) .inspection-flow-section{
+    background:linear-gradient(180deg,rgba(255,248,245,.93),rgba(255,242,238,.87)) !important;
+  }
+  body:not(.records-mode) .app-view-nav{
+    background:rgba(255,245,241,.97) !important;
+  }
+}
