@@ -15,19 +15,19 @@
   ],
   "icons": [
     {
-      "src": "assets/app-vistoriador-icon-192.png?v=23.9.99cf",
+      "src": "assets/app-vistoriador-icon-192-cg.png?v=23.9.99cg",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/app-vistoriador-icon-512.png?v=23.9.99cf",
+      "src": "assets/app-vistoriador-icon-512-cg.png?v=23.9.99cg",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/app-vistoriador-icon-maskable-512.png?v=23.9.99cf",
+      "src": "assets/app-vistoriador-icon-maskable-512-cg.png?v=23.9.99cg",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

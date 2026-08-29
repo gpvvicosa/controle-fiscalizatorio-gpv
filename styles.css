@@ -12796,13 +12796,13 @@ a.btn {
 
 
 /* =========================================================
-   V23.9.99cf — identidade externa "App do Vistoriador"
+   V23.9.99cg — identidade externa "App do Vistoriador"
    Restrita à tela de acesso; a identidade interna da unidade permanece inalterada.
    ========================================================= */
 .auth-gate{
   background:
     linear-gradient(180deg,rgba(45,3,5,.74),rgba(64,5,7,.90) 54%,rgba(31,2,4,.96)),
-    url("assets/splash-app-vistoriador.webp?v=23.9.99cf") center 30%/cover no-repeat!important;
+    url("assets/splash-app-vistoriador.webp?v=23.9.99cg") center 30%/cover no-repeat!important;
   animation:none!important;
 }
 .auth-gate::before{
@@ -12812,7 +12812,7 @@ a.btn {
   left:-18vmin!important;
   top:-18vmin!important;
   border-radius:28%!important;
-  background:url("assets/app-vistoriador-icon-512.png?v=23.9.99cf") center/contain no-repeat!important;
+  background:url("assets/app-vistoriador-icon-512-cg.png?v=23.9.99cg") center/contain no-repeat!important;
   filter:none!important;
   opacity:.075!important;
   transform:rotate(-10deg)!important;
@@ -12883,4 +12883,34 @@ a.btn {
   .auth-gate.show .auth-card{padding:20px 17px 18px!important;border-radius:24px!important}
   .auth-logo-wrap,.auth-logo-wrap img{width:88px!important;height:88px!important}
   .auth-card h1{font-size:25px!important}
+}
+
+
+/* =========================================================
+   V23.9.99cg — splash mobile ligeiramente ampliado
+   Mantém a mesma arte e aumenta discretamente sua presença visual.
+   ========================================================= */
+.gpv-image-splash .gpv-splash-art{
+  transform:scale(1.028)!important;
+  animation:gpvSplashImageBreathCg 2.15s ease-in-out infinite alternate!important;
+}
+@keyframes gpvSplashImageBreathCg{
+  from{transform:scale(1.028)}
+  to{transform:scale(1.048)}
+}
+@media(max-width:640px){
+  .gpv-image-splash .gpv-splash-art{
+    transform:scale(1.045)!important;
+    animation-name:gpvSplashImageBreathCgMobile!important;
+  }
+  @keyframes gpvSplashImageBreathCgMobile{
+    from{transform:scale(1.045)}
+    to{transform:scale(1.065)}
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .gpv-image-splash .gpv-splash-art{
+    animation:none!important;
+    transform:scale(1.04)!important;
+  }
 }
