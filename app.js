@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99db';
+      const APP_VERSION = '23.9.99dc';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -32,6 +32,7 @@
       const PANEL_LAST_ERROR_STORAGE = 'gpvPainelUltimaFalhaV1';
       const APP_LAST_API_SUCCESS_STORAGE = 'gpvUltimaRespostaApiV1';
       const APP_LAST_SYNC_SUCCESS_STORAGE = 'gpvUltimaSincronizacaoOkV1';
+      const DRAFT_CANCEL_QUEUE_STORAGE = 'gpvRascunhosCancelamentoPendenteV1';
       const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -713,6 +714,55 @@
           const lista = lerIndiceRascunhosLocais_().filter(x => String(x.id) !== rid);
           localStorage.setItem(draftIndexKey_(), JSON.stringify(lista));
         } catch (e) {}
+      }
+
+      function lerCancelamentosRascunhoPendentes_() {
+        try {
+          const lista = JSON.parse(localStorage.getItem(DRAFT_CANCEL_QUEUE_STORAGE) || '[]');
+          return Array.isArray(lista) ? lista.filter(item => item && String(item.id || '').trim()) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function enfileirarCancelamentoRascunho_(recordId, preparacaoId = '') {
+        const id = String(recordId || '').trim();
+        if (!id) return;
+        try {
+          const lista = lerCancelamentosRascunhoPendentes_().filter(item => String(item.id || '') !== id);
+          lista.push({ id, preparacaoId: String(preparacaoId || '').trim(), criadoEm: Date.now() });
+          localStorage.setItem(DRAFT_CANCEL_QUEUE_STORAGE, JSON.stringify(lista.slice(-30)));
+        } catch (e) {}
+      }
+
+      function removerCancelamentoRascunhoPendente_(recordId) {
+        const id = String(recordId || '').trim();
+        if (!id) return;
+        try {
+          const lista = lerCancelamentosRascunhoPendentes_().filter(item => String(item.id || '') !== id);
+          localStorage.setItem(DRAFT_CANCEL_QUEUE_STORAGE, JSON.stringify(lista));
+        } catch (e) {}
+      }
+
+      async function processarCancelamentosRascunhoPendentes_() {
+        if (!navigator.onLine || !usuarioPodeOperar_()) return 0;
+        const lista = lerCancelamentosRascunhoPendentes_();
+        let concluidos = 0;
+        for (const item of lista) {
+          if (!navigator.onLine) break;
+          try {
+            await apiRequest('config', {
+              consulta: 'rascunho_cancelar',
+              id: String(item.id || ''),
+              preparacaoId: String(item.preparacaoId || '')
+            }, 12000);
+            removerCancelamentoRascunhoPendente_(item.id);
+            concluidos += 1;
+          } catch (e) {
+            // Mantém a solicitação para a próxima oportunidade de conexão.
+          }
+        }
+        return concluidos;
       }
 
       function rascunhoPayloadTemConteudo_(p = {}) {
@@ -2087,7 +2137,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99db';
+      const APP_REVISION_UI_ = '23.9.99dc';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2836,6 +2886,7 @@
         if (syncAllPromise_) return syncAllPromise_;
 
         syncAllPromise_ = (async () => {
+          await processarCancelamentosRascunhoPendentes_();
           if (obterPendentes().length) await enviarPendentes(automatico);
           if (navigator.onLine) await processarFilaFotosPendentes_();
           await atualizarContagemFotosPendentes_();
@@ -4114,7 +4165,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99db', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dc', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -10127,6 +10178,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
         if (notificacoesLiberacaoSecao) notificacoesLiberacaoSecao.hidden = f !== 'liberacao';
         if (vistoriaBottomBar) vistoriaBottomBar.hidden = !f;
+        atualizarBotaoCancelarVistoriaNaoProgramada_();
         if (fluxoVistoriaAtualTexto) {
           fluxoVistoriaAtualTexto.hidden = !f;
           fluxoVistoriaAtualTexto.textContent = f === 'liberacao'
@@ -15789,6 +15841,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (licenciamentoSelect) licenciamentoSelect.value = '';
         if (possuiPscipSelect) possuiPscipSelect.value = '';
         aplicarFluxoVistoria_('', { silencioso: true });
+        atualizarBotaoCancelarPreenchimentoTopo_();
         if (pendenciaDocumentalSelect) pendenciaDocumentalSelect.value = '';
         if (tipoLiberacaoSelect) tipoLiberacaoSelect.value = 'final';
         if (situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
@@ -18640,6 +18693,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }));
       }
 
+      function atualizarBotaoCancelarVistoriaNaoProgramada_() {
+        if (!clearBtn) return;
+        if (!usuarioPodeOperar_()) {
+          clearBtn.hidden = false;
+          clearBtn.textContent = 'Limpar treinamento';
+          clearBtn.title = 'Limpar os campos deste treinamento';
+          return;
+        }
+        const programada = Boolean(preparacaoEmUsoId);
+        clearBtn.hidden = programada;
+        clearBtn.textContent = 'Cancelar vistoria';
+        clearBtn.title = 'Cancelar esta vistoria não programada e descartar o rascunho';
+      }
+
       function atualizarBotaoCancelarPreenchimentoTopo_() {
         const ativo = Boolean(preparacaoEmUsoId && currentRecordId && usuarioPodeOperar_());
         const btn = document.getElementById('activeInspectionCancelBtn');
@@ -18649,6 +18716,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (notifBtn) notifBtn.hidden = !ativo || modoAuxiliar;
         if (notificacoesCompartilharAuxBtn) notificacoesCompartilharAuxBtn.hidden = modoAuxiliar;
         if (notificacoesRevisarBtn) notificacoesRevisarBtn.hidden = modoAuxiliar;
+        atualizarBotaoCancelarVistoriaNaoProgramada_();
       }
 
       function atualizarTextoTecnicoIrregularidade_(item) {
@@ -18700,6 +18768,53 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           document.addEventListener('keydown', onKey);
           setTimeout(() => voltar.focus(), 30);
         });
+      }
+
+      async function cancelarVistoriaNaoProgramadaAtual_() {
+        if (!usuarioPodeOperar_() || preparacaoEmUsoId) return;
+        const rascunhoId = String(currentRecordId || '').trim();
+        if (!rascunhoId) return;
+        const titulo = value('nomeFantasia') || value('razaoSocial') || value('endereco') || 'esta vistoria';
+        const confirmou = await confirmarGpv_(
+          `Cancelar ${titulo === 'esta vistoria' ? 'esta vistoria' : `a vistoria de “${titulo}”`}? O rascunho e os dados ainda não registrados serão descartados. Nada será registrado como vistoria.`,
+          'Cancelar vistoria?',
+          { tom: 'danger', rotuloConfirmar: 'Cancelar vistoria', rotuloCancelar: 'Continuar preenchendo' }
+        );
+        if (!confirmou) return;
+
+        clearTimeout(saveTimer);
+        clearTimeout(sharedDraftSyncTimer);
+        marcarRascunhoFinalizadoLocal_(rascunhoId);
+        removerRascunhoLocal_(rascunhoId);
+        await removerFotosPendentesRascunhoDb_(rascunhoId).catch(() => {});
+
+        let cancelamentoServidorConcluido = false;
+        if (navigator.onLine) {
+          try {
+            await apiRequest('config', {
+              consulta: 'rascunho_cancelar',
+              id: rascunhoId,
+              preparacaoId: ''
+            }, 12000);
+            removerCancelamentoRascunhoPendente_(rascunhoId);
+            cancelamentoServidorConcluido = true;
+          } catch (e) {
+            enfileirarCancelamentoRascunho_(rascunhoId, '');
+          }
+        } else {
+          enfileirarCancelamentoRascunho_(rascunhoId, '');
+        }
+
+        resetForm(true, true);
+        atualizarBotaoCancelarPreenchimentoTopo_();
+        atualizarResumoRascunhosLocais_();
+        atualizarResumoOperacionalHome_();
+        appStatus.textContent = cancelamentoServidorConcluido
+          ? 'Vistoria cancelada. Nenhum registro foi criado.'
+          : 'Vistoria cancelada neste aparelho. A limpeza do rascunho compartilhado será concluída automaticamente quando houver conexão.';
+        if (navigator.onLine && !cancelamentoServidorConcluido) {
+          setTimeout(() => { void processarCancelamentosRascunhoPendentes_(); }, 3500);
+        }
       }
 
       async function cancelarPreenchimentoAtual_() {
@@ -19798,12 +19913,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       submitBtn.addEventListener('click', submit);
       clearBtn.addEventListener('click', async () => {
-        const mensagem = usuarioPodeOperar_()
-          ? 'Todos os campos serão limpos e o rascunho deste aparelho será apagado.'
-          : 'Todos os campos deste treinamento serão limpos.';
+        if (usuarioPodeOperar_()) {
+          await cancelarVistoriaNaoProgramadaAtual_();
+          return;
+        }
         const confirmou = await confirmarGpv_(
-          mensagem,
-          usuarioPodeOperar_() ? 'Limpar vistoria?' : 'Limpar treinamento?',
+          'Todos os campos deste treinamento serão limpos.',
+          'Limpar treinamento?',
           { tom: 'danger', rotuloConfirmar: 'Limpar campos' }
         );
         if (confirmou) resetForm();
@@ -20296,6 +20412,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (ehFluxoLiberacao_()) setTimeout(() => { void consultarRetornoLiberacao_(); }, 450);
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
         if (usuarioPodeOperar_()) {
+          setTimeout(() => { void processarCancelamentosRascunhoPendentes_(); }, 180);
           setTimeout(() => { void sincronizarTudoPendente_(true); }, 450);
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
         }
@@ -20338,7 +20455,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99db', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dc', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

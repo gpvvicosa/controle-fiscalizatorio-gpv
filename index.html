@@ -69,7 +69,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99db">
+  <link rel="stylesheet" href="styles.css?v=23.9.99dc">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -542,7 +542,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 29/08/2026 — V23.9.99db.</div>
+        <div class="system-manual-revision">Última revisão: 29/08/2026 — V23.9.99dc.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
       </div>
@@ -695,7 +695,7 @@
           <div class="tutorial-step-icon">📶</div>
           <h3>3. Online e offline</h3>
           <p>A faixa estreita de conexão ocupa a largura da página: <strong>verde forte com indicador em movimento</strong> significa conexão disponível; <strong>vermelha forte pulsante</strong> significa que o aparelho está sem internet.</p>
-          <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho e não expira após poucos dias. A área de vistorias em andamento mostra estabelecimento, endereço, tipo/demanda, data da última edição e um percentual aproximado de preenchimento. Esse percentual é apenas visual e não substitui a validação dos campos obrigatórios. Toque no cartão para escolher qual vistoria continuar ou descartar conscientemente. <strong>Nova vistoria</strong> inicia um formulário limpo sem apagar os demais rascunhos. O rascunho que estiver aberto para edição não pode ser descartado pelo gerenciador; use <strong>Limpar</strong> ou <strong>Cancelar</strong> no próprio formulário. Se você registrar sem sinal, a vistoria permanece segura na fila offline e será enviada quando a conexão voltar.</p>
+          <p>Durante o preenchimento, o rascunho é salvo automaticamente no próprio aparelho e não expira após poucos dias. A área de vistorias em andamento mostra estabelecimento, endereço, tipo/demanda, data da última edição e um percentual aproximado de preenchimento. Esse percentual é apenas visual e não substitui a validação dos campos obrigatórios. Toque no cartão para escolher qual vistoria continuar ou descartar conscientemente. <strong>Nova vistoria</strong> inicia um formulário limpo sem apagar os demais rascunhos. O rascunho que estiver aberto para edição não pode ser descartado pelo gerenciador; use <strong>Cancelar vistoria</strong> no próprio formulário. Se você registrar sem sinal, a vistoria permanece segura na fila offline e será enviada quando a conexão voltar.</p>
           <p class="tutorial-note"><strong>DDU:</strong> o atalho na área de Vistoria aparece somente quando existir pelo menos uma demanda DDU pendente. Ao iniciar um DDU ou uma Vistoria Programada, o formulário é limpo antes de receber os dados daquele atendimento.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="4">
@@ -1075,7 +1075,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99db</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dc</div>
           </section>
         </div>
       </section>
@@ -1734,7 +1734,7 @@
         <div class="draft" id="draftStatus">Rascunho automático</div>
         <button class="btn btn-secondary" type="button" id="continueSharedBtn">Continuar vistoria</button>
         <button class="btn btn-secondary" type="button" id="partialBtn">Concluir parcialmente</button>
-        <button class="btn btn-secondary" type="button" id="clearBtn">Limpar</button>
+        <button class="btn btn-secondary" type="button" id="clearBtn">Cancelar vistoria</button>
         <button class="btn btn-primary" type="button" id="submitBtn">Registrar vistoria</button>
       </div>
     </div>
@@ -2590,12 +2590,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99db — scripts executados somente após todos os modais e controles
+  <!-- V23.9.99dc — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99db"></script>
-  <script src="ocupacoes.js?v=23.9.99db"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99db"></script>
-  <script src="app.js?v=23.9.99db"></script>
+  <script src="config.js?v=23.9.99dc"></script>
+  <script src="ocupacoes.js?v=23.9.99dc"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99dc"></script>
+  <script src="app.js?v=23.9.99dc"></script>
 
 </body>
 </html>
