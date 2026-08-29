@@ -725,7 +725,9 @@
         ];
         if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
         const notificacoes = String(p.notificacoesLiberacao || '').trim();
-        return Boolean(notificacoes && notificacoes !== '[]');
+        if (notificacoes && notificacoes !== '[]') return true;
+        const fotosGerais = String(p.fotosGerais || '').trim();
+        return Boolean(fotosGerais && fotosGerais !== '[]');
       }
 
       function listarRascunhosLocaisAtivos_() {
@@ -801,7 +803,7 @@
         ).trim();
       }
 
-      // V23.9.99cv — apresentação inteligente dos rascunhos. O percentual é
+      // V23.9.99cw — apresentação inteligente dos rascunhos. O percentual é
       // apenas um indicador visual de preenchimento e NÃO interfere nas regras
       // obrigatórias nem na validação final da vistoria.
       function formatarDataHoraRascunho_(savedAt) {
@@ -1228,6 +1230,7 @@
           if (!somenteLocal) return;
         }
 
+        await removerFotosPendentesRascunhoDb_(rid).catch(() => {});
         removerRascunhoLocal_(rid);
         if (remotoCancelado && item.payload?._appPreparacaoId) {
           try { await carregarPreparacoesVistoria_(); } catch (_) {}
@@ -1674,6 +1677,10 @@
       const recordNotificationsList = document.getElementById('recordNotificationsList');
       const recordNotificationsCopyAllBtn = document.getElementById('recordNotificationsCopyAllBtn');
       const recordNotificationsStatus = document.getElementById('recordNotificationsStatus');
+      const recordGeneralPhotosPanel = document.getElementById('recordGeneralPhotosPanel');
+      const recordGeneralPhotosSummary = document.getElementById('recordGeneralPhotosSummary');
+      const recordGeneralPhotosList = document.getElementById('recordGeneralPhotosList');
+      const recordGeneralPhotosStatus = document.getElementById('recordGeneralPhotosStatus');
       const recordAuditCount = document.getElementById('recordAuditCount');
       const recordAuditList = document.getElementById('recordAuditList');
       const connectionBanner = document.getElementById('connectionBanner');
@@ -1798,6 +1805,12 @@
       const eventoResponsavelEhOrganizadorHint = document.getElementById('eventoResponsavelEhOrganizadorHint');
       const notificacoesLiberacaoSecao = document.getElementById('notificacoesLiberacaoSecao');
       const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
+      const fotosGeraisSecao = document.getElementById('fotosGeraisSecao');
+      const generalPhotoInput = document.getElementById('generalPhotoInput');
+      const generalPhotoAddBtn = document.getElementById('generalPhotoAddBtn');
+      const generalPhotoList = document.getElementById('generalPhotoList');
+      const generalPhotoSummary = document.getElementById('generalPhotoSummary');
+      const generalPhotoStatus = document.getElementById('generalPhotoStatus');
       const notificacoesLiberacaoResumo = document.getElementById('notificacoesLiberacaoResumo');
       const notificacoesAdicionarLocalBtn = document.getElementById('notificacoesAdicionarLocalBtn');
       const notificacoesCompartilharAuxBtn = document.getElementById('notificacoesCompartilharAuxBtn');
@@ -2045,7 +2058,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cv';
+      const APP_REVISION_UI_ = '23.9.99cw';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3856,7 +3869,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cv', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cw', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -3958,6 +3971,9 @@
       let preparePfCandidatos = [];
       let preparePfAutoAtual = '';
       let notificacoesLiberacaoDraft = [];
+      let fotosGeraisDraft_ = [];
+      const FOTO_GERAL_ITEM_ID_ = '__GERAL__';
+      const MAX_FOTOS_GERAIS_ = 20;
       let recordNotificationsAtual = [];
 
       // V23.9.69 — navegação global do PWA.
@@ -8578,6 +8594,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      function renderizarFotosGeraisFicha_(registro) {
+        if (!recordGeneralPhotosPanel || !recordGeneralPhotosList) return;
+        const fotos = Array.isArray(registro?.fotosGerais) ? registro.fotosGerais : [];
+        if (!fotos.length) {
+          recordGeneralPhotosPanel.hidden = true;
+          recordGeneralPhotosList.innerHTML = '';
+          if (recordGeneralPhotosStatus) recordGeneralPhotosStatus.textContent = '';
+          return;
+        }
+        recordGeneralPhotosPanel.hidden = false;
+        if (recordGeneralPhotosSummary) {
+          recordGeneralPhotosSummary.textContent = `${fotos.length} foto(s) geral(is) vinculada(s) a esta vistoria. Evidências temporárias permanecem por até 30 dias após o encerramento, salvo quando marcadas para manter.`;
+        }
+        recordGeneralPhotosList.innerHTML = fotos.map((foto, indice) => `
+          <article class="record-general-photo-card">
+            <div class="record-general-photo-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h4l1.4-2h5.2L16 7h4v12H4z"/><circle cx="12" cy="13" r="3.2"/></svg></div>
+            <div>
+              <strong>${escapeHtml(foto?.nome || `Foto geral ${indice + 1}`)}</strong>
+              <span>${foto?.manter ? 'Retenção permanente marcada' : 'Evidência temporária'}</span>
+            </div>
+            ${foto?.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Abrir foto</a>` : ''}
+          </article>`).join('');
+        if (recordGeneralPhotosStatus) recordGeneralPhotosStatus.textContent = '';
+      }
+
       function renderizarFichaRegistro_(registro) {
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
@@ -8734,6 +8775,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         configurarCorrecaoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
         renderizarNotificacoesFicha_(registro);
+        renderizarFotosGeraisFicha_(registro);
         renderizarRelatorioReds_(registro, situacao);
         renderizarWhatsAppFicha_(registro);
         renderizarHistorico_(registro?.historico || []);
@@ -8838,6 +8880,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           recordHistoryPanel.hidden = true;
           if (recordAuditList) recordAuditList.innerHTML = '';
           if (recordAuditPanel) recordAuditPanel.hidden = true;
+          if (recordGeneralPhotosList) recordGeneralPhotosList.innerHTML = '';
+          if (recordGeneralPhotosPanel) recordGeneralPhotosPanel.hidden = true;
           if (recordDetailStatusBadge) {
             recordDetailStatusBadge.textContent = 'Carregando';
             recordDetailStatusBadge.className = 'status-badge status-neutral';
@@ -10769,6 +10813,187 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
       }
 
+      function normalizarFotosGerais_(valor) {
+        let origem = valor;
+        if (typeof origem === 'string') {
+          try { origem = JSON.parse(origem || '[]'); } catch (e) { origem = []; }
+        }
+        if (!Array.isArray(origem)) return [];
+        return origem.slice(0, MAX_FOTOS_GERAIS_).map((foto, indice) => ({
+          id: String(foto?.id || foto?.fileId || `foto-geral-${indice + 1}`),
+          fileId: String(foto?.fileId || ''),
+          nome: String(foto?.nome || `Foto geral ${indice + 1}`).slice(0, 180),
+          url: String(foto?.url || '').slice(0, 1200),
+          estado: String(foto?.estado || (foto?.fileId ? 'sincronizada' : 'pendente')),
+          temporaria: foto?.temporaria !== false,
+          manter: Boolean(foto?.manter),
+          criadoEm: Number(foto?.criadoEm || 0) || 0,
+          _previewDataUrl: String(foto?._previewDataUrl || '')
+        })).filter(foto => foto.id || foto.fileId);
+      }
+
+      function serializarFotosGerais_() {
+        const fotos = normalizarFotosGerais_(fotosGeraisDraft_);
+        if (!fotos.length) return '';
+        return JSON.stringify(fotos.map(foto => ({
+          id: foto.id,
+          fileId: foto.fileId,
+          nome: foto.nome,
+          url: foto.url,
+          estado: foto.estado,
+          temporaria: foto.temporaria,
+          manter: foto.manter,
+          criadoEm: foto.criadoEm
+        })));
+      }
+
+      function restaurarFotosGerais_(valor) {
+        fotosGeraisDraft_ = normalizarFotosGerais_(valor);
+        renderizarFotosGerais_();
+        void carregarPreviewsFotosGeraisPendentes_();
+      }
+
+      async function carregarPreviewsFotosGeraisPendentes_() {
+        try {
+          const fila = await listarFotosPendentesDb_();
+          const porId = new Map(fila.filter(item => item?.tipoFoto === 'geral').map(item => [String(item.id), item]));
+          let mudou = false;
+          fotosGeraisDraft_.forEach(foto => {
+            const pendente = porId.get(String(foto.id));
+            if (pendente?.dataUrl && !foto._previewDataUrl) {
+              foto._previewDataUrl = pendente.dataUrl;
+              mudou = true;
+            }
+          });
+          if (mudou) renderizarFotosGerais_();
+        } catch (e) {}
+      }
+
+      function renderizarFotosGerais_() {
+        if (!generalPhotoList) return;
+        const fotos = normalizarFotosGerais_(fotosGeraisDraft_);
+        fotosGeraisDraft_ = fotos;
+        if (generalPhotoSummary) {
+          generalPhotoSummary.textContent = fotos.length
+            ? `${fotos.length} foto(s) geral(is) adicionada(s).`
+            : 'Nenhuma foto geral adicionada.';
+        }
+        if (!fotos.length) {
+          generalPhotoList.innerHTML = '<div class="general-photo-empty">Nenhuma foto geral. Este registro é opcional.</div>';
+          return;
+        }
+        generalPhotoList.innerHTML = fotos.map((foto, indice) => {
+          const pendente = foto.estado === 'pendente' || !foto.fileId;
+          const visual = foto._previewDataUrl
+            ? `<img src="${escapeAttr(foto._previewDataUrl)}" alt="Prévia da foto geral ${indice + 1}">`
+            : `<div class="general-photo-placeholder" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h4l1.4-2h5.2L16 7h4v12H4z"/><circle cx="12" cy="13" r="3.2"/></svg></div>`;
+          return `<article class="general-photo-card ${pendente ? 'is-pending' : 'is-synced'}" data-general-photo-id="${escapeAttr(foto.id || foto.fileId)}">
+            <div class="general-photo-preview">${visual}</div>
+            <div class="general-photo-info">
+              <strong>${escapeHtml(foto.nome || `Foto geral ${indice + 1}`)}</strong>
+              <span>${pendente ? 'Aguardando sincronização' : 'Salva no Drive'}</span>
+              <div class="general-photo-actions">
+                ${foto.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}
+                ${foto.fileId ? `<button type="button" data-general-photo-keep="${escapeAttr(foto.fileId)}">${foto.manter ? '✓ Manter' : 'Manter'}</button>` : ''}
+                <button type="button" data-general-photo-delete="${escapeAttr(foto.fileId || foto.id)}">Excluir</button>
+              </div>
+            </div>
+          </article>`;
+        }).join('');
+      }
+
+      async function fotografarFotoGeral_(file) {
+        if (!file || !usuarioPodeOperar_()) return;
+        if (fotosGeraisDraft_.length >= MAX_FOTOS_GERAIS_) throw new Error(`Limite de ${MAX_FOTOS_GERAIS_} fotos gerais por vistoria.`);
+        if (!currentRecordId) currentRecordId = criarIdRegistro();
+        if (generalPhotoStatus) generalPhotoStatus.textContent = 'Preparando fotografia...';
+        const dataUrl = await comprimirFotoIrregularidade_(file);
+        const localFotoId = `foto-geral-local-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+        const registro = {
+          id: localFotoId,
+          localId: '',
+          itemId: FOTO_GERAL_ITEM_ID_,
+          tipoFoto: 'geral',
+          dataUrl,
+          edificacao: value('nomeFantasia') || value('razaoSocial') || value('eventoNome') || value('endereco') || 'Edificação',
+          endereco: value('endereco'),
+          pscip: value('pscip'),
+          preparacaoId: String(preparacaoEmUsoId || ''),
+          rascunhoId: String(currentRecordId || ''),
+          dataVistoria: value('dataVistoria') || new Date().toLocaleDateString('pt-BR'),
+          criadoEm: Date.now()
+        };
+        fotosGeraisDraft_.push({
+          id: localFotoId,
+          fileId: '',
+          nome: `Foto geral ${fotosGeraisDraft_.length + 1}`,
+          url: '',
+          estado: 'pendente',
+          temporaria: true,
+          manter: false,
+          criadoEm: registro.criadoEm,
+          _previewDataUrl: dataUrl
+        });
+        await gravarFotoPendenteDb_(registro);
+        renderizarFotosGerais_();
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+        if (navigator.onLine) {
+          if (generalPhotoStatus) generalPhotoStatus.textContent = 'Enviando fotografia...';
+          try {
+            await enviarRegistroFotoPendente_(registro);
+            if (generalPhotoStatus) generalPhotoStatus.textContent = '✓ Foto geral salva e vinculada à vistoria.';
+          } catch (e) {
+            if (generalPhotoStatus) generalPhotoStatus.textContent = 'Foto salva neste aparelho e aguardando sincronização.';
+          }
+        } else if (generalPhotoStatus) {
+          generalPhotoStatus.textContent = 'Foto salva neste aparelho e aguardando sincronização.';
+        }
+      }
+
+      async function alterarRetencaoFotoGeral_(fileId) {
+        const foto = fotosGeraisDraft_.find(item => String(item.fileId || item.id) === String(fileId));
+        if (!foto || !fileId || String(fileId).startsWith('foto-geral-local-')) return;
+        const novoValor = !Boolean(foto.manter);
+        const resposta = await apiRequest('config', { consulta: 'foto_irregularidade_manter', fileId, manter: novoValor }, 15000);
+        foto.manter = Boolean(resposta?.manter);
+        renderizarFotosGerais_();
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+      }
+
+      async function excluirFotoGeral_(fotoId) {
+        const foto = fotosGeraisDraft_.find(item => String(item.fileId || item.id) === String(fotoId));
+        if (!foto) return;
+        const confirmado = await confirmarGpv_(
+          'Esta fotografia geral será removida da vistoria.',
+          'Excluir fotografia?',
+          { tom: 'danger', rotuloConfirmar: 'Excluir' }
+        );
+        if (!confirmado) return;
+        if (String(fotoId).startsWith('foto-geral-local-')) {
+          await removerFotoPendenteDb_(fotoId).catch(() => {});
+        } else if (navigator.onLine) {
+          await apiRequest('config', { consulta: 'foto_irregularidade_excluir', fileId: fotoId }, 15000);
+        } else {
+          if (generalPhotoStatus) generalPhotoStatus.textContent = 'Conecte-se à internet para excluir uma fotografia já enviada ao Drive.';
+          return;
+        }
+        fotosGeraisDraft_ = fotosGeraisDraft_.filter(item => String(item.fileId || item.id) !== String(fotoId));
+        renderizarFotosGerais_();
+        scheduleDraftSave();
+        agendarSincronizacaoRascunhoCompartilhado_();
+      }
+
+      async function removerFotosPendentesRascunhoDb_(rascunhoId) {
+        const rid = String(rascunhoId || '').trim();
+        if (!rid) return 0;
+        const fila = await listarFotosPendentesDb_().catch(() => []);
+        const alvos = fila.filter(item => String(item?.rascunhoId || '') === rid);
+        for (const item of alvos) await removerFotoPendenteDb_(item.id).catch(() => {});
+        return alvos.length;
+      }
+
       function localizarFotoNoRascunho_(localId, itemId, fotoId) {
         const local = localNotificacaoPorId_(localId);
         const item = irregularidadeNotificacaoPorId_(local, itemId);
@@ -10786,15 +11011,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           preparacaoId: registro.preparacaoId,
           rascunhoId: registro.rascunhoId,
           irregularidadeId: registro.itemId,
+          tipoFoto: registro.tipoFoto || 'irregularidade',
           dataVistoria: registro.dataVistoria
         };
       }
 
       async function concluirUploadFoto_(registro, resposta) {
-        const { item } = localizarFotoNoRascunho_(registro.localId, registro.itemId, registro.id);
-        if (!item) return;
-        if (!Array.isArray(item.fotos)) item.fotos = [];
-        const indice = item.fotos.findIndex(f => String(f.id || f.fileId) === String(registro.id));
         const fotoServidor = {
           id: String(resposta.fileId || ''),
           fileId: String(resposta.fileId || ''),
@@ -10802,14 +11024,34 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           url: String(resposta.url || ''),
           estado: 'sincronizada',
           temporaria: true,
-          manter: Boolean(resposta.manter)
+          manter: Boolean(resposta.manter),
+          criadoEm: Number(registro?.criadoEm || Date.now())
         };
-        if (indice >= 0) item.fotos.splice(indice, 1, fotoServidor);
-        else item.fotos.push(fotoServidor);
-        await removerFotoPendenteDb_(registro.id).catch(() => {});
-        renderizarNotificacoesLiberacao_();
-        scheduleDraftSave();
-        agendarSincronizacaoRascunhoCompartilhado_();
+        if (registro?.tipoFoto === 'geral' || String(registro?.itemId) === FOTO_GERAL_ITEM_ID_) {
+          const pertenceAoRascunhoAtual = String(registro?.rascunhoId || '') === String(currentRecordId || '');
+          if (pertenceAoRascunhoAtual) {
+            const indice = fotosGeraisDraft_.findIndex(f => String(f.id || f.fileId) === String(registro.id));
+            if (indice >= 0) fotosGeraisDraft_.splice(indice, 1, fotoServidor);
+            else fotosGeraisDraft_.push(fotoServidor);
+          }
+          await removerFotoPendenteDb_(registro.id).catch(() => {});
+          if (pertenceAoRascunhoAtual) renderizarFotosGerais_();
+        } else {
+          const { item } = localizarFotoNoRascunho_(registro.localId, registro.itemId, registro.id);
+          if (!item) return;
+          if (!Array.isArray(item.fotos)) item.fotos = [];
+          const indice = item.fotos.findIndex(f => String(f.id || f.fileId) === String(registro.id));
+          if (indice >= 0) item.fotos.splice(indice, 1, fotoServidor);
+          else item.fotos.push(fotoServidor);
+          await removerFotoPendenteDb_(registro.id).catch(() => {});
+          renderizarNotificacoesLiberacao_();
+        }
+        const fotoGeralDeOutroRascunho = (registro?.tipoFoto === 'geral' || String(registro?.itemId) === FOTO_GERAL_ITEM_ID_)
+          && String(registro?.rascunhoId || '') !== String(currentRecordId || '');
+        if (!fotoGeralDeOutroRascunho) {
+          scheduleDraftSave();
+          agendarSincronizacaoRascunhoCompartilhado_();
+        }
       }
 
       async function enviarRegistroFotoPendente_(registro) {
@@ -11580,7 +11822,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           retornoLiberacaoDocumentoNome: ehFluxoLiberacao_() ? value('retornoLiberacaoDocumentoNome') : '',
           retornoLiberacaoDocumentoUrl: ehFluxoLiberacao_() ? value('retornoLiberacaoDocumentoUrl') : '',
           retornoLiberacaoDocumentoLink: ehFluxoLiberacao_() ? value('retornoLiberacaoDocumentoLink') : '',
-          notificacoesLiberacao: ehFluxoLiberacao_() ? serializarNotificacoesLiberacao_() : ''
+          notificacoesLiberacao: ehFluxoLiberacao_() ? serializarNotificacoesLiberacao_() : '',
+          fotosGerais: serializarFotosGerais_()
         };
       }
 
@@ -14753,11 +14996,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (cityOptions.includes(p.cidade)) citySelect.value = p.cidade;
         else if (p.cidade) { citySelect.value = 'Outro'; otherCity.value = p.cidade; }
         Object.entries(p).forEach(([key, val]) => {
-          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key.startsWith('_app')) return;
+          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
         protegerCamposResponsavelPreenchidos_();
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
+        restaurarFotosGerais_(p.fotosGerais);
         restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
         restaurarStatusLocalizacao_();
@@ -14926,6 +15170,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacoesSelecionadas = [];
         notificacoesLiberacaoDraft = [];
         renderizarNotificacoesLiberacao_();
+        fotosGeraisDraft_ = [];
+        renderizarFotosGerais_();
+        if (generalPhotoStatus) generalPhotoStatus.textContent = '';
         resetarRetornoLiberacao_();
         ocupacaoInput.value = '';
         renderizarOcupacoesSelecionadas();
@@ -14980,6 +15227,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const fotos = Array.isArray(item?.irregularidade?.fotos) ? item.irregularidade.fotos : [];
           return total + fotos.length;
         }, 0);
+        const totalFotosGerais = normalizarFotosGerais_(payload?.fotosGerais).length;
         const demandaRevisao = eventoDeclaratorio
           ? 'Eventos declaratórios'
           : ([payload?.demandaPrincipal, categoriaMetaComAreaParaExibicao_(payload)].filter(Boolean).join(' | ') || '—');
@@ -15027,6 +15275,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ['Demanda', 'Eventos declaratórios'],
               [usuarioPodeOperar_() ? 'Situação final' : 'Situação no treinamento', situacaoFinal],
               ['Nº PF', payload?.pf || '—'],
+              ['Fotos gerais', totalFotosGerais ? `${totalFotosGerais} foto(s)` : 'Nenhuma foto geral'],
               ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
               [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
             ]
@@ -15097,7 +15346,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             icone: '📷',
             itens: [
               ['Irregularidades / notificações', totalIrregularidades ? `${totalIrregularidades} registrada(s)` : 'Nenhuma registrada'],
-              ['Fotos vinculadas', totalFotos ? `${totalFotos} foto(s)` : 'Nenhuma foto vinculada']
+              ['Fotos vinculadas a irregularidades', totalFotos ? `${totalFotos} foto(s)` : 'Nenhuma foto vinculada'],
+              ['Fotos gerais', totalFotosGerais ? `${totalFotosGerais} foto(s)` : 'Nenhuma foto geral']
             ]
           },
           {
@@ -17807,6 +18057,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             preparacaoId
           }, 12000);
 
+          await removerFotosPendentesRascunhoDb_(rascunhoId).catch(() => {});
           removerRascunhoLocal_(rascunhoId);
 
           preparacoesVistoria = preparacoesVistoria.map(p => {
@@ -17856,6 +18107,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             preparacaoId
           }, 12000);
 
+          await removerFotosPendentesRascunhoDb_(rascunhoId).catch(() => {});
           removerRascunhoLocal_(rascunhoId);
           if (String(currentRecordId) === rascunhoId) resetForm(true);
 
@@ -18622,6 +18874,33 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try { await fotografarIrregularidadeSelecionada_(file); }
         catch (e) { appStatus.textContent = e?.message || 'Não foi possível processar a fotografia.'; }
       });
+      generalPhotoAddBtn?.addEventListener('click', () => {
+        if (!usuarioPodeOperar_()) {
+          if (generalPhotoStatus) generalPhotoStatus.textContent = 'Este acesso não grava fotografias.';
+          return;
+        }
+        generalPhotoInput?.click();
+      });
+      generalPhotoInput?.addEventListener('change', async event => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+        try { await fotografarFotoGeral_(file); }
+        catch (e) { if (generalPhotoStatus) generalPhotoStatus.textContent = e?.message || 'Não foi possível processar a fotografia.'; }
+      });
+      generalPhotoList?.addEventListener('click', async event => {
+        const manter = event.target.closest('[data-general-photo-keep]');
+        if (manter) {
+          try { await alterarRetencaoFotoGeral_(manter.dataset.generalPhotoKeep); }
+          catch (e) { if (generalPhotoStatus) generalPhotoStatus.textContent = e?.message || 'Não foi possível alterar a retenção da fotografia.'; }
+          return;
+        }
+        const excluir = event.target.closest('[data-general-photo-delete]');
+        if (excluir) {
+          try { await excluirFotoGeral_(excluir.dataset.generalPhotoDelete); }
+          catch (e) { if (generalPhotoStatus) generalPhotoStatus.textContent = e?.message || 'Não foi possível excluir a fotografia.'; }
+        }
+      });
       document.getElementById('activeInspectionNotificationsBtn')?.addEventListener('click', rolarParaNotificacoesProgramadas_);
       notificacoesAdicionarLocalBtn?.addEventListener('click', () => {
         carregarBaseNormativaITS_();
@@ -19367,7 +19646,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cv', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cw', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
