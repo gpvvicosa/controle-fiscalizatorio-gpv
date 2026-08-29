@@ -13465,3 +13465,149 @@ body.app-alerts-open{overflow:hidden}
   .location-map-actions a{width:100%;box-sizing:border-box;min-height:44px}
   .location-map-card--review{margin-bottom:10px}
 }
+
+
+/* =========================================================
+   V23.9.99cn — tela inicial operacional refinada
+   Somente apresentação/clareza da home. Regras de vistoria intactas.
+   ========================================================= */
+.app-user-status-stack{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  margin:0 auto 5px;
+}
+.app-user-status-stack .app-user-status-row{margin:0!important;min-height:29px}
+.app-user-status-stack .sync-summary{
+  margin:0!important;
+  min-height:0!important;
+  padding:1px 7px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:9.8px!important;
+  font-weight:780!important;
+  letter-spacing:.005em;
+}
+.app-user-status-stack .sync-summary::before{
+  width:6px!important;
+  height:6px!important;
+  flex-basis:6px!important;
+  box-shadow:none!important;
+}
+.logged-user-badge.has-prepared-alert{
+  background:rgba(255,255,255,.92)!important;
+  border-color:rgba(153,27,27,.14)!important;
+  box-shadow:0 2px 8px rgba(16,24,40,.05)!important;
+  color:#7f1d1d!important;
+  gap:0!important;
+}
+.prepared-alert-badge{display:none!important}
+.app-alerts-bell{
+  width:36px!important;
+  height:32px!important;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.app-alerts-bell:active{transform:scale(.97)}
+.app-alerts-badge{top:-5px!important;right:-5px!important;min-width:19px!important;height:19px!important;font-size:9.5px!important}
+.inspection-flow-grid-after-programmed .inspection-flow-icon .ui-icon{
+  width:26px!important;
+  height:26px!important;
+  stroke-width:1.8!important;
+}
+#fluxoFiscalizacaoBtn .inspection-flow-icon{
+  color:#a51d24!important;
+  background:#fff1f1!important;
+}
+#fluxoLiberacaoBtn .inspection-flow-icon{
+  color:#18864b!important;
+  background:#eef8f1!important;
+}
+.inspection-suggestions-home-summary{
+  font-weight:800!important;
+}
+.app-credit strong{color:#8f171c!important}
+
+@media(max-width:760px){
+  body:not(.records-mode) .hero{
+    width:90%!important;
+    margin:0 auto 7px!important;
+    border-radius:14px!important;
+  }
+  .app-view-nav{
+    padding-top:5px!important;
+  }
+  .app-user-status-stack{margin-bottom:4px!important}
+  .app-user-status-row{gap:6px!important}
+  .logged-user-badge{
+    padding:3px 10px!important;
+    font-size:11.8px!important;
+  }
+  .app-view-btn{
+    min-height:44px!important;
+  }
+  .programmed-summary-card{
+    min-height:66px!important;
+    padding:8px 10px!important;
+    grid-template-columns:46px minmax(0,1fr) auto!important;
+    gap:9px!important;
+  }
+  .programmed-summary-icon{
+    width:46px!important;
+    height:44px!important;
+  }
+  .programmed-summary-copy strong{font-size:.93rem!important}
+  .programmed-summary-copy small{font-size:.70rem!important;line-height:1.15!important}
+  .programmed-summary-count{
+    min-width:34px!important;
+    height:34px!important;
+    font-size:.82rem!important;
+  }
+  .programmed-summary-row{
+    grid-template-columns:minmax(0,1fr) 56px!important;
+  }
+  .programmed-quick-add-btn{
+    width:56px!important;
+    min-width:56px!important;
+  }
+  .inspection-flow-grid-after-programmed{gap:8px!important}
+  .inspection-flow-grid-after-programmed .inspection-flow-card{
+    min-height:82px!important;
+    padding:11px 13px!important;
+    gap:11px!important;
+    border-radius:16px!important;
+  }
+  .inspection-flow-grid-after-programmed .inspection-flow-icon{
+    width:46px!important;
+    height:46px!important;
+    flex-basis:46px!important;
+  }
+  .inspection-flow-grid-after-programmed .inspection-flow-copy strong{
+    font-size:.96rem!important;
+  }
+  .inspection-flow-grid-after-programmed .inspection-flow-copy small{
+    font-size:.70rem!important;
+    line-height:1.2!important;
+  }
+  .inspection-suggestions-home-card{
+    margin-top:9px!important;
+    padding:11px 12px!important;
+    border-radius:16px!important;
+  }
+  .inspection-suggestions-home-copy strong{font-size:.94rem!important}
+  .inspection-suggestions-home-copy small{font-size:.76rem!important;line-height:1.28!important}
+  .inspection-suggestions-home-summary{font-size:.72rem!important}
+  .app-credit{
+    margin-top:7px!important;
+    padding:8px 12px 5px!important;
+  }
+  .app-credit p{
+    margin:0 auto 4px!important;
+    max-width:94%!important;
+    font-size:12.8px!important;
+    line-height:1.38!important;
+  }
+  .app-credit strong{font-size:11.8px!important}
+}

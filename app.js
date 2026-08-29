@@ -1667,7 +1667,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cm';
+      const APP_REVISION_UI_ = '23.9.99cn';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3288,7 +3288,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cm', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cn', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4168,15 +4168,15 @@
         }
 
         let estado = 'is-ok';
-        let texto = 'Online • Tudo sincronizado';
+        let texto = 'Online · Tudo sincronizado';
         if (!navigator.onLine) {
           estado = 'is-offline';
           texto = quantidade
-            ? `Offline • ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando envio`
-            : 'Offline • nenhum envio pendente';
+            ? `Offline · ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando envio`
+            : 'Offline · nenhum envio pendente';
         } else if (quantidade) {
           estado = 'is-pending';
-          texto = `Online • ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
+          texto = `Online · ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
         }
 
         if (syncSummary) {
@@ -14737,8 +14737,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? `${nome}. ${quantidade} vistoria${quantidade === 1 ? '' : 's'} programada${quantidade === 1 ? '' : 's'} para você.`
             : nome);
           loggedUserBadge.innerHTML = nome
-            ? `<span class="logged-user-name">${escapeHtml(nome)}</span>${quantidade > 0 ? `<span class="prepared-alert-badge" aria-hidden="true">${quantidade}</span>` : ''}`
+            ? `<span class="logged-user-name">${escapeHtml(nome)}</span>`
             : '';
+          loggedUserBadge.title = quantidade > 0 ? 'Abrir vistorias programadas atribuídas a você' : '';
         }
 
         if (programmedQuickAddBtn) programmedQuickAddBtn.hidden = !usuarioPodeOperar_();
@@ -16184,13 +16185,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (programmedSummaryCard) {
           programmedSummaryCard.classList.toggle('is-danger', criticas > 0);
           programmedSummaryCard.setAttribute('aria-label', total
-            ? `Abrir Vistorias Programadas. ${total} pendente${total === 1 ? '' : 's'}${minhas ? `, ${minhas} para você` : ''}.`
+            ? `Abrir Vistorias Programadas. ${total} programada${total === 1 ? '' : 's'}${minhas ? `, ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}.`
             : 'Nenhuma vistoria programada pendente');
         }
         if (programmedSummaryCount) programmedSummaryCount.textContent = String(total);
         if (programmedSummaryText) programmedSummaryText.textContent = total
-          ? `${total} pendente${total === 1 ? '' : 's'}${minhas ? ` • ${minhas} para você` : ''}`
-          : 'Nenhuma vistoria pendente';
+          ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
+          : 'Nenhuma vistoria programada';
       }
 
 
@@ -16314,6 +16315,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function carregarResumoSugestoesFiscalizacao_() {
         const cacheLocal = lerCacheSugestoesFiscalizacaoLocal_();
+        if (!cacheLocal && inspectionSuggestionsVistoriaSummary) {
+          inspectionSuggestionsVistoriaSummary.textContent = navigator.onLine
+            ? 'Buscando locais prioritários...'
+            : 'Prioridades disponíveis quando houver conexão';
+        }
         if (cacheLocal) {
           resumoSugestoesFiscalizacao = cacheLocal.resumo || resumoSugestoesFiscalizacao;
           sugestoesFiscalizacaoGeradoEm = String(cacheLocal.geradoEm || '');
@@ -16330,7 +16336,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           sugestoesFiscalizacaoGeradoEm = String(r?.geradoEm || sugestoesFiscalizacaoGeradoEm || '');
           atualizarResumoSugestoesUi_();
         } catch (erro) {
-          if (!cacheLocal && inspectionSuggestionsText) inspectionSuggestionsText.textContent = 'Não foi possível atualizar as sugestões agora.';
+          if (!cacheLocal && inspectionSuggestionsText) inspectionSuggestionsText.textContent = 'Não foi possível atualizar as prioridades agora.';
         }
       }
 
@@ -18646,7 +18652,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cm', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cn', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
