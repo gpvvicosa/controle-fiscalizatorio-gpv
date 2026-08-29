@@ -13705,7 +13705,7 @@ body:not(.records-mode) .app-credit{
 
 
 /* =============================================================================
-   V23.9.99cr — banner sem moldura + rodapé sem área vazia
+   V23.9.99cs — banner sem moldura + rodapé sem área vazia
    Ajuste exclusivamente visual. Mantém regras, mapa e notificações intactos.
    ============================================================================= */
 html{
@@ -13770,7 +13770,7 @@ body:not(.records-mode) .app-credit{
 
 
 /* =============================================================================
-   V23.9.99cr — resumo operacional na tela inicial
+   V23.9.99cs — resumo operacional na tela inicial
    Preenche a área útil da home com informação operacional, sem alterar regras.
    ============================================================================= */
 .home-operational-summary{
@@ -13828,4 +13828,95 @@ body:not(.records-mode) .app-credit{margin-top:10px!important;padding-top:10px!i
   .home-operational-context-action{font-size:10px}
   .home-operational-connection{font-size:9.5px;margin-top:7px}
   body:not(.records-mode) .app-credit{margin-top:7px!important;padding-top:8px!important;padding-bottom:3px!important}
+}
+
+/* =============================================================================
+   V23.9.99cs — acabamento fino do Resumo Operacional
+   Compacta a home sem remover informação e melhora a hierarquia do cartão contextual.
+   ============================================================================= */
+@media(max-width:760px){
+  .home-operational-summary{
+    margin-top:10px!important;
+    padding:10px 10px 9px!important;
+    border-radius:17px!important;
+  }
+  .home-operational-heading{
+    margin-bottom:7px!important;
+  }
+  .home-operational-heading strong{
+    font-size:13.2px!important;
+    line-height:1.15!important;
+  }
+  .home-operational-eyebrow{
+    font-size:9.1px!important;
+    letter-spacing:.065em!important;
+  }
+  .home-operational-metrics{
+    gap:5px!important;
+  }
+  .home-operational-metric{
+    min-height:52px!important;
+    padding:6px 2px!important;
+    border-radius:12px!important;
+  }
+  .home-operational-metric-value{
+    font-size:17.5px!important;
+  }
+  .home-operational-metric-label{
+    margin-top:4px!important;
+    font-size:8.7px!important;
+    line-height:1.1!important;
+  }
+  .home-operational-context{
+    margin-top:7px!important;
+    padding:8px 9px!important;
+    grid-template-columns:32px minmax(0,1fr) auto!important;
+    gap:7px!important;
+    border-radius:12px!important;
+  }
+  .home-operational-context-icon{
+    width:32px!important;
+    height:32px!important;
+    border-radius:9px!important;
+  }
+  .home-operational-context-icon .ui-icon{
+    width:18px!important;
+    height:18px!important;
+  }
+  .home-operational-context-copy{
+    gap:1px!important;
+  }
+  .home-operational-context-copy strong{
+    font-size:11.5px!important;
+    line-height:1.18!important;
+    color:#202838!important;
+  }
+  .home-operational-context-copy small{
+    font-size:9.8px!important;
+    line-height:1.2!important;
+    color:#4f5663!important;
+    font-weight:700!important;
+  }
+  .home-operational-context-action{
+    font-size:9.4px!important;
+  }
+  .home-operational-connection{
+    margin-top:5px!important;
+    font-size:8.8px!important;
+    line-height:1.2!important;
+  }
+  body:not(.records-mode) .app-credit{
+    margin-top:5px!important;
+    padding-top:6px!important;
+    padding-bottom:2px!important;
+  }
+  body:not(.records-mode) .app-credit p{
+    margin-bottom:3px!important;
+    font-size:12.2px!important;
+    line-height:1.32!important;
+  }
+  body:not(.records-mode) .app-credit strong{
+    font-size:11.4px!important;
+    line-height:1.25!important;
+  }
 }
