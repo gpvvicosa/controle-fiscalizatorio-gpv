@@ -801,13 +801,74 @@
         ).trim();
       }
 
-      function subtituloRascunhoLocal_(item) {
+      // V23.9.99cv — apresentação inteligente dos rascunhos. O percentual é
+      // apenas um indicador visual de preenchimento e NÃO interfere nas regras
+      // obrigatórias nem na validação final da vistoria.
+      function formatarDataHoraRascunho_(savedAt) {
+        const quando = Number(savedAt || 0);
+        if (!quando) return 'Data não informada';
+        try {
+          return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit', month: '2-digit', year: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          }).format(new Date(quando));
+        } catch (_) {
+          return new Date(quando).toLocaleString('pt-BR');
+        }
+      }
+
+      function enderecoRascunhoLocal_(item) {
         const p = item?.payload || {};
+        return [p.endereco, p.numero, p.bairro, p.cidade].filter(Boolean).join(', ');
+      }
+
+      function tipoDemandaRascunhoLocal_(item) {
+        const p = item?.payload || {};
+        return [p.tipoVistoria, p.demandaPrincipal].filter(Boolean).join(' · ');
+      }
+
+      function calcularProgressoRascunhoLocal_(item) {
+        const p = item?.payload || {};
+        const evento = normalize(p.demandaPrincipal) === normalize('Eventos declaratórios') || Boolean(String(p.eventoDeclaracaoNumero || '').trim());
+        const liberacao = normalize(p.tipoVistoria).includes('liberacao');
+        const temGps = Boolean(String(p.localizacaoCoordenadas || '').trim() || (String(p.localizacaoLatitude || '').trim() && String(p.localizacaoLongitude || '').trim()));
+        const temEndereco = Boolean(String(p.endereco || '').trim() && (String(p.numero || '').trim() || temGps));
+        const identificacao = evento
+          ? Boolean(String(p.eventoNome || p.nomeFantasia || '').trim() && String(p.eventoDeclaracaoNumero || '').trim())
+          : Boolean(String(p.nomeFantasia || p.razaoSocial || '').trim() && String(p.cnpj || p.cpf || '').trim());
+        const processo = evento
+          ? Boolean(String(p.eventoClassificacao || p.demandaPrincipal || '').trim())
+          : Boolean(String(p.pscip || p.pf || p.situacaoPscip || p._appLicenciamento || p.situacaoLicenciamento || '').trim());
+        const responsavel = Boolean(String(p.responsavel || p.nomeResponsavel || p.eventoOrganizador || '').trim());
+        const tecnico = evento
+          ? Boolean(String(p.eventoInicio || p.eventoPublicoEstimado || p.eventoOrganizador || '').trim())
+          : Boolean(String(p.demandaPrincipal || p.area || p.ocupacao || '').trim());
+        const resultado = Boolean(String(p.sancao || p._appSancaoPretendida || '').trim());
+        const evidencia = liberacao
+          ? Boolean(String(p.notificacoesLiberacao || p.pendenciaDocumental || p.tipoLiberacao || '').trim())
+          : Boolean(String(p.reds || p.natureza || p.situacaoMultaInfoscip || '').trim());
+        const etapas = [
+          Boolean(String(p.tipoVistoria || '').trim()),
+          Boolean(String(p.cidade || '').trim() && (temEndereco || temGps)),
+          identificacao,
+          processo,
+          tecnico,
+          responsavel,
+          resultado,
+          evidencia
+        ];
+        const completas = etapas.filter(Boolean).length;
+        return Math.max(5, Math.min(100, Math.round((completas / etapas.length) * 100)));
+      }
+
+      function subtituloRascunhoLocal_(item) {
         const partes = [];
-        const local = [p.endereco, p.numero].filter(Boolean).join(', ');
+        const tipoDemanda = tipoDemandaRascunhoLocal_(item);
+        const local = enderecoRascunhoLocal_(item);
+        if (tipoDemanda) partes.push(tipoDemanda);
         if (local && normalize(local) !== normalize(tituloRascunhoLocal_(item))) partes.push(local);
-        if (p.cidade) partes.push(String(p.cidade));
-        partes.push(`Última alteração ${textoUltimaAlteracaoRascunho_(item?.savedAt)}`);
+        partes.push(`${calcularProgressoRascunhoLocal_(item)}% preenchido`);
+        partes.push(`editado ${formatarDataHoraRascunho_(item?.savedAt)}`);
         return partes.filter(Boolean).join(' · ');
       }
 
@@ -833,13 +894,16 @@
         }
         row.hidden = false;
         count.textContent = String(lista.length);
-        title.textContent = lista.length === 1 ? 'Vistoria em andamento' : 'Vistorias em andamento';
+        title.textContent = lista.length === 1 ? 'Continuar vistoria' : 'Vistorias em andamento';
         if (lista.length === 1) {
-          text.textContent = `${tituloRascunhoLocal_(lista[0])} · Última alteração ${textoUltimaAlteracaoRascunho_(lista[0].savedAt)}`;
-          card.setAttribute('aria-label', `Continuar vistoria em andamento: ${tituloRascunhoLocal_(lista[0])}`);
+          const progresso = calcularProgressoRascunhoLocal_(lista[0]);
+          const tipoDemanda = tipoDemandaRascunhoLocal_(lista[0]);
+          text.textContent = [tituloRascunhoLocal_(lista[0]), tipoDemanda, `${progresso}% preenchido`, `editado ${textoUltimaAlteracaoRascunho_(lista[0].savedAt)}`].filter(Boolean).join(' · ');
+          card.setAttribute('aria-label', `Gerenciar vistoria em andamento: ${tituloRascunhoLocal_(lista[0])}, ${progresso}% preenchido`);
         } else {
-          text.textContent = `${lista.length} rascunhos preservados neste aparelho · toque para escolher`;
-          card.setAttribute('aria-label', `Escolher entre ${lista.length} vistorias em andamento`);
+          const maisRecente = lista[0];
+          text.textContent = `${lista.length} rascunhos preservados · mais recente: ${tituloRascunhoLocal_(maisRecente)} · ${calcularProgressoRascunhoLocal_(maisRecente)}%`;
+          card.setAttribute('aria-label', `Gerenciar ${lista.length} vistorias em andamento`);
         }
         return lista;
       }
@@ -983,7 +1047,13 @@
         if (ultimoRascunho) {
           homeOperationalContext_ = { tipo: 'rascunho', id: ultimoRascunho.id };
           homeOperationalContextTitle.textContent = 'Continuar vistoria';
-          homeOperationalContextText.textContent = `${tituloRascunhoLocal_(ultimoRascunho)} · Última alteração ${textoUltimaAlteracaoRascunho_(ultimoRascunho.savedAt)}`;
+          const detalhesRascunho = [
+            tituloRascunhoLocal_(ultimoRascunho),
+            tipoDemandaRascunhoLocal_(ultimoRascunho),
+            `${calcularProgressoRascunhoLocal_(ultimoRascunho)}% preenchido`,
+            `editado ${textoUltimaAlteracaoRascunho_(ultimoRascunho.savedAt)}`
+          ].filter(Boolean);
+          homeOperationalContextText.textContent = detalhesRascunho.join(' · ');
           homeOperationalContextAction.textContent = 'Continuar →';
         } else if (ultimo) {
           homeOperationalContext_ = { tipo: 'ultima', busca: ultimo.nome || ultimo.endereco || '' };
@@ -1059,27 +1129,136 @@
         return true;
       }
 
-      async function abrirListaRascunhosLocais_() {
-        const lista = atualizarResumoRascunhosLocais_();
+      function fecharGerenciadorRascunhosLocais_() {
+        const modal = document.getElementById('localDraftsModal');
+        if (!modal) return;
+        modal.hidden = true;
+        document.body.classList.remove('local-drafts-open');
+        agendarSincronizacaoNavegacao_();
+      }
+
+      function renderizarGerenciadorRascunhosLocais_() {
+        const modal = document.getElementById('localDraftsModal');
+        const list = document.getElementById('localDraftsModalList');
+        const summary = document.getElementById('localDraftsModalSummary');
+        if (!modal || !list || !summary) return [];
+        const lista = usuarioPodeOperar_() ? listarRascunhosLocaisAtivos_() : [];
+        summary.textContent = lista.length
+          ? `${lista.length} vistoria${lista.length === 1 ? '' : 's'} em andamento neste aparelho. O percentual é apenas uma referência de preenchimento.`
+          : 'Nenhum rascunho em andamento foi encontrado neste aparelho.';
+        if (!lista.length) {
+          list.innerHTML = '<div class="local-drafts-empty"><strong>Nenhuma vistoria em andamento</strong><span>Uma nova vistoria pode ser iniciada sem risco de substituir trabalhos anteriores.</span></div>';
+          return lista;
+        }
+        list.innerHTML = lista.map((item, index) => {
+          const p = item.payload || {};
+          const titulo = tituloRascunhoLocal_(item);
+          const tipoDemanda = tipoDemandaRascunhoLocal_(item) || 'Tipo ainda não definido';
+          const endereco = enderecoRascunhoLocal_(item) || 'Endereço ainda não informado';
+          const progresso = calcularProgressoRascunhoLocal_(item);
+          const atual = String(currentRecordId || '') === String(item.id || '') && rascunhoAtualEmAndamento_();
+          const recente = index === 0;
+          return `<article class="local-draft-item${recente ? ' is-recent' : ''}${atual ? ' is-current' : ''}" data-draft-id="${escapeAttr(item.id)}">
+            <div class="local-draft-item-head">
+              <div class="local-draft-item-title">
+                <span class="local-draft-rank">${recente ? 'Mais recente' : 'Em andamento'}</span>
+                <strong>${escapeHtml(titulo)}</strong>
+              </div>
+              <span class="local-draft-progress-pill">${progresso}%</span>
+            </div>
+            <div class="local-draft-meta">
+              <span>${escapeHtml(tipoDemanda)}</span>
+              <span>${escapeHtml(endereco)}</span>
+              <span>Última edição: ${escapeHtml(formatarDataHoraRascunho_(item.savedAt))} (${escapeHtml(textoUltimaAlteracaoRascunho_(item.savedAt))})</span>
+            </div>
+            <div class="local-draft-progress" aria-label="Preenchimento aproximado: ${progresso}%"><span style="width:${progresso}%"></span></div>
+            <div class="local-draft-actions">
+              <button type="button" class="local-draft-continue" data-draft-continue="${escapeAttr(item.id)}">${atual ? 'Voltar à vistoria' : 'Continuar vistoria'}</button>
+              <button type="button" class="local-draft-discard" data-draft-discard="${escapeAttr(item.id)}" ${atual ? 'disabled title="Use Limpar ou Cancelar no formulário que está em edição."' : ''}>${atual ? 'Em edição' : 'Descartar'}</button>
+            </div>
+          </article>`;
+        }).join('');
+        return lista;
+      }
+
+      async function descartarRascunhoLocalComConfirmacao_(recordId) {
+        const rid = String(recordId || '').trim();
+        if (!rid) return;
+        const item = listarRascunhosLocaisAtivos_().find(x => String(x.id || '') === rid);
+        if (!item) {
+          renderizarGerenciadorRascunhosLocais_();
+          atualizarResumoRascunhosLocais_();
+          return;
+        }
+        if (String(currentRecordId || '') === rid && rascunhoAtualEmAndamento_()) {
+          await avisarGpv_('Esta vistoria está aberta para edição. Para descartá-la conscientemente, use Limpar ou Cancelar dentro do próprio formulário.', 'Vistoria em edição', { tom: 'warning' });
+          return;
+        }
+        const titulo = tituloRascunhoLocal_(item);
+        const confirmou = await confirmarGpv_(
+          `Descartar o rascunho de “${titulo}”? Esta ação remove o preenchimento preservado. Uma vistoria já registrada não será afetada.`,
+          'Descartar rascunho',
+          { tom: 'danger', rotuloConfirmar: 'Descartar', rotuloCancelar: 'Manter rascunho' }
+        );
+        if (!confirmou) return;
+
+        let remotoCancelado = false;
+        if (navigator.onLine) {
+          try {
+            await apiRequest('config', {
+              consulta: 'rascunho_cancelar',
+              id: rid,
+              preparacaoId: String(item.payload?._appPreparacaoId || '')
+            }, 12000);
+            remotoCancelado = true;
+          } catch (_) {
+            const somenteLocal = await confirmarGpv_(
+              'Não foi possível confirmar o cancelamento da cópia sincronizada. Deseja remover somente deste aparelho? A cópia compartilhada poderá continuar disponível em outro dispositivo.',
+              'Servidor não confirmou o descarte',
+              { tom: 'warning', rotuloConfirmar: 'Remover deste aparelho', rotuloCancelar: 'Cancelar' }
+            );
+            if (!somenteLocal) return;
+          }
+        } else {
+          const somenteLocal = await confirmarGpv_(
+            'O aparelho está offline. O rascunho pode ser removido deste aparelho, mas uma cópia já sincronizada poderá permanecer disponível em outro dispositivo. Deseja continuar?',
+            'Descartar sem internet',
+            { tom: 'warning', rotuloConfirmar: 'Remover deste aparelho', rotuloCancelar: 'Cancelar' }
+          );
+          if (!somenteLocal) return;
+        }
+
+        removerRascunhoLocal_(rid);
+        if (remotoCancelado && item.payload?._appPreparacaoId) {
+          try { await carregarPreparacoesVistoria_(); } catch (_) {}
+        }
+        atualizarResumoRascunhosLocais_();
+        atualizarResumoOperacionalHome_();
+        const restantes = renderizarGerenciadorRascunhosLocais_();
+        if (!restantes.length) setTimeout(fecharGerenciadorRascunhosLocais_, 250);
+        if (appStatus) appStatus.textContent = remotoCancelado
+          ? 'Rascunho descartado neste aparelho e cancelado na cópia sincronizada.'
+          : 'Rascunho removido deste aparelho.';
+      }
+
+      async function abrirGerenciadorRascunhosLocais_() {
+        const modal = document.getElementById('localDraftsModal');
+        if (!modal) return;
+        const lista = renderizarGerenciadorRascunhosLocais_();
         if (!lista.length) {
           if (appStatus) appStatus.textContent = 'Nenhuma vistoria em andamento foi encontrada neste aparelho.';
           return;
         }
-        if (lista.length === 1) {
-          await abrirRascunhoLocalPorId_(lista[0].id);
-          return;
-        }
-        const escolhido = await escolherOpcaoGpv_(
-          'Selecione a vistoria que deseja continuar. Os demais rascunhos permanecerão preservados.',
-          lista.slice(0, 30).map(item => ({
-            valor: item.id,
-            titulo: tituloRascunhoLocal_(item),
-            subtitulo: subtituloRascunhoLocal_(item)
-          })),
-          'Vistorias em andamento'
-        );
-        if (escolhido) await abrirRascunhoLocalPorId_(escolhido);
+        modal.hidden = false;
+        document.body.classList.add('local-drafts-open');
+        agendarSincronizacaoNavegacao_();
+        setTimeout(() => document.getElementById('localDraftsModalCloseBtn')?.focus(), 30);
       }
+
+      async function abrirListaRascunhosLocais_() {
+        await abrirGerenciadorRascunhosLocais_();
+      }
+
 
       const API_CONFIG_READ_QUERIES = new Set([
         '',
@@ -1866,7 +2045,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cu';
+      const APP_REVISION_UI_ = '23.9.99cv';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -1881,6 +2060,10 @@
         ['detail-open', () => recordDetailScreen && recordDetailScreen.classList.contains('show')],
         ['duvidas-open', () => duvidasModal && !duvidasModal.hidden],
         ['gpv-dialog-open', () => document.querySelector('.gpv-dialog-overlay:not([hidden])')],
+        ['local-drafts-open', () => {
+          const modal = document.getElementById('localDraftsModal');
+          return modal && !modal.hidden;
+        }],
         ['record-correction-open', () => recordCorrectionModal && !recordCorrectionModal.hidden],
         ['record-status-update-open', () => recordStatusUpdateModal && !recordStatusUpdateModal.hidden],
         ['reds-templates-open', () => redsTemplatesModal && !redsTemplatesModal.hidden],
@@ -2168,7 +2351,7 @@
         try {
           const nomes = (await caches.keys()).filter(nome => nome.startsWith('gpv-vistorias-pwa-'));
           if (!nomes.length) return 'Nenhum cache do app localizado';
-          const atual = nomes.find(nome => nome.includes('23-9-99-cu')) || nomes[nomes.length - 1];
+          const atual = nomes.find(nome => nome.includes('23-9-99-cv')) || nomes[nomes.length - 1];
           const cache = await caches.open(atual);
           const entradas = await cache.keys();
           return `${atual} • ${entradas.length} arquivo(s)`;
@@ -3673,7 +3856,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cu', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cv', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5418,6 +5601,8 @@
 
       function camadaNavegacaoAtiva_() {
         if (elementoVisivelNavegacao_(accessGuidanceModal)) return { id: 'access-guidance', fechar: () => fecharAvisoAcessoGeral_() };
+        const localDraftsModal = document.getElementById('localDraftsModal');
+        if (elementoVisivelNavegacao_(localDraftsModal)) return { id: 'local-drafts', fechar: () => fecharGerenciadorRascunhosLocais_() };
         const mobileChoice = mobileChoiceState?.overlay;
         if (elementoVisivelNavegacao_(mobileChoice)) return { id: 'mobile-choice', fechar: () => fecharEscolhaMovel_() };
         if (elementoVisivelNavegacao_(recordCorrectionModal)) return { id: 'record-correction', fechar: () => fecharCorrecaoRegistro_() };
@@ -18030,6 +18215,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       document.getElementById('partialBtn')?.addEventListener('click', concluirParcialmente_);
       document.getElementById('continueSharedBtn')?.addEventListener('click', continuarRascunhoCompartilhado_);
       document.getElementById('localDraftSummaryCard')?.addEventListener('click', abrirListaRascunhosLocais_);
+      document.getElementById('localDraftsModalCloseBtn')?.addEventListener('click', fecharGerenciadorRascunhosLocais_);
+      document.getElementById('localDraftsModalNewBtn')?.addEventListener('click', async () => {
+        fecharGerenciadorRascunhosLocais_();
+        if (!prepararFormularioNovaVistoria_('Nova vistoria')) return;
+        await mostrarVistaFormulario_();
+      });
+      document.getElementById('localDraftsModal')?.addEventListener('click', event => {
+        const modal = document.getElementById('localDraftsModal');
+        if (event.target === modal) { fecharGerenciadorRascunhosLocais_(); return; }
+        const continuar = event.target.closest('[data-draft-continue]');
+        if (continuar) {
+          const id = String(continuar.dataset.draftContinue || '');
+          fecharGerenciadorRascunhosLocais_();
+          void abrirRascunhoLocalPorId_(id);
+          return;
+        }
+        const descartar = event.target.closest('[data-draft-discard]');
+        if (descartar && !descartar.disabled) {
+          void descartarRascunhoLocalComConfirmacao_(String(descartar.dataset.draftDiscard || ''));
+        }
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const modal = document.getElementById('localDraftsModal');
+        if (modal && !modal.hidden) fecharGerenciadorRascunhosLocais_();
+      });
       homeOperationalContextCard?.addEventListener('click', () => { void abrirContextoResumoOperacionalHome_(); });
       setTimeout(() => atualizarResumoOperacionalHome_(), 350);
       document.getElementById('localDraftNewBtn')?.addEventListener('click', async () => {
@@ -19156,7 +19367,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cu', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cv', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
