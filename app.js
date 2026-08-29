@@ -2836,7 +2836,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ch', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ci', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -13725,72 +13725,151 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? formatarCnpjTela_(identificador)
           : (identificador.length === 11 ? formatarCpfTela_(identificador) : identificador);
         const eventoDeclaratorio = normalize(payload?.demandaPrincipal || '').includes(normalize('Eventos declaratórios'));
-        const itens = eventoDeclaratorio ? [
-          ['Nº da declaração INFOSCIP', payload?.eventoDeclaracaoNumero || '—'],
-          ['Classificação', payload?.eventoClassificacao || '—'],
-          ['Nome do evento', payload?.eventoNome || '—'],
-          ['Início', payload?.eventoInicio || '—'],
-          ['Término', payload?.eventoTermino || '—'],
-          ['Público estimado', payload?.eventoPublicoEstimado || '—'],
-          ['Organizador', payload?.eventoOrganizador || '—'],
-          ['CPF/CNPJ do organizador', payload?.eventoOrganizadorDocumento || '—'],
-          ['Telefone do organizador', payload?.eventoTelefoneOrganizador || '—'],
-          ['Cidade', payload?.cidade || '—'],
-          ['Local do evento', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || (String(payload?.localizacaoCoordenadas || '').trim() ? 'Localização capturada — endereço ainda não identificado' : '—')],
-          ['Responsável que acompanhou', payload?.nomeResponsavel || '—'],
-          ['CPF do responsável', payload?.cpf ? formatarCpfTela_(payload.cpf) : '—'],
-          ['Telefone do responsável', payload?.telefone || '—'],
-          ['Vínculo / função', payload?.responsavel || '—'],
-          ['Demanda', 'Eventos declaratórios'],
-          ['Categoria da meta', 'Eventos declaratórios'],
-          ['Tipo de vistoria', payload?.tipoVistoria || '—'],
-          ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
-          [usuarioPodeOperar_() ? 'Situação final registrada' : 'Situação ao final do treinamento', payload?.sancao || '—'],
-          ['Nº PF', payload?.pf || '—'],
-          [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
+        const tipoVistoria = String(payload?.tipoVistoria || '—').trim() || '—';
+        const situacaoFinal = String(payload?.sancao || '—').trim() || '—';
+        const situacaoPretendida = String(payload?._appSancaoPretendida || payload?.sancao || '—').trim() || '—';
+        const estabelecimento = String(payload?.nomeFantasia || payload?.razaoSocial || payload?.eventoNome || '—').trim() || '—';
+        const enderecoCompleto = [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ')
+          || (String(payload?.localizacaoCoordenadas || '').trim() ? 'Localização capturada — endereço ainda não identificado' : '—');
+        const gpsCapturado = Boolean(String(payload?.localizacaoCoordenadas || '').trim());
+        const precisaoGps = String(payload?.localizacaoPrecisao || '').trim();
+        const notificacoesRevisao = payload?.notificacoesLiberacao ? flattenNotificacoesLiberacao_(true) : [];
+        const totalIrregularidades = notificacoesRevisao.length;
+        const totalFotos = notificacoesRevisao.reduce((total, item) => {
+          const fotos = Array.isArray(item?.irregularidade?.fotos) ? item.irregularidade.fotos : [];
+          return total + fotos.length;
+        }, 0);
+        const demandaRevisao = eventoDeclaratorio
+          ? 'Eventos declaratórios'
+          : ([payload?.demandaPrincipal, categoriaMetaComAreaParaExibicao_(payload)].filter(Boolean).join(' | ') || '—');
+
+        const secoes = eventoDeclaratorio ? [
+          {
+            titulo: 'Local e identificação',
+            icone: '📍',
+            itens: [
+              ['Nome do evento', payload?.eventoNome || '—'],
+              ['Nº da declaração INFOSCIP', payload?.eventoDeclaracaoNumero || '—'],
+              ['Classificação', payload?.eventoClassificacao || '—'],
+              ['Cidade', payload?.cidade || '—'],
+              ['Local do evento', enderecoCompleto],
+              ['Localização GPS', gpsCapturado ? `Capturada${precisaoGps ? ` • precisão ${precisaoGps}` : ''}` : 'Não capturada']
+            ]
+          },
+          {
+            titulo: 'Evento',
+            icone: '📋',
+            itens: [
+              ['Início', payload?.eventoInicio || '—'],
+              ['Término', payload?.eventoTermino || '—'],
+              ['Público estimado', payload?.eventoPublicoEstimado || '—'],
+              ['Organizador', payload?.eventoOrganizador || '—'],
+              ['CPF/CNPJ do organizador', payload?.eventoOrganizadorDocumento || '—'],
+              ['Telefone do organizador', payload?.eventoTelefoneOrganizador || '—']
+            ]
+          },
+          {
+            titulo: 'Responsável no local',
+            icone: '👤',
+            itens: [
+              ['Responsável que acompanhou', payload?.nomeResponsavel || '—'],
+              ['CPF do responsável', payload?.cpf ? formatarCpfTela_(payload.cpf) : '—'],
+              ['Telefone', payload?.telefone || '—'],
+              ['Vínculo / função', payload?.responsavel || '—']
+            ]
+          },
+          {
+            titulo: 'Vistoria e registro',
+            icone: '✓',
+            itens: [
+              ['Tipo de vistoria', tipoVistoria],
+              ['Demanda', 'Eventos declaratórios'],
+              [usuarioPodeOperar_() ? 'Situação final' : 'Situação no treinamento', situacaoFinal],
+              ['Nº PF', payload?.pf || '—'],
+              ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
+              [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
+            ]
+          }
         ] : [
-          ['Estabelecimento', payload?.nomeFantasia || payload?.razaoSocial || '—'],
-          ['CNPJ / CPF', idFormatado || '—'],
-          ['Cidade', payload?.cidade || '—'],
-          ['Endereço', [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ') || (String(payload?.localizacaoCoordenadas || '').trim() ? 'Localização capturada — endereço ainda não identificado' : '—')],
-          ['Responsável / RT', payload?.nomeResponsavel || '—'],
-          ['Telefone', payload?.telefone || '—'],
-          ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
-          ['Possui PSCIP?', payload?._appPossuiPscip === 'sim'
-            ? 'Sim'
-            : (payload?._appPossuiPscip === 'nao'
-              ? 'Não'
-              : (payload?._appPossuiPscip === 'dispensado' ? 'Dispensado' : '—'))],
-          ['Nº PSCIP', payload?.pscip || '—'],
-          ['Situação atual do PSCIP', payload?.situacaoPscip || '—'],
-          ...(normalize(payload?.demandaPrincipal || '') === normalize('DDU') ? [['Protocolo DDU', payload?.dduProtocol || '—']] : []),
-          ...(normalize(payload?.demandaPrincipal || '') === normalize('Vistoria Acessória') ? [
-            ['PF vinculado', payload?._appAcessoriaPfVinculado || payload?.pf || '—'],
-            ['Situação anterior do PF', payload?.acessoriaSituacaoAnterior || '—'],
-            ['Resultado da Vistoria Acessória', payload?.acessoriaResultado === 'sanadas' ? 'Irregularidades sanadas' : (payload?.acessoriaResultado === 'nao_sanadas' ? 'Irregularidades persistem' : '—')],
-            ['Documento de licenciamento', payload?.acessoriaTipoLicenca || '—']
-          ] : []),
-          ...(normalize(payload?.tipoLiberacao || '') === normalize('parcial') ? [
-            ['Tipo da liberação', 'Parcial'],
-            ['Área/trecho liberado', payload?.liberacaoParcialDescricao || '—'],
-            ['Área liberada parcialmente', payload?.liberacaoParcialArea ? `${payload.liberacaoParcialArea} m²` : '—']
-          ] : []),
-          ['Área da edificação', payload?.area ? `${payload.area} m²` : '—'],
-          ['Demanda', [payload?.demandaPrincipal, categoriaMetaComAreaParaExibicao_(payload)].filter(Boolean).join(' | ') || '—'],
-          ['Verificação de meta por área', normalize(payload?.tipoVistoria || '').includes('fiscalizacao')
-            ? (numeroAreaM2_(payload?.area) > 930 ? 'Nível de risco III — enquadramento automático' : 'Não enquadra automaticamente em Nível de risco III pela área')
-            : 'Não se aplica'],
-          ['Tipo de vistoria', payload?.tipoVistoria || '—'],
-          ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
-          ['Situação pretendida', payload?._appSancaoPretendida || payload?.sancao || '—'],
-          [usuarioPodeOperar_() ? 'Situação final registrada' : 'Situação ao final do treinamento', payload?.sancao || '—'],
-          ['Situação de multa no INFOSCIP', payload?.situacaoMultaInfoscip || 'Não conferido'],
-          ['Notificações da liberação', payload?.notificacoesLiberacao ? `${flattenNotificacoesLiberacao_(true).length} ${usuarioPodeOperar_() ? 'registrada(s)' : 'preenchida(s)'}` : '—'],
-          ['Nº PF', payload?.pf || '—'],
-          [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
+          {
+            titulo: 'Local e identificação',
+            icone: '📍',
+            itens: [
+              ['Estabelecimento', estabelecimento],
+              ['CNPJ / CPF', idFormatado || '—'],
+              ['Cidade', payload?.cidade || '—'],
+              ['Endereço', enderecoCompleto],
+              ['Localização GPS', gpsCapturado ? `Capturada${precisaoGps ? ` • precisão ${precisaoGps}` : ''}` : 'Não capturada']
+            ]
+          },
+          {
+            titulo: 'Processo',
+            icone: '📁',
+            itens: [
+              ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
+              ['Possui PSCIP?', payload?._appPossuiPscip === 'sim'
+                ? 'Sim'
+                : (payload?._appPossuiPscip === 'nao'
+                  ? 'Não'
+                  : (payload?._appPossuiPscip === 'dispensado' ? 'Dispensado' : '—'))],
+              ['Nº PSCIP', payload?.pscip || '—'],
+              ['Situação atual do PSCIP', payload?.situacaoPscip || '—'],
+              ['Nº PF', payload?.pf || '—'],
+              ['Situação de multa no INFOSCIP', payload?.situacaoMultaInfoscip || 'Não conferido'],
+              ...(normalize(payload?.demandaPrincipal || '') === normalize('DDU') ? [['Protocolo DDU', payload?.dduProtocol || '—']] : []),
+              ...(normalize(payload?.demandaPrincipal || '') === normalize('Renovação AVCB') ? [['Data de renovação do AVCB', payload?.dataRenovacaoAvcb || '—']] : []),
+              ...(normalize(payload?.demandaPrincipal || '') === normalize('Vistoria Acessória') ? [
+                ['PF vinculado', payload?._appAcessoriaPfVinculado || payload?.pf || '—'],
+                ['Situação anterior do PF', payload?.acessoriaSituacaoAnterior || '—'],
+                ['Resultado da Vistoria Acessória', payload?.acessoriaResultado === 'sanadas' ? 'Irregularidades sanadas' : (payload?.acessoriaResultado === 'nao_sanadas' ? 'Irregularidades persistem' : '—')],
+                ['Documento de licenciamento', payload?.acessoriaTipoLicenca || '—']
+              ] : [])
+            ]
+          },
+          {
+            titulo: 'Vistoria',
+            icone: '🧾',
+            itens: [
+              ['Tipo de vistoria', tipoVistoria],
+              ['Demanda', demandaRevisao],
+              ['Área da edificação', payload?.area ? `${payload.area} m²` : '—'],
+              ['Situação pretendida', situacaoPretendida],
+              [usuarioPodeOperar_() ? 'Situação final' : 'Situação no treinamento', situacaoFinal],
+              ...(normalize(payload?.tipoLiberacao || '') === normalize('parcial') ? [
+                ['Tipo da liberação', 'Parcial'],
+                ['Área/trecho liberado', payload?.liberacaoParcialDescricao || '—'],
+                ['Área liberada parcialmente', payload?.liberacaoParcialArea ? `${payload.liberacaoParcialArea} m²` : '—']
+              ] : []),
+              ...(String(payload?.pendenciaDocumental || '').trim() ? [['Pendência documental', payload.pendenciaDocumental]] : [])
+            ]
+          },
+          {
+            titulo: 'Responsável',
+            icone: '👤',
+            itens: [
+              ['Responsável / RT', payload?.nomeResponsavel || '—'],
+              ['Telefone', payload?.telefone || '—']
+            ]
+          },
+          {
+            titulo: 'Irregularidades e evidências',
+            icone: '📷',
+            itens: [
+              ['Irregularidades / notificações', totalIrregularidades ? `${totalIrregularidades} registrada(s)` : 'Nenhuma registrada'],
+              ['Fotos vinculadas', totalFotos ? `${totalFotos} foto(s)` : 'Nenhuma foto vinculada']
+            ]
+          },
+          {
+            titulo: 'Registro',
+            icone: '✓',
+            itens: [
+              ['Vistoriador responsável', payload?.vistoriadorResponsavel || '—'],
+              [usuarioPodeOperar_() ? 'Enviado por' : 'Preenchido por', authState.usuario?.nome || '—']
+            ]
+          }
         ];
 
-
+        const itens = secoes.flatMap(secao => secao.itens || []);
         const duplicados = Array.isArray(duplicidade?.encontrados) ? duplicidade.encontrados : [];
         const avisoDuplicidade = duplicidade?.duplicado && duplicados.length
           ? `Atenção: já existe vistoria recente deste CNPJ/CPF no mesmo endereço. Registro mais recente: ${duplicados[0].carimbo || 'data não informada'} — ${duplicados[0].estabelecimento || 'estabelecimento'}${duplicados[0].sancao ? ` — ${duplicados[0].sancao}` : ''}. Se esta é uma nova vistoria, você pode continuar.`
@@ -13805,9 +13884,39 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ).then(confirmado => ({ confirmado, encerrarProcesso: false, chaveProcesso: '' }));
         }
 
-        reviewList.innerHTML = itens.map(([rotulo, valor]) =>
-          `<div class="review-row"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong></div>`
-        ).join('');
+        const situacaoNormalizada = normalize(situacaoFinal);
+        const classeSituacao = [normalize('Autuado'), normalize('Notificado'), normalize('Pendente — multa em aberto')].includes(situacaoNormalizada)
+          ? 'is-attention'
+          : ([normalize('Regularizado'), normalize('Liberado')].includes(situacaoNormalizada) ? 'is-success' : 'is-neutral');
+        const resumoLocal = eventoDeclaratorio ? (payload?.eventoNome || 'Evento') : estabelecimento;
+        const resumoEndereco = [payload?.endereco, payload?.numero, payload?.cidade].filter(Boolean).join(', ') || (gpsCapturado ? 'Localização GPS capturada' : 'Endereço não informado');
+
+        const secoesHtml = secoes.map(secao => `
+          <section class="review-section">
+            <h3><span aria-hidden="true">${escapeHtml(secao.icone || '•')}</span>${escapeHtml(secao.titulo)}</h3>
+            <div class="review-section-grid">
+              ${(secao.itens || []).map(([rotulo, valor]) => {
+                const gps = normalize(rotulo) === normalize('Localização GPS');
+                const classeValor = gps ? (gpsCapturado ? ' review-value-ok' : ' review-value-muted') : '';
+                return `<div class="review-data-item"><span>${escapeHtml(rotulo)}</span><strong class="${classeValor.trim()}">${escapeHtml(valor)}</strong></div>`;
+              }).join('')}
+            </div>
+          </section>
+        `).join('');
+
+        reviewList.innerHTML = `
+          <div class="review-final-banner ${classeSituacao}">
+            <span>${usuarioPodeOperar_() ? 'Será registrado como' : 'Resultado desta simulação'}</span>
+            <strong>${escapeHtml(situacaoFinal)}</strong>
+          </div>
+          <div class="review-main-summary">
+            <span class="review-type-pill">${escapeHtml(tipoVistoria)}</span>
+            <strong>${escapeHtml(resumoLocal)}</strong>
+            <small>${escapeHtml(resumoEndereco)}</small>
+            ${gpsCapturado ? '<em>✓ GPS capturado</em>' : ''}
+          </div>
+          ${secoesHtml}
+        `;
         if (reviewDuplicateNotice) {
           reviewDuplicateNotice.hidden = !avisoDuplicidade;
           reviewDuplicateNotice.textContent = avisoDuplicidade;
@@ -13841,7 +13950,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             reviewClosureNotice.hidden = false;
           }
         }
-        reviewConfirmBtn.textContent = usuarioPodeOperar_() ? 'Confirmar e registrar' : 'Concluir treinamento';
+        reviewConfirmBtn.textContent = usuarioPodeOperar_() ? '✓ Confirmar e registrar' : 'Concluir treinamento';
         reviewModal.hidden = false;
         document.body.classList.add('review-open');
 
@@ -17933,7 +18042,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ch', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ci', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
