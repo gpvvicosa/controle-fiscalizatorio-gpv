@@ -13365,3 +13365,103 @@ a.btn {
 .app-alert-item-mark{margin-top:8px;padding:0;border:0;background:transparent;color:#8f171c;font-size:10px;font-weight:850;cursor:pointer}
 body.app-alerts-open{overflow:hidden}
 @media(max-width:640px){.app-user-status-row{margin-bottom:4px}.app-alerts-bell{width:33px;height:29px}.app-alerts-overlay{align-items:flex-end;padding:0}.app-alerts-card{width:100%;max-height:92vh;border-radius:22px 22px 0 0}.app-alerts-body{max-height:calc(92vh - 90px);padding:12px 12px 20px}.app-alerts-header{padding:16px 14px 12px}.app-alerts-target-grid{grid-template-columns:1fr}.app-alerts-compose-actions{display:grid;grid-template-columns:1fr 1fr}.app-alerts-device-actions{display:grid;grid-template-columns:1fr 1fr}.app-alerts-toolbar{align-items:flex-end}.app-alerts-toolbar-actions{flex-direction:column}}
+
+
+/* =============================================================================
+   V23.9.99cm — LOCALIZAÇÃO E CONFERÊNCIA NO MAPA
+   Mapa visual não interfere na validação, no envio nem no funcionamento offline.
+   ============================================================================= */
+.location-map-card{
+  border:1px solid #d7dee8;
+  border-radius:15px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:0 5px 18px rgba(18,35,52,.06);
+}
+.location-map-card--review{margin:0 0 12px}
+.record-detail-groups>.location-map-card--record{grid-column:1/-1}
+.location-map-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 13px;
+  background:#f7f9fc;
+  border-bottom:1px solid #e3e8ef;
+}
+.location-map-head>div{min-width:0}
+.location-map-head span{
+  display:block;
+  color:#6b7789;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+}
+.location-map-head strong{display:block;margin-top:2px;color:#25384f;font-size:13px}
+.location-map-head em{
+  flex:0 0 auto;
+  border-radius:999px;
+  padding:4px 8px;
+  background:#eaf7f0;
+  color:#176342;
+  font-size:9px;
+  font-style:normal;
+  font-weight:900;
+}
+.location-map-meta{
+  display:grid;
+  grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(90px,.55fr);
+  gap:1px;
+  background:#e3e8ef;
+  border-bottom:1px solid #e3e8ef;
+}
+.location-map-meta>div{min-width:0;padding:9px 11px;background:#fff}
+.location-map-meta span{display:block;margin-bottom:3px;color:#758195;font-size:9px;font-weight:800;text-transform:uppercase}
+.location-map-meta strong{display:block;color:#2c3e55;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.location-map-frame-shell{position:relative;width:100%;height:240px;background:#eef2f5}
+.location-map-frame{display:block;width:100%;height:100%;border:0;background:#eef2f5}
+.location-map-offline{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  padding:22px 14px;
+  background:#f7f8fa;
+  color:#5f6b7a;
+  text-align:center;
+}
+.location-map-offline strong{color:#3d4b5e;font-size:12px}
+.location-map-offline span{font-size:11px}
+.location-map-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border-top:1px solid #e3e8ef;
+  background:#fff;
+}
+.location-map-actions small{color:#7a8594;font-size:9px;line-height:1.35}
+.location-map-actions a{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  padding:7px 11px;
+  border:1px solid #7d151b;
+  border-radius:9px;
+  color:#7d151b;
+  background:#fff;
+  font-size:10px;
+  font-weight:850;
+  text-decoration:none;
+}
+.location-map-actions a:focus-visible{outline:3px solid rgba(125,21,27,.18);outline-offset:2px}
+@media (max-width:720px){
+  .location-map-meta{grid-template-columns:1fr}
+  .location-map-frame-shell{height:210px}
+  .location-map-actions{align-items:stretch;flex-direction:column}
+  .location-map-actions a{width:100%;box-sizing:border-box;min-height:44px}
+  .location-map-card--review{margin-bottom:10px}
+}

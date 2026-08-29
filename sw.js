@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260829-v23-9-99-notificacoes-cl';
-const VERSION = '23.9.99cl';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260829-v23-9-99-mapa-cm';
+const VERSION = '23.9.99cm';
 
 const CORE_SHELL = [
   './',

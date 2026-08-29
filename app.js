@@ -1667,7 +1667,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cl';
+      const APP_REVISION_UI_ = '23.9.99cm';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3288,7 +3288,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cl', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cm', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -3654,6 +3654,84 @@
       function digits(v) { return String(v || '').replace(/\D/g, ''); }
       function normalize(v) {
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      }
+
+
+      // V23.9.99cm — mapa de conferência geográfica sem chave de API.
+      function extrairCoordenadasMapa_(latitude, longitude, coordenadas) {
+        const converter = valor => {
+          const texto = String(valor == null ? '' : valor).trim().replace(',', '.');
+          if (!texto) return NaN;
+          const numero = Number(texto);
+          return Number.isFinite(numero) ? numero : NaN;
+        };
+
+        let lat = converter(latitude);
+        let lon = converter(longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          const texto = String(coordenadas || '').trim();
+          const achado = texto.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;]\s*(-?\d+(?:\.\d+)?)\s*$/);
+          if (achado) {
+            lat = Number(achado[1]);
+            lon = Number(achado[2]);
+          }
+        }
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+        return { lat, lon };
+      }
+
+      function formatarCoordenadasMapa_(coordenadas) {
+        if (!coordenadas) return '';
+        return `${coordenadas.lat.toFixed(6)}, ${coordenadas.lon.toFixed(6)}`;
+      }
+
+      function formatarPrecisaoGpsMapa_(valor) {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (!texto) return '';
+        if (/m(?:etros?)?\b/i.test(texto)) return texto;
+        const numero = Number(texto.replace(',', '.'));
+        return Number.isFinite(numero) ? `${Math.round(numero)} m` : texto;
+      }
+
+      function montarMapaLocalizacao_(opcoes = {}) {
+        const coordenadas = extrairCoordenadasMapa_(opcoes.latitude, opcoes.longitude, opcoes.coordenadas);
+        if (!coordenadas) return '';
+
+        const deltaLat = 0.0045;
+        const deltaLon = 0.0055;
+        const minLon = (coordenadas.lon - deltaLon).toFixed(6);
+        const minLat = (coordenadas.lat - deltaLat).toFixed(6);
+        const maxLon = (coordenadas.lon + deltaLon).toFixed(6);
+        const maxLat = (coordenadas.lat + deltaLat).toFixed(6);
+        const lat = coordenadas.lat.toFixed(6);
+        const lon = coordenadas.lon.toFixed(6);
+        const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${minLon},${minLat},${maxLon},${maxLat}`)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lon}`)}`;
+        const abrirUrl = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}#map=18/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
+        const precisao = formatarPrecisaoGpsMapa_(opcoes.precisao);
+        const endereco = String(opcoes.endereco || '').trim();
+        const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        const contexto = opcoes.contexto === 'ficha' ? 'record' : 'review';
+
+        return `<section class="location-map-card location-map-card--${contexto}" aria-label="Localização no mapa">
+          <div class="location-map-head">
+            <div><span>Conferência geográfica</span><strong>Localização registrada</strong></div>
+            <em>GPS</em>
+          </div>
+          <div class="location-map-meta">
+            ${endereco && endereco !== '—' ? `<div><span>Endereço</span><strong>${escapeHtml(endereco)}</strong></div>` : ''}
+            <div><span>Coordenadas</span><strong>${escapeHtml(formatarCoordenadasMapa_(coordenadas))}</strong></div>
+            ${precisao ? `<div><span>Precisão</span><strong>${escapeHtml(precisao)}</strong></div>` : ''}
+          </div>
+          ${offline
+            ? `<div class="location-map-offline"><strong>Mapa indisponível offline.</strong><span>As coordenadas permanecem preservadas no registro.</span></div>`
+            : `<div class="location-map-frame-shell"><iframe class="location-map-frame" src="${escapeAttr(embedUrl)}" title="Mapa da localização da vistoria" loading="lazy" referrerpolicy="no-referrer"></iframe></div>`}
+          <div class="location-map-actions">
+            <small>${offline ? 'O mapa poderá ser consultado quando houver internet.' : 'Mapa fornecido pelo OpenStreetMap. Requer conexão com a internet.'}</small>
+            <a href="${escapeAttr(abrirUrl)}" target="_blank" rel="noopener noreferrer">Abrir localização no mapa ↗</a>
+          </div>
+        </section>`;
       }
 
       /* V23.9.53 — seletor móvel padronizado com gesto seguro.
@@ -7867,9 +7945,29 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
           ['Situação atual do PSCIP', valorCampoFicha_(registro, 'Situação atual do PSCIP')]
         ];
-        const localizacao = registro?.localizacao && String(registro.localizacao.coordenadas || '').trim()
-          ? [['Coordenadas', String(registro.localizacao.coordenadas || '').trim()]]
-          : [];
+        const localizacaoBruta = String(registro?.localizacao?.coordenadas || '').trim();
+        const coordenadasFicha = extrairCoordenadasMapa_(
+          registro?.localizacao?.latitude,
+          registro?.localizacao?.longitude,
+          localizacaoBruta
+        );
+        const precisaoFicha = formatarPrecisaoGpsMapa_(registro?.localizacao?.precisao || registro?.localizacao?.acuracia || '');
+        const localizacao = coordenadasFicha
+          ? [
+              ['Coordenadas', formatarCoordenadasMapa_(coordenadasFicha)],
+              ...(precisaoFicha ? [['Precisão GPS', precisaoFicha]] : [])
+            ]
+          : (localizacaoBruta ? [['Coordenadas', localizacaoBruta]] : []);
+        const mapaLocalizacaoFicha = coordenadasFicha
+          ? montarMapaLocalizacao_({
+              latitude: coordenadasFicha.lat,
+              longitude: coordenadasFicha.lon,
+              coordenadas: localizacaoBruta,
+              precisao: precisaoFicha,
+              endereco: enderecoFicha_(registro),
+              contexto: 'ficha'
+            })
+          : '';
         const responsavel = [
           ['Responsável / vínculo', valorCampoFicha_(registro, 'Responsável')],
           ['Nome', valorCampoFicha_(registro, 'Nome')],
@@ -7943,6 +8041,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
           montarGrupoFicha_('Edificação', local) +
           montarGrupoFicha_('Localização capturada', localizacao, 'record-location-captured') +
+          mapaLocalizacaoFicha +
           montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel);
 
         recordDetailTitle.textContent = 'Ficha do Processo';
@@ -14184,7 +14283,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const estabelecimento = String(payload?.nomeFantasia || payload?.razaoSocial || payload?.eventoNome || '—').trim() || '—';
         const enderecoCompleto = [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ')
           || (String(payload?.localizacaoCoordenadas || '').trim() ? 'Localização capturada — endereço ainda não identificado' : '—');
-        const gpsCapturado = Boolean(String(payload?.localizacaoCoordenadas || '').trim());
+        const coordenadasMapaRevisao = extrairCoordenadasMapa_(
+          payload?.localizacaoLatitude,
+          payload?.localizacaoLongitude,
+          payload?.localizacaoCoordenadas
+        );
+        const gpsCapturado = Boolean(String(payload?.localizacaoCoordenadas || '').trim() || coordenadasMapaRevisao);
         const precisaoGps = String(payload?.localizacaoPrecisao || '').trim();
         const notificacoesRevisao = payload?.notificacoesLiberacao ? flattenNotificacoesLiberacao_(true) : [];
         const totalIrregularidades = notificacoesRevisao.length;
@@ -14344,7 +14448,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const resumoLocal = eventoDeclaratorio ? (payload?.eventoNome || 'Evento') : estabelecimento;
         const resumoEndereco = [payload?.endereco, payload?.numero, payload?.cidade].filter(Boolean).join(', ') || (gpsCapturado ? 'Localização GPS capturada' : 'Endereço não informado');
 
-        const secoesHtml = secoes.map(secao => `
+        const mapaRevisaoHtml = coordenadasMapaRevisao
+          ? montarMapaLocalizacao_({
+              latitude: coordenadasMapaRevisao.lat,
+              longitude: coordenadasMapaRevisao.lon,
+              coordenadas: payload?.localizacaoCoordenadas,
+              precisao: precisaoGps,
+              endereco: resumoEndereco,
+              contexto: 'review'
+            })
+          : '';
+
+        const secoesHtml = secoes.map((secao, indice) => `
           <section class="review-section">
             <h3><span aria-hidden="true">${escapeHtml(secao.icone || '•')}</span>${escapeHtml(secao.titulo)}</h3>
             <div class="review-section-grid">
@@ -14355,6 +14470,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               }).join('')}
             </div>
           </section>
+          ${indice === 0 ? mapaRevisaoHtml : ''}
         `).join('');
 
         reviewList.innerHTML = `
@@ -18530,7 +18646,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cl', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cm', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
