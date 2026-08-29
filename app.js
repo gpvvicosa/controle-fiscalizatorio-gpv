@@ -1848,6 +1848,9 @@
       let recordStatusRegistroAtual = null;
       let recordCorrectionRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
+      // V23.9.99ct — a Ficha reúne o histórico de vistorias e a auditoria em uma única linha do tempo.
+      let recordTimelineHistorico_ = [];
+      let recordTimelineAuditoria_ = [];
       let redsTemplatesOverrides_ = {};
       let redsTemplatesMetadata_ = {};
       let redsTemplatesCarregados_ = false;
@@ -1860,7 +1863,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cs';
+      const APP_REVISION_UI_ = '23.9.99ct';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3481,7 +3484,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cs', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ct', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6505,51 +6508,157 @@
         ].filter(([, valor]) => String(valor == null ? '' : valor).trim() && String(valor).trim() !== '—');
       }
 
-      function renderizarHistorico_(historico) {
-        const itens = Array.isArray(historico) ? historico : [];
-        if (!itens.length) {
-          recordHistoryPanel.hidden = true;
-          return;
+      function timestampLinhaTempoProcesso_(valor) {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (!texto) return 0;
+        const direto = Date.parse(texto);
+        if (Number.isFinite(direto)) return direto;
+        const br = texto.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+        if (br) {
+          const [, dia, mes, ano, hora = '0', minuto = '0', segundo = '0'] = br;
+          const data = new Date(Number(ano), Number(mes) - 1, Number(dia), Number(hora), Number(minuto), Number(segundo));
+          const ts = data.getTime();
+          if (Number.isFinite(ts)) return ts;
         }
-        recordHistoryPanel.hidden = false;
-        recordHistoryCount.textContent = `${itens.length} registro${itens.length === 1 ? '' : 's'}`;
-        recordHistoryTimeline.innerHTML = itens.map(item => {
-          const titulo = item.sancao || item.tipoVistoria || item.demanda || 'Vistoria realizada';
-          const dadosCopiaveis = dadosCopiaveisHistorico_(item);
-          const atalhos = dadosCopiaveis.length
-            ? `<div class="history-copy-grid">${dadosCopiaveis.map(([rotulo, valor]) => `<div class="history-copy-item"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong>${botaoCopiarValorFichaHtml_(rotulo, valor, 'history-copy-btn')}</div>`).join('')}</div>`
-            : '';
-          return `<article class="history-item ${classeStatus_(item.sancao)}">
-            <div class="history-marker" aria-hidden="true"></div>
-            <div class="history-body"><time>${escapeHtml(formatarDataPainel_(item.carimbo))}</time><strong>${escapeHtml(titulo)}</strong><p>${escapeHtml(descricaoHistorico_(item))}</p>${atalhos}</div>
-          </article>`;
-        }).join('');
+        return 0;
       }
 
+      function ehCampoSituacaoLinhaTempo_(campo) {
+        const n = normalize(campo || '');
+        return Boolean(n) && (
+          n.includes('sancao') ||
+          n.includes('situacao') ||
+          n.includes('status') ||
+          n.includes('multa')
+        );
+      }
+
+      function classeAuditoriaLinhaTempo_(item) {
+        const novo = String(item?.novoValor || '').trim();
+        const campo = String(item?.campo || '').trim();
+        if (novo && ehCampoSituacaoLinhaTempo_(campo)) return classeStatus_(novo);
+        return 'status-neutral';
+      }
+
+      function descricaoAuditoriaLinhaTempo_(item) {
+        const campo = String(item?.campo || '').trim();
+        const anterior = String(item?.valorAnterior || '').trim();
+        const novo = String(item?.novoValor || '').trim();
+        const partes = [];
+        if (campo && (anterior || novo)) partes.push(`${campo}: ${anterior || '—'} → ${novo || '—'}`);
+        else if (campo) partes.push(campo);
+        if (item?.observacao) partes.push(String(item.observacao).trim());
+        return partes.filter(Boolean).join(' · ') || 'Alteração registrada na auditoria do processo.';
+      }
+
+      function metaAuditoriaLinhaTempo_(item) {
+        const usuario = String(item?.usuario || '').trim();
+        const dispositivo = String(item?.dispositivo || '').trim();
+        const origem = String(item?.origem || '').trim();
+        return [usuario, dispositivo, origem].filter(Boolean).join(' • ');
+      }
+
+      function montarEventoHistoricoLinhaTempo_(item, indice) {
+        const dadosCopiaveis = dadosCopiaveisHistorico_(item);
+        const atalhos = dadosCopiaveis.length
+          ? `<div class="history-copy-grid">${dadosCopiaveis.map(([rotulo, valor]) => `<div class="history-copy-item"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong>${botaoCopiarValorFichaHtml_(rotulo, valor, 'history-copy-btn')}</div>`).join('')}</div>`
+          : '';
+        const titulo = item?.sancao || item?.tipoVistoria || item?.demanda || 'Vistoria realizada';
+        const autor = String(item?.vistoriador || item?.enviadoPor || item?.usuario || '').trim();
+        const metadados = [
+          String(item?.tipoVistoria || '').trim(),
+          String(item?.demanda || '').trim(),
+          autor ? `Responsável: ${autor}` : ''
+        ].filter(Boolean);
+        return {
+          tipo: 'vistoria',
+          ordem: indice,
+          timestamp: timestampLinhaTempoProcesso_(item?.carimbo),
+          html: `<article class="history-item history-event-visit ${classeStatus_(item?.sancao)}">
+            <div class="history-marker" aria-hidden="true"></div>
+            <div class="history-body">
+              <div class="history-event-top"><time>${escapeHtml(formatarDataPainel_(item?.carimbo))}</time><span class="history-kind history-kind-visit">Vistoria</span></div>
+              <strong>${escapeHtml(titulo)}</strong>
+              ${metadados.length ? `<div class="history-event-meta">${escapeHtml(metadados.join(' • '))}</div>` : ''}
+              <p>${escapeHtml(descricaoHistorico_(item))}</p>
+              ${atalhos}
+            </div>
+          </article>`
+        };
+      }
+
+      function montarEventoAuditoriaLinhaTempo_(item, indice) {
+        const campo = String(item?.campo || '').trim();
+        const alteracaoSituacao = ehCampoSituacaoLinhaTempo_(campo) && (item?.valorAnterior || item?.novoValor);
+        const anterior = String(item?.valorAnterior || '').trim();
+        const novo = String(item?.novoValor || '').trim();
+        const titulo = alteracaoSituacao
+          ? 'Situação atualizada'
+          : String(item?.acao || 'Alteração registrada').trim();
+        const transicao = alteracaoSituacao
+          ? `<div class="history-transition"><span>${escapeHtml(anterior || '—')}</span><b aria-hidden="true">→</b><strong>${escapeHtml(novo || '—')}</strong></div>`
+          : '';
+        const meta = metaAuditoriaLinhaTempo_(item);
+        const data = String(item?.dataHora || '').trim();
+        return {
+          tipo: 'auditoria',
+          ordem: 100000 + indice,
+          timestamp: timestampLinhaTempoProcesso_(data),
+          html: `<article class="history-item history-event-audit ${alteracaoSituacao ? 'history-event-status ' : ''}${classeAuditoriaLinhaTempo_(item)}">
+            <div class="history-marker" aria-hidden="true"></div>
+            <div class="history-body">
+              <div class="history-event-top"><time>${escapeHtml(data || 'Data não informada')}</time><span class="history-kind ${alteracaoSituacao ? 'history-kind-status' : 'history-kind-audit'}">${alteracaoSituacao ? 'Situação' : 'Alteração'}</span></div>
+              <strong>${escapeHtml(titulo)}</strong>
+              ${transicao}
+              ${meta ? `<div class="history-event-meta">${escapeHtml(meta)}</div>` : ''}
+              <p>${escapeHtml(descricaoAuditoriaLinhaTempo_(item))}</p>
+            </div>
+          </article>`
+        };
+      }
+
+      function renderizarLinhaTempoProcesso_() {
+        if (!recordHistoryPanel || !recordHistoryTimeline || !recordHistoryCount) return;
+        const historico = Array.isArray(recordTimelineHistorico_) ? recordTimelineHistorico_ : [];
+        const auditoria = Array.isArray(recordTimelineAuditoria_) ? recordTimelineAuditoria_ : [];
+        const eventos = [
+          ...historico.map((item, indice) => montarEventoHistoricoLinhaTempo_(item, indice)),
+          ...auditoria.map((item, indice) => montarEventoAuditoriaLinhaTempo_(item, indice))
+        ];
+        if (!eventos.length) {
+          recordHistoryPanel.hidden = true;
+          recordHistoryTimeline.innerHTML = '';
+          recordHistoryCount.textContent = '';
+          if (recordAuditPanel) recordAuditPanel.hidden = true;
+          return;
+        }
+
+        eventos.sort((a, b) => {
+          if (a.timestamp && b.timestamp && a.timestamp !== b.timestamp) return b.timestamp - a.timestamp;
+          if (a.timestamp !== b.timestamp) return b.timestamp - a.timestamp;
+          return b.ordem - a.ordem;
+        });
+
+        recordHistoryPanel.hidden = false;
+        recordHistoryCount.textContent = `${eventos.length} evento${eventos.length === 1 ? '' : 's'} · ${historico.length} vistoria${historico.length === 1 ? '' : 's'} · ${auditoria.length} alteraç${auditoria.length === 1 ? 'ão' : 'ões'}`;
+        recordHistoryTimeline.innerHTML = eventos.map(evento => evento.html).join('');
+
+        // A auditoria continua vindo do backend, mas é exibida na linha do tempo para evitar duplicidade visual.
+        if (recordAuditPanel) recordAuditPanel.hidden = true;
+        if (recordAuditList) recordAuditList.innerHTML = '';
+        if (recordAuditCount) recordAuditCount.textContent = `${auditoria.length} evento${auditoria.length === 1 ? '' : 's'}`;
+      }
+
+      function renderizarHistorico_(historico) {
+        recordTimelineHistorico_ = Array.isArray(historico) ? historico : [];
+        renderizarLinhaTempoProcesso_();
+      }
 
       function renderizarAuditoriaRegistro_(auditoria) {
-        const itens = Array.isArray(auditoria) ? auditoria : [];
-        if (!recordAuditPanel || !recordAuditList || !recordAuditCount) return;
-        if (!itens.length) {
-          recordAuditPanel.hidden = true;
-          recordAuditList.innerHTML = '';
-          return;
-        }
-        recordAuditPanel.hidden = false;
-        recordAuditCount.textContent = `${itens.length} evento${itens.length === 1 ? '' : 's'}`;
-        recordAuditList.innerHTML = itens.map(item => {
-          const autor = [item.usuario, item.dispositivo].filter(Boolean).join(' • ');
-          const mudanca = item.campo
-            ? `${item.campo}${item.valorAnterior || item.novoValor ? `: ${item.valorAnterior || '—'} → ${item.novoValor || '—'}` : ''}`
-            : '';
-          return `<article class="record-audit-item">
-            <strong>${escapeHtml(item.acao || 'Alteração')}</strong>
-            <span>${escapeHtml([item.dataHora, autor, item.origem].filter(Boolean).join(' • '))}</span>
-            ${mudanca ? `<p>${escapeHtml(mudanca)}</p>` : ''}
-            ${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}
-          </article>`;
-        }).join('');
+        recordTimelineAuditoria_ = Array.isArray(auditoria) ? auditoria : [];
+        renderizarLinhaTempoProcesso_();
       }
+
 
       const RELATORIOS_REDS_LIBERACAO = Object.freeze({
         liberado: {
@@ -8328,6 +8437,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         else if (!jaAberta) recordDetailReturnContext = '';
         recordsState.chaveSelecionada = chave;
         recordsState.linhaSelecionada = Number(linhaHint || 0);
+        recordTimelineHistorico_ = [];
+        recordTimelineAuditoria_ = [];
         marcarLinhaSelecionada_();
         recordDetailScreen.classList.add('show');
         recordDetailScreen.setAttribute('aria-hidden', 'false');
@@ -18855,7 +18966,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cs', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ct', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

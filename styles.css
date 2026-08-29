@@ -13920,3 +13920,138 @@ body:not(.records-mode) .app-credit{margin-top:10px!important;padding-top:10px!i
     line-height:1.25!important;
   }
 }
+
+
+/* =========================================================
+   V23.9.99ct — Linha do tempo unificada da Ficha do Processo
+   Reúne vistorias anteriores + alterações auditadas sem mudar
+   a persistência existente no backend.
+   ========================================================= */
+.record-history-head{
+  gap:10px;
+}
+.record-history-head span{
+  text-align:right;
+}
+.history-event-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.history-kind{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  min-height:20px;
+  padding:3px 7px;
+  border-radius:999px;
+  font-size:8.5px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+  border:1px solid #e5e7eb;
+  background:#f8fafc;
+  color:#667085;
+}
+.history-kind-visit{
+  border-color:#e7d8b1;
+  background:#fffaf0;
+  color:#7a5817;
+}
+.history-kind-audit{
+  border-color:#d9e2ec;
+  background:#f5f8fb;
+  color:#475467;
+}
+.history-kind-status{
+  border-color:#e7c6cc;
+  background:#fff5f6;
+  color:#7b2431;
+}
+.history-event-meta{
+  margin-top:4px;
+  color:#737b87;
+  font-size:9px;
+  line-height:1.35;
+  font-weight:650;
+}
+.history-transition{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:6px;
+  padding:7px 8px;
+  border:1px solid #ece5e5;
+  border-radius:9px;
+  background:#fcfafa;
+  color:#5b626d;
+  font-size:9.5px;
+  line-height:1.25;
+}
+.history-transition span,
+.history-transition strong{
+  margin:0!important;
+  font-size:9.5px!important;
+  line-height:1.25!important;
+}
+.history-transition span{
+  color:#667085!important;
+  font-weight:650!important;
+}
+.history-transition b{
+  color:#9a6971;
+  font-size:11px;
+}
+.history-transition strong{
+  color:#54202a!important;
+  font-weight:850!important;
+}
+.history-event-audit .history-marker{
+  background:#f7f8fa;
+  border-color:#98a2b3;
+}
+.history-event-status.status-autuado .history-marker{border-color:#d92d20}
+.history-event-status.status-advertencia .history-marker{border-color:#f79009}
+.history-event-status.status-notificado .history-marker{border-color:#f97316}
+.history-event-status.status-regularizado .history-marker,
+.history-event-status.status-liberado .history-marker{border-color:#12b76a}
+
+body.records-mode .record-history-head span{
+  display:inline-flex!important;
+  justify-content:flex-end;
+  color:#7a818c;
+  font-size:8.5px;
+  line-height:1.25;
+  font-weight:700;
+}
+body.records-mode .history-event-meta{
+  font-size:8.4px;
+}
+body.records-mode .history-kind{
+  min-height:18px;
+  padding:3px 6px;
+  font-size:7.8px;
+}
+body.records-mode .history-transition{
+  margin-top:5px;
+  padding:6px 7px;
+}
+body.records-mode .history-event-audit .history-body p{
+  margin-bottom:8px;
+}
+
+@media (max-width:640px){
+  body.records-mode .record-history-head{
+    align-items:flex-start;
+  }
+  body.records-mode .record-history-head span{
+    max-width:48%;
+    text-align:right;
+  }
+  .history-event-top{
+    align-items:flex-start;
+  }
+}
