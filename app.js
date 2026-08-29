@@ -31,6 +31,7 @@
       const PANEL_LAST_SUCCESS_STORAGE = 'gpvPainelUltimaRespostaV1';
       const PANEL_LAST_ERROR_STORAGE = 'gpvPainelUltimaFalhaV1';
       const APP_LAST_API_SUCCESS_STORAGE = 'gpvUltimaRespostaApiV1';
+      const APP_LAST_SYNC_SUCCESS_STORAGE = 'gpvUltimaSincronizacaoOkV1';
       const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -47,6 +48,7 @@
       const APP_ALERTS_CACHE_MAX = 100;
       let appAlertsState = { items: [], users: [], loading: false };
       let appAlertsOpenAfterLogin_ = false;
+      let appDiagnosticsLastReport_ = null;
       let appRetomadaAposLongaPausa_ = false;
 
       function registrarEstadoRetomadaApp_() {
@@ -1732,7 +1734,8 @@
       const appDiagnosticsStatus = document.getElementById('appDiagnosticsStatus');
       const appDiagnosticsLastError = document.getElementById('appDiagnosticsLastError');
       const appDiagnosticsRefreshBtn = document.getElementById('appDiagnosticsRefreshBtn');
-      const appDiagnosticsRepairBtn = document.getElementById('appDiagnosticsRepairBtn');
+      const appDiagnosticsCopyBtn = document.getElementById('appDiagnosticsCopyBtn');
+      const appDiagnosticsCheckedAt = document.getElementById('appDiagnosticsCheckedAt');
 
       const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
       const locationAddressStatus = document.getElementById('locationAddressStatus');
@@ -1863,7 +1866,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ct';
+      const APP_REVISION_UI_ = '23.9.99cu';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2165,7 +2168,7 @@
         try {
           const nomes = (await caches.keys()).filter(nome => nome.startsWith('gpv-vistorias-pwa-'));
           if (!nomes.length) return 'Nenhum cache do app localizado';
-          const atual = nomes.find(nome => nome.includes('localizacao-bx')) || nomes[nomes.length - 1];
+          const atual = nomes.find(nome => nome.includes('23-9-99-cu')) || nomes[nomes.length - 1];
           const cache = await caches.open(atual);
           const entradas = await cache.keys();
           return `${atual} • ${entradas.length} arquivo(s)`;
@@ -2180,79 +2183,279 @@
           const registro = await navigator.serviceWorker.getRegistration();
           const controlador = navigator.serviceWorker.controller;
           if (!registro && !controlador) return 'Não registrado';
+          const extrairVersao = worker => {
+            try {
+              const url = new URL(worker?.scriptURL || '', window.location.href);
+              return String(url.searchParams.get('v') || '').trim();
+            } catch (_) { return ''; }
+          };
           const estado = controlador?.state || registro?.active?.state || 'registrado';
-          if (registro?.waiting) return `${estado} • atualização aguardando aplicação`;
-          if (registro?.installing) return `${estado} • atualização instalando`;
-          return controlador ? `${estado} • controlando esta tela` : `${estado} • aguardando controle da tela`;
+          if (registro?.waiting) {
+            const v = extrairVersao(registro.waiting);
+            return `${estado}${v ? ` • V${v}` : ''} • atualização aguardando aplicação`;
+          }
+          if (registro?.installing) {
+            const v = extrairVersao(registro.installing);
+            return `${estado}${v ? ` • V${v}` : ''} • atualização instalando`;
+          }
+          const v = extrairVersao(controlador || registro?.active);
+          return controlador
+            ? `${estado}${v ? ` • V${v}` : ''} • controlando esta tela`
+            : `${estado}${v ? ` • V${v}` : ''} • aguardando controle da tela`;
         } catch (e) {
           return navigator.serviceWorker.controller ? 'Ativo' : 'Estado indisponível';
         }
       }
 
-      function diagnosticoItemHtml_(rotulo, valor) {
-        return `<div class="app-diagnostics-item"><label>${escapeHtml(rotulo)}</label><strong>${escapeHtml(valor == null ? '—' : String(valor))}</strong></div>`;
+      function diagnosticoItemHtml_(rotulo, valor, estado = 'neutral', detalhe = '') {
+        const estadoSeguro = ['ok', 'warning', 'error', 'neutral'].includes(String(estado)) ? String(estado) : 'neutral';
+        const icone = estadoSeguro === 'ok' ? '✓' : estadoSeguro === 'warning' ? '!' : estadoSeguro === 'error' ? '×' : '•';
+        return `<div class="app-diagnostics-item is-${estadoSeguro}">
+          <div class="app-diagnostics-item-head"><span class="app-diagnostics-item-icon" aria-hidden="true">${icone}</span><label>${escapeHtml(rotulo)}</label></div>
+          <strong>${escapeHtml(valor == null ? '—' : String(valor))}</strong>
+          ${detalhe ? `<small>${escapeHtml(String(detalhe))}</small>` : ''}
+        </div>`;
       }
 
-      async function atualizarDiagnosticoApp_(opcoes = {}) {
+      function resumoUltimaSincronizacaoDiagnostico_() {
+        const item = lerRegistroDiagnostico_(APP_LAST_SYNC_SUCCESS_STORAGE);
+        if (!item?.em) return 'Ainda não registrada nesta versão';
+        const quantidade = Number(item.enviados || 0);
+        const sufixo = quantidade > 0 ? ` • ${quantidade} vistoria${quantidade === 1 ? '' : 's'} enviada${quantidade === 1 ? '' : 's'}` : '';
+        return `${formatarDataDiagnostico_(item.em)}${sufixo}`;
+      }
+
+      function registrarSincronizacaoBemSucedidaDiagnostico_(enviados = 0) {
+        try {
+          localStorage.setItem(APP_LAST_SYNC_SUCCESS_STORAGE, JSON.stringify({
+            em: new Date().toISOString(),
+            enviados: Math.max(0, Number(enviados || 0)),
+            filaRestante: typeof obterPendentes === 'function' ? obterPendentes().length : 0
+          }));
+        } catch (_) {}
+      }
+
+      async function verificarWorkerDiagnostico_() {
+        if (!navigator.onLine) return { estado:'warning', valor:'Não testado — aparelho offline', detalhe:'O gateway será testado quando houver internet.' };
+        if (!API_URL || API_URL.includes('COLE_AQUI')) return { estado:'error', valor:'URL do gateway não configurada', detalhe:'Confira config.js.' };
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 9000);
+        try {
+          // no-cors é intencional: o GET público do Worker serve como teste de alcance
+          // sem expor dados e sem exigir alteração no Worker atual.
+          await fetch(API_URL, { method:'GET', mode:'no-cors', cache:'no-store', signal:controller.signal });
+          return { estado:'ok', valor:'Cloudflare Worker acessível', detalhe:'Gateway online · compatibilidade esperada V23.9.99cl+' };
+        } catch (erro) {
+          return { estado:'error', valor:'Worker não respondeu', detalhe:String(erro?.message || 'Falha de comunicação') };
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      async function verificarAppsScriptDiagnostico_() {
+        if (!navigator.onLine) return { estado:'warning', valor:'Não testado — aparelho offline', detalhe:'A conexão será testada quando houver internet.' };
+        if (!authState.usuario?.id || !authState.sessionToken) return { estado:'warning', valor:'Sessão não disponível para teste', detalhe:'Entre no aplicativo para validar o Apps Script.' };
+        try {
+          await apiRequest('ping', {}, 12000);
+          return { estado:'ok', valor:'Conectado via Worker', detalhe:'Gateway → Google Apps Script respondeu corretamente.' };
+        } catch (erro) {
+          return { estado:'error', valor:'Apps Script indisponível no teste', detalhe:String(erro?.message || 'Falha de comunicação') };
+        }
+      }
+
+      async function verificarServicoNotificacoesDiagnostico_() {
+        if (!navigator.onLine) return { estado:'warning', valor:'Não testado — aparelho offline', detalhe:'KV e VAPID serão testados quando houver internet.' };
+        if (!authState.usuario?.id || !authState.sessionToken) return { estado:'warning', valor:'Sessão não disponível para teste', detalhe:'Entre no aplicativo para validar o serviço de notificações.' };
+        try {
+          const resposta = await apiRequest('push_config', {}, 12000);
+          const chave = String(resposta?.publicKey || '').trim();
+          if (!chave) return { estado:'warning', valor:'Serviço respondeu sem chave pública', detalhe:'Verifique a configuração VAPID no Worker.' };
+          return { estado:'ok', valor:'KV + VAPID disponíveis', detalhe:'Central de Notificações conectada ao Worker.' };
+        } catch (erro) {
+          return { estado:'error', valor:'Serviço de notificações indisponível', detalhe:String(erro?.message || 'Falha de comunicação') };
+        }
+      }
+
+      async function verificarPushDispositivoDiagnostico_() {
+        if (!pushAvisosSuportado_()) return { estado:'warning', valor:'Push não suportado neste navegador', detalhe:'A Central de Notificações interna continua disponível.' };
+        const permissao = String(Notification.permission || 'default');
+        if (permissao === 'denied') return { estado:'error', valor:'Bloqueado nas permissões do aparelho', detalhe:'É necessário liberar notificações nas configurações do navegador/app.' };
+        if (permissao !== 'granted') return { estado:'warning', valor:'Ainda não autorizado neste aparelho', detalhe:'Use Mais → Notificações → Ativar notificações.' };
+        const assinatura = await assinaturaPushAtualAvisosApp_();
+        if (!assinatura) return { estado:'warning', valor:'Permissão concedida, mas sem assinatura ativa', detalhe:'Abra Notificações e atualize a ativação.' };
+        return { estado:'ok', valor:'Ativado neste aparelho', detalhe:'Assinatura push encontrada no Service Worker.' };
+      }
+
+      async function verificarIndexedDbDiagnostico_() {
+        if (!('indexedDB' in window)) return { estado:'error', valor:'IndexedDB não suportado', detalhe:'A fila offline não pode operar neste navegador.' };
+        try {
+          const db = await abrirBancoOffline();
+          const lojas = Array.from(db.objectStoreNames || []);
+          const esperadas = [DB_STORE, DB_PHOTO_STORE];
+          const faltantes = esperadas.filter(nome => !lojas.includes(nome));
+          db.close();
+          if (faltantes.length) return { estado:'warning', valor:'Banco local acessível com estrutura incompleta', detalhe:`Ausente: ${faltantes.join(', ')}` };
+          return { estado:'ok', valor:'IndexedDB funcionando', detalhe:`Estruturas locais: ${lojas.length}` };
+        } catch (erro) {
+          return { estado:'error', valor:'Falha no armazenamento local', detalhe:String(erro?.message || 'IndexedDB indisponível') };
+        }
+      }
+
+      async function resumoUsoArmazenamentoDiagnostico_() {
+        try {
+          if (!navigator.storage?.estimate) return { estado:'neutral', valor:'Estimativa não disponível', detalhe:'O navegador não informa o consumo local.' };
+          const estimativa = await navigator.storage.estimate();
+          const uso = Number(estimativa?.usage || 0);
+          const quota = Number(estimativa?.quota || 0);
+          const mb = n => (n / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits:1 });
+          const pct = quota > 0 ? Math.round((uso / quota) * 100) : 0;
+          return { estado: pct >= 85 ? 'warning' : 'ok', valor:`${mb(uso)} MB utilizados${quota ? ` de ${mb(quota)} MB` : ''}`, detalhe:quota ? `Uso aproximado: ${pct}% da cota informada pelo navegador.` : 'Armazenamento local disponível.' };
+        } catch (_) {
+          return { estado:'neutral', valor:'Uso não pôde ser estimado', detalhe:'Isso não impede o funcionamento do armazenamento local.' };
+        }
+      }
+
+      function montarTextoRelatorioDiagnostico_(itens, statusGeral, executadoEm) {
+        const linhas = [
+          'APP DO VISTORIADOR — RELATÓRIO TÉCNICO',
+          `Versão: V${APP_REVISION_UI_}`,
+          `Executado em: ${formatarDataDiagnostico_(executadoEm)}`,
+          `Estado geral: ${statusGeral}`,
+          ''
+        ];
+        (itens || []).forEach(item => {
+          linhas.push(`${item.rotulo}: ${item.valor}${item.detalhe ? ` — ${item.detalhe}` : ''}`);
+        });
+        const ultima = lerUltimaFalhaInterface_();
+        if (ultima?.em) {
+          linhas.push('');
+          linhas.push(`Última falha JavaScript: ${ultima.em} — ${ultima.tipo || ''}: ${ultima.detalhe || ''}`);
+        }
+        linhas.push('');
+        linhas.push('Relatório somente de diagnóstico. Nenhum dado de vistoria foi alterado.');
+        return linhas.join('\n');
+      }
+
+      async function atualizarDiagnosticoApp_() {
         if (!appDiagnosticsGrid || !appDiagnosticsStatus) return;
-        const reparo = opcoes.ignorarReparo
-          ? { corrigidos: 0, detalhes: [] }
-          : repararInterfaceOrfa_('abertura do diagnóstico');
-        const locks = UI_LOCK_MODAL_MAP_.filter(([classe]) => document.body.classList.contains(classe)).map(([classe]) => classe);
+        if (appDiagnosticsRefreshBtn) appDiagnosticsRefreshBtn.disabled = true;
+        if (appDiagnosticsCopyBtn) appDiagnosticsCopyBtn.disabled = true;
+        appDiagnosticsStatus.textContent = 'Executando verificações locais e de conexão...';
+        appDiagnosticsStatus.className = 'app-diagnostics-status checking';
+        if (appDiagnosticsCheckedAt) appDiagnosticsCheckedAt.textContent = '';
+        appDiagnosticsGrid.innerHTML = '<div class="app-diagnostics-loading">Verificando serviços, armazenamento e sincronização...</div>';
+
+        const locks = UI_LOCK_MODAL_MAP_
+          .filter(([classe]) => classe !== 'app-diagnostics-open' && document.body.classList.contains(classe))
+          .map(([classe]) => classe);
         const overlaysVisiveis = Array.from(document.querySelectorAll('[class*="overlay"]:not([hidden])'))
+          .filter(el => el !== appDiagnosticsModal)
           .filter(el => {
             try {
               const st = getComputedStyle(el);
               return st.display !== 'none' && st.visibility !== 'hidden';
-            } catch (e) { return true; }
+            } catch (_) { return true; }
           }).length;
-        const [serviceWorkerResumo, cacheResumo] = await Promise.all([
-          resumoServiceWorkerDiagnostico_(),
-          resumoCachePwaDiagnostico_()
-        ]);
         const conexao = navigator.connection?.effectiveType
           ? `${navigator.onLine ? 'Online' : 'Offline'} • ${navigator.connection.effectiveType}`
           : (navigator.onLine ? 'Online' : 'Offline');
         const filaOffline = obterPendentes().length;
-        const recuperacao = lerUltimaRecuperacaoInterface_();
+        const rascunhos = contarRascunhosLocaisDiagnostico_();
         const ultimaFalhaPainel = lerRegistroDiagnostico_(PANEL_LAST_ERROR_STORAGE);
 
+        const [serviceWorkerResumo, cacheResumo, worker, appsScript, notificacoesServidor, pushDispositivo, indexedDb, armazenamento] = await Promise.all([
+          resumoServiceWorkerDiagnostico_(),
+          resumoCachePwaDiagnostico_(),
+          verificarWorkerDiagnostico_(),
+          verificarAppsScriptDiagnostico_(),
+          verificarServicoNotificacoesDiagnostico_(),
+          verificarPushDispositivoDiagnostico_(),
+          verificarIndexedDbDiagnostico_(),
+          resumoUsoArmazenamentoDiagnostico_()
+        ]);
+
+        const swEstado = /aguardando|instalando/i.test(serviceWorkerResumo) ? 'warning' : (/não|indisponível/i.test(serviceWorkerResumo) ? 'error' : 'ok');
+        const cacheEstado = /nenhum|não foi|indisponível/i.test(cacheResumo) ? 'warning' : 'ok';
+        const filaEstado = filaOffline > 0 ? 'warning' : 'ok';
+        const rascunhoEstado = rascunhos > 0 ? 'neutral' : 'ok';
+        const conexaoEstado = navigator.onLine ? 'ok' : 'warning';
+        const bloqueioEstado = locks.length ? 'warning' : 'ok';
+        const falhaPainelEstado = ultimaFalhaPainel?.em ? 'warning' : 'ok';
+
         const itens = [
-          ['Revisão do app', APP_REVISION_UI_],
-          ['Conexão', conexao],
-          ['Service Worker', serviceWorkerResumo],
-          ['Cache do app', cacheResumo],
-          ['Fila offline', filaOffline ? `${filaOffline} vistoria(s) aguardando envio` : 'Sem envios pendentes'],
-          ['Última resposta válida da API', resumoUltimaRespostaApiDiagnostico_()],
-          ['Última atualização do Painel', resumoUltimaAtualizacaoPainelDiagnostico_()],
-          ['Consulta do Painel', resumoConsultaPainelDiagnostico_()],
-          ['Última falha do Painel', ultimaFalhaPainel?.em
-            ? `${formatarDataDiagnostico_(ultimaFalhaPainel.em)} • ${ultimaFalhaPainel.mensagem || 'falha não detalhada'}`
-            : 'Nenhuma registrada'],
-          ['Rascunho atual', resumoRascunhoAtualDiagnostico_()],
-          ['Rascunhos preservados', contarRascunhosLocaisDiagnostico_()],
-          ['Bloqueios ativos', locks.length ? locks.join(', ') : 'Nenhum'],
-          ['Camadas abertas', overlaysVisiveis],
-          ['Última recuperação', recuperacao?.em ? new Date(recuperacao.em).toLocaleString('pt-BR') : 'Nenhuma'],
-          ['Usuário', authState.usuario?.nome || 'Sem sessão'],
-          ['Aparelho', nomeDispositivo_() || 'Não identificado']
+          { rotulo:'Versão instalada', valor:`V${APP_REVISION_UI_}`, estado:'ok', detalhe:'Frontend/PWA carregado nesta tela.' },
+          { rotulo:'Conexão do aparelho', valor:conexao, estado:conexaoEstado, detalhe:navigator.onLine ? 'Rede disponível para serviços online.' : 'Dados locais permanecem preservados.' },
+          { rotulo:'Service Worker / atualização', valor:serviceWorkerResumo, estado:swEstado, detalhe: swEstado === 'warning' ? 'Pode existir uma atualização aguardando aplicação segura.' : 'Controle do PWA verificado.' },
+          { rotulo:'Cache do aplicativo', valor:cacheResumo, estado:cacheEstado, detalhe:'Arquivos usados para abertura e operação offline.' },
+          { rotulo:'Cloudflare Worker', valor:worker.valor, estado:worker.estado, detalhe:worker.detalhe },
+          { rotulo:'Google Apps Script', valor:appsScript.valor, estado:appsScript.estado, detalhe:appsScript.detalhe },
+          { rotulo:'Serviço de notificações', valor:notificacoesServidor.valor, estado:notificacoesServidor.estado, detalhe:notificacoesServidor.detalhe },
+          { rotulo:'Push neste aparelho', valor:pushDispositivo.valor, estado:pushDispositivo.estado, detalhe:pushDispositivo.detalhe },
+          { rotulo:'Fila offline', valor:filaOffline ? `${filaOffline} vistoria${filaOffline === 1 ? '' : 's'} aguardando envio` : 'Sem envios pendentes', estado:filaEstado, detalhe:filaOffline ? 'Os registros permanecem seguros no aparelho até o envio.' : 'Nenhuma pendência de envio local.' },
+          { rotulo:'Última sincronização', valor:resumoUltimaSincronizacaoDiagnostico_(), estado:'neutral', detalhe:'Último envio de vistoria confirmado por este aparelho.' },
+          { rotulo:'Rascunhos preservados', valor:`${rascunhos} rascunho${rascunhos === 1 ? '' : 's'}`, estado:rascunhoEstado, detalhe:rascunhos ? 'Podem ser retomados pela área de Vistoria.' : 'Nenhum rascunho em andamento.' },
+          { rotulo:'Armazenamento IndexedDB', valor:indexedDb.valor, estado:indexedDb.estado, detalhe:indexedDb.detalhe },
+          { rotulo:'Uso do armazenamento', valor:armazenamento.valor, estado:armazenamento.estado, detalhe:armazenamento.detalhe },
+          { rotulo:'Última resposta válida da API', valor:resumoUltimaRespostaApiDiagnostico_(), estado:'neutral', detalhe:'Registro local da última comunicação bem-sucedida.' },
+          { rotulo:'Última atualização do Painel', valor:resumoUltimaAtualizacaoPainelDiagnostico_(), estado:'neutral', detalhe:'Dados recentes mantidos para consulta.' },
+          { rotulo:'Última falha do Painel', valor:ultimaFalhaPainel?.em ? `${formatarDataDiagnostico_(ultimaFalhaPainel.em)} • ${ultimaFalhaPainel.mensagem || 'falha não detalhada'}` : 'Nenhuma registrada', estado:falhaPainelEstado, detalhe:ultimaFalhaPainel?.em ? 'A falha permanece apenas como informação diagnóstica.' : 'Sem falha recente registrada.' },
+          { rotulo:'Rascunho atual', valor:resumoRascunhoAtualDiagnostico_(), estado:'neutral', detalhe:'Consulta local; nenhum rascunho é modificado pelo diagnóstico.' },
+          { rotulo:'Bloqueios de interface', valor:locks.length ? locks.join(', ') : 'Nenhum bloqueio inconsistente detectado', estado:bloqueioEstado, detalhe:`Camadas visíveis agora: ${overlaysVisiveis}.` },
+          { rotulo:'Usuário da sessão', valor:authState.usuario?.nome || 'Sem sessão', estado:authState.usuario?.nome ? 'ok' : 'warning', detalhe:`Perfil: ${perfilAcessoAtual_()} · Aparelho: ${nomeDispositivo_() || 'não identificado'}` }
         ];
-        appDiagnosticsGrid.innerHTML = itens.map(([r,v]) => diagnosticoItemHtml_(r,v)).join('');
+
+        appDiagnosticsGrid.innerHTML = itens.map(item => diagnosticoItemHtml_(item.rotulo, item.valor, item.estado, item.detalhe)).join('');
 
         const ultima = lerUltimaFalhaInterface_();
         if (appDiagnosticsLastError) {
           appDiagnosticsLastError.hidden = !ultima;
           appDiagnosticsLastError.textContent = ultima
-            ? `Última falha JavaScript\n${ultima.em || ''}\n${ultima.tipo || ''}: ${ultima.detalhe || ''}`
+            ? `Última falha JavaScript registrada\n${ultima.em || ''}\n${ultima.tipo || ''}: ${ultima.detalhe || ''}`
             : '';
         }
 
-        if (reparo.corrigidos) {
-          appDiagnosticsStatus.textContent = `A interface tinha ${reparo.corrigidos} bloqueio(s) inconsistente(s) e foi corrigida.`;
-          appDiagnosticsStatus.className = 'app-diagnostics-status warning';
+        const erros = itens.filter(item => item.estado === 'error').length;
+        const avisos = itens.filter(item => item.estado === 'warning').length;
+        let statusGeral = 'Saúde do aplicativo: normal';
+        let classe = 'ok';
+        if (erros) {
+          statusGeral = `Diagnóstico concluído com ${erros} falha${erros === 1 ? '' : 's'} que merece${erros === 1 ? '' : 'm'} atenção.`;
+          classe = 'error';
+        } else if (avisos) {
+          statusGeral = navigator.onLine
+            ? `Diagnóstico concluído com ${avisos} aviso${avisos === 1 ? '' : 's'}. Os dados locais permanecem preservados.`
+            : 'Diagnóstico local concluído. Os testes online foram adiados porque o aparelho está offline.';
+          classe = 'warning';
+        }
+        appDiagnosticsStatus.textContent = statusGeral;
+        appDiagnosticsStatus.className = `app-diagnostics-status ${classe}`;
+        const executadoEm = new Date().toISOString();
+        if (appDiagnosticsCheckedAt) appDiagnosticsCheckedAt.textContent = `Verificado em ${formatarDataDiagnostico_(executadoEm)}`;
+        appDiagnosticsLastReport_ = {
+          executadoEm,
+          itens,
+          statusGeral,
+          texto: montarTextoRelatorioDiagnostico_(itens, statusGeral, executadoEm)
+        };
+        if (appDiagnosticsCopyBtn) appDiagnosticsCopyBtn.disabled = false;
+        if (appDiagnosticsRefreshBtn) appDiagnosticsRefreshBtn.disabled = false;
+      }
+
+      async function copiarRelatorioDiagnosticoApp_() {
+        const texto = String(appDiagnosticsLastReport_?.texto || '').trim();
+        if (!texto) {
+          await atualizarDiagnosticoApp_();
+        }
+        const relatorio = String(appDiagnosticsLastReport_?.texto || '').trim();
+        if (!relatorio) return;
+        const ok = await copiarTextoClipboard_(relatorio);
+        if (ok) {
+          if (appDiagnosticsStatus) {
+            appDiagnosticsStatus.textContent = 'Relatório técnico copiado. Você pode colá-lo em uma mensagem de suporte.';
+            appDiagnosticsStatus.className = 'app-diagnostics-status ok';
+          }
         } else {
-          appDiagnosticsStatus.textContent = 'Nenhum bloqueio inconsistente foi encontrado neste momento.';
-          appDiagnosticsStatus.className = 'app-diagnostics-status ok';
+          await avisarGpv_('Não foi possível copiar o relatório automaticamente neste aparelho.', 'Diagnóstico', { tom:'warning' });
         }
       }
 
@@ -2269,20 +2472,6 @@
         if (!appDiagnosticsModal) return;
         appDiagnosticsModal.hidden = true;
         document.body.classList.remove('app-diagnostics-open');
-      }
-
-      async function repararInterfacePeloUsuario_() {
-        const resultado = repararInterfaceOrfa_('ação manual', true);
-        fecharEscolhaMovel_();
-        fecharMenuMais_();
-        // Mantém formulários/rascunhos e não recarrega a página.
-        await atualizarDiagnosticoApp_({ ignorarReparo: true });
-        if (appDiagnosticsStatus) {
-          appDiagnosticsStatus.textContent = resultado.corrigidos
-            ? `Foram corrigidos ${resultado.corrigidos} bloqueio(s) da interface sem apagar o preenchimento.`
-            : 'A interface foi conferida. Nenhum bloqueio órfão foi encontrado.';
-          appDiagnosticsStatus.className = resultado.corrigidos ? 'app-diagnostics-status warning' : 'app-diagnostics-status ok';
-        }
       }
 
       function perfilAcessoAtual_() {
@@ -3484,7 +3673,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ct', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cu', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4495,6 +4684,7 @@
         sendingQueue = false;
         atualizarPainelPendentes();
         if (enviados > 0) {
+          registrarSincronizacaoBemSucedidaDiagnostico_(enviados);
           limparCachesConsulta_();
           const atualizacaoPlanilha = atualizarPlanilhaEmSegundoPlano();
           agendarAtualizacoesPainelAposEnvio_();
@@ -18566,7 +18756,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       appDiagnosticsBtn?.addEventListener('click', abrirDiagnosticoApp_);
       appDiagnosticsCloseBtn?.addEventListener('click', fecharDiagnosticoApp_);
       appDiagnosticsRefreshBtn?.addEventListener('click', () => { void atualizarDiagnosticoApp_(); });
-      appDiagnosticsRepairBtn?.addEventListener('click', () => { void repararInterfacePeloUsuario_(); });
+      appDiagnosticsCopyBtn?.addEventListener('click', () => { void copiarRelatorioDiagnosticoApp_(); });
       appDiagnosticsModal?.addEventListener('click', event => {
         if (event.target === appDiagnosticsModal) fecharDiagnosticoApp_();
       });
@@ -18966,7 +19156,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ct', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cu', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

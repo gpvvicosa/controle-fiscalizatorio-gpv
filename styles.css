@@ -12718,6 +12718,85 @@ a.btn {
   flex-wrap: wrap;
   gap: 8px;
 }
+.app-diagnostics-status.checking {
+  border-color: #c9d6e4;
+  background: #f4f8fc;
+  color: #36536f;
+}
+.app-diagnostics-status.error {
+  border-color: #e1b8b8;
+  background: #fff3f3;
+  color: #8a2525;
+}
+.app-diagnostics-checked {
+  margin-top: -7px;
+  color: #83776c;
+  font-size: 10.5px;
+  text-align: right;
+}
+.app-diagnostics-loading {
+  grid-column: 1 / -1;
+  padding: 24px 14px;
+  border: 1px dashed #d8d0c7;
+  border-radius: 12px;
+  color: #75695f;
+  background: rgba(255,255,255,.68);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 750;
+}
+.app-diagnostics-item {
+  position: relative;
+  overflow: hidden;
+}
+.app-diagnostics-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #d8d1ca;
+}
+.app-diagnostics-item.is-ok::after { background: #24855a; }
+.app-diagnostics-item.is-warning::after { background: #c28b24; }
+.app-diagnostics-item.is-error::after { background: #b43a3a; }
+.app-diagnostics-item.is-neutral::after { background: #71849a; }
+.app-diagnostics-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-diagnostics-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #edf0f3;
+  color: #546273;
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+}
+.app-diagnostics-item.is-ok .app-diagnostics-item-icon { background: #e6f5ed; color: #17623a; }
+.app-diagnostics-item.is-warning .app-diagnostics-item-icon { background: #fff4d9; color: #795813; }
+.app-diagnostics-item.is-error .app-diagnostics-item-icon { background: #fde8e8; color: #972d2d; }
+.app-diagnostics-item small {
+  display: block;
+  margin-top: 5px;
+  color: #7b7066;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+.app-diagnostics-item.is-error strong { color: #8d2929; }
+.app-diagnostics-item.is-warning strong { color: #6b5017; }
+.app-diagnostics-actions .btn:disabled {
+  opacity: .56;
+  cursor: wait;
+}
 @media (max-width: 720px) {
   .responsible-edit-toolbar {
     display: grid;
@@ -14055,3 +14134,11 @@ body.records-mode .history-event-audit .history-body p{
     align-items:flex-start;
   }
 }
+
+
+/* ==========================================================================
+   V23.9.99cu — Diagnóstico e Saúde do Aplicativo
+   - painel somente de consulta;
+   - status de PWA, Worker, Apps Script, Push, fila, rascunhos e armazenamento;
+   - relatório técnico copiável sem dados de vistoria.
+   ========================================================================== */
