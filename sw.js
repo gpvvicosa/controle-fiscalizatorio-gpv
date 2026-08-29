@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260829-v23-9-99-icon-refresh-ck';
-const VERSION = '23.9.99ck';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260829-v23-9-99-notificacoes-cl';
+const VERSION = '23.9.99cl';
 
 const CORE_SHELL = [
   './',
@@ -307,5 +307,38 @@ self.addEventListener('fetch', event => {
       }
       throw error;
     }
+  })());
+});
+
+
+// =============================================================================
+// V23.9.99cl — PUSH SEGURO
+// O servidor envia push sem conteúdo. Dados operacionais só aparecem depois
+// que o usuário entra no PWA e abre a Central de Notificações.
+// =============================================================================
+self.addEventListener('push', event => {
+  event.waitUntil(self.registration.showNotification('App do Vistoriador', {
+    body: 'Novo aviso disponível. Abra o aplicativo para consultar.',
+    icon: './assets/icon-192.png',
+    badge: './assets/icon-192.png',
+    tag: 'app-vistoriador-aviso',
+    renotify: true,
+    requireInteraction: false,
+    data: { openAppAlerts: true }
+  }));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const todas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const base = new URL('./', self.registration.scope).href;
+    const existente = todas.find(cliente => String(cliente.url || '').startsWith(base));
+    if (existente) {
+      try { await existente.focus(); } catch (_) {}
+      try { existente.postMessage({ type: 'OPEN_APP_ALERTS' }); } catch (_) {}
+      return;
+    }
+    if (self.clients.openWindow) await self.clients.openWindow(new URL('./?avisos=1', self.registration.scope).href);
   })());
 });

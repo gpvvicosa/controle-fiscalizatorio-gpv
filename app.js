@@ -41,6 +41,11 @@
       const APP_LONG_IDLE_MS = 8 * 60 * 60 * 1000;
       const USERS_CACHE_STORAGE = 'gpvVistoriadoresCacheV1';
       const DDU_CACHE_STORAGE = 'gpvDdusCacheV1';
+      const APP_ALERTS_CACHE_STORAGE = 'gpvAvisosAppCacheV1';
+      const APP_ALERTS_READ_STORAGE_PREFIX = 'gpvAvisosAppLidosV1:';
+      const APP_ALERTS_CACHE_MAX = 100;
+      let appAlertsState = { items: [], users: [], loading: false };
+      let appAlertsOpenAfterLogin_ = false;
       let appRetomadaAposLongaPausa_ = false;
 
       function registrarEstadoRetomadaApp_() {
@@ -920,7 +925,7 @@
 
       function requisicaoLeituraPodeRepetir_(action, data = {}) {
         const acao = String(action || '').trim().toLowerCase();
-        if (acao === 'ping' || acao === 'cnpj' || acao === 'users') return true;
+        if (acao === 'ping' || acao === 'cnpj' || acao === 'users' || acao === 'notifications') return true;
         if (acao !== 'config') return false;
         return API_CONFIG_READ_QUERIES.has(String(data?.consulta || '').trim().toLowerCase());
       }
@@ -1116,6 +1121,29 @@
       const authDeviceProfileList = document.getElementById('authDeviceProfileList');
       const authUseOtherBmBtn = document.getElementById('authUseOtherBmBtn');
       const loggedUserBadge = document.getElementById('loggedUserBadge');
+      const appAlertsBellBtn = document.getElementById('appAlertsBellBtn');
+      const appAlertsBadge = document.getElementById('appAlertsBadge');
+      const appAlertsMenuBtn = document.getElementById('appAlertsMenuBtn');
+      const appAlertsModal = document.getElementById('appAlertsModal');
+      const appAlertsCloseBtn = document.getElementById('appAlertsCloseBtn');
+      const appAlertsPushStatus = document.getElementById('appAlertsPushStatus');
+      const appAlertsEnablePushBtn = document.getElementById('appAlertsEnablePushBtn');
+      const appAlertsTestPushBtn = document.getElementById('appAlertsTestPushBtn');
+      const appAlertsAdminPanel = document.getElementById('appAlertsAdminPanel');
+      const appAlertsComposeToggleBtn = document.getElementById('appAlertsComposeToggleBtn');
+      const appAlertsComposeForm = document.getElementById('appAlertsComposeForm');
+      const appAlertsTitleInput = document.getElementById('appAlertsTitleInput');
+      const appAlertsMessageInput = document.getElementById('appAlertsMessageInput');
+      const appAlertsTargetType = document.getElementById('appAlertsTargetType');
+      const appAlertsTargetUserWrap = document.getElementById('appAlertsTargetUserWrap');
+      const appAlertsTargetUser = document.getElementById('appAlertsTargetUser');
+      const appAlertsComposeCancelBtn = document.getElementById('appAlertsComposeCancelBtn');
+      const appAlertsSendBtn = document.getElementById('appAlertsSendBtn');
+      const appAlertsComposeMessage = document.getElementById('appAlertsComposeMessage');
+      const appAlertsUpdatedAt = document.getElementById('appAlertsUpdatedAt');
+      const appAlertsMarkAllBtn = document.getElementById('appAlertsMarkAllBtn');
+      const appAlertsRefreshBtn = document.getElementById('appAlertsRefreshBtn');
+      const appAlertsList = document.getElementById('appAlertsList');
       const changePinBtn = document.getElementById('changePinBtn');
       const forgetSavedPinBtn = document.getElementById('forgetSavedPinBtn');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
@@ -1639,7 +1667,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ck';
+      const APP_REVISION_UI_ = '23.9.99cl';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2190,6 +2218,430 @@
         // Defesa adicional contra links residuais de uma sessão GPV anterior
         // no mesmo aparelho/navegador.
         bloquearLinksPlanilhaParaGeral_();
+      }
+
+      // ===========================================================================
+      // V23.9.99cl — CENTRAL DE NOTIFICAÇÕES + PUSH
+      // ===========================================================================
+      function chaveAvisosLidosApp_() {
+        const id = String(authState.usuario?.id || 'sem-usuario').replace(/[^A-Za-z0-9_-]/g, '');
+        return `${APP_ALERTS_READ_STORAGE_PREFIX}${id || 'sem-usuario'}`;
+      }
+
+      function carregarIdsAvisosLidosApp_() {
+        try {
+          const lista = JSON.parse(localStorage.getItem(chaveAvisosLidosApp_()) || '[]');
+          return new Set(Array.isArray(lista) ? lista.map(String).slice(-500) : []);
+        } catch (_) {
+          return new Set();
+        }
+      }
+
+      function salvarIdsAvisosLidosApp_(ids) {
+        try {
+          const lista = Array.from(ids || []).map(String).filter(Boolean).slice(-500);
+          localStorage.setItem(chaveAvisosLidosApp_(), JSON.stringify(lista));
+        } catch (_) {}
+      }
+
+      function carregarCacheAvisosApp_() {
+        try {
+          const cache = JSON.parse(localStorage.getItem(APP_ALERTS_CACHE_STORAGE) || 'null');
+          const userId = String(authState.usuario?.id || '');
+          if (!cache || String(cache.userId || '') !== userId || !Array.isArray(cache.items)) return [];
+          appAlertsState.items = cache.items.slice(0, APP_ALERTS_CACHE_MAX);
+          return appAlertsState.items;
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function salvarCacheAvisosApp_() {
+        try {
+          localStorage.setItem(APP_ALERTS_CACHE_STORAGE, JSON.stringify({
+            userId: String(authState.usuario?.id || ''),
+            updatedAt: new Date().toISOString(),
+            items: (appAlertsState.items || []).slice(0, APP_ALERTS_CACHE_MAX)
+          }));
+        } catch (_) {}
+      }
+
+      function avisoAppFoiLido_(id) {
+        return carregarIdsAvisosLidosApp_().has(String(id || ''));
+      }
+
+      function marcarAvisoAppLido_(id) {
+        const chave = String(id || '').trim();
+        if (!chave) return;
+        const ids = carregarIdsAvisosLidosApp_();
+        ids.add(chave);
+        salvarIdsAvisosLidosApp_(ids);
+        renderizarAvisosApp_();
+      }
+
+      function marcarTodosAvisosAppLidos_() {
+        const ids = carregarIdsAvisosLidosApp_();
+        (appAlertsState.items || []).forEach(item => {
+          if (item?.id) ids.add(String(item.id));
+        });
+        salvarIdsAvisosLidosApp_(ids);
+        renderizarAvisosApp_();
+      }
+
+      function formatarDataAvisoApp_(valor) {
+        const data = new Date(valor || '');
+        if (Number.isNaN(data.getTime())) return '';
+        try {
+          return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+          }).format(data);
+        } catch (_) {
+          return data.toLocaleString();
+        }
+      }
+
+      function rotuloDestinoAvisoApp_(item) {
+        const tipo = String(item?.targetType || '').toUpperCase();
+        if (tipo === 'GPV') return 'Setor GPV';
+        if (tipo === 'GERAL') return 'Setor GERAL';
+        if (tipo === 'USUARIO') return item?.targetLabel ? `Para ${item.targetLabel}` : 'Militar específico';
+        return 'Todos os usuários';
+      }
+
+      function atualizarAvisosBadgeApp_() {
+        if (!appAlertsBellBtn || !appAlertsBadge) return;
+        const logado = Boolean(authState.usuario?.id && authState.sessionToken);
+        appAlertsBellBtn.hidden = !logado;
+        if (!logado) {
+          appAlertsBadge.hidden = true;
+          appAlertsBadge.textContent = '0';
+          return;
+        }
+        const lidos = carregarIdsAvisosLidosApp_();
+        const naoLidos = (appAlertsState.items || []).filter(item => item?.id && !lidos.has(String(item.id))).length;
+        appAlertsBadge.textContent = String(Math.min(99, naoLidos));
+        appAlertsBadge.hidden = naoLidos <= 0;
+        appAlertsBellBtn.setAttribute('aria-label', naoLidos > 0
+          ? `Abrir notificações. ${naoLidos} não lida${naoLidos === 1 ? '' : 's'}.`
+          : 'Abrir notificações');
+      }
+
+      function renderizarAvisosApp_() {
+        atualizarAvisosBadgeApp_();
+        if (!appAlertsList) return;
+        const itens = Array.isArray(appAlertsState.items) ? appAlertsState.items : [];
+        if (!itens.length) {
+          appAlertsList.innerHTML = '<div class="app-alerts-empty">Nenhuma notificação disponível.</div>';
+          return;
+        }
+        const lidos = carregarIdsAvisosLidosApp_();
+        appAlertsList.innerHTML = itens.map(item => {
+          const id = String(item?.id || '');
+          const lido = lidos.has(id);
+          return `<article class="app-alert-item${lido ? '' : ' unread'}" data-app-alert-id="${escapeHtml(id)}">
+            <div class="app-alert-item-head">
+              <strong>${escapeHtml(item?.title || 'Aviso')}</strong>
+              <time>${escapeHtml(formatarDataAvisoApp_(item?.createdAt))}</time>
+            </div>
+            <p>${escapeHtml(item?.message || '')}</p>
+            <div class="app-alert-item-meta">${escapeHtml(rotuloDestinoAvisoApp_(item))}${item?.createdByName ? ` · Enviado por ${escapeHtml(item.createdByName)}` : ''}</div>
+            ${lido ? '' : `<button class="app-alert-item-mark" type="button" data-app-alert-read="${escapeHtml(id)}">Marcar como lida</button>`}
+          </article>`;
+        }).join('');
+      }
+
+      async function carregarAvisosApp_(mostrarErro = false) {
+        carregarCacheAvisosApp_();
+        renderizarAvisosApp_();
+        if (!authState.usuario?.id || !navigator.onLine || appAlertsState.loading) return appAlertsState.items;
+        appAlertsState.loading = true;
+        try {
+          const resposta = await apiRequest('notifications', { limit: 80 }, 20000);
+          appAlertsState.items = Array.isArray(resposta?.notifications) ? resposta.notifications.slice(0, APP_ALERTS_CACHE_MAX) : [];
+          salvarCacheAvisosApp_();
+          renderizarAvisosApp_();
+          if (appAlertsUpdatedAt) appAlertsUpdatedAt.textContent = `Atualizado ${new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}`;
+          return appAlertsState.items;
+        } catch (error) {
+          if (mostrarErro) await avisarGpv_(error?.message || 'Não foi possível atualizar as notificações.', 'Notificações', { tom:'warning' });
+          return appAlertsState.items;
+        } finally {
+          appAlertsState.loading = false;
+        }
+      }
+
+      async function carregarUsuariosAvisosApp_() {
+        if (!usuarioPodeOperar_() || !appAlertsTargetUser) return [];
+        try {
+          const resposta = await apiRequest('users', {}, 20000);
+          const usuarios = Array.isArray(resposta?.usuarios) ? resposta.usuarios.filter(u => u && u.ativo !== false) : [];
+          appAlertsState.users = usuarios;
+          appAlertsTargetUser.innerHTML = usuarios.map(u =>
+            `<option value="${escapeHtml(u.id)}">${escapeHtml(u.nome)} · BM ${escapeHtml(u.bm || '')} · ${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}</option>`
+          ).join('');
+          return usuarios;
+        } catch (_) {
+          appAlertsTargetUser.innerHTML = '';
+          return [];
+        }
+      }
+
+      function atualizarDestinoAvisoApp_() {
+        if (!appAlertsTargetUserWrap || !appAlertsTargetType) return;
+        appAlertsTargetUserWrap.hidden = String(appAlertsTargetType.value || '') !== 'USUARIO';
+      }
+
+      function pushAvisosSuportado_() {
+        return Boolean('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+      }
+
+      async function assinaturaPushAtualAvisosApp_() {
+        if (!pushAvisosSuportado_()) return null;
+        try {
+          const registro = await navigator.serviceWorker.ready;
+          return await registro.pushManager.getSubscription();
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function chavePublicaPushParaBytes_(valor) {
+        const texto = String(valor || '').replace(/-/g, '+').replace(/_/g, '/');
+        const preenchido = texto + '='.repeat((4 - (texto.length % 4)) % 4);
+        const bruto = atob(preenchido);
+        return Uint8Array.from(Array.from(bruto).map(c => c.charCodeAt(0)));
+      }
+
+      async function atualizarEstadoPushAvisosApp_() {
+        if (!appAlertsPushStatus || !appAlertsEnablePushBtn || !appAlertsTestPushBtn) return;
+        if (!pushAvisosSuportado_()) {
+          appAlertsPushStatus.textContent = 'Push não é suportado neste navegador. A Central de Notificações continua disponível dentro do app.';
+          appAlertsEnablePushBtn.disabled = true;
+          appAlertsTestPushBtn.disabled = true;
+          return;
+        }
+        const permissao = Notification.permission;
+        if (permissao === 'denied') {
+          appAlertsPushStatus.textContent = 'As notificações estão bloqueadas nas permissões do navegador/aparelho.';
+          appAlertsEnablePushBtn.textContent = 'Permissão bloqueada';
+          appAlertsEnablePushBtn.disabled = true;
+          appAlertsTestPushBtn.disabled = true;
+          return;
+        }
+        const assinatura = permissao === 'granted' ? await assinaturaPushAtualAvisosApp_() : null;
+        if (assinatura) {
+          appAlertsPushStatus.textContent = 'Ativadas neste aparelho.';
+          appAlertsEnablePushBtn.textContent = 'Atualizar ativação';
+          appAlertsEnablePushBtn.disabled = false;
+          appAlertsTestPushBtn.disabled = !navigator.onLine;
+        } else {
+          appAlertsPushStatus.textContent = permissao === 'granted'
+            ? 'Permissão concedida, mas este aparelho ainda precisa ser registrado.'
+            : 'Desativadas. Ative para receber avisos mesmo com o PWA fechado.';
+          appAlertsEnablePushBtn.textContent = 'Ativar notificações';
+          appAlertsEnablePushBtn.disabled = false;
+          appAlertsTestPushBtn.disabled = true;
+        }
+      }
+
+      async function registrarAssinaturaPushAvisosApp_(assinatura) {
+        if (!assinatura || !navigator.onLine) return false;
+        const jsonAssinatura = assinatura.toJSON ? assinatura.toJSON() : assinatura;
+        await apiRequest('push_register', {
+          subscription: jsonAssinatura,
+          deviceName: nomeDispositivo_()
+        }, 25000);
+        return true;
+      }
+
+      async function ativarPushAvisosApp_() {
+        if (!pushAvisosSuportado_()) return;
+        if (!navigator.onLine) {
+          await avisarGpv_('Conecte o aparelho à internet para ativar as notificações.', 'Sem internet', { tom:'warning' });
+          return;
+        }
+        if (appAlertsEnablePushBtn) appAlertsEnablePushBtn.disabled = true;
+        try {
+          let permissao = Notification.permission;
+          if (permissao === 'default') permissao = await Notification.requestPermission();
+          if (permissao !== 'granted') {
+            throw new Error('A permissão de notificações não foi concedida.');
+          }
+          const config = await apiRequest('push_config', {}, 20000);
+          const chave = String(config?.publicKey || '').trim();
+          if (!chave) throw new Error('A chave pública de notificações ainda não foi configurada no servidor.');
+          const registro = await navigator.serviceWorker.ready;
+          let assinatura = await registro.pushManager.getSubscription();
+          if (!assinatura) {
+            assinatura = await registro.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: chavePublicaPushParaBytes_(chave)
+            });
+          }
+          await registrarAssinaturaPushAvisosApp_(assinatura);
+          await atualizarEstadoPushAvisosApp_();
+          await avisarGpv_('Este aparelho está pronto para receber notificações do App do Vistoriador.', 'Notificações ativadas', { tom:'success' });
+        } catch (error) {
+          await atualizarEstadoPushAvisosApp_();
+          await avisarGpv_(error?.message || 'Não foi possível ativar as notificações.', 'Notificações', { tom:'warning' });
+        } finally {
+          if (appAlertsEnablePushBtn && Notification.permission !== 'denied') appAlertsEnablePushBtn.disabled = false;
+        }
+      }
+
+      async function registrarPushExistenteSilencioso_() {
+        if (!authState.usuario?.id || !navigator.onLine || !pushAvisosSuportado_() || Notification.permission !== 'granted') return;
+        try {
+          const assinatura = await assinaturaPushAtualAvisosApp_();
+          if (assinatura) await registrarAssinaturaPushAvisosApp_(assinatura);
+        } catch (_) {}
+      }
+
+      async function testarPushAvisosApp_() {
+        if (!navigator.onLine) {
+          await avisarGpv_('Conecte o aparelho à internet para executar o teste.', 'Sem internet', { tom:'warning' });
+          return;
+        }
+        const assinatura = await assinaturaPushAtualAvisosApp_();
+        if (!assinatura) {
+          await avisarGpv_('Ative as notificações neste aparelho antes de executar o teste.', 'Teste de notificação', { tom:'warning' });
+          return;
+        }
+        if (appAlertsTestPushBtn) appAlertsTestPushBtn.disabled = true;
+        try {
+          await registrarAssinaturaPushAvisosApp_(assinatura);
+          const resposta = await apiRequest('push_test', { endpoint: String(assinatura.endpoint || '') }, 30000);
+          if (!resposta?.delivered) throw new Error(resposta?.error || 'O serviço de push não confirmou a entrega.');
+          await avisarGpv_('O aviso de teste foi enviado. Ele deve aparecer na área de notificações do aparelho.', 'Teste enviado', { tom:'success' });
+        } catch (error) {
+          await avisarGpv_(error?.message || 'Não foi possível enviar a notificação de teste.', 'Teste de notificação', { tom:'warning' });
+        } finally {
+          await atualizarEstadoPushAvisosApp_();
+        }
+      }
+
+      function abrirCompositorAvisosApp_() {
+        if (!usuarioPodeOperar_() || !appAlertsComposeForm) return;
+        appAlertsComposeForm.hidden = false;
+        if (appAlertsComposeMessage) {
+          appAlertsComposeMessage.textContent = '';
+          appAlertsComposeMessage.className = 'app-alerts-compose-message';
+        }
+        atualizarDestinoAvisoApp_();
+        setTimeout(() => appAlertsTitleInput?.focus(), 20);
+      }
+
+      function fecharCompositorAvisosApp_() {
+        if (!appAlertsComposeForm) return;
+        appAlertsComposeForm.hidden = true;
+        appAlertsComposeForm.reset?.();
+        if (appAlertsTargetType) appAlertsTargetType.value = 'TODOS';
+        atualizarDestinoAvisoApp_();
+        if (appAlertsComposeMessage) {
+          appAlertsComposeMessage.textContent = '';
+          appAlertsComposeMessage.className = 'app-alerts-compose-message';
+        }
+      }
+
+      async function enviarAvisoApp_(event) {
+        event?.preventDefault();
+        if (!usuarioPodeOperar_()) return;
+        if (!navigator.onLine) {
+          if (appAlertsComposeMessage) {
+            appAlertsComposeMessage.textContent = 'Conecte o aparelho à internet para enviar.';
+            appAlertsComposeMessage.className = 'app-alerts-compose-message error';
+          }
+          return;
+        }
+        const title = String(appAlertsTitleInput?.value || '').trim().slice(0, 80);
+        const message = String(appAlertsMessageInput?.value || '').trim().slice(0, 500);
+        const targetType = String(appAlertsTargetType?.value || 'TODOS').toUpperCase();
+        const targetValue = targetType === 'USUARIO' ? String(appAlertsTargetUser?.value || '').trim() : '';
+        if (!title || !message || (targetType === 'USUARIO' && !targetValue)) {
+          if (appAlertsComposeMessage) {
+            appAlertsComposeMessage.textContent = 'Preencha título, mensagem e destinatário.';
+            appAlertsComposeMessage.className = 'app-alerts-compose-message error';
+          }
+          return;
+        }
+        if (appAlertsSendBtn) appAlertsSendBtn.disabled = true;
+        if (appAlertsComposeMessage) {
+          appAlertsComposeMessage.textContent = 'Enviando...';
+          appAlertsComposeMessage.className = 'app-alerts-compose-message';
+        }
+        try {
+          const resposta = await apiRequest('notify_send', { title, message, targetType, targetValue }, 45000);
+          const entregues = Number(resposta?.pushDelivered || 0);
+          const tentados = Number(resposta?.pushAttempted || 0);
+          if (appAlertsComposeMessage) {
+            appAlertsComposeMessage.textContent = tentados
+              ? `Notificação registrada. Push confirmado em ${entregues} de ${tentados} aparelho(s).`
+              : 'Notificação registrada. Nenhum aparelho com push ativo foi localizado para o destinatário.';
+            appAlertsComposeMessage.className = 'app-alerts-compose-message success';
+          }
+          if (appAlertsTitleInput) appAlertsTitleInput.value = '';
+          if (appAlertsMessageInput) appAlertsMessageInput.value = '';
+          if (resposta?.notification?.id) {
+            const atual = Array.isArray(appAlertsState.items) ? appAlertsState.items : [];
+            appAlertsState.items = [resposta.notification, ...atual.filter(item => String(item?.id || '') !== String(resposta.notification.id))]
+              .slice(0, APP_ALERTS_CACHE_MAX);
+            salvarCacheAvisosApp_();
+            renderizarAvisosApp_();
+          }
+          setTimeout(() => { if (navigator.onLine) void carregarAvisosApp_(false); }, 1200);
+        } catch (error) {
+          if (appAlertsComposeMessage) {
+            appAlertsComposeMessage.textContent = error?.message || 'Não foi possível enviar a notificação.';
+            appAlertsComposeMessage.className = 'app-alerts-compose-message error';
+          }
+        } finally {
+          if (appAlertsSendBtn) appAlertsSendBtn.disabled = false;
+        }
+      }
+
+      function limparParametroAvisosAppUrl_() {
+        try {
+          const url = new URL(window.location.href);
+          if (!url.searchParams.has('avisos')) return;
+          url.searchParams.delete('avisos');
+          const destino = url.pathname + (url.search ? url.search : '') + (url.hash ? url.hash : '');
+          window.history.replaceState(window.history.state, '', destino);
+        } catch (_) {}
+      }
+
+      async function abrirAvisosApp_() {
+        fecharMenuMais_();
+        limparParametroAvisosAppUrl_();
+        if (!authState.usuario?.id || !appAlertsModal) {
+          appAlertsOpenAfterLogin_ = true;
+          return;
+        }
+        appAlertsOpenAfterLogin_ = false;
+        appAlertsModal.hidden = false;
+        document.body.classList.add('app-alerts-open');
+        if (appAlertsAdminPanel) appAlertsAdminPanel.hidden = !usuarioPodeOperar_();
+        fecharCompositorAvisosApp_();
+        carregarCacheAvisosApp_();
+        renderizarAvisosApp_();
+        await atualizarEstadoPushAvisosApp_();
+        if (usuarioPodeOperar_()) void carregarUsuariosAvisosApp_();
+        if (navigator.onLine) void carregarAvisosApp_(false);
+        setTimeout(() => appAlertsCloseBtn?.focus(), 20);
+      }
+
+      function fecharAvisosApp_() {
+        if (!appAlertsModal) return;
+        appAlertsModal.hidden = true;
+        document.body.classList.remove('app-alerts-open');
+      }
+
+      function deveAbrirAvisosAppDaUrl_() {
+        try {
+          const params = new URLSearchParams(window.location.search || '');
+          return ['1','true','sim'].includes(String(params.get('avisos') || '').toLowerCase());
+        } catch (_) {
+          return false;
+        }
       }
 
       function abrirManualSistema_() {
@@ -2836,7 +3288,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ck', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cl', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4514,6 +4966,7 @@
         if (elementoVisivelNavegacao_(dduRegisterModal)) return { id: 'ddu-register', fechar: () => fecharCadastroDdu_() };
         if (elementoVisivelNavegacao_(duvidasModal)) return { id: 'duvidas', fechar: () => fecharDuvidas_() };
         if (elementoVisivelNavegacao_(systemManualModal)) return { id: 'system-manual', fechar: () => fecharManualSistema_() };
+        if (elementoVisivelNavegacao_(appAlertsModal)) return { id: 'app-alerts', fechar: () => fecharAvisosApp_() };
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
         if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
         if (elementoVisivelNavegacao_(tutorialModal)) return { id: 'tutorial', fechar: () => fecharTutorial_() };
@@ -14240,6 +14693,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           forgetSavedPinBtn.hidden = !temSenhaSalva;
         }
         atualizarIndicadorPreparacoesUsuario_();
+        atualizarAvisosBadgeApp_();
         atualizarPoliticaLoginBm_();
       }
 
@@ -16920,6 +17374,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         inicializarNavegacaoGlobal_(vistaInicial);
 
+        // Central de Notificações: usa cache imediatamente e confirma online sem
+        // competir com a abertura do aplicativo.
+        carregarCacheAvisosApp_();
+        renderizarAvisosApp_();
+        if (navigator.onLine) {
+          setTimeout(() => { void carregarAvisosApp_(false); }, appRetomadaAposLongaPausa_ ? 5200 : 2300);
+          setTimeout(() => { void registrarPushExistenteSilencioso_(); }, appRetomadaAposLongaPausa_ ? 7600 : 4200);
+        }
+        if (deveAbrirAvisosAppDaUrl_() || appAlertsOpenAfterLogin_) {
+          setTimeout(() => { void abrirAvisosApp_(); }, 250);
+        }
+
         const acessoAuxiliarId = idAcessoAuxiliarNotificacoesUrl_();
         if (acessoAuxiliarId && usuarioPodeOperar_()) {
           await abrirAcessoAuxiliarNotificacoes_(acessoAuxiliarId);
@@ -17775,6 +18241,28 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const alvo = event.target.closest('[data-manual-target]');
         if (alvo) navegarManualSistema_(alvo.dataset.manualTarget || '');
       });
+      appAlertsBellBtn?.addEventListener('click', () => { void abrirAvisosApp_(); });
+      appAlertsMenuBtn?.addEventListener('click', () => { void abrirAvisosApp_(); });
+      appAlertsCloseBtn?.addEventListener('click', fecharAvisosApp_);
+      appAlertsModal?.addEventListener('click', event => { if (event.target === appAlertsModal) fecharAvisosApp_(); });
+      appAlertsRefreshBtn?.addEventListener('click', () => { void carregarAvisosApp_(true); });
+      appAlertsMarkAllBtn?.addEventListener('click', marcarTodosAvisosAppLidos_);
+      appAlertsEnablePushBtn?.addEventListener('click', () => { void ativarPushAvisosApp_(); });
+      appAlertsTestPushBtn?.addEventListener('click', () => { void testarPushAvisosApp_(); });
+      appAlertsComposeToggleBtn?.addEventListener('click', abrirCompositorAvisosApp_);
+      appAlertsComposeCancelBtn?.addEventListener('click', fecharCompositorAvisosApp_);
+      appAlertsTargetType?.addEventListener('change', atualizarDestinoAvisoApp_);
+      appAlertsComposeForm?.addEventListener('submit', enviarAvisoApp_);
+      appAlertsList?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-app-alert-read]');
+        if (botao) marcarAvisoAppLido_(botao.dataset.appAlertRead || '');
+      });
+      navigator.serviceWorker?.addEventListener?.('message', event => {
+        if (event?.data?.type === 'OPEN_APP_ALERTS') {
+          if (authState.usuario?.id) void abrirAvisosApp_();
+          else appAlertsOpenAfterLogin_ = true;
+        }
+      });
       usefulLinksBtn?.addEventListener('click', abrirLinksUteis_);
       usefulLinksCloseBtn?.addEventListener('click', fecharLinksUteis_);
       usefulLinksModal?.addEventListener('click', event => { if (event.target === usefulLinksModal) fecharLinksUteis_(); });
@@ -18042,7 +18530,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ck', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cl', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
