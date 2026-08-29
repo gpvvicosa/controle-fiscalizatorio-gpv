@@ -3,6 +3,7 @@
 
       const DRAFT_KEY = 'appVistoriaGpvUmaPaginaV2';
       const PENDING_KEY = 'appVistoriaGpvPendentesV1';
+      const HOME_OPERATIONAL_LOG_STORAGE = 'gpvHomeOperationalLogV1';
       const CONFIG_CACHE_KEY = 'appVistoriaGpvConfigPwaV1';
       const DB_NAME = 'ControleVistoriasGPV';
       const DB_VERSION = 2;
@@ -825,6 +826,7 @@
         } catch (_) {}
         if (!lista.length) {
           row.hidden = true;
+          queueMicrotask(() => atualizarResumoOperacionalHome_());
           return lista;
         }
         row.hidden = false;
@@ -838,6 +840,186 @@
           card.setAttribute('aria-label', `Escolher entre ${lista.length} vistorias em andamento`);
         }
         return lista;
+      }
+
+
+      function homeOperationalLogKey_() {
+        return `${HOME_OPERATIONAL_LOG_STORAGE}:${draftUserId_()}`;
+      }
+
+      function lerHistoricoOperacionalLocal_() {
+        try {
+          const lista = JSON.parse(localStorage.getItem(homeOperationalLogKey_()) || '[]');
+          if (!Array.isArray(lista)) return [];
+          const limite = Date.now() - (35 * 24 * 60 * 60 * 1000);
+          const limpo = lista.filter(item => item && Number(item.em || 0) >= limite).slice(0, 80);
+          if (limpo.length != lista.length) localStorage.setItem(homeOperationalLogKey_(), JSON.stringify(limpo));
+          return limpo;
+        } catch (_) { return []; }
+      }
+
+      function registrarHistoricoOperacionalLocal_(payload = {}) {
+        if (!usuarioPodeOperar_()) return;
+        const p = payload && typeof payload === 'object' ? payload : {};
+        const id = String(p._appRegistroId || '').trim();
+        const lista = lerHistoricoOperacionalLocal_().filter(item => !id || String(item.id || '') !== id);
+        lista.unshift({
+          id: id || criarIdRegistro(),
+          em: Date.now(),
+          nome: String(p.nomeFantasia || p.razaoSocial || p.eventoNome || p.endereco || 'Vistoria registrada').trim(),
+          tipo: String(p.tipoVistoria || '').trim(),
+          situacao: String(p.sancao || p._appSancaoPretendida || '').trim(),
+          endereco: [p.endereco, p.numero].filter(Boolean).join(', '),
+          cidade: String(p.cidade || '').trim()
+        });
+        try { localStorage.setItem(homeOperationalLogKey_(), JSON.stringify(lista.slice(0, 80))); } catch (_) {}
+        atualizarResumoOperacionalHome_();
+      }
+
+      function mesmoDiaLocal_(timestampA, timestampB = Date.now()) {
+        const a = new Date(Number(timestampA || 0));
+        const b = new Date(Number(timestampB || 0));
+        return !Number.isNaN(a.getTime()) && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+      }
+
+      function textoProgramacaoOperacional_(item) {
+        if (!item) return '';
+        const partes = [];
+        const nome = String(item.nomeFantasia || item.razaoSocial || item.estabelecimento || item.local || item.endereco || '').trim();
+        if (nome) partes.push(nome);
+        const prazo = classificarPrazoProgramacao_(item);
+        if (prazo?.rotulo) partes.push(prazo.rotulo);
+        const local = [item.endereco, item.numero].filter(Boolean).join(', ');
+        if (local && normalize(local) !== normalize(nome)) partes.push(local);
+        return partes.filter(Boolean).join(' · ');
+      }
+
+      function proximaProgramacaoOperacional_() {
+        const minhas = preparacoesDoUsuarioLogado_();
+        const fonte = minhas.length ? minhas : (Array.isArray(preparacoesVistoria) ? preparacoesVistoria : []);
+        return [...fonte].sort((a,b) => {
+          const pa = classificarPrazoProgramacao_(a);
+          const pb = classificarPrazoProgramacao_(b);
+          return Number(pa?.prioridade ?? 999) - Number(pb?.prioridade ?? 999);
+        })[0] || null;
+      }
+
+
+      function dataCarimboOperacional_(valor) {
+        const texto = String(valor || '').trim();
+        if (!texto) return null;
+        const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+        const br = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (br) {
+          let dia = Number(br[1]), mes = Number(br[2]);
+          if (mes > 12 && dia >= 1 && dia <= 12) [dia, mes] = [mes, dia];
+          return new Date(Number(br[3]), mes - 1, dia);
+        }
+        const data = new Date(texto);
+        return Number.isNaN(data.getTime()) ? null : data;
+      }
+
+      async function carregarResumoOperacionalServidor_(forcar = false) {
+        if (!navigator.onLine || !usuarioPodeOperar_() || !authState.usuario?.nome) return;
+        if (homeOperationalServidor_.carregando) return;
+        if (!forcar && homeOperationalServidor_.carregadoEm && Date.now() - homeOperationalServidor_.carregadoEm < 5 * 60 * 1000) return;
+        homeOperationalServidor_.carregando = true;
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'registros',
+            filtros: {
+              busca: '', cidade: '', demanda: '', sancao: '', tipo: '',
+              vistoriador: String(authState.usuario.nome || '').trim(),
+              periodo: '30d', prazoMulta: '', offset: 0, limite: 100
+            }
+          }, 30000);
+          const itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
+          const hoje = new Date();
+          let totalHoje = 0;
+          itens.forEach(item => {
+            const data = dataCarimboOperacional_(item?.carimbo);
+            if (data && data.getFullYear() === hoje.getFullYear() && data.getMonth() === hoje.getMonth() && data.getDate() === hoje.getDate()) totalHoje += 1;
+          });
+          const maisRecente = itens[0] || null;
+          homeOperationalServidor_ = { hoje: totalHoje, ultimo: maisRecente, carregadoEm: Date.now(), carregando: false };
+          atualizarResumoOperacionalHome_();
+        } catch (_) {
+          homeOperationalServidor_.carregando = false;
+        }
+      }
+
+      function atualizarResumoOperacionalHome_() {
+        if (!homeOperationalToday || !homeOperationalProgrammed || !homeOperationalDrafts || !homeOperationalPending) return;
+        const historico = lerHistoricoOperacionalLocal_();
+        const hojeLocal = historico.filter(item => mesmoDiaLocal_(item.em)).length;
+        const hojeServidor = Number.isFinite(Number(homeOperationalServidor_.hoje)) ? Number(homeOperationalServidor_.hoje) : 0;
+        const hoje = Math.max(hojeLocal, hojeServidor);
+        const programadas = Array.isArray(preparacoesVistoria) ? preparacoesVistoria.length : 0;
+        const rascunhos = usuarioPodeOperar_() ? listarRascunhosLocaisAtivos_() : [];
+        const pendentes = typeof obterPendentes === 'function' ? obterPendentes().length : 0;
+
+        homeOperationalToday.textContent = String(hoje);
+        homeOperationalProgrammed.textContent = String(programadas);
+        homeOperationalDrafts.textContent = String(rascunhos.length);
+        homeOperationalPending.textContent = pendentes ? String(pendentes) : '✓';
+        homeOperationalPending.closest('.home-operational-metric')?.classList.toggle('is-warning', pendentes > 0);
+
+        homeOperationalContext_ = null;
+        const ultimoRascunho = rascunhos[0] || null;
+        const proxima = proximaProgramacaoOperacional_();
+        const ultimoLocal = historico[0] || null;
+        const ultimoServidorBruto = homeOperationalServidor_.ultimo || null;
+        const ultimo = ultimoLocal || (ultimoServidorBruto ? {
+          nome: String(ultimoServidorBruto.nomeFantasia || ultimoServidorBruto.razaoSocial || 'Vistoria registrada'),
+          tipo: String(ultimoServidorBruto.tipoVistoria || ''),
+          situacao: String(ultimoServidorBruto.sancao || ''),
+          endereco: String(ultimoServidorBruto.endereco || ''),
+          em: dataCarimboOperacional_(ultimoServidorBruto.carimbo)?.getTime() || 0
+        } : null);
+
+        if (ultimoRascunho) {
+          homeOperationalContext_ = { tipo: 'rascunho', id: ultimoRascunho.id };
+          homeOperationalContextTitle.textContent = 'Continuar vistoria';
+          homeOperationalContextText.textContent = `${tituloRascunhoLocal_(ultimoRascunho)} · Última alteração ${textoUltimaAlteracaoRascunho_(ultimoRascunho.savedAt)}`;
+          homeOperationalContextAction.textContent = 'Continuar →';
+        } else if (ultimo) {
+          homeOperationalContext_ = { tipo: 'ultima', busca: ultimo.nome || ultimo.endereco || '' };
+          homeOperationalContextTitle.textContent = 'Última vistoria registrada';
+          const detalhes = [ultimo.nome, ultimo.tipo, ultimo.situacao, textoUltimaAlteracaoRascunho_(ultimo.em)].filter(Boolean);
+          homeOperationalContextText.textContent = detalhes.join(' · ');
+          homeOperationalContextAction.textContent = 'Ver no Painel →';
+        } else if (proxima) {
+          homeOperationalContext_ = { tipo: 'programada' };
+          homeOperationalContextTitle.textContent = 'Próxima vistoria programada';
+          homeOperationalContextText.textContent = textoProgramacaoOperacional_(proxima) || 'Há vistoria programada pendente para consulta.';
+          homeOperationalContextAction.textContent = 'Abrir programadas →';
+        }
+
+        if (homeOperationalContextCard) homeOperationalContextCard.hidden = !homeOperationalContext_;
+        if (homeOperationalConnection) {
+          const estado = navigator.onLine ? 'Online' : 'Offline';
+          const sync = pendentes ? `${pendentes} aguardando sincronização` : 'Tudo sincronizado';
+          homeOperationalConnection.textContent = `${estado} · ${sync} · App ${APP_REVISION_UI_}`;
+          homeOperationalConnection.classList.toggle('is-offline', !navigator.onLine);
+          homeOperationalConnection.classList.toggle('is-warning', pendentes > 0);
+        }
+      }
+
+      async function abrirContextoResumoOperacionalHome_() {
+        const contexto = homeOperationalContext_;
+        if (!contexto) return;
+        if (contexto.tipo === 'rascunho' && contexto.id) {
+          await abrirRascunhoLocalPorId_(contexto.id);
+          return;
+        }
+        if (contexto.tipo === 'programada') {
+          abrirListaProgramadas_(true);
+          return;
+        }
+        if (contexto.tipo === 'ultima') {
+          mostrarVistaPlanilha_({ busca: contexto.busca || '', carregar: true });
+        }
       }
 
       function rascunhoAtualEmAndamento_() {
@@ -1497,6 +1679,15 @@
       const inspectionSuggestionsVistoriaText = document.getElementById('inspectionSuggestionsVistoriaText');
       const inspectionSuggestionsVistoriaSummary = document.getElementById('inspectionSuggestionsVistoriaSummary');
       const inspectionSuggestionsVistoriaCount = document.getElementById('inspectionSuggestionsVistoriaCount');
+      const homeOperationalToday = document.getElementById('homeOperationalToday');
+      const homeOperationalProgrammed = document.getElementById('homeOperationalProgrammed');
+      const homeOperationalDrafts = document.getElementById('homeOperationalDrafts');
+      const homeOperationalPending = document.getElementById('homeOperationalPending');
+      const homeOperationalContextCard = document.getElementById('homeOperationalContextCard');
+      const homeOperationalContextTitle = document.getElementById('homeOperationalContextTitle');
+      const homeOperationalContextText = document.getElementById('homeOperationalContextText');
+      const homeOperationalContextAction = document.getElementById('homeOperationalContextAction');
+      const homeOperationalConnection = document.getElementById('homeOperationalConnection');
       const inspectionSuggestionsRefreshBtn = document.getElementById('inspectionSuggestionsRefreshBtn');
       const programmedQuickAddBtn = document.getElementById('programmedQuickAddBtn');
       const programmedListModal = document.getElementById('programmedListModal');
@@ -1651,6 +1842,8 @@
       let preparacaoRetornarProgramadas = false;
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
+      let homeOperationalContext_ = null;
+      let homeOperationalServidor_ = { hoje: null, ultimo: null, carregadoEm: 0, carregando: false };
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
       let recordCorrectionRegistroAtual = null;
@@ -1667,7 +1860,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cq';
+      const APP_REVISION_UI_ = '23.9.99cr';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3288,7 +3481,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cq', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cr', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4213,6 +4406,7 @@
         sendPendingBtn.disabled = !navigator.onLine || sendingQueue || quantidade === 0;
         sendPendingBtn.textContent = sendingQueue ? 'Enviando...' : 'Enviar pendentes';
         atualizarResumoSincronizacao_();
+        queueMicrotask(() => atualizarResumoOperacionalHome_());
       }
 
       function atualizarStatusConexao() {
@@ -4233,6 +4427,7 @@
           if (cnpjStatus) showCnpjStatus('Sem internet. A consulta automática de CNPJ fica disponível quando a conexão voltar.', 'info');
         }
         atualizarPainelPendentes();
+        atualizarResumoOperacionalHome_();
         atualizarBotaoPlanilhaSucesso_();
         if (document.body.classList.contains('records-mode') && !online) {
           recordsStatus.className = 'records-status error';
@@ -5164,6 +5359,8 @@
         fecharDetalheRegistro_({ restaurarContexto: false });
         atualizarVistaNaUrl_('form');
         atualizarResumoRascunhosLocais_();
+        atualizarResumoOperacionalHome_();
+        void carregarResumoOperacionalServidor_();
         window.scrollTo({ top: 0, behavior: 'smooth' });
         if (usuarioEmTreinamento_()) {
           if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
@@ -8220,6 +8417,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
         ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
+        registrarHistoricoOperacionalLocal_(payload);
         const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
         enfileirarRegistro(payload);
         if (navigator.onLine) {
@@ -14631,6 +14829,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         ultimoRegistroConsultaChave = '';
         ultimoRegistroParaOrientacoes = { ...payload };
+        registrarHistoricoOperacionalLocal_(payload);
+        setTimeout(() => { if (navigator.onLine) void carregarResumoOperacionalServidor_(true); }, 2500);
 
         // Estratégia local-first: antes de qualquer tentativa de internet, a vistoria
         // entra na fila do aparelho. Isso torna o botão praticamente imediato e
@@ -16192,6 +16392,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (programmedSummaryText) programmedSummaryText.textContent = total
           ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
           : 'Nenhuma vistoria programada';
+        atualizarResumoOperacionalHome_();
       }
 
 
@@ -17528,6 +17729,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       document.getElementById('partialBtn')?.addEventListener('click', concluirParcialmente_);
       document.getElementById('continueSharedBtn')?.addEventListener('click', continuarRascunhoCompartilhado_);
       document.getElementById('localDraftSummaryCard')?.addEventListener('click', abrirListaRascunhosLocais_);
+      homeOperationalContextCard?.addEventListener('click', () => { void abrirContextoResumoOperacionalHome_(); });
+      setTimeout(() => atualizarResumoOperacionalHome_(), 350);
       document.getElementById('localDraftNewBtn')?.addEventListener('click', async () => {
         if (!prepararFormularioNovaVistoria_('Nova vistoria')) return;
         await mostrarVistaFormulario_();
@@ -18652,7 +18855,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cr', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
