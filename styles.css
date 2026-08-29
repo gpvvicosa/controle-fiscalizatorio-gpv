@@ -13702,3 +13702,68 @@ body:not(.records-mode) .app-credit{
     background:rgba(255,245,241,.97) !important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99cq — banner sem moldura + rodapé sem área vazia
+   Ajuste exclusivamente visual. Mantém regras, mapa e notificações intactos.
+   ============================================================================= */
+html{
+  background:#f1ddd6;
+}
+body:not(.records-mode){
+  min-height:100dvh;
+}
+body:not(.records-mode) .hero{
+  border:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+}
+body:not(.records-mode) .hero-banner{
+  box-shadow:none!important;
+}
+
+/* Na home, remove a reserva grande destinada à barra fixa de ações.
+   Quando a barra de vistoria está visível, o espaçamento original é preservado. */
+body:not(.records-mode) .page:has(#vistoriaBottomBar[hidden]){
+  min-height:100dvh;
+  box-sizing:border-box;
+  padding-bottom:12px!important;
+}
+body:not(.records-mode) .page:has(#vistoriaBottomBar:not([hidden])){
+  padding-bottom:116px!important;
+}
+body:not(.records-mode) .app-credit{
+  margin-bottom:0!important;
+  padding-bottom:10px!important;
+}
+
+@media(max-width:760px){
+  html{
+    background:#efd9d1;
+  }
+  body:not(.records-mode) .hero{
+    width:94%!important;
+    aspect-ratio:4.02/1;
+    margin:4px auto 8px!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+  }
+  body:not(.records-mode) .hero-banner{
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+    object-position:center!important;
+    transform:scale(1.035);
+  }
+  body:not(.records-mode) .page:has(#vistoriaBottomBar[hidden]){
+    padding-bottom:8px!important;
+  }
+  body:not(.records-mode) .page:has(#vistoriaBottomBar:not([hidden])){
+    padding-bottom:110px!important;
+  }
+  body:not(.records-mode) .app-credit{
+    margin-bottom:0!important;
+    padding-bottom:7px!important;
+  }
+}
