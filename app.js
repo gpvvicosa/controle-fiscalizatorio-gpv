@@ -2836,7 +2836,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ci', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cj', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -3638,7 +3638,7 @@
         }
 
         let estado = 'is-ok';
-        let texto = 'Tudo sincronizado';
+        let texto = 'Online • Tudo sincronizado';
         if (!navigator.onLine) {
           estado = 'is-offline';
           texto = quantidade
@@ -3646,7 +3646,7 @@
             : 'Offline • nenhum envio pendente';
         } else if (quantidade) {
           estado = 'is-pending';
-          texto = `${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
+          texto = `Online • ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
         }
 
         if (syncSummary) {
@@ -18042,7 +18042,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ci', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cj', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
