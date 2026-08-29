@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99';
+      const APP_VERSION = '23.9.99da';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -4111,7 +4111,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cz', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99da', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -13561,7 +13561,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           await avisarGpv_('A escolha manual no mapa precisa de internet para carregar o mapa. O GPS do aparelho continua disponível mesmo sem mapa.', 'Mapa indisponível offline');
           return;
         }
-        if (!locationPickerModal || !locationPickerMap) return;
+        if (!locationPickerModal || !locationPickerMap || !locationPickerTiles) {
+          await avisarGpv_('O seletor de mapa não foi carregado corretamente. Feche e abra o aplicativo novamente para concluir a atualização.', 'Mapa não carregado');
+          return;
+        }
         const atuais = extrairCoordenadasMapa_(localizacaoLatitudeInput?.value, localizacaoLongitudeInput?.value, localizacaoCoordenadasInput?.value);
         if (atuais) {
           locationPickerState_.centerLat = atuais.lat;
@@ -19895,7 +19898,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
 
       useCurrentLocationBtn?.addEventListener('click', () => { void usarLocalizacaoAtual_(); });
-      chooseMapLocationBtn?.addEventListener('click', () => { void abrirSeletorLocalizacaoMapa_(); });
+      // V23.9.99da: escuta em captura para o botão continuar funcional mesmo se o
+      // formulário for restaurado/reorganizado pelo PWA durante a abertura.
+      document.addEventListener('click', event => {
+        const botaoMapa = event.target?.closest?.('#chooseMapLocationBtn');
+        if (!botaoMapa) return;
+        event.preventDefault();
+        event.stopPropagation();
+        void abrirSeletorLocalizacaoMapa_();
+      }, true);
       locationPickerCloseBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
       locationPickerCancelBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
       locationPickerApplyBtn?.addEventListener('click', () => { void aplicarPontoSelecionadoMapa_(); });
@@ -20297,7 +20308,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cz', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99da', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
