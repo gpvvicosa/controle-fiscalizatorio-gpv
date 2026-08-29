@@ -14269,3 +14269,211 @@ body.local-drafts-open{overflow:hidden!important}
 .sync-center-actions{display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:-18px;padding:10px 0 2px;background:linear-gradient(180deg,rgba(255,255,255,0),#fff 30%)}
 .sync-center-note{margin:0;color:#7b716e;font-size:.7rem;line-height:1.4}
 @media(max-width:600px){.sync-center-overlay{padding:0;align-items:flex-end}.sync-center-card{max-height:92dvh;width:100%;border-radius:20px 20px 0 0}.sync-center-header{padding:16px 15px 12px}.sync-center-body{padding:12px 15px calc(16px + env(safe-area-inset-bottom))}.sync-center-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.sync-center-actions{display:grid;grid-template-columns:1fr 1fr}.sync-center-actions .btn{width:100%;padding-inline:8px;font-size:.8rem}}
+
+
+/* =============================================================================
+   V23.9.99cz — SELEÇÃO MANUAL DE PONTO NO MAPA
+   Recurso opcional: não acrescenta campo obrigatório nem etapa ao fluxo normal.
+   ============================================================================= */
+.address-location-btn--map{
+  border-color:#d6c5a4;
+  background:#fffaf0;
+  color:#725119;
+}
+.address-location-btn--map:hover{background:#fff5df;border-color:#c7a96f}
+body.location-picker-open{overflow:hidden}
+.location-picker-overlay{
+  position:fixed;
+  inset:0;
+  z-index:11950;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  background:rgba(22,18,18,.66);
+  backdrop-filter:blur(3px);
+}
+.location-picker-overlay[hidden]{display:none!important}
+.location-picker-card{
+  width:min(760px,100%);
+  max-height:94vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border:1px solid #d8d2cb;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(22,18,18,.28);
+}
+.location-picker-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:16px 17px 13px;
+  border-bottom:1px solid #ebe6e1;
+  background:#fffdfb;
+}
+.location-picker-head>div{min-width:0}
+.location-picker-head span{display:block;color:#8f171c;font-size:9px;font-weight:900;letter-spacing:.065em;text-transform:uppercase}
+.location-picker-head h2{margin:3px 0 4px;color:#342b2c;font-size:19px;line-height:1.15}
+.location-picker-head p{margin:0;max-width:590px;color:#746b6c;font-size:11px;line-height:1.4}
+.location-picker-close{
+  flex:0 0 auto;
+  width:38px;
+  height:38px;
+  border:1px solid #e0d8d3;
+  border-radius:11px;
+  background:#fff;
+  color:#594e4f;
+  font-size:24px;
+  line-height:1;
+  cursor:pointer;
+}
+.location-picker-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 12px;
+  background:#f8f6f3;
+  border-bottom:1px solid #e7e2dc;
+}
+.location-picker-toolbar button{
+  min-height:36px;
+  padding:7px 10px;
+  border:1px solid #c8d4cb;
+  border-radius:9px;
+  background:#fff;
+  color:#24593a;
+  font:inherit;
+  font-size:10px;
+  font-weight:850;
+  cursor:pointer;
+}
+.location-picker-toolbar button:disabled{opacity:.6;cursor:wait}
+.location-picker-toolbar span{color:#746b6c;font-size:10px;text-align:right}
+.location-picker-map{
+  position:relative;
+  height:min(54vh,430px);
+  min-height:300px;
+  overflow:hidden;
+  background:#e8ece9;
+  touch-action:none;
+  cursor:crosshair;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.location-picker-map:active{cursor:grabbing}
+.location-picker-tiles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.location-picker-tiles img{
+  position:absolute;
+  width:256px;
+  height:256px;
+  max-width:none;
+  border:0;
+  user-select:none;
+  pointer-events:none;
+}
+.location-picker-marker{
+  position:absolute;
+  z-index:4;
+  width:30px;
+  height:38px;
+  transform:translate(-50%,-100%);
+  pointer-events:none;
+}
+.location-picker-marker::before{
+  content:"";
+  position:absolute;
+  left:5px;
+  top:1px;
+  width:20px;
+  height:20px;
+  border:3px solid #fff;
+  border-radius:50% 50% 50% 0;
+  background:#8f171c;
+  box-shadow:0 2px 8px rgba(0,0,0,.34);
+  transform:rotate(-45deg);
+}
+.location-picker-marker span{
+  position:absolute;
+  z-index:1;
+  left:12px;
+  top:8px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#fff;
+}
+.location-picker-zoom{
+  position:absolute;
+  z-index:6;
+  top:12px;
+  right:12px;
+  display:grid;
+  overflow:hidden;
+  border:1px solid rgba(54,48,48,.18);
+  border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+}
+.location-picker-zoom button{
+  width:40px;
+  height:40px;
+  border:0;
+  border-bottom:1px solid #ddd;
+  background:#fff;
+  color:#3f3838;
+  font-size:22px;
+  font-weight:800;
+  cursor:pointer;
+}
+.location-picker-zoom button:last-child{border-bottom:0}
+.location-picker-attribution{
+  position:absolute;
+  z-index:5;
+  right:4px;
+  bottom:3px;
+  padding:2px 4px;
+  border-radius:3px;
+  background:rgba(255,255,255,.86);
+  color:#59636d;
+  font-size:8px;
+  pointer-events:none;
+}
+.location-picker-selection{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 14px;
+  border-top:1px solid #e7e2dc;
+  background:#fff;
+}
+.location-picker-selection span{color:#817778;font-size:9px;font-weight:850;text-transform:uppercase}
+.location-picker-selection strong{color:#3b3233;font-size:11px;text-align:right}
+.location-picker-actions{
+  display:grid;
+  grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+  gap:9px;
+  padding:11px 14px 14px;
+  border-top:1px solid #eee9e4;
+  background:#fffdfb;
+}
+.location-picker-actions .btn{width:100%;min-height:44px}
+@media(max-width:620px){
+  .address-location-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .address-location-btn{width:100%;padding-inline:8px}
+  .address-location-hint{grid-column:1/-1;width:auto}
+  .location-picker-overlay{align-items:flex-end;padding:0}
+  .location-picker-card{width:100%;max-height:96vh;border-radius:21px 21px 0 0}
+  .location-picker-head{padding:14px 14px 11px}
+  .location-picker-head h2{font-size:18px}
+  .location-picker-toolbar{align-items:stretch;flex-direction:column}
+  .location-picker-toolbar button{width:100%;min-height:40px}
+  .location-picker-toolbar span{text-align:left}
+  .location-picker-map{height:52vh;min-height:330px}
+  .location-picker-selection{align-items:flex-start;flex-direction:column;gap:3px}
+  .location-picker-selection strong{text-align:left}
+  .location-picker-actions{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+}

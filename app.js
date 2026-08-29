@@ -1942,7 +1942,20 @@
       const syncCenterRunBtn = document.getElementById('syncCenterRunBtn');
 
       const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
+      const chooseMapLocationBtn = document.getElementById('chooseMapLocationBtn');
       const locationAddressStatus = document.getElementById('locationAddressStatus');
+      const locationPickerModal = document.getElementById('locationPickerModal');
+      const locationPickerCloseBtn = document.getElementById('locationPickerCloseBtn');
+      const locationPickerCancelBtn = document.getElementById('locationPickerCancelBtn');
+      const locationPickerApplyBtn = document.getElementById('locationPickerApplyBtn');
+      const locationPickerGpsBtn = document.getElementById('locationPickerGpsBtn');
+      const locationPickerMap = document.getElementById('locationPickerMap');
+      const locationPickerTiles = document.getElementById('locationPickerTiles');
+      const locationPickerMarker = document.getElementById('locationPickerMarker');
+      const locationPickerCoordinates = document.getElementById('locationPickerCoordinates');
+      const locationPickerHint = document.getElementById('locationPickerHint');
+      const locationPickerZoomInBtn = document.getElementById('locationPickerZoomInBtn');
+      const locationPickerZoomOutBtn = document.getElementById('locationPickerZoomOutBtn');
 
       const retornoLiberacaoSecao = document.getElementById('retornoLiberacaoSecao');
       const retornoLiberacaoResumoAnterior = document.getElementById('retornoLiberacaoResumoAnterior');
@@ -1989,6 +2002,7 @@
       const localizacaoPrecisaoInput = document.getElementById('localizacaoPrecisao');
       const localizacaoCapturadaEmInput = document.getElementById('localizacaoCapturadaEm');
       const localizacaoEnderecoIdentificadoInput = document.getElementById('localizacaoEnderecoIdentificado');
+      const localizacaoOrigemInput = document.getElementById('localizacaoOrigem');
       const establishmentHistoryPanel = document.getElementById('establishmentHistoryPanel');
       const establishmentHistoryResults = document.getElementById('establishmentHistoryResults');
       const identificadorInput = document.getElementById('cnpj');
@@ -2070,7 +2084,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cy';
+      const APP_REVISION_UI_ = '23.9.99cz';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2089,6 +2103,7 @@
           const modal = document.getElementById('localDraftsModal');
           return modal && !modal.hidden;
         }],
+        ['location-picker-open', () => locationPickerModal && !locationPickerModal.hidden],
         ['record-correction-open', () => recordCorrectionModal && !recordCorrectionModal.hidden],
         ['record-status-update-open', () => recordStatusUpdateModal && !recordStatusUpdateModal.hidden],
         ['reds-templates-open', () => redsTemplatesModal && !redsTemplatesModal.hidden],
@@ -4096,7 +4111,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cy', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cz', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4533,16 +4548,18 @@
         const endereco = String(opcoes.endereco || '').trim();
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
         const contexto = opcoes.contexto === 'ficha' ? 'record' : 'review';
+        const origemMapa = normalize(opcoes.origem || '') === normalize('mapa') ? 'mapa' : 'gps';
+        const rotuloOrigemMapa = origemMapa === 'mapa' ? 'MAPA' : 'GPS';
 
         return `<section class="location-map-card location-map-card--${contexto}" aria-label="Localização no mapa">
           <div class="location-map-head">
             <div><span>Conferência geográfica</span><strong>Localização registrada</strong></div>
-            <em>GPS</em>
+            <em>${escapeHtml(rotuloOrigemMapa)}</em>
           </div>
           <div class="location-map-meta">
             ${endereco && endereco !== '—' ? `<div><span>Endereço</span><strong>${escapeHtml(endereco)}</strong></div>` : ''}
             <div><span>Coordenadas</span><strong>${escapeHtml(formatarCoordenadasMapa_(coordenadas))}</strong></div>
-            ${precisao ? `<div><span>Precisão</span><strong>${escapeHtml(precisao)}</strong></div>` : ''}
+            ${precisao && origemMapa !== 'mapa' ? `<div><span>Precisão</span><strong>${escapeHtml(precisao)}</strong></div>` : ''}
           </div>
           ${offline
             ? `<div class="location-map-offline"><strong>Mapa indisponível offline.</strong><span>As coordenadas permanecem preservadas no registro.</span></div>`
@@ -5899,6 +5916,7 @@
         if (elementoVisivelNavegacao_(accessGuidanceModal)) return { id: 'access-guidance', fechar: () => fecharAvisoAcessoGeral_() };
         const localDraftsModal = document.getElementById('localDraftsModal');
         if (elementoVisivelNavegacao_(localDraftsModal)) return { id: 'local-drafts', fechar: () => fecharGerenciadorRascunhosLocais_() };
+        if (elementoVisivelNavegacao_(locationPickerModal)) return { id: 'location-picker', fechar: () => fecharSeletorLocalizacaoMapa_() };
         const mobileChoice = mobileChoiceState?.overlay;
         if (elementoVisivelNavegacao_(mobileChoice)) return { id: 'mobile-choice', fechar: () => fecharEscolhaMovel_() };
         if (elementoVisivelNavegacao_(recordCorrectionModal)) return { id: 'record-correction', fechar: () => fecharCorrecaoRegistro_() };
@@ -12099,6 +12117,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           localizacaoPrecisao: value('localizacaoPrecisao'),
           localizacaoCapturadaEm: value('localizacaoCapturadaEm'),
           localizacaoEnderecoIdentificado: value('localizacaoEnderecoIdentificado'),
+          localizacaoOrigem: value('localizacaoOrigem'),
           demandaPrincipal: eventoDeclaratorio ? 'Eventos declaratórios' : value('demandaPrincipal'),
           dataRenovacaoAvcb: ehDemandaRenovacaoAvcb_() ? formatarDataRenovacaoAvcbDigitacao_(value('dataRenovacaoAvcb')) : '',
           categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : value('categoriaMeta'),
@@ -13278,7 +13297,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const sequencia = ++localizacaoConsultaSequencia_;
 
         if (!silencioso) {
-          mostrarStatusLocalizacao_('<strong>Localização capturada.</strong><div>Identificando o endereço...</div>', 'info');
+          mostrarStatusLocalizacao_(`<strong>${escapeHtml(textoOrigemLocalizacao_())}.</strong><div>Identificando o endereço...</div>`, 'info');
         }
 
         try {
@@ -13305,7 +13324,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (!temEndereco) {
             if (!silencioso) {
               mostrarStatusLocalizacao_(
-                '<strong>Localização capturada.</strong><div>Não foi possível identificar o endereço automaticamente. Você pode continuar o preenchimento.</div>',
+                `<strong>${escapeHtml(textoOrigemLocalizacao_())}.</strong><div>Não foi possível identificar o endereço automaticamente. Você pode continuar o preenchimento.</div>`,
                 'error'
               );
             }
@@ -13349,12 +13368,300 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (sequencia !== localizacaoConsultaSequencia_) return null;
           if (!silencioso) {
             mostrarStatusLocalizacao_(
-              '<strong>Localização capturada.</strong><div>O endereço não pôde ser identificado agora. As coordenadas foram preservadas.</div>',
+              `<strong>${escapeHtml(textoOrigemLocalizacao_())}.</strong><div>O endereço não pôde ser identificado agora. As coordenadas foram preservadas.</div>`,
               'error'
             );
           }
           return null;
         }
+      }
+
+      // V23.9.99cz — seleção manual de ponto no mapa, sem API paga e sem criar
+      // uma etapa obrigatória na vistoria. O mapa é carregado somente quando solicitado.
+      const LOCATION_PICKER_TILE_SIZE_ = 256;
+      const LOCATION_PICKER_MAX_LAT_ = 85.05112878;
+      let locationPickerState_ = {
+        centerLat: -20.7546,
+        centerLon: -42.8812,
+        zoom: 16,
+        selectedLat: null,
+        selectedLon: null,
+        pointerId: null,
+        pointerStartX: 0,
+        pointerStartY: 0,
+        centerStartX: 0,
+        centerStartY: 0,
+        moved: false,
+        renderFrame: 0
+      };
+
+      function origemLocalizacaoAtual_() {
+        const origem = normalize(localizacaoOrigemInput?.value || '');
+        if (origem === normalize('mapa')) return 'mapa';
+        if (origem === normalize('gps')) return 'gps';
+        return localizacaoValidaFormulario_() ? 'gps' : '';
+      }
+
+      function textoOrigemLocalizacao_(origem = origemLocalizacaoAtual_()) {
+        return origem === 'mapa' ? 'Ponto selecionado no mapa' : (origem === 'gps' ? 'GPS do aparelho' : 'Localização');
+      }
+
+      function limitarLatitudeMapa_(lat) {
+        return Math.max(-LOCATION_PICKER_MAX_LAT_, Math.min(LOCATION_PICKER_MAX_LAT_, Number(lat) || 0));
+      }
+
+      function normalizarLongitudeMapa_(lon) {
+        let valor = Number(lon) || 0;
+        while (valor < -180) valor += 360;
+        while (valor > 180) valor -= 360;
+        return valor;
+      }
+
+      function latLonParaPixelMundo_(lat, lon, zoom) {
+        const latitude = limitarLatitudeMapa_(lat) * Math.PI / 180;
+        const escala = LOCATION_PICKER_TILE_SIZE_ * Math.pow(2, zoom);
+        const x = (normalizarLongitudeMapa_(lon) + 180) / 360 * escala;
+        const y = (1 - Math.log(Math.tan(latitude) + 1 / Math.cos(latitude)) / Math.PI) / 2 * escala;
+        return { x, y };
+      }
+
+      function pixelMundoParaLatLon_(x, y, zoom) {
+        const escala = LOCATION_PICKER_TILE_SIZE_ * Math.pow(2, zoom);
+        const lon = normalizarLongitudeMapa_(x / escala * 360 - 180);
+        const n = Math.PI - 2 * Math.PI * y / escala;
+        const lat = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+        return { lat: limitarLatitudeMapa_(lat), lon };
+      }
+
+      function agendarRenderMapaSeletor_() {
+        if (locationPickerState_.renderFrame) return;
+        locationPickerState_.renderFrame = requestAnimationFrame(() => {
+          locationPickerState_.renderFrame = 0;
+          renderizarMapaSeletor_();
+        });
+      }
+
+      function renderizarMapaSeletor_() {
+        if (!locationPickerMap || !locationPickerTiles || locationPickerModal?.hidden) return;
+        const largura = Math.max(280, locationPickerMap.clientWidth || 0);
+        const altura = Math.max(260, locationPickerMap.clientHeight || 0);
+        const z = locationPickerState_.zoom;
+        const centro = latLonParaPixelMundo_(locationPickerState_.centerLat, locationPickerState_.centerLon, z);
+        const esquerda = centro.x - largura / 2;
+        const topo = centro.y - altura / 2;
+        const primeiraX = Math.floor(esquerda / LOCATION_PICKER_TILE_SIZE_) - 1;
+        const ultimaX = Math.floor((esquerda + largura) / LOCATION_PICKER_TILE_SIZE_) + 1;
+        const primeiraY = Math.floor(topo / LOCATION_PICKER_TILE_SIZE_) - 1;
+        const ultimaY = Math.floor((topo + altura) / LOCATION_PICKER_TILE_SIZE_) + 1;
+        const totalTiles = Math.pow(2, z);
+        const fragmento = document.createDocumentFragment();
+
+        for (let tileY = primeiraY; tileY <= ultimaY; tileY += 1) {
+          if (tileY < 0 || tileY >= totalTiles) continue;
+          for (let tileX = primeiraX; tileX <= ultimaX; tileX += 1) {
+            const xNormalizado = ((tileX % totalTiles) + totalTiles) % totalTiles;
+            const img = document.createElement('img');
+            img.alt = '';
+            img.draggable = false;
+            img.decoding = 'async';
+            img.loading = 'eager';
+            img.src = `https://tile.openstreetmap.org/${z}/${xNormalizado}/${tileY}.png`;
+            img.style.left = `${Math.round(tileX * LOCATION_PICKER_TILE_SIZE_ - esquerda)}px`;
+            img.style.top = `${Math.round(tileY * LOCATION_PICKER_TILE_SIZE_ - topo)}px`;
+            fragmento.appendChild(img);
+          }
+        }
+        locationPickerTiles.replaceChildren(fragmento);
+
+        if (Number.isFinite(locationPickerState_.selectedLat) && Number.isFinite(locationPickerState_.selectedLon)) {
+          const ponto = latLonParaPixelMundo_(locationPickerState_.selectedLat, locationPickerState_.selectedLon, z);
+          locationPickerMarker.hidden = false;
+          locationPickerMarker.style.left = `${ponto.x - esquerda}px`;
+          locationPickerMarker.style.top = `${ponto.y - topo}px`;
+          const texto = `${locationPickerState_.selectedLat.toFixed(6)}, ${locationPickerState_.selectedLon.toFixed(6)}`;
+          if (locationPickerCoordinates) locationPickerCoordinates.textContent = texto;
+          if (locationPickerApplyBtn) locationPickerApplyBtn.disabled = false;
+        } else {
+          if (locationPickerMarker) locationPickerMarker.hidden = true;
+          if (locationPickerCoordinates) locationPickerCoordinates.textContent = 'Nenhum ponto marcado';
+          if (locationPickerApplyBtn) locationPickerApplyBtn.disabled = true;
+        }
+      }
+
+      function selecionarPontoMapaPorPixel_(clientX, clientY) {
+        if (!locationPickerMap) return;
+        const rect = locationPickerMap.getBoundingClientRect();
+        const centro = latLonParaPixelMundo_(locationPickerState_.centerLat, locationPickerState_.centerLon, locationPickerState_.zoom);
+        const mundoX = centro.x + (clientX - rect.left - rect.width / 2);
+        const mundoY = centro.y + (clientY - rect.top - rect.height / 2);
+        const ponto = pixelMundoParaLatLon_(mundoX, mundoY, locationPickerState_.zoom);
+        locationPickerState_.selectedLat = ponto.lat;
+        locationPickerState_.selectedLon = ponto.lon;
+        if (locationPickerHint) locationPickerHint.textContent = 'Ponto marcado. Ajuste se necessário e confirme.';
+        renderizarMapaSeletor_();
+      }
+
+      function alterarZoomMapaSeletor_(delta) {
+        const novo = Math.max(12, Math.min(20, locationPickerState_.zoom + delta));
+        if (novo === locationPickerState_.zoom) return;
+        locationPickerState_.zoom = novo;
+        renderizarMapaSeletor_();
+      }
+
+      function fecharSeletorLocalizacaoMapa_() {
+        if (!locationPickerModal) return;
+        locationPickerModal.hidden = true;
+        locationPickerModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('location-picker-open');
+        locationPickerState_.pointerId = null;
+        agendarSincronizacaoNavegacao_();
+      }
+
+      async function centralizarSeletorNoGps_() {
+        if (!navigator.geolocation) {
+          await avisarGpv_('Este aparelho não disponibiliza a localização atual.', 'GPS indisponível');
+          return;
+        }
+        if (locationPickerGpsBtn) {
+          locationPickerGpsBtn.disabled = true;
+          locationPickerGpsBtn.textContent = 'Obtendo posição...';
+        }
+        navigator.geolocation.getCurrentPosition(pos => {
+          const lat = Number(pos?.coords?.latitude);
+          const lon = Number(pos?.coords?.longitude);
+          if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            locationPickerState_.centerLat = lat;
+            locationPickerState_.centerLon = lon;
+            locationPickerState_.zoom = Math.max(locationPickerState_.zoom, 18);
+            if (!Number.isFinite(locationPickerState_.selectedLat) || !Number.isFinite(locationPickerState_.selectedLon)) {
+              locationPickerState_.selectedLat = lat;
+              locationPickerState_.selectedLon = lon;
+            }
+            if (locationPickerHint) locationPickerHint.textContent = 'Posição encontrada. Toque no ponto exato da edificação.';
+            renderizarMapaSeletor_();
+          }
+          if (locationPickerGpsBtn) {
+            locationPickerGpsBtn.disabled = false;
+            locationPickerGpsBtn.textContent = 'Centralizar na minha posição';
+          }
+        }, async erro => {
+          if (locationPickerGpsBtn) {
+            locationPickerGpsBtn.disabled = false;
+            locationPickerGpsBtn.textContent = 'Centralizar na minha posição';
+          }
+          const mensagem = erro?.code === 1
+            ? 'A permissão de localização foi negada.'
+            : 'Não foi possível obter sua posição agora.';
+          await avisarGpv_(mensagem, 'GPS indisponível');
+        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+      }
+
+      async function abrirSeletorLocalizacaoMapa_() {
+        if (!navigator.onLine) {
+          await avisarGpv_('A escolha manual no mapa precisa de internet para carregar o mapa. O GPS do aparelho continua disponível mesmo sem mapa.', 'Mapa indisponível offline');
+          return;
+        }
+        if (!locationPickerModal || !locationPickerMap) return;
+        const atuais = extrairCoordenadasMapa_(localizacaoLatitudeInput?.value, localizacaoLongitudeInput?.value, localizacaoCoordenadasInput?.value);
+        if (atuais) {
+          locationPickerState_.centerLat = atuais.lat;
+          locationPickerState_.centerLon = atuais.lon;
+          locationPickerState_.selectedLat = atuais.lat;
+          locationPickerState_.selectedLon = atuais.lon;
+          locationPickerState_.zoom = 18;
+        } else {
+          locationPickerState_.centerLat = -20.7546;
+          locationPickerState_.centerLon = -42.8812;
+          locationPickerState_.selectedLat = null;
+          locationPickerState_.selectedLon = null;
+          locationPickerState_.zoom = 15;
+        }
+        if (locationPickerHint) locationPickerHint.textContent = atuais
+          ? 'O ponto atual está marcado. Toque em outro local para alterar.'
+          : 'Arraste o mapa e toque no ponto exato da edificação.';
+        locationPickerModal.hidden = false;
+        locationPickerModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('location-picker-open');
+        requestAnimationFrame(() => renderizarMapaSeletor_());
+        agendarSincronizacaoNavegacao_();
+      }
+
+      async function aplicarPontoSelecionadoMapa_() {
+        const lat = Number(locationPickerState_.selectedLat);
+        const lon = Number(locationPickerState_.selectedLon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          await avisarGpv_('Toque primeiro no ponto desejado do mapa.', 'Selecione um ponto');
+          return;
+        }
+        const latTexto = coordenadaDecimalTexto_(lat);
+        const lonTexto = coordenadaDecimalTexto_(lon);
+        if (localizacaoLatitudeInput) localizacaoLatitudeInput.value = latTexto;
+        if (localizacaoLongitudeInput) localizacaoLongitudeInput.value = lonTexto;
+        if (localizacaoCoordenadasInput) localizacaoCoordenadasInput.value = `${latTexto}, ${lonTexto}`;
+        // Ponto escolhido manualmente não recebe uma precisão artificial de GPS.
+        if (localizacaoPrecisaoInput) localizacaoPrecisaoInput.value = '';
+        if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
+        if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
+        if (localizacaoOrigemInput) localizacaoOrigemInput.value = 'mapa';
+        fecharSeletorLocalizacaoMapa_();
+        scheduleDraftSave();
+        mostrarStatusLocalizacao_(
+          `<strong>Ponto selecionado no mapa.</strong><div>Coordenadas: ${escapeHtml(`${lat.toFixed(6)}, ${lon.toFixed(6)}`)}. Identificando o endereço...</div>`,
+          'info'
+        );
+        if (navigator.onLine) await identificarEnderecoPorLocalizacao_(false);
+        if (validacaoGuiadaAtiva_ && validacaoGuiadaAtual_?.id === 'endereco' && localizacaoValidaFormulario_()) {
+          setTimeout(() => validateRequired(true), 120);
+        }
+      }
+
+      function inicializarSeletorLocalizacaoMapa_() {
+        if (!locationPickerMap || locationPickerMap.dataset.ready === '1') return;
+        locationPickerMap.dataset.ready = '1';
+
+        locationPickerMap.addEventListener('pointerdown', event => {
+          if (event.button != null && event.button !== 0) return;
+          if (event.target.closest?.('.location-picker-zoom')) return;
+          const centro = latLonParaPixelMundo_(locationPickerState_.centerLat, locationPickerState_.centerLon, locationPickerState_.zoom);
+          locationPickerState_.pointerId = event.pointerId;
+          locationPickerState_.pointerStartX = event.clientX;
+          locationPickerState_.pointerStartY = event.clientY;
+          locationPickerState_.centerStartX = centro.x;
+          locationPickerState_.centerStartY = centro.y;
+          locationPickerState_.moved = false;
+          try { locationPickerMap.setPointerCapture(event.pointerId); } catch (_) {}
+        });
+
+        locationPickerMap.addEventListener('pointermove', event => {
+          if (locationPickerState_.pointerId !== event.pointerId) return;
+          const dx = event.clientX - locationPickerState_.pointerStartX;
+          const dy = event.clientY - locationPickerState_.pointerStartY;
+          if (Math.abs(dx) + Math.abs(dy) > 7) locationPickerState_.moved = true;
+          if (!locationPickerState_.moved) return;
+          const centro = pixelMundoParaLatLon_(
+            locationPickerState_.centerStartX - dx,
+            locationPickerState_.centerStartY - dy,
+            locationPickerState_.zoom
+          );
+          locationPickerState_.centerLat = centro.lat;
+          locationPickerState_.centerLon = centro.lon;
+          agendarRenderMapaSeletor_();
+        });
+
+        const finalizarPointer = event => {
+          if (locationPickerState_.pointerId !== event.pointerId) return;
+          const foiMovimento = locationPickerState_.moved;
+          locationPickerState_.pointerId = null;
+          try { locationPickerMap.releasePointerCapture(event.pointerId); } catch (_) {}
+          if (!foiMovimento) selecionarPontoMapaPorPixel_(event.clientX, event.clientY);
+        };
+        locationPickerMap.addEventListener('pointerup', finalizarPointer);
+        locationPickerMap.addEventListener('pointercancel', event => {
+          if (locationPickerState_.pointerId === event.pointerId) locationPickerState_.pointerId = null;
+        });
+        window.addEventListener('resize', () => {
+          if (locationPickerModal && !locationPickerModal.hidden) agendarRenderMapaSeletor_();
+        }, { passive: true });
       }
 
       function restaurarStatusLocalizacao_() {
@@ -13375,14 +13682,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         if (!navigator.onLine) {
           mostrarStatusLocalizacao_(
-            '<strong>Localização capturada.</strong><div>Sem internet para identificar o endereço neste momento.</div>',
+            `<strong>${escapeHtml(textoOrigemLocalizacao_())}.</strong><div>Sem internet para identificar o endereço neste momento.</div>`,
             'info'
           );
           return;
         }
 
         mostrarStatusLocalizacao_(
-          '<strong>Localização capturada.</strong><div>O endereço poderá ser identificado automaticamente.</div>',
+          `<strong>${escapeHtml(textoOrigemLocalizacao_())}.</strong><div>O endereço poderá ser identificado automaticamente.</div>`,
           'info'
         );
       }
@@ -13418,6 +13725,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               : '';
             if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
             if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
+            if (localizacaoOrigemInput) localizacaoOrigemInput.value = 'gps';
 
             scheduleDraftSave();
 
@@ -15540,6 +15848,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         );
         const gpsCapturado = Boolean(String(payload?.localizacaoCoordenadas || '').trim() || coordenadasMapaRevisao);
         const precisaoGps = String(payload?.localizacaoPrecisao || '').trim();
+        const origemLocalizacaoRevisao = normalize(payload?.localizacaoOrigem || '') === normalize('mapa') ? 'mapa' : (gpsCapturado ? 'gps' : '');
+        const descricaoLocalizacaoRevisao = gpsCapturado
+          ? (origemLocalizacaoRevisao === 'mapa' ? 'Ponto escolhido manualmente no mapa' : `GPS do aparelho${precisaoGps ? ` • precisão ${precisaoGps}` : ''}`)
+          : 'Não informada';
         const notificacoesRevisao = payload?.notificacoesLiberacao ? flattenNotificacoesLiberacao_(true) : [];
         const totalIrregularidades = notificacoesRevisao.length;
         const totalFotos = notificacoesRevisao.reduce((total, item) => {
@@ -15561,7 +15873,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ['Classificação', payload?.eventoClassificacao || '—'],
               ['Cidade', payload?.cidade || '—'],
               ['Local do evento', enderecoCompleto],
-              ['Localização GPS', gpsCapturado ? `Capturada${precisaoGps ? ` • precisão ${precisaoGps}` : ''}` : 'Não capturada']
+              ['Localização', descricaoLocalizacaoRevisao]
             ]
           },
           {
@@ -15608,7 +15920,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ['CNPJ / CPF', idFormatado || '—'],
               ['Cidade', payload?.cidade || '—'],
               ['Endereço', enderecoCompleto],
-              ['Localização GPS', gpsCapturado ? `Capturada${precisaoGps ? ` • precisão ${precisaoGps}` : ''}` : 'Não capturada']
+              ['Localização', descricaoLocalizacaoRevisao]
             ]
           },
           {
@@ -15707,6 +16019,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               longitude: coordenadasMapaRevisao.lon,
               coordenadas: payload?.localizacaoCoordenadas,
               precisao: precisaoGps,
+              origem: origemLocalizacaoRevisao,
               endereco: resumoEndereco,
               contexto: 'review'
             })
@@ -15717,7 +16030,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <h3><span aria-hidden="true">${escapeHtml(secao.icone || '•')}</span>${escapeHtml(secao.titulo)}</h3>
             <div class="review-section-grid">
               ${(secao.itens || []).map(([rotulo, valor]) => {
-                const gps = normalize(rotulo) === normalize('Localização GPS');
+                const gps = normalize(rotulo) === normalize('Localização');
                 const classeValor = gps ? (gpsCapturado ? ' review-value-ok' : ' review-value-muted') : '';
                 return `<div class="review-data-item"><span>${escapeHtml(rotulo)}</span><strong class="${classeValor.trim()}">${escapeHtml(valor)}</strong></div>`;
               }).join('')}
@@ -15735,7 +16048,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <span class="review-type-pill">${escapeHtml(tipoVistoria)}</span>
             <strong>${escapeHtml(resumoLocal)}</strong>
             <small>${escapeHtml(resumoEndereco)}</small>
-            ${gpsCapturado ? '<em>✓ GPS capturado</em>' : ''}
+            ${gpsCapturado ? `<em>✓ ${escapeHtml(origemLocalizacaoRevisao === 'mapa' ? 'Ponto escolhido no mapa' : 'GPS capturado')}</em>` : ''}
           </div>
           ${secoesHtml}
         `;
@@ -19582,6 +19895,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
 
       useCurrentLocationBtn?.addEventListener('click', () => { void usarLocalizacaoAtual_(); });
+      chooseMapLocationBtn?.addEventListener('click', () => { void abrirSeletorLocalizacaoMapa_(); });
+      locationPickerCloseBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
+      locationPickerCancelBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
+      locationPickerApplyBtn?.addEventListener('click', () => { void aplicarPontoSelecionadoMapa_(); });
+      locationPickerGpsBtn?.addEventListener('click', () => { void centralizarSeletorNoGps_(); });
+      locationPickerZoomInBtn?.addEventListener('click', event => { event.stopPropagation(); alterarZoomMapaSeletor_(1); });
+      locationPickerZoomOutBtn?.addEventListener('click', event => { event.stopPropagation(); alterarZoomMapaSeletor_(-1); });
+      locationPickerModal?.addEventListener('click', event => { if (event.target === locationPickerModal) fecharSeletorLocalizacaoMapa_(); });
+      inicializarSeletorLocalizacaoMapa_();
 
       retornoLiberacaoAnteriorSelect?.addEventListener('change', () => {
         aplicarCandidatoRetornoLiberacao_(candidatoRetornoLiberacaoSelecionado_(), { preservarPendencias: false });
@@ -19975,7 +20297,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cy', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
