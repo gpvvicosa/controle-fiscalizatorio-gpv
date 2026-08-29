@@ -13611,3 +13611,44 @@ body.app-alerts-open{overflow:hidden}
   }
   .app-credit strong{font-size:11.8px!important}
 }
+
+/* =============================================================================
+   V23.9.99co — fundo suave com acabamento visual
+   Somente apresentação da tela operacional. Regras e fluxos permanecem intactos.
+   ============================================================================= */
+body:not(.records-mode){
+  background:
+    radial-gradient(circle at 8% 9%, rgba(153,27,27,.045) 0, rgba(153,27,27,0) 29%),
+    radial-gradient(circle at 94% 31%, rgba(190,138,64,.055) 0, rgba(190,138,64,0) 28%),
+    linear-gradient(180deg,#f7efeb 0%,#f3e9e4 48%,#f8f2ee 100%);
+}
+
+body:not(.records-mode) .page{
+  background:transparent;
+}
+
+body:not(.records-mode) .app-view-nav{
+  background:rgba(255,250,248,.92);
+  border-color:rgba(153,27,27,.10);
+}
+
+body:not(.records-mode) .inspection-flow-section,
+body:not(.records-mode) .programmed-summary-row{
+  background:rgba(255,252,250,.42);
+}
+
+body:not(.records-mode) .app-credit{
+  border-top-color:rgba(143,23,28,.12);
+}
+
+@media(max-width:760px){
+  body:not(.records-mode){
+    background:
+      radial-gradient(circle at 7% 6%, rgba(153,27,27,.055) 0, rgba(153,27,27,0) 26%),
+      radial-gradient(circle at 95% 36%, rgba(191,139,70,.06) 0, rgba(191,139,70,0) 27%),
+      linear-gradient(180deg,#f8efeb 0%,#f3e7e1 52%,#f7efeb 100%);
+  }
+  body:not(.records-mode) .app-view-nav{
+    background:rgba(255,250,248,.94)!important;
+  }
+}
