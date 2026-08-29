@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99da';
+      const APP_VERSION = '23.9.99db';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1944,18 +1944,21 @@
       const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
       const chooseMapLocationBtn = document.getElementById('chooseMapLocationBtn');
       const locationAddressStatus = document.getElementById('locationAddressStatus');
-      const locationPickerModal = document.getElementById('locationPickerModal');
-      const locationPickerCloseBtn = document.getElementById('locationPickerCloseBtn');
-      const locationPickerCancelBtn = document.getElementById('locationPickerCancelBtn');
-      const locationPickerApplyBtn = document.getElementById('locationPickerApplyBtn');
-      const locationPickerGpsBtn = document.getElementById('locationPickerGpsBtn');
-      const locationPickerMap = document.getElementById('locationPickerMap');
-      const locationPickerTiles = document.getElementById('locationPickerTiles');
-      const locationPickerMarker = document.getElementById('locationPickerMarker');
-      const locationPickerCoordinates = document.getElementById('locationPickerCoordinates');
-      const locationPickerHint = document.getElementById('locationPickerHint');
-      const locationPickerZoomInBtn = document.getElementById('locationPickerZoomInBtn');
-      const locationPickerZoomOutBtn = document.getElementById('locationPickerZoomOutBtn');
+      // V23.9.99db — estas referências precisam ser renováveis. Na versão anterior,
+      // o app.js podia ser executado antes do HTML do seletor de mapa ser analisado,
+      // deixando as referências permanentemente nulas mesmo com o modal presente na página.
+      let locationPickerModal = document.getElementById('locationPickerModal');
+      let locationPickerCloseBtn = document.getElementById('locationPickerCloseBtn');
+      let locationPickerCancelBtn = document.getElementById('locationPickerCancelBtn');
+      let locationPickerApplyBtn = document.getElementById('locationPickerApplyBtn');
+      let locationPickerGpsBtn = document.getElementById('locationPickerGpsBtn');
+      let locationPickerMap = document.getElementById('locationPickerMap');
+      let locationPickerTiles = document.getElementById('locationPickerTiles');
+      let locationPickerMarker = document.getElementById('locationPickerMarker');
+      let locationPickerCoordinates = document.getElementById('locationPickerCoordinates');
+      let locationPickerHint = document.getElementById('locationPickerHint');
+      let locationPickerZoomInBtn = document.getElementById('locationPickerZoomInBtn');
+      let locationPickerZoomOutBtn = document.getElementById('locationPickerZoomOutBtn');
 
       const retornoLiberacaoSecao = document.getElementById('retornoLiberacaoSecao');
       const retornoLiberacaoResumoAnterior = document.getElementById('retornoLiberacaoResumoAnterior');
@@ -2084,7 +2087,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cz';
+      const APP_REVISION_UI_ = '23.9.99db';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4111,7 +4114,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99da', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99db', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -13556,13 +13559,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
       }
 
+      function garantirSeletorLocalizacaoMapaCarregado_() {
+        // Reconsulta o DOM no momento de uso. Isso também recupera automaticamente uma
+        // abertura em que o JavaScript novo tenha sido carregado antes do restante do HTML.
+        locationPickerModal = document.getElementById('locationPickerModal');
+        locationPickerCloseBtn = document.getElementById('locationPickerCloseBtn');
+        locationPickerCancelBtn = document.getElementById('locationPickerCancelBtn');
+        locationPickerApplyBtn = document.getElementById('locationPickerApplyBtn');
+        locationPickerGpsBtn = document.getElementById('locationPickerGpsBtn');
+        locationPickerMap = document.getElementById('locationPickerMap');
+        locationPickerTiles = document.getElementById('locationPickerTiles');
+        locationPickerMarker = document.getElementById('locationPickerMarker');
+        locationPickerCoordinates = document.getElementById('locationPickerCoordinates');
+        locationPickerHint = document.getElementById('locationPickerHint');
+        locationPickerZoomInBtn = document.getElementById('locationPickerZoomInBtn');
+        locationPickerZoomOutBtn = document.getElementById('locationPickerZoomOutBtn');
+
+        if (!locationPickerModal || !locationPickerMap || !locationPickerTiles) return false;
+
+        if (locationPickerModal.dataset.gpvEventosMapa !== '1') {
+          locationPickerModal.dataset.gpvEventosMapa = '1';
+          locationPickerCloseBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
+          locationPickerCancelBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
+          locationPickerApplyBtn?.addEventListener('click', () => { void aplicarPontoSelecionadoMapa_(); });
+          locationPickerGpsBtn?.addEventListener('click', () => { void centralizarSeletorNoGps_(); });
+          locationPickerZoomInBtn?.addEventListener('click', event => { event.stopPropagation(); alterarZoomMapaSeletor_(1); });
+          locationPickerZoomOutBtn?.addEventListener('click', event => { event.stopPropagation(); alterarZoomMapaSeletor_(-1); });
+          locationPickerModal.addEventListener('click', event => { if (event.target === locationPickerModal) fecharSeletorLocalizacaoMapa_(); });
+          inicializarSeletorLocalizacaoMapa_();
+        }
+        return true;
+      }
+
       async function abrirSeletorLocalizacaoMapa_() {
         if (!navigator.onLine) {
           await avisarGpv_('A escolha manual no mapa precisa de internet para carregar o mapa. O GPS do aparelho continua disponível mesmo sem mapa.', 'Mapa indisponível offline');
           return;
         }
-        if (!locationPickerModal || !locationPickerMap || !locationPickerTiles) {
-          await avisarGpv_('O seletor de mapa não foi carregado corretamente. Feche e abra o aplicativo novamente para concluir a atualização.', 'Mapa não carregado');
+        if (!garantirSeletorLocalizacaoMapaCarregado_()) {
+          await avisarGpv_('Não foi possível preparar o seletor de mapa nesta tela. Use Mais → Atualizar app e tente novamente. Seus dados e rascunhos serão preservados.', 'Mapa não carregado');
           return;
         }
         const atuais = extrairCoordenadasMapa_(localizacaoLatitudeInput?.value, localizacaoLongitudeInput?.value, localizacaoCoordenadasInput?.value);
@@ -19898,7 +19933,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
 
       useCurrentLocationBtn?.addEventListener('click', () => { void usarLocalizacaoAtual_(); });
-      // V23.9.99da: escuta em captura para o botão continuar funcional mesmo se o
+      // V23.9.99db: escuta em captura para o botão continuar funcional mesmo se o
       // formulário for restaurado/reorganizado pelo PWA durante a abertura.
       document.addEventListener('click', event => {
         const botaoMapa = event.target?.closest?.('#chooseMapLocationBtn');
@@ -19907,14 +19942,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         event.stopPropagation();
         void abrirSeletorLocalizacaoMapa_();
       }, true);
-      locationPickerCloseBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
-      locationPickerCancelBtn?.addEventListener('click', fecharSeletorLocalizacaoMapa_);
-      locationPickerApplyBtn?.addEventListener('click', () => { void aplicarPontoSelecionadoMapa_(); });
-      locationPickerGpsBtn?.addEventListener('click', () => { void centralizarSeletorNoGps_(); });
-      locationPickerZoomInBtn?.addEventListener('click', event => { event.stopPropagation(); alterarZoomMapaSeletor_(1); });
-      locationPickerZoomOutBtn?.addEventListener('click', event => { event.stopPropagation(); alterarZoomMapaSeletor_(-1); });
-      locationPickerModal?.addEventListener('click', event => { if (event.target === locationPickerModal) fecharSeletorLocalizacaoMapa_(); });
-      inicializarSeletorLocalizacaoMapa_();
+      // Se o seletor já estiver no DOM, conecta agora. Caso ainda esteja sendo analisado,
+      // abrirSeletorLocalizacaoMapa_ fará a conexão no primeiro toque sem exigir recarga.
+      garantirSeletorLocalizacaoMapaCarregado_();
 
       retornoLiberacaoAnteriorSelect?.addEventListener('change', () => {
         aplicarCandidatoRetornoLiberacao_(candidatoRetornoLiberacaoSelecionado_(), { preservarPendencias: false });
@@ -20308,7 +20338,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99da', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99db', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
