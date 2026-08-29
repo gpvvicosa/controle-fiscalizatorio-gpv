@@ -803,7 +803,7 @@
         ).trim();
       }
 
-      // V23.9.99cw — apresentação inteligente dos rascunhos. O percentual é
+      // V23.9.99cx — apresentação inteligente dos rascunhos. O percentual é
       // apenas um indicador visual de preenchimento e NÃO interfere nas regras
       // obrigatórias nem na validação final da vistoria.
       function formatarDataHoraRascunho_(savedAt) {
@@ -1025,7 +1025,9 @@
         const hoje = Math.max(hojeLocal, hojeServidor);
         const programadas = Array.isArray(preparacoesVistoria) ? preparacoesVistoria.length : 0;
         const rascunhos = usuarioPodeOperar_() ? listarRascunhosLocaisAtivos_() : [];
-        const pendentes = typeof obterPendentes === 'function' ? obterPendentes().length : 0;
+        const pendentesVistorias = typeof obterPendentes === 'function' ? obterPendentes().length : 0;
+        const pendentesFotos = Number(photoPendingCountCache_ || 0);
+        const pendentes = pendentesVistorias + pendentesFotos;
 
         homeOperationalToday.textContent = String(hoje);
         homeOperationalProgrammed.textContent = String(programadas);
@@ -1073,7 +1075,9 @@
         if (homeOperationalContextCard) homeOperationalContextCard.hidden = !homeOperationalContext_;
         if (homeOperationalConnection) {
           const estado = navigator.onLine ? 'Online' : 'Offline';
-          const sync = pendentes ? `${pendentes} aguardando sincronização` : 'Tudo sincronizado';
+          const sync = pendentes
+            ? `${resumoPendenciasSincronizacao_(pendentesVistorias, pendentesFotos)} aguardando envio`
+            : 'Tudo sincronizado';
           homeOperationalConnection.textContent = `${estado} · ${sync} · App ${APP_REVISION_UI_}`;
           homeOperationalConnection.classList.toggle('is-offline', !navigator.onLine);
           homeOperationalConnection.classList.toggle('is-warning', pendentes > 0);
@@ -1928,6 +1932,14 @@
       const appDiagnosticsRefreshBtn = document.getElementById('appDiagnosticsRefreshBtn');
       const appDiagnosticsCopyBtn = document.getElementById('appDiagnosticsCopyBtn');
       const appDiagnosticsCheckedAt = document.getElementById('appDiagnosticsCheckedAt');
+      const syncCenterBtn = document.getElementById('syncCenterBtn');
+      const syncCenterModal = document.getElementById('syncCenterModal');
+      const syncCenterCloseBtn = document.getElementById('syncCenterCloseBtn');
+      const syncCenterStatus = document.getElementById('syncCenterStatus');
+      const syncCenterMetrics = document.getElementById('syncCenterMetrics');
+      const syncCenterList = document.getElementById('syncCenterList');
+      const syncCenterRefreshBtn = document.getElementById('syncCenterRefreshBtn');
+      const syncCenterRunBtn = document.getElementById('syncCenterRunBtn');
 
       const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
       const locationAddressStatus = document.getElementById('locationAddressStatus');
@@ -2058,7 +2070,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cw';
+      const APP_REVISION_UI_ = '23.9.99cx';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2087,6 +2099,7 @@
         ['user-manager-open', () => userManagerModal && !userManagerModal.hidden],
         ['about-open', () => aboutSystemModal && !aboutSystemModal.hidden],
         ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden],
+        ['sync-center-open', () => syncCenterModal && !syncCenterModal.hidden],
         ['access-guidance-open', () => accessGuidanceModal && !accessGuidanceModal.hidden],
         ['city-check-open', () => cityCheckModal && !cityCheckModal.hidden],
         ['daily-motivational-open', () => {
@@ -2555,7 +2568,9 @@
         const conexao = navigator.connection?.effectiveType
           ? `${navigator.onLine ? 'Online' : 'Offline'} • ${navigator.connection.effectiveType}`
           : (navigator.onLine ? 'Online' : 'Offline');
-        const filaOffline = obterPendentes().length;
+        const filaVistoriasDiagnostico = obterPendentes().length;
+        const filaFotosDiagnostico = Number(photoPendingCountCache_ || 0);
+        const filaOffline = filaVistoriasDiagnostico + filaFotosDiagnostico;
         const rascunhos = contarRascunhosLocaisDiagnostico_();
         const ultimaFalhaPainel = lerRegistroDiagnostico_(PANEL_LAST_ERROR_STORAGE);
 
@@ -2587,7 +2602,7 @@
           { rotulo:'Google Apps Script', valor:appsScript.valor, estado:appsScript.estado, detalhe:appsScript.detalhe },
           { rotulo:'Serviço de notificações', valor:notificacoesServidor.valor, estado:notificacoesServidor.estado, detalhe:notificacoesServidor.detalhe },
           { rotulo:'Push neste aparelho', valor:pushDispositivo.valor, estado:pushDispositivo.estado, detalhe:pushDispositivo.detalhe },
-          { rotulo:'Fila offline', valor:filaOffline ? `${filaOffline} vistoria${filaOffline === 1 ? '' : 's'} aguardando envio` : 'Sem envios pendentes', estado:filaEstado, detalhe:filaOffline ? 'Os registros permanecem seguros no aparelho até o envio.' : 'Nenhuma pendência de envio local.' },
+          { rotulo:'Fila offline', valor:filaOffline ? `${resumoPendenciasSincronizacao_(filaVistoriasDiagnostico, filaFotosDiagnostico)} aguardando envio` : 'Sem envios pendentes', estado:filaEstado, detalhe:filaOffline ? 'Vistorias e fotografias permanecem seguras no aparelho até o envio.' : 'Nenhuma pendência de envio local.' },
           { rotulo:'Última sincronização', valor:resumoUltimaSincronizacaoDiagnostico_(), estado:'neutral', detalhe:'Último envio de vistoria confirmado por este aparelho.' },
           { rotulo:'Rascunhos preservados', valor:`${rascunhos} rascunho${rascunhos === 1 ? '' : 's'}`, estado:rascunhoEstado, detalhe:rascunhos ? 'Podem ser retomados pela área de Vistoria.' : 'Nenhum rascunho em andamento.' },
           { rotulo:'Armazenamento IndexedDB', valor:indexedDb.valor, estado:indexedDb.estado, detalhe:indexedDb.detalhe },
@@ -2668,6 +2683,207 @@
         if (!appDiagnosticsModal) return;
         appDiagnosticsModal.hidden = true;
         document.body.classList.remove('app-diagnostics-open');
+      }
+
+      function horarioSincronizacao_(valor) {
+        const numero = Number(valor || 0);
+        if (!numero) return 'Ainda não tentado';
+        try { return new Date(numero).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }); }
+        catch (_) { return new Date(numero).toLocaleString('pt-BR'); }
+      }
+
+      function tituloVistoriaPendenteSync_(item) {
+        const p = item?.payload || {};
+        return String(p.nomeFantasia || p.razaoSocial || p.eventoNome || p.endereco || 'Vistoria aguardando envio').trim();
+      }
+
+      function detalheVistoriaPendenteSync_(item) {
+        const p = item?.payload || {};
+        return [p.tipoVistoria, p.demandaPrincipal, p.endereco, p.numero].filter(Boolean).join(' · ');
+      }
+
+      function tituloFotoPendenteSync_(item) {
+        const geral = item?.tipoFoto === 'geral' || String(item?.itemId || '') === FOTO_GERAL_ITEM_ID_;
+        return geral ? 'Foto geral da vistoria' : 'Foto de irregularidade';
+      }
+
+      function estadoItemSync_(item, enviando) {
+        if (enviando) return { classe:'sending', rotulo:'Enviando' };
+        if (String(item?.ultimoErro || '').trim()) return { classe:'error', rotulo:'Falha — aguardando nova tentativa' };
+        return { classe:'pending', rotulo:'Aguardando envio' };
+      }
+
+      async function obterPendenciasCentralSync_() {
+        const vistorias = obterPendentes().map(item => ({ ...item, tipoPendencia:'vistoria' }));
+        const fotos = await listarFotosPendentesDb_().catch(() => []);
+        photoPendingCountCache_ = fotos.length;
+        return { vistorias, fotos: fotos.map(item => ({ ...item, tipoPendencia:'foto' })) };
+      }
+
+      async function atualizarCentralSincronizacao_() {
+        if (!syncCenterModal || syncCenterModal.hidden || syncCenterRefreshing_) return;
+        syncCenterRefreshing_ = true;
+        if (syncCenterRefreshBtn) syncCenterRefreshBtn.disabled = true;
+        try {
+          const { vistorias, fotos } = await obterPendenciasCentralSync_();
+          const total = vistorias.length + fotos.length;
+          const geral = fotos.filter(item => item?.tipoFoto === 'geral' || String(item?.itemId || '') === FOTO_GERAL_ITEM_ID_).length;
+          const irreg = fotos.length - geral;
+          const falhas = [...vistorias, ...fotos].filter(item => String(item?.ultimoErro || '').trim()).length;
+
+          if (syncCenterMetrics) syncCenterMetrics.innerHTML = [
+            ['Vistorias', vistorias.length],
+            ['Fotos gerais', geral],
+            ['Fotos de irregularidades', irreg],
+            ['Com falha', falhas]
+          ].map(([rotulo, valor]) => `<div class="sync-center-metric ${valor && rotulo === 'Com falha' ? 'is-warning' : ''}"><strong>${valor}</strong><span>${rotulo}</span></div>`).join('');
+
+          if (syncCenterStatus) {
+            syncCenterStatus.className = `sync-center-status ${total ? (navigator.onLine ? 'warning' : 'offline') : 'ok'}`;
+            syncCenterStatus.textContent = total
+              ? `${navigator.onLine ? 'Online' : 'Offline'} · ${resumoPendenciasSincronizacao_(vistorias.length, fotos.length)} aguardando envio.`
+              : `${navigator.onLine ? 'Online' : 'Offline'} · Tudo sincronizado neste aparelho.`;
+          }
+
+          const itens = [
+            ...vistorias.map(item => ({...item, _ordem:Number(item.criadoEm || 0)})),
+            ...fotos.map(item => ({...item, _ordem:Number(item.criadoEm || 0)}))
+          ].sort((a,b) => a._ordem - b._ordem);
+
+          if (syncCenterList) {
+            if (!itens.length) {
+              syncCenterList.innerHTML = '<div class="sync-center-empty"><strong>✓ Tudo sincronizado</strong><span>Não há vistoria nem fotografia aguardando envio neste aparelho.</span></div>';
+            } else {
+              syncCenterList.innerHTML = itens.map(item => {
+                const foto = item.tipoPendencia === 'foto';
+                const id = String(item.id || '');
+                const enviando = foto ? syncSendingPhotoIds_.has(id) : syncSendingRecordIds_.has(id);
+                const estado = estadoItemSync_(item, enviando);
+                const titulo = foto ? tituloFotoPendenteSync_(item) : tituloVistoriaPendenteSync_(item);
+                const detalhe = foto
+                  ? [item.edificacao, item.endereco].filter(Boolean).join(' · ')
+                  : detalheVistoriaPendenteSync_(item);
+                const erro = String(item.ultimoErro || '').trim();
+                const tentativa = Number(item.ultimaTentativaEm || 0);
+                return `<article class="sync-center-item is-${estado.classe}">
+                  <div class="sync-center-item-head"><span class="sync-center-kind">${foto ? 'Foto' : 'Vistoria'}</span><span class="sync-center-state">${escapeHtml(estado.rotulo)}</span></div>
+                  <strong>${escapeHtml(titulo)}</strong>
+                  ${detalhe ? `<p>${escapeHtml(detalhe)}</p>` : ''}
+                  <div class="sync-center-item-meta"><span>${tentativa ? `Última tentativa: ${escapeHtml(horarioSincronizacao_(tentativa))}` : 'Ainda não houve falha de envio.'}</span>${Number(item.tentativas || 0) ? `<span>Tentativas com falha: ${Number(item.tentativas || 0)}</span>` : ''}</div>
+                  ${erro ? `<div class="sync-center-item-error">${escapeHtml(erro)}</div>` : ''}
+                  <button class="sync-center-discard" type="button" data-sync-discard-kind="${foto ? 'foto' : 'vistoria'}" data-sync-discard-id="${escapeAttr(id)}">Descartar</button>
+                </article>`;
+              }).join('');
+            }
+          }
+          if (syncCenterRunBtn) {
+            syncCenterRunBtn.disabled = !navigator.onLine || total === 0 || !usuarioPodeOperar_() || sendingQueue || enviandoFilaFotos_;
+            syncCenterRunBtn.textContent = (sendingQueue || enviandoFilaFotos_) ? 'Sincronizando...' : 'Sincronizar agora';
+          }
+          atualizarResumoSincronizacao_();
+          atualizarResumoOperacionalHome_();
+        } finally {
+          syncCenterRefreshing_ = false;
+          if (syncCenterRefreshBtn) syncCenterRefreshBtn.disabled = false;
+        }
+      }
+
+      function atualizarCentralSincronizacaoSeAberta_() {
+        if (!syncCenterModal || syncCenterModal.hidden) return;
+        setTimeout(() => { void atualizarCentralSincronizacao_(); }, 0);
+      }
+
+      function abrirCentralSincronizacao_() {
+        fecharMenuMais_();
+        if (!syncCenterModal) return;
+        syncCenterModal.hidden = false;
+        document.body.classList.add('sync-center-open');
+        void atualizarCentralSincronizacao_();
+        setTimeout(() => syncCenterCloseBtn?.focus(), 0);
+      }
+
+      function fecharCentralSincronizacao_() {
+        if (!syncCenterModal) return;
+        syncCenterModal.hidden = true;
+        document.body.classList.remove('sync-center-open');
+      }
+
+      async function sincronizarTudoPendente_(automatico = false) {
+        if (!navigator.onLine || !usuarioPodeOperar_()) {
+          atualizarPainelPendentes();
+          return false;
+        }
+        if (obterPendentes().length) await enviarPendentes(automatico);
+        await processarFilaFotosPendentes_();
+        await atualizarContagemFotosPendentes_();
+        if (!automatico) await atualizarCentralSincronizacao_();
+        return totalPendenciasSincronizacao_() === 0;
+      }
+
+      function removerFotoIdDeEstrutura_(origem, fotoId) {
+        if (!origem || typeof origem !== 'object') return origem;
+        if (Array.isArray(origem)) {
+          return origem.map(item => removerFotoIdDeEstrutura_(item, fotoId));
+        }
+        Object.keys(origem).forEach(chave => {
+          const valor = origem[chave];
+          if (chave === 'fotos' && Array.isArray(valor)) {
+            origem[chave] = valor.filter(f => String(f?.id || f?.fileId || '') !== String(fotoId));
+          } else if (valor && typeof valor === 'object') removerFotoIdDeEstrutura_(valor, fotoId);
+        });
+        return origem;
+      }
+
+      function removerReferenciaFotoDosRascunhosLocais_(registro) {
+        const rid = String(registro?.rascunhoId || '').trim();
+        const fotoId = String(registro?.id || '').trim();
+        if (!rid || !fotoId) return;
+        const draft = lerRascunhoLocalPorId_(rid);
+        if (!draft?.payload) return;
+        const p = { ...draft.payload };
+        if (registro?.tipoFoto === 'geral' || String(registro?.itemId || '') === FOTO_GERAL_ITEM_ID_) {
+          let fotos = [];
+          try { fotos = JSON.parse(String(p.fotosGerais || '[]')); } catch (_) { fotos = []; }
+          p.fotosGerais = JSON.stringify((Array.isArray(fotos) ? fotos : []).filter(f => String(f?.id || f?.fileId || '') !== fotoId));
+        } else {
+          try {
+            const estrutura = JSON.parse(String(p.notificacoesLiberacao || '[]'));
+            p.notificacoesLiberacao = JSON.stringify(removerFotoIdDeEstrutura_(estrutura, fotoId));
+          } catch (_) {}
+        }
+        const salvo = { ...draft, savedAt: Date.now(), payload:p };
+        try { localStorage.setItem(draftKeyAtual_(rid), JSON.stringify(salvo)); registrarRascunhoLocal_(rid, salvo.savedAt); } catch (_) {}
+      }
+
+      async function descartarPendenciaCentral_(tipo, id) {
+        const confirmado = await confirmarGpv_(
+          'Este item será removido somente da fila deste aparelho e não será enviado depois. Use esta opção apenas se você tiver certeza de que o registro ou a foto não deve mais ser sincronizado.',
+          'Descartar pendência?',
+          { tom:'danger', rotuloConfirmar:'Descartar definitivamente', rotuloCancelar:'Voltar' }
+        );
+        if (!confirmado) return;
+        if (tipo === 'vistoria') {
+          removerPendente(id);
+          // Fotografias ainda não enviadas pertencentes ao mesmo registro final
+          // também são descartadas para não criar arquivos órfãos no Drive.
+          const fotosLigadas = (await listarFotosPendentesDb_().catch(() => []))
+            .filter(item => String(item?.rascunhoId || '') === String(id));
+          for (const fotoLigada of fotosLigadas) {
+            await removerFotoPendenteDb_(fotoLigada.id).catch(() => {});
+          }
+        } else {
+          const fotos = await listarFotosPendentesDb_().catch(() => []);
+          const registro = fotos.find(item => String(item?.id || '') === String(id));
+          if (registro) removerReferenciaFotoDosRascunhosLocais_(registro);
+          await removerFotoPendenteDb_(id).catch(() => {});
+          fotosGeraisDraft_ = fotosGeraisDraft_.filter(f => String(f?.id || f?.fileId || '') !== String(id));
+          removerFotoIdDeEstrutura_(notificacoesLiberacaoDraft, id);
+          renderizarFotosGerais_();
+          renderizarNotificacoesLiberacao_();
+          scheduleDraftSave();
+        }
+        await atualizarContagemFotosPendentes_();
+        await atualizarCentralSincronizacao_();
       }
 
       function perfilAcessoAtual_() {
@@ -3869,7 +4085,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cw', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cx', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -3933,6 +4149,10 @@
       let currentRecordId = criarIdRegistro();
       let sendingQueue = false;
       let pendingCache = [];
+      let photoPendingCountCache_ = 0;
+      const syncSendingRecordIds_ = new Set();
+      const syncSendingPhotoIds_ = new Set();
+      let syncCenterRefreshing_ = false;
       let deferredInstallPrompt = null;
       let tutorialStepIndex = 0;
       let duvidasHistorico_ = [];
@@ -4717,6 +4937,7 @@
           } catch (fallbackError) { pendingCache = []; }
         }
         atualizarPainelPendentes();
+        void atualizarContagemFotosPendentes_();
       }
 
       function salvarPendentes(lista) {
@@ -4742,8 +4963,29 @@
         salvarPendentes(obterPendentes().filter(item => item && item.id !== id));
       }
 
+      function atualizarMetadadosPendente_(id, alteracoes = {}) {
+        const lista = obterPendentes().map(item => {
+          if (!item || String(item.id) !== String(id)) return item;
+          return { ...item, ...alteracoes };
+        });
+        salvarPendentes(lista);
+      }
+
+      function resumoPendenciasSincronizacao_(vistorias, fotos) {
+        const partes = [];
+        if (vistorias) partes.push(`${vistorias} vistoria${vistorias === 1 ? '' : 's'}`);
+        if (fotos) partes.push(`${fotos} foto${fotos === 1 ? '' : 's'}`);
+        return partes.join(' e ');
+      }
+
+      function totalPendenciasSincronizacao_() {
+        return obterPendentes().length + Number(photoPendingCountCache_ || 0);
+      }
+
       function atualizarResumoSincronizacao_() {
-        const quantidade = obterPendentes().length;
+        const vistorias = obterPendentes().length;
+        const fotos = Number(photoPendingCountCache_ || 0);
+        const quantidade = vistorias + fotos;
         if (syncSummary) {
           syncSummary.classList.remove('is-ok', 'is-pending', 'is-offline');
         }
@@ -4756,11 +4998,11 @@
         if (!navigator.onLine) {
           estado = 'is-offline';
           texto = quantidade
-            ? `Offline · ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando envio`
+            ? `Offline · ${resumoPendenciasSincronizacao_(vistorias, fotos)} aguardando envio`
             : 'Offline · nenhum envio pendente';
         } else if (quantidade) {
           estado = 'is-pending';
-          texto = `Online · ${quantidade} vistoria${quantidade === 1 ? '' : 's'} aguardando sincronização`;
+          texto = `Online · ${resumoPendenciasSincronizacao_(vistorias, fotos)} aguardando sincronização`;
         }
 
         if (syncSummary) {
@@ -4784,20 +5026,27 @@
       }
 
       function atualizarPainelPendentes() {
-        const quantidade = obterPendentes().length;
-        pendingPanel.classList.toggle('show', quantidade > 0);
-        pendingTitle.textContent = quantidade === 1
-          ? '1 vistoria aguardando envio'
-          : quantidade + ' vistorias aguardando envio';
+        const vistorias = obterPendentes().length;
+        const fotos = Number(photoPendingCountCache_ || 0);
+        const quantidade = vistorias + fotos;
+        const possuiFalhaVistoria = obterPendentes().some(item => String(item?.ultimoErro || '').trim());
+        // Objetividade em campo: não abre aviso visual só porque um envio está ocorrendo
+        // por alguns segundos. O painel aparece offline ou após falha real de vistoria.
+        pendingPanel.classList.toggle('show', quantidade > 0 && (!navigator.onLine || possuiFalhaVistoria));
+        pendingTitle.textContent = quantidade
+          ? `${resumoPendenciasSincronizacao_(vistorias, fotos)} aguardando envio`
+          : 'Nenhum envio pendente';
         pendingText.textContent = quantidade
           ? (navigator.onLine
-              ? 'A internet está disponível. Você pode enviar agora; o app também tentará automaticamente.'
-              : 'Os registros estão salvos neste aparelho e serão mantidos até a internet voltar.')
+              ? 'O envio ocorre automaticamente. Use o botão apenas se quiser tentar novamente agora.'
+              : 'Tudo permanece salvo neste aparelho até a internet voltar.')
           : '';
-        sendPendingBtn.disabled = !navigator.onLine || sendingQueue || quantidade === 0;
-        sendPendingBtn.textContent = sendingQueue ? 'Enviando...' : 'Enviar pendentes';
+        const sincronizando = sendingQueue || enviandoFilaFotos_;
+        sendPendingBtn.disabled = !navigator.onLine || sincronizando || quantidade === 0 || !usuarioPodeOperar_();
+        sendPendingBtn.textContent = sincronizando ? 'Sincronizando...' : 'Sincronizar agora';
         atualizarResumoSincronizacao_();
         queueMicrotask(() => atualizarResumoOperacionalHome_());
+        atualizarCentralSincronizacaoSeAberta_();
       }
 
       function atualizarStatusConexao() {
@@ -4866,6 +5115,9 @@
         let dduConcluidoEnviado = false;
         for (const item of [...lista]) {
           if (!navigator.onLine) break;
+          const itemIdSync = String(item?.id || '');
+          syncSendingRecordIds_.add(itemIdSync);
+          atualizarCentralSincronizacaoSeAberta_();
           try {
             const resultadoServidor = await chamarSalvarNoServidor(item.payload || {});
             if (item.id === String(ultimoRegistroParaOrientacoes?._appRegistroId || '')) {
@@ -4876,7 +5128,15 @@
             removerPendente(item.id);
             enviados += 1;
           } catch (erro) {
+            atualizarMetadadosPendente_(item.id, {
+              ultimaTentativaEm: Date.now(),
+              ultimoErro: String(erro?.message || 'Falha de comunicação').replace(/\s+/g, ' ').trim().slice(0, 300),
+              tentativas: Number(item?.tentativas || 0) + 1
+            });
             break;
+          } finally {
+            syncSendingRecordIds_.delete(itemIdSync);
+            atualizarCentralSincronizacaoSeAberta_();
           }
         }
 
@@ -5634,6 +5894,7 @@
         if (elementoVisivelNavegacao_(duvidasModal)) return { id: 'duvidas', fechar: () => fecharDuvidas_() };
         if (elementoVisivelNavegacao_(systemManualModal)) return { id: 'system-manual', fechar: () => fecharManualSistema_() };
         if (elementoVisivelNavegacao_(appAlertsModal)) return { id: 'app-alerts', fechar: () => fecharAvisosApp_() };
+        if (elementoVisivelNavegacao_(syncCenterModal)) return { id: 'sync-center', fechar: () => fecharCentralSincronizacao_() };
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
         if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
         if (elementoVisivelNavegacao_(tutorialModal)) return { id: 'tutorial', fechar: () => fecharTutorial_() };
@@ -10787,7 +11048,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return new Promise((resolve, reject) => {
           const tx = db.transaction(DB_PHOTO_STORE, 'readwrite');
           tx.objectStore(DB_PHOTO_STORE).put(registro);
-          tx.oncomplete = () => { db.close(); resolve(); };
+          tx.oncomplete = () => { db.close(); resolve(); setTimeout(() => { void atualizarContagemFotosPendentes_(); }, 0); };
           tx.onerror = () => { const e = tx.error; db.close(); reject(e); };
         });
       }
@@ -10803,12 +11064,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
       }
 
+      async function atualizarContagemFotosPendentes_() {
+        try {
+          const fila = await listarFotosPendentesDb_();
+          photoPendingCountCache_ = fila.length;
+        } catch (e) {
+          photoPendingCountCache_ = 0;
+        }
+        atualizarResumoSincronizacao_();
+        atualizarResumoOperacionalHome_();
+        atualizarCentralSincronizacaoSeAberta_();
+        return photoPendingCountCache_;
+      }
+
       async function removerFotoPendenteDb_(id) {
         const db = await abrirBancoOffline();
         return new Promise((resolve, reject) => {
           const tx = db.transaction(DB_PHOTO_STORE, 'readwrite');
           tx.objectStore(DB_PHOTO_STORE).delete(id);
-          tx.oncomplete = () => { db.close(); resolve(); };
+          tx.oncomplete = () => { db.close(); resolve(); setTimeout(() => { void atualizarContagemFotosPendentes_(); }, 0); };
           tx.onerror = () => { const e = tx.error; db.close(); reject(e); };
         });
       }
@@ -11055,9 +11329,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function enviarRegistroFotoPendente_(registro) {
-        const resposta = await apiRequest('config', payloadUploadFoto_(registro), 30000);
-        if (!resposta?.fileId) throw new Error('O servidor não confirmou o armazenamento da fotografia.');
-        await concluirUploadFoto_(registro, resposta);
+        const idSync = String(registro?.id || '');
+        syncSendingPhotoIds_.add(idSync);
+        atualizarCentralSincronizacaoSeAberta_();
+        try {
+          const resposta = await apiRequest('config', payloadUploadFoto_(registro), 30000);
+          if (!resposta?.fileId) throw new Error('O servidor não confirmou o armazenamento da fotografia.');
+          await concluirUploadFoto_(registro, resposta);
+        } catch (erro) {
+          try {
+            await gravarFotoPendenteDb_({
+              ...registro,
+              ultimaTentativaEm: Date.now(),
+              ultimoErro: String(erro?.message || 'Falha de comunicação').replace(/\s+/g, ' ').trim().slice(0, 300),
+              tentativas: Number(registro?.tentativas || 0) + 1
+            });
+          } catch (_) {}
+          throw erro;
+        } finally {
+          syncSendingPhotoIds_.delete(idSync);
+          atualizarCentralSincronizacaoSeAberta_();
+        }
       }
 
       async function processarFilaFotosPendentes_() {
@@ -11071,6 +11363,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         } finally {
           enviandoFilaFotos_ = false;
+          void atualizarContagemFotosPendentes_();
         }
       }
 
@@ -15597,7 +15890,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           'O registro já está seguro neste aparelho e está sendo enviado para a planilha. Você pode iniciar a próxima vistoria agora.'
         );
         appStatus.textContent = 'Vistoria salva no aparelho — sincronizando com a planilha.';
-        setTimeout(() => enviarPendentes(true), 80);
+        setTimeout(() => { void sincronizarTudoPendente_(true); }, 80);
       }
 
       function fecharMenuMais_() {
@@ -18418,7 +18711,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (cached) setTimeout(() => { void sincronizarConfigOnline_(); }, 1600);
           else await sincronizarConfigOnline_();
 
-          if (usuarioPodeOperar_() && obterPendentes().length) setTimeout(() => enviarPendentes(true), 900);
+          if (usuarioPodeOperar_() && totalPendenciasSincronizacao_()) setTimeout(() => { void sincronizarTudoPendente_(true); }, 900);
         }
 
         const vistaForcada = vistaInicialDaUrl_();
@@ -19251,6 +19544,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (event.target === appDiagnosticsModal) fecharDiagnosticoApp_();
       });
 
+      syncCenterBtn?.addEventListener('click', abrirCentralSincronizacao_);
+      syncCenterCloseBtn?.addEventListener('click', fecharCentralSincronizacao_);
+      syncCenterRefreshBtn?.addEventListener('click', () => { void atualizarCentralSincronizacao_(); });
+      syncCenterRunBtn?.addEventListener('click', () => { void sincronizarTudoPendente_(false); });
+      syncCenterModal?.addEventListener('click', event => { if (event.target === syncCenterModal) fecharCentralSincronizacao_(); });
+      syncCenterList?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-sync-discard-id]');
+        if (!botao) return;
+        void descartarPendenciaCentral_(String(botao.dataset.syncDiscardKind || ''), String(botao.dataset.syncDiscardId || ''));
+      });
+
       useCurrentLocationBtn?.addEventListener('click', () => { void usarLocalizacaoAtual_(); });
 
       retornoLiberacaoAnteriorSelect?.addEventListener('change', () => {
@@ -19588,10 +19892,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharDiagnosticoApp_(); fecharVisualizadorRetornoLiberacao_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharDiagnosticoApp_(); fecharCentralSincronizacao_(); fecharVisualizadorRetornoLiberacao_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
-      sendPendingBtn.addEventListener('click', () => enviarPendentes(false));
+      sendPendingBtn.addEventListener('click', () => { void sincronizarTudoPendente_(false); });
       window.addEventListener('offline', () => { atualizarStatusConexao(); if (authEnterBtn) authEnterBtn.disabled = true; if (authOfflineNote && authGate?.classList.contains('show')) authOfflineNote.hidden = false; });
       window.addEventListener('online', () => {
         atualizarStatusConexao();
@@ -19602,9 +19906,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (ehFluxoLiberacao_()) setTimeout(() => { void consultarRetornoLiberacao_(); }, 450);
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
-        setTimeout(() => { void processarFilaFotosPendentes_(); }, 250);
         if (usuarioPodeOperar_()) {
-          setTimeout(() => enviarPendentes(true), 650);
+          setTimeout(() => { void sincronizarTudoPendente_(true); }, 450);
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
         }
         if (document.body.classList.contains('records-mode')) {
@@ -19646,7 +19949,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cw', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cx', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
