@@ -803,7 +803,7 @@
         ).trim();
       }
 
-      // V23.9.99cx — apresentação inteligente dos rascunhos. O percentual é
+      // V23.9.99cy — apresentação inteligente dos rascunhos. O percentual é
       // apenas um indicador visual de preenchimento e NÃO interfere nas regras
       // obrigatórias nem na validação final da vistoria.
       function formatarDataHoraRascunho_(savedAt) {
@@ -2070,7 +2070,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99cx';
+      const APP_REVISION_UI_ = '23.9.99cy';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2813,11 +2813,22 @@
           atualizarPainelPendentes();
           return false;
         }
-        if (obterPendentes().length) await enviarPendentes(automatico);
-        await processarFilaFotosPendentes_();
-        await atualizarContagemFotosPendentes_();
-        if (!automatico) await atualizarCentralSincronizacao_();
-        return totalPendenciasSincronizacao_() === 0;
+        // Single-flight: se outro gatilho já iniciou a sincronização, aguarda a
+        // mesma execução. Isso reduz chamadas duplicadas em conexões instáveis.
+        if (syncAllPromise_) return syncAllPromise_;
+
+        syncAllPromise_ = (async () => {
+          if (obterPendentes().length) await enviarPendentes(automatico);
+          if (navigator.onLine) await processarFilaFotosPendentes_();
+          await atualizarContagemFotosPendentes_();
+          return totalPendenciasSincronizacao_() === 0;
+        })().finally(() => {
+          syncAllPromise_ = null;
+          atualizarPainelPendentes();
+          atualizarCentralSincronizacaoSeAberta_();
+        });
+
+        return syncAllPromise_;
       }
 
       function removerFotoIdDeEstrutura_(origem, fotoId) {
@@ -4085,7 +4096,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99cx', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99cy', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4153,6 +4164,11 @@
       const syncSendingRecordIds_ = new Set();
       const syncSendingPhotoIds_ = new Set();
       let syncCenterRefreshing_ = false;
+      // V23.9.99cy — uma única sincronização global por vez. A abertura do app,
+      // o retorno da internet e o botão manual podem disparar a mesma rotina quase
+      // simultaneamente; compartilhar a promessa evita requisições repetidas sem
+      // criar qualquer nova etapa para o vistoriador.
+      let syncAllPromise_ = null;
       let deferredInstallPrompt = null;
       let tutorialStepIndex = 0;
       let duvidasHistorico_ = [];
@@ -5113,35 +5129,39 @@
 
         let enviados = 0;
         let dduConcluidoEnviado = false;
-        for (const item of [...lista]) {
-          if (!navigator.onLine) break;
-          const itemIdSync = String(item?.id || '');
-          syncSendingRecordIds_.add(itemIdSync);
-          atualizarCentralSincronizacaoSeAberta_();
-          try {
-            const resultadoServidor = await chamarSalvarNoServidor(item.payload || {});
-            if (item.id === String(ultimoRegistroParaOrientacoes?._appRegistroId || '')) {
-              ultimoRegistroConsultaChave = String(resultadoServidor?.chaveConsulta || '');
-              atualizarBotaoPlanilhaSucesso_();
-            }
-            if (String(item?.payload?._appDduId || '').trim()) dduConcluidoEnviado = true;
-            removerPendente(item.id);
-            enviados += 1;
-          } catch (erro) {
-            atualizarMetadadosPendente_(item.id, {
-              ultimaTentativaEm: Date.now(),
-              ultimoErro: String(erro?.message || 'Falha de comunicação').replace(/\s+/g, ' ').trim().slice(0, 300),
-              tentativas: Number(item?.tentativas || 0) + 1
-            });
-            break;
-          } finally {
-            syncSendingRecordIds_.delete(itemIdSync);
+        try {
+          for (const item of [...lista]) {
+            if (!navigator.onLine) break;
+            const itemIdSync = String(item?.id || '');
+            syncSendingRecordIds_.add(itemIdSync);
             atualizarCentralSincronizacaoSeAberta_();
+            try {
+              const resultadoServidor = await chamarSalvarNoServidor(item.payload || {});
+              if (item.id === String(ultimoRegistroParaOrientacoes?._appRegistroId || '')) {
+                ultimoRegistroConsultaChave = String(resultadoServidor?.chaveConsulta || '');
+                atualizarBotaoPlanilhaSucesso_();
+              }
+              if (String(item?.payload?._appDduId || '').trim()) dduConcluidoEnviado = true;
+              removerPendente(item.id);
+              enviados += 1;
+            } catch (erro) {
+              atualizarMetadadosPendente_(item.id, {
+                ultimaTentativaEm: Date.now(),
+                ultimoErro: String(erro?.message || 'Falha de comunicação').replace(/\s+/g, ' ').trim().slice(0, 300),
+                tentativas: Number(item?.tentativas || 0) + 1
+              });
+              break;
+            } finally {
+              syncSendingRecordIds_.delete(itemIdSync);
+              atualizarCentralSincronizacaoSeAberta_();
+            }
           }
+        } finally {
+          // Mesmo que algum componente da fila lance erro inesperado, o app nunca
+          // fica preso visualmente no estado "Sincronizando".
+          sendingQueue = false;
+          atualizarPainelPendentes();
         }
-
-        sendingQueue = false;
-        atualizarPainelPendentes();
         if (enviados > 0) {
           registrarSincronizacaoBemSucedidaDiagnostico_(enviados);
           limparCachesConsulta_();
@@ -11358,8 +11378,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try {
           const fila = await listarFotosPendentesDb_().catch(() => []);
           for (const registro of fila) {
+            // Se a conexão cair durante o lote, interrompe imediatamente. As fotos
+            // restantes continuam intactas no IndexedDB para a próxima conexão.
+            if (!navigator.onLine) break;
             try { await enviarRegistroFotoPendente_(registro); }
-            catch (e) { /* mantém no IndexedDB para a próxima tentativa */ }
+            catch (e) {
+              if (!navigator.onLine) break;
+              /* mantém no IndexedDB para a próxima tentativa */
+            }
           }
         } finally {
           enviandoFilaFotos_ = false;
@@ -19949,7 +19975,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cx', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99cy', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
