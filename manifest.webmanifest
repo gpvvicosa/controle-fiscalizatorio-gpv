@@ -1,7 +1,7 @@
 {
   "name": "App do Vistoriador",
   "short_name": "App do Vistoriador",
-  "description": "Aplicativo de apoio ao registro e acompanhamento de vistorias, com suporte offline.",
+  "description": "Aplicativo de apoio a vistoria, com suporte offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -15,19 +15,19 @@
   ],
   "icons": [
     {
-      "src": "assets/app-vistoriador-icon-192-cg.png?v=23.9.99cg",
+      "src": "assets/app-vistoriador-icon-192-ch.png?v=23.9.99ch",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/app-vistoriador-icon-512-cg.png?v=23.9.99cg",
+      "src": "assets/app-vistoriador-icon-512-ch.png?v=23.9.99ch",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/app-vistoriador-icon-maskable-512-cg.png?v=23.9.99cg",
+      "src": "assets/app-vistoriador-icon-maskable-512-ch.png?v=23.9.99ch",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

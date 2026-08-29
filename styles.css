@@ -12796,13 +12796,13 @@ a.btn {
 
 
 /* =========================================================
-   V23.9.99cg — identidade externa "App do Vistoriador"
+   V23.9.99ch — identidade externa "App do Vistoriador"
    Restrita à tela de acesso; a identidade interna da unidade permanece inalterada.
    ========================================================= */
 .auth-gate{
   background:
     linear-gradient(180deg,rgba(45,3,5,.74),rgba(64,5,7,.90) 54%,rgba(31,2,4,.96)),
-    url("assets/splash-app-vistoriador.webp?v=23.9.99cg") center 30%/cover no-repeat!important;
+    url("assets/splash-app-vistoriador.webp?v=23.9.99ch") center 30%/cover no-repeat!important;
   animation:none!important;
 }
 .auth-gate::before{
@@ -12812,7 +12812,7 @@ a.btn {
   left:-18vmin!important;
   top:-18vmin!important;
   border-radius:28%!important;
-  background:url("assets/app-vistoriador-icon-512-cg.png?v=23.9.99cg") center/contain no-repeat!important;
+  background:url("assets/app-vistoriador-icon-512-ch.png?v=23.9.99ch") center/contain no-repeat!important;
   filter:none!important;
   opacity:.075!important;
   transform:rotate(-10deg)!important;
@@ -12887,7 +12887,7 @@ a.btn {
 
 
 /* =========================================================
-   V23.9.99cg — splash mobile ligeiramente ampliado
+   V23.9.99ch — splash mobile ligeiramente ampliado
    Mantém a mesma arte e aumenta discretamente sua presença visual.
    ========================================================= */
 .gpv-image-splash .gpv-splash-art{
