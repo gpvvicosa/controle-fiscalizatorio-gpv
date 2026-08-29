@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260829-v23-9-99-home-mobile-cj';
-const VERSION = '23.9.99cj';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260829-v23-9-99-icon-refresh-ck';
+const VERSION = '23.9.99ck';
 
 const CORE_SHELL = [
   './',
@@ -9,9 +9,9 @@ const CORE_SHELL = [
   `./ocupacoes.js?v=${VERSION}`,
   `./notificacoes-infoscip.js?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
-  `./manifest.webmanifest?v=${VERSION}`,
-  `./assets/app-vistoriador-icon-192-ch.png?v=${VERSION}`,
-  `./assets/app-vistoriador-icon-512-ch.png?v=${VERSION}`,
+  `./app-vistoriador-ck.webmanifest?v=${VERSION}`,
+  `./assets/app-vistoriador-icon-192-ck.png?v=${VERSION}`,
+  `./assets/app-vistoriador-icon-512-ck.png?v=${VERSION}`,
   `./assets/splash-app-vistoriador.webp?v=${VERSION}`,
   './offline.html'
 ];
@@ -21,11 +21,8 @@ const OPTIONAL_SHELL = [
   './assets/cabecalho.webp',
   './assets/logo-cbmmg.png',
   `./assets/logo-gpv.png?v=${VERSION}`,
-  './assets/icon-192.png',
-  './assets/icon-512.png',
-  './assets/icon-maskable-512.png',
   `./assets/miniatura-app-vistoriador-ch.jpg?v=${VERSION}`,
-  `./assets/app-vistoriador-icon-maskable-512-ch.png?v=${VERSION}`,
+  `./assets/app-vistoriador-icon-maskable-512-ck.png?v=${VERSION}`,
   './assets/manual-do-autuado-infoscip-fiscalizacao.pdf',
   './manual/',
   './instrucoes-tecnicas/assets/app.js',
