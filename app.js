@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99de';
+      const APP_VERSION = '23.9.99df';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -716,6 +716,188 @@
         } catch (e) {}
       }
 
+      // V23.9.99df — sincroniza o estado dos rascunhos locais com a cópia
+      // compartilhada. A remoção automática é deliberadamente conservadora:
+      // só acontece quando o servidor confirma explicitamente "concluida" ou
+      // "cancelado". Ausência no servidor ou falha de conexão nunca apaga dados.
+      let localDraftRemoteSyncPromise_ = null;
+      const localDraftRemoteTerminalAlerted_ = new Set();
+
+      function normalizarEstadoRascunhoRemoto_(estado) {
+        return String(estado == null ? '' : estado)
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim()
+          .toLowerCase();
+      }
+
+      function estadoRascunhoRemotoTerminal_(estado) {
+        const n = normalizarEstadoRascunhoRemoto_(estado);
+        return n === 'concluida' || n === 'cancelado';
+      }
+
+      function mensagemEstadoRascunhoRemoto_(estado, atualizadoPor = '') {
+        const n = normalizarEstadoRascunhoRemoto_(estado);
+        const autor = String(atualizadoPor || '').trim();
+        if (n === 'cancelado') {
+          return autor
+            ? `Este preenchimento foi cancelado por ${autor} em outro aparelho.`
+            : 'Este preenchimento foi cancelado em outro aparelho.';
+        }
+        return autor
+          ? `Esta vistoria já foi concluída por ${autor} em outro aparelho.`
+          : 'Esta vistoria já foi concluída em outro aparelho.';
+      }
+
+      function retirarRascunhoLocalPorEstadoRemoto_(item, remoto = {}) {
+        const rid = String(item?.id || remoto?.id || '').trim();
+        if (!rid || !remoto?.encontrado || !estadoRascunhoRemotoTerminal_(remoto?.estado)) return null;
+
+        const ehAtual = String(currentRecordId || '') === rid && rascunhoAtualEmAndamento_();
+        marcarRascunhoFinalizadoLocal_(rid);
+        removerRascunhoLocal_(rid);
+        removerCancelamentoRascunhoPendente_(rid);
+
+        return {
+          id: rid,
+          estado: normalizarEstadoRascunhoRemoto_(remoto.estado),
+          atualizadoPor: String(remoto?.atualizadoPor || '').trim(),
+          atualizadoEm: String(remoto?.atualizadoEm || '').trim(),
+          atualAberto: ehAtual,
+          preparacaoId: String(item?.payload?._appPreparacaoId || '').trim()
+        };
+      }
+
+      async function consultarEstadoTerminalRascunhoRemoto_(recordId, timeoutMs = 8000) {
+        const rid = String(recordId || '').trim();
+        if (!rid || !navigator.onLine || !usuarioPodeOperar_()) return null;
+        try {
+          const remoto = await apiRequest('config', { consulta: 'rascunho_estado', id: rid }, timeoutMs);
+          if (remoto?.encontrado && estadoRascunhoRemotoTerminal_(remoto?.estado)) return remoto;
+        } catch (_) {}
+        return null;
+      }
+
+      async function apresentarRascunhoAtualEncerradoRemotamente_(info) {
+        if (!info?.atualAberto || !info?.id) return;
+        const chaveAviso = `${info.id}:${info.estado}`;
+        if (localDraftRemoteTerminalAlerted_.has(chaveAviso)) return;
+        localDraftRemoteTerminalAlerted_.add(chaveAviso);
+
+        await avisarGpv_(
+          `${mensagemEstadoRascunhoRemoto_(info.estado, info.atualizadoPor)} A cópia local foi retirada de “Vistorias em andamento” para evitar novo registro da mesma vistoria.`,
+          info.estado === 'cancelado' ? 'Vistoria cancelada em outro aparelho' : 'Vistoria já concluída',
+          { tom: 'warning' }
+        );
+
+        if (String(currentRecordId || '') === String(info.id || '')) {
+          resetForm(true, true);
+          if (appStatus) appStatus.textContent = info.estado === 'cancelado'
+            ? 'O preenchimento cancelado em outro aparelho foi fechado neste dispositivo.'
+            : 'A vistoria concluída em outro aparelho foi fechada neste dispositivo.';
+        }
+      }
+
+      async function verificarRascunhoAntesDeAbrir_(recordId) {
+        const rid = String(recordId || '').trim();
+        if (!rid || !navigator.onLine || !usuarioPodeOperar_()) return false;
+        const remoto = await consultarEstadoTerminalRascunhoRemoto_(rid, 9000);
+        if (!remoto) return false;
+
+        const item = listarRascunhosLocaisAtivos_().find(x => String(x?.id || '') === rid) || {
+          id: rid,
+          payload: lerRascunhoLocalPorId_(rid)?.payload || {}
+        };
+        const info = retirarRascunhoLocalPorEstadoRemoto_(item, remoto);
+        atualizarResumoRascunhosLocais_();
+        atualizarResumoOperacionalHome_();
+        if (document.getElementById('localDraftsModal') && !document.getElementById('localDraftsModal').hidden) {
+          renderizarGerenciadorRascunhosLocais_();
+        }
+        if (info?.preparacaoId) setTimeout(() => { void carregarPreparacoesVistoria_(); }, 100);
+
+        await avisarGpv_(
+          `${mensagemEstadoRascunhoRemoto_(remoto.estado, remoto.atualizadoPor)} Ela foi retirada das vistorias em andamento deste aparelho.`,
+          normalizarEstadoRascunhoRemoto_(remoto.estado) === 'cancelado' ? 'Vistoria cancelada' : 'Vistoria já concluída',
+          { tom: 'warning' }
+        );
+        return true;
+      }
+
+      async function sincronizarEstadosRascunhosLocais_(opcoes = {}) {
+        if (!navigator.onLine || !usuarioPodeOperar_()) return { ok: false, removidos: 0 };
+        if (localDraftRemoteSyncPromise_) return localDraftRemoteSyncPromise_;
+
+        localDraftRemoteSyncPromise_ = (async () => {
+          const locais = listarRascunhosLocaisAtivos_();
+          if (!locais.length) return { ok: true, removidos: 0 };
+
+          // Primeiro consulta a lista ativa em uma única requisição. Só os rascunhos
+          // locais que não aparecem como ativos exigem uma confirmação individual.
+          let ativosServidor = new Set();
+          try {
+            const resposta = await apiRequest('config', { consulta: 'rascunhos' }, 14000);
+            const ativos = Array.isArray(resposta?.rascunhos) ? resposta.rascunhos : [];
+            ativosServidor = new Set(ativos.map(x => String(x?.id || '').trim()).filter(Boolean));
+          } catch (_) {
+            return { ok: false, removidos: 0 };
+          }
+
+          const candidatos = locais.filter(item => !ativosServidor.has(String(item?.id || '').trim()));
+          if (!candidatos.length) return { ok: true, removidos: 0 };
+
+          const encerrados = [];
+          // Pequenos lotes evitam muitas chamadas simultâneas ao Apps Script quando
+          // um aparelho acumulou vários rascunhos antigos.
+          for (let i = 0; i < candidatos.length; i += 4) {
+            if (!navigator.onLine) break;
+            const lote = candidatos.slice(i, i + 4);
+            const resultados = await Promise.all(lote.map(async item => {
+              try {
+                const remoto = await apiRequest('config', {
+                  consulta: 'rascunho_estado',
+                  id: String(item?.id || '')
+                }, 9000);
+                return { item, remoto };
+              } catch (_) {
+                return null;
+              }
+            }));
+            resultados.forEach(resultado => {
+              if (!resultado?.remoto?.encontrado || !estadoRascunhoRemotoTerminal_(resultado.remoto.estado)) return;
+              const info = retirarRascunhoLocalPorEstadoRemoto_(resultado.item, resultado.remoto);
+              if (info) encerrados.push(info);
+            });
+          }
+
+          if (!encerrados.length) return { ok: true, removidos: 0 };
+
+          atualizarResumoRascunhosLocais_();
+          atualizarResumoOperacionalHome_();
+
+          const modal = document.getElementById('localDraftsModal');
+          if (modal && !modal.hidden) renderizarGerenciadorRascunhosLocais_();
+
+          if (encerrados.some(x => x.preparacaoId)) {
+            setTimeout(() => { if (navigator.onLine) void carregarPreparacoesVistoria_(); }, 120);
+          }
+
+          const atual = encerrados.find(x => x.atualAberto);
+          if (atual) await apresentarRascunhoAtualEncerradoRemotamente_(atual);
+
+          if (opcoes?.mostrarStatus && appStatus && !atual) {
+            const n = encerrados.length;
+            appStatus.textContent = `${n} vistoria${n === 1 ? '' : 's'} encerrada${n === 1 ? '' : 's'} em outro aparelho ${n === 1 ? 'foi retirada' : 'foram retiradas'} dos rascunhos deste dispositivo.`;
+          }
+
+          return { ok: true, removidos: encerrados.length };
+        })().finally(() => {
+          localDraftRemoteSyncPromise_ = null;
+        });
+
+        return localDraftRemoteSyncPromise_;
+      }
+
       function lerCancelamentosRascunhoPendentes_() {
         try {
           const lista = JSON.parse(localStorage.getItem(DRAFT_CANCEL_QUEUE_STORAGE) || '[]');
@@ -1166,6 +1348,11 @@
       async function abrirRascunhoLocalPorId_(recordId) {
         const rid = String(recordId || '').trim();
         if (!rid) return false;
+
+        // V23.9.99df — antes de retomar, confirma se outro aparelho já encerrou
+        // explicitamente esta vistoria. Falha de internet nunca bloqueia o rascunho.
+        if (await verificarRascunhoAntesDeAbrir_(rid)) return false;
+
         const draft = lerRascunhoLocalPorId_(rid);
         if (!draft?.payload || rascunhoFinalizadoLocal_(rid) || assinaturaFinalizadaLocal_(draft.payload)) {
           removerRascunhoLocal_(rid);
@@ -1310,6 +1497,11 @@
         document.body.classList.add('local-drafts-open');
         agendarSincronizacaoNavegacao_();
         setTimeout(() => document.getElementById('localDraftsModalCloseBtn')?.focus(), 30);
+
+        // Confere em segundo plano o estado compartilhado sem atrasar a abertura.
+        if (navigator.onLine && usuarioPodeOperar_()) {
+          setTimeout(() => { void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false }); }, 0);
+        }
       }
 
       async function abrirListaRascunhosLocais_() {
@@ -2137,7 +2329,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99de';
+      const APP_REVISION_UI_ = '23.9.99df';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4165,7 +4357,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99de', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99df', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -12860,7 +13052,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         let resposta = respostaRetornoLiberacaoAtual_();
-        // V23.9.99de — se o backend encontrou o mesmo PSCIP (ou documento + endereço),
+        // V23.9.99df — se o backend encontrou o mesmo PSCIP (ou documento + endereço),
         // o retorno é assumido automaticamente. O militar só precisa agir se NÃO for retorno.
         if (!resposta && candidatoSelecionado?.deteccaoAutomatica === true) {
           if (retornoLiberacaoInput) retornoLiberacaoInput.value = 'Sim';
@@ -15605,9 +15797,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         sharedDraftStateChecking=true;
         try{
           const r=await apiRequest('config',{consulta:'rascunho_estado',id:String(currentRecordId)},8000);
-          if(String(r?.estado||'').toLowerCase()==='cancelado'){
-            const id=String(currentRecordId); removerRascunhoLocal_(id); resetForm(true);
-            appStatus.textContent=`Este preenchimento foi cancelado${r?.atualizadoPor?` por ${r.atualizadoPor}`:' em outro aparelho'}. A vistoria programada permanece disponível.`;
+          if(r?.encontrado && estadoRascunhoRemotoTerminal_(r?.estado)){
+            const id=String(currentRecordId);
+            const draft = lerRascunhoLocalPorId_(id);
+            const info = retirarRascunhoLocalPorEstadoRemoto_({ id, payload: draft?.payload || {} }, r);
+            atualizarResumoRascunhosLocais_();
+            atualizarResumoOperacionalHome_();
+            if (info) await apresentarRascunhoAtualEncerradoRemotamente_(info);
             carregarPreparacoesVistoria_().catch(()=>{});
           }
         }catch(e){}finally{sharedDraftStateChecking=false;}
@@ -15615,6 +15811,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       setInterval(verificarEstadoRascunhoCompartilhado_,8000);
       document.addEventListener('visibilitychange',()=>{if(!document.hidden) verificarEstadoRascunhoCompartilhado_();});
       window.addEventListener('focus',verificarEstadoRascunhoCompartilhado_);
+
+      // Uma conferência leve por minuto mantém a lista local coerente quando um
+      // colega conclui a vistoria em outro aparelho enquanto este permanece aberto.
+      setInterval(() => {
+        if (
+          navigator.onLine &&
+          usuarioPodeOperar_() &&
+          document.visibilityState === 'visible' &&
+          listarRascunhosLocaisAtivos_().length
+        ) {
+          void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false });
+        }
+      }, 60 * 1000);
 
       function agendarSincronizacaoRascunhoCompartilhado_() {
         clearTimeout(sharedDraftSyncTimer);
@@ -19174,7 +19383,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try { cached = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || 'null'); } catch (e) {}
         aplicarConfig(cached || DEFAULT_CONFIG);
         aplicarPermissoesInterface_();
-        if (usuarioPodeOperar_()) restoreDraft();
+        if (usuarioPodeOperar_()) {
+          restoreDraft();
+          // V23.9.99df — a interface abre imediatamente com o cache local e,
+          // logo depois, limpa apenas rascunhos que o servidor confirmar como
+          // concluídos/cancelados em outro aparelho.
+          if (navigator.onLine) setTimeout(() => { void sincronizarEstadosRascunhosLocais_(); }, 350);
+        }
         else if (authState.usuario?.nome) {
           usuariosAtivosApp = [{ nome: authState.usuario.nome }];
           preencherVistoriadores_();
@@ -20335,6 +20550,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
           verificarAtualizacaoSilenciosaPwa_(forcarVerificacao);
           aplicarAtualizacaoSilenciosaSeSeguro_();
+          if (navigator.onLine && usuarioPodeOperar_()) {
+            setTimeout(() => { void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false }); }, 180);
+          }
           appOcultadoEm_ = 0;
         }
       });
@@ -20429,6 +20647,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
         if (usuarioPodeOperar_()) {
           setTimeout(() => { void processarCancelamentosRascunhoPendentes_(); }, 180);
+          setTimeout(() => { void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false }); }, 220);
           setTimeout(() => { void sincronizarTudoPendente_(true); }, 450);
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
         }
@@ -20471,7 +20690,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99de', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99df', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
