@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dh';
+      const APP_VERSION = '23.9.99di';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2340,7 +2340,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dh';
+      const APP_REVISION_UI_ = '23.9.99di';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4369,7 +4369,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dh', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99di', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4806,8 +4806,11 @@
         const endereco = String(opcoes.endereco || '').trim();
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
         const contexto = opcoes.contexto === 'ficha' ? 'record' : 'review';
-        const origemMapa = normalize(opcoes.origem || '') === normalize('mapa') ? 'mapa' : 'gps';
-        const rotuloOrigemMapa = origemMapa === 'mapa' ? 'MAPA' : 'GPS';
+        const origemInformadaMapa = normalize(opcoes.origem || '');
+        const origemMapa = origemInformadaMapa === normalize('mapa')
+          ? 'mapa'
+          : (origemInformadaMapa === normalize('gps_auto') ? 'gps_auto' : 'gps');
+        const rotuloOrigemMapa = origemMapa === 'mapa' ? 'MAPA' : (origemMapa === 'gps_auto' ? 'GPS AUTO' : 'GPS');
 
         return `<section class="location-map-card location-map-card--${contexto}" aria-label="Localização no mapa">
           <div class="location-map-head">
@@ -9388,10 +9391,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           localizacaoBruta
         );
         const precisaoFicha = formatarPrecisaoGpsMapa_(registro?.localizacao?.precisao || registro?.localizacao?.acuracia || '');
+        const origemFicha = String(registro?.localizacao?.origem || '').trim();
+        const origemFichaRotulo = String(registro?.localizacao?.origemRotulo || '').trim() ||
+          (normalize(origemFicha) === normalize('gps_auto') ? 'GPS automático' :
+            (normalize(origemFicha) === normalize('mapa') ? 'Ponto selecionado no mapa' :
+              (origemFicha ? 'GPS do aparelho' : '')));
+        const capturadaEmFicha = String(registro?.localizacao?.capturadaEm || '').trim();
         const localizacao = coordenadasFicha
           ? [
               ['Coordenadas', formatarCoordenadasMapa_(coordenadasFicha)],
-              ...(precisaoFicha ? [['Precisão GPS', precisaoFicha]] : [])
+              ...(precisaoFicha ? [['Precisão GPS', precisaoFicha]] : []),
+              ...(origemFichaRotulo ? [['Origem', origemFichaRotulo]] : []),
+              ...(capturadaEmFicha ? [['Capturada em', capturadaEmFicha]] : [])
             ]
           : (localizacaoBruta ? [['Coordenadas', localizacaoBruta]] : []);
         const mapaLocalizacaoFicha = coordenadasFicha
@@ -9400,6 +9411,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               longitude: coordenadasFicha.lon,
               coordenadas: localizacaoBruta,
               precisao: precisaoFicha,
+              origem: origemFicha,
               endereco: enderecoFicha_(registro),
               contexto: 'ficha'
             })
@@ -13769,6 +13781,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           scheduleDraftSave();
 
+          // Na captura automática, a geocodificação pode complementar o dado
+          // técnico sem abrir confirmação ou alterar os campos da vistoria.
+          if (silencioso && origemLocalizacaoAtual_() === 'gps_auto') return resposta;
+
           const enderecoAtual = enderecoAtualFormularioTexto_();
           const mensagem = [
             'Endereço encontrado pela localização:',
@@ -13830,12 +13846,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function origemLocalizacaoAtual_() {
         const origem = normalize(localizacaoOrigemInput?.value || '');
         if (origem === normalize('mapa')) return 'mapa';
+        if (origem === normalize('gps_auto')) return 'gps_auto';
         if (origem === normalize('gps')) return 'gps';
         return localizacaoValidaFormulario_() ? 'gps' : '';
       }
 
       function textoOrigemLocalizacao_(origem = origemLocalizacaoAtual_()) {
-        return origem === 'mapa' ? 'Ponto selecionado no mapa' : (origem === 'gps' ? 'GPS do aparelho' : 'Localização');
+        if (origem === 'mapa') return 'Ponto selecionado no mapa';
+        if (origem === 'gps_auto') return 'GPS automático';
+        if (origem === 'gps') return 'GPS do aparelho';
+        return 'Localização';
       }
 
       function limitarLatitudeMapa_(lat) {
@@ -14159,6 +14179,83 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           `<strong>${escapeHtml(textoOrigemLocalizacao_())}.</strong><div>O endereço poderá ser identificado automaticamente.</div>`,
           'info'
         );
+      }
+
+      // V23.9.99di — captura pontual e silenciosa das coordenadas.
+      // Não acompanha o militar em segundo plano e nunca substitui um ponto já
+      // escolhido manualmente. A finalidade é preservar a posição da vistoria
+      // para conferência posterior, sem criar nova etapa no preenchimento.
+      let capturaLocalizacaoAutomaticaPromise_ = null;
+
+      async function estadoPermissaoLocalizacao_() {
+        try {
+          if (!navigator.permissions?.query) return '';
+          const permissao = await navigator.permissions.query({ name: 'geolocation' });
+          return String(permissao?.state || '');
+        } catch (_) {
+          return '';
+        }
+      }
+
+      async function capturarLocalizacaoAutomatica_(opcoes = {}) {
+        if (!usuarioPodeOperar_() || !navigator.geolocation) return false;
+        if (localizacaoValidaFormulario_()) return true;
+        if (document.visibilityState === 'hidden') return false;
+        if (capturaLocalizacaoAutomaticaPromise_) return capturaLocalizacaoAutomaticaPromise_;
+
+        if (opcoes.somenteSeAutorizada) {
+          const estado = await estadoPermissaoLocalizacao_();
+          if (estado && estado !== 'granted') return false;
+          // Em navegadores sem Permissions API, evita abrir um novo prompt no
+          // instante final do registro. A tentativa principal ocorre no início.
+          if (!estado && opcoes.naoSolicitarSemPermissionsApi) return false;
+        }
+
+        const timeout = Math.max(2500, Math.min(12000, Number(opcoes.timeout || 9000)));
+        const maximumAge = Math.max(0, Math.min(10 * 60 * 1000, Number(opcoes.maximumAge ?? 120000)));
+
+        capturaLocalizacaoAutomaticaPromise_ = new Promise(resolve => {
+          navigator.geolocation.getCurrentPosition(posicao => {
+            // Se o militar selecionou GPS/mapa enquanto a captura automática
+            // estava em andamento, a escolha consciente sempre prevalece.
+            if (localizacaoValidaFormulario_()) {
+              resolve(true);
+              return;
+            }
+            const lat = coordenadaDecimalTexto_(posicao?.coords?.latitude);
+            const lon = coordenadaDecimalTexto_(posicao?.coords?.longitude);
+            if (!lat || !lon) {
+              resolve(false);
+              return;
+            }
+            if (localizacaoLatitudeInput) localizacaoLatitudeInput.value = lat;
+            if (localizacaoLongitudeInput) localizacaoLongitudeInput.value = lon;
+            if (localizacaoCoordenadasInput) localizacaoCoordenadasInput.value = `${lat}, ${lon}`;
+            if (localizacaoPrecisaoInput) localizacaoPrecisaoInput.value = Number.isFinite(Number(posicao?.coords?.accuracy))
+              ? String(Math.round(Number(posicao.coords.accuracy)))
+              : '';
+            if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
+            if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
+            if (localizacaoOrigemInput) localizacaoOrigemInput.value = 'gps_auto';
+            scheduleDraftSave();
+            resolve(true);
+          }, () => resolve(false), {
+            enableHighAccuracy: true,
+            timeout,
+            maximumAge
+          });
+        }).finally(() => {
+          capturaLocalizacaoAutomaticaPromise_ = null;
+        });
+
+        return capturaLocalizacaoAutomaticaPromise_;
+      }
+
+      function agendarCapturaLocalizacaoAutomatica_(atraso = 300) {
+        if (!usuarioPodeOperar_() || localizacaoValidaFormulario_()) return;
+        setTimeout(() => {
+          if (!localizacaoValidaFormulario_()) void capturarLocalizacaoAutomatica_();
+        }, Math.max(0, Number(atraso || 0)));
       }
 
       async function usarLocalizacaoAtual_() {
@@ -16116,6 +16213,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
         restaurarStatusLocalizacao_();
+        if (!localizacaoValidaFormulario_()) agendarCapturaLocalizacaoAutomatica_(450);
         aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
         if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
         syncOtherCity(); syncLicenciamento(); syncPscip_(); syncNotificado(); sincronizarDemandasEspeciais_(); atualizarCampoRenovacaoAvcb_(); atualizarVerificacaoMetasFiscalizacao_();
@@ -16166,6 +16264,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         resetForm(true);
         atualizarResumoRascunhosLocais_();
+        agendarCapturaLocalizacaoAutomatica_(350);
         if (appStatus) appStatus.textContent = `${origem}: novo preenchimento iniciado. Os demais rascunhos foram preservados.`;
         return true;
       }
@@ -16333,7 +16432,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         );
         const gpsCapturado = Boolean(String(payload?.localizacaoCoordenadas || '').trim() || coordenadasMapaRevisao);
         const precisaoGps = String(payload?.localizacaoPrecisao || '').trim();
-        const origemLocalizacaoRevisao = normalize(payload?.localizacaoOrigem || '') === normalize('mapa') ? 'mapa' : (gpsCapturado ? 'gps' : '');
+        const origemLocalizacaoBrutaRevisao = normalize(payload?.localizacaoOrigem || '');
+        const origemLocalizacaoRevisao = origemLocalizacaoBrutaRevisao === normalize('mapa')
+          ? 'mapa'
+          : (origemLocalizacaoBrutaRevisao === normalize('gps_auto') ? 'gps_auto' : (gpsCapturado ? 'gps' : ''));
         const descricaoLocalizacaoRevisao = gpsCapturado
           ? (origemLocalizacaoRevisao === 'mapa' ? 'Ponto escolhido manualmente no mapa' : `GPS do aparelho${precisaoGps ? ` • precisão ${precisaoGps}` : ''}`)
           : 'Não informada';
@@ -16533,7 +16635,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <span class="review-type-pill">${escapeHtml(tipoVistoria)}</span>
             <strong>${escapeHtml(resumoLocal)}</strong>
             <small>${escapeHtml(resumoEndereco)}</small>
-            ${gpsCapturado ? `<em>✓ ${escapeHtml(origemLocalizacaoRevisao === 'mapa' ? 'Ponto escolhido no mapa' : 'GPS capturado')}</em>` : ''}
+            ${gpsCapturado ? `<em>✓ ${escapeHtml(origemLocalizacaoRevisao === 'mapa' ? 'Ponto escolhido no mapa' : (origemLocalizacaoRevisao === 'gps_auto' ? 'GPS automático capturado' : 'GPS capturado'))}</em>` : ''}
           </div>
           ${secoesHtml}
         `;
@@ -16606,7 +16708,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function submit() {
-        if (submitting || !validateRequired(true)) return;
+        if (submitting) return;
+
+        // Última tentativa curta: somente quando a permissão já estiver concedida,
+        // para não interromper o registro com um prompt inesperado. Se não houver
+        // coordenadas, a vistoria segue normalmente com as regras já existentes.
+        if (usuarioPodeOperar_() && !localizacaoValidaFormulario_()) {
+          await capturarLocalizacaoAutomatica_({
+            timeout: 3500,
+            maximumAge: 180000,
+            somenteSeAutorizada: true,
+            naoSolicitarSemPermissionsApi: true
+          });
+        }
+        if (!validateRequired(true)) return;
 
         const nascimentoAtual = document.getElementById('nascimento');
         if (nascimentoAtual && !dataNascimentoValida_(nascimentoAtual.value)) {
@@ -19512,6 +19627,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         applyIdentificadorMask();
         atualizarVerificacaoMetasFiscalizacao_();
         scheduleDraftSave();
+        agendarCapturaLocalizacaoAutomatica_(500);
         agendarConsultaProcessoPf_('form', 180);
         rolarParaFormularioProgramado_();
         appStatus.textContent = `Vistoria programada carregada${item.vistoriadorResponsavel ? ` — responsável: ${item.vistoriadorResponsavel}` : ''}.`;
@@ -20865,7 +20981,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dh', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99di', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
