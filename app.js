@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99df';
+      const APP_VERSION = '23.9.99dg';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1894,6 +1894,16 @@
       const recordCorrectionFields = document.getElementById('recordCorrectionFields');
       const recordCorrectionReason = document.getElementById('recordCorrectionReason');
       const recordCorrectionMessage = document.getElementById('recordCorrectionMessage');
+      const recordResultCorrectionPanel = document.getElementById('recordResultCorrectionPanel');
+      const recordResultCorrectionBtn = document.getElementById('recordResultCorrectionBtn');
+      const recordResultCorrectionModal = document.getElementById('recordResultCorrectionModal');
+      const recordResultCorrectionCloseBtn = document.getElementById('recordResultCorrectionCloseBtn');
+      const recordResultCorrectionCancelBtn = document.getElementById('recordResultCorrectionCancelBtn');
+      const recordResultCorrectionSaveBtn = document.getElementById('recordResultCorrectionSaveBtn');
+      const recordResultCorrectionCurrent = document.getElementById('recordResultCorrectionCurrent');
+      const recordResultCorrectionSelect = document.getElementById('recordResultCorrectionSelect');
+      const recordResultCorrectionReason = document.getElementById('recordResultCorrectionReason');
+      const recordResultCorrectionMessage = document.getElementById('recordResultCorrectionMessage');
       const recordHistoryPanel = document.getElementById('recordHistoryPanel');
       const recordHistoryCount = document.getElementById('recordHistoryCount');
       const recordHistoryTimeline = document.getElementById('recordHistoryTimeline');
@@ -2313,6 +2323,7 @@
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
       let recordCorrectionRegistroAtual = null;
+      let recordResultRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
       // V23.9.99ct — a Ficha reúne o histórico de vistorias e a auditoria em uma única linha do tempo.
       let recordTimelineHistorico_ = [];
@@ -2329,7 +2340,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99df';
+      const APP_REVISION_UI_ = '23.9.99dg';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2350,6 +2361,7 @@
         }],
         ['location-picker-open', () => locationPickerModal && !locationPickerModal.hidden],
         ['record-correction-open', () => recordCorrectionModal && !recordCorrectionModal.hidden],
+        ['record-result-correction-open', () => recordResultCorrectionModal && !recordResultCorrectionModal.hidden],
         ['record-status-update-open', () => recordStatusUpdateModal && !recordStatusUpdateModal.hidden],
         ['reds-templates-open', () => redsTemplatesModal && !redsTemplatesModal.hidden],
         ['return-pdf-open', () => retornoLiberacaoPdfModal && !retornoLiberacaoPdfModal.hidden],
@@ -4357,7 +4369,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99df', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dg', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6166,6 +6178,7 @@
         const mobileChoice = mobileChoiceState?.overlay;
         if (elementoVisivelNavegacao_(mobileChoice)) return { id: 'mobile-choice', fechar: () => fecharEscolhaMovel_() };
         if (elementoVisivelNavegacao_(recordCorrectionModal)) return { id: 'record-correction', fechar: () => fecharCorrecaoRegistro_() };
+        if (elementoVisivelNavegacao_(recordResultCorrectionModal)) return { id: 'record-result-correction', fechar: () => fecharCorrecaoResultadoVistoria_() };
         if (elementoVisivelNavegacao_(recordStatusUpdateModal)) return { id: 'status-infoscip', fechar: () => fecharAtualizacaoSituacaoInfoscip_() };
         if (elementoVisivelNavegacao_(notificationReviewModal)) return { id: 'notification-review', fechar: () => notificationReviewBackBtn?.click() };
         if (elementoVisivelNavegacao_(reviewModal)) return { id: 'review', fechar: () => reviewCancelBtn?.click() };
@@ -7260,10 +7273,12 @@
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
         recordCorrectionRegistroAtual = null;
+        recordResultRegistroAtual = null;
         recordCorrectionOriginal = new Map();
         if (recordCorrectionPanel) recordCorrectionPanel.hidden = true;
         if (recordInfoscipUpdatePanel) recordInfoscipUpdatePanel.hidden = true;
         fecharCorrecaoRegistro_();
+        fecharCorrecaoResultadoVistoria_();
         fecharAtualizacaoSituacaoInfoscip_();
         if (opcoes.restaurarContexto !== false && contextoRetorno === 'goals-details') {
           abrirMetas_();
@@ -8384,8 +8399,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const registro = recordRedsRegistroAtual;
         if (!registro || !recordRedsReportText || !recordRedsReportModel) return;
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const situacao = registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção');
-        if (tipo.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao))) return;
+        // V23.9.99dg — o Tipo de vistoria é a fonte principal do fluxo. Uma Demanda
+        // chamada “Liberação” dentro de Vistoria de Fiscalização não transforma o
+        // registro em Vistoria de Liberação e não pode ocultar o relatório fiscal.
+        const ehLiberacao = tipo
+          ? tipo.includes('liberacao')
+          : (demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao)));
+        if (ehLiberacao) return;
         const chaveModelo = recordRedsModelSelect?.value || sugestaoModeloFiscalizacao_(registro, situacao);
         const modelo = modeloRedsEfetivo_('fiscalizacao', chaveModelo);
         if (!modelo) {
@@ -8412,7 +8434,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
-        const ehLiberacao = tipo.includes('liberacao') || demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao));
+        // V23.9.99dg — não inferir Liberação pela Demanda quando o Tipo de vistoria
+        // está preenchido. Isso mantém o relatório de Fiscalização visível inclusive
+        // quando a Demanda operacional contém a palavra “Liberação”.
+        const ehLiberacao = tipo
+          ? tipo.includes('liberacao')
+          : (demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao)));
         const pscip = valorPscipOperacionalFicha_(registro);
         const acessoria = demanda.includes(normalize('Vistoria Acessória'));
         if (recordAutoNumberInput) recordAutoNumberInput.value = ehLiberacao || acessoria ? '' : valorCampoFicha_(registro, 'Nº do Auto');
@@ -8635,28 +8662,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
 
       function fluxoLiberacaoFicha_(registro) {
-        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
-        return demanda.includes(normalize('Liberação')) || tipo.includes(normalize('Liberação'));
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        if (tipo) return tipo.includes(normalize('Liberação'));
+        // Fallback apenas para registros antigos sem Tipo de vistoria preenchido.
+        return demanda.includes(normalize('Liberação'));
       }
 
       function opcoesAtualizacaoInfoscipFicha_(registro) {
         const atual = normalize(registro?.situacaoAtual || '');
         const pendente = atual.startsWith(normalize('Pendente'));
         if (fluxoLiberacaoFicha_(registro)) {
-          // V23.9.76 — também permite corrigir Vistorias de Liberação antigas que
-          // chegaram à Ficha sem qualquer situação registrada.
-          if (!atual || atual === normalize('Sem situação')) return ['Notificado', 'Liberado'];
-
-          // V23.9.75 — Liberação tecnicamente não aprovada é Notificado, nunca Autuado.
-          // Permite corrigir pela Ficha registros antigos/inconsistentes que tenham sido
-          // gravados como Autuado, Advertência ou Regularizado no fluxo de Liberação.
-          const inconsistente = [
-            normalize('Autuado'),
-            normalize('Advertência'),
-            normalize('Regularizado')
-          ].includes(atual);
-          if (inconsistente) return ['Notificado'];
+          // V23.9.99dg — “Atualizar situação” fica restrito ao acompanhamento no
+          // INFOSCIP. Erro no resultado original é tratado em “Corrigir resultado”.
           return pendente ? ['Notificado', 'Liberado'] : [];
         }
         if (atual === normalize('Autuado')) return ['Advertência'];
@@ -8809,6 +8827,136 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
 
+      // V23.9.99dg — correção controlada do resultado originalmente registrado.
+      // É uma ação distinta da evolução administrativa conferida no INFOSCIP.
+      function opcoesCorrecaoResultadoFicha_(registro) {
+        if (!registro) return [];
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        if (historico || !usuarioPodeOperar_()) return [];
+        const atual = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '');
+        // Se a linha já representa uma evolução administrativa (Advertência ou pendência
+        // de multa), não sobrescrevemos esse estado para “corrigir” o resultado antigo.
+        if (atual === normalize('Advertência') || atual.startsWith(normalize('Pendente'))) return [];
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const liberacao = tipo ? tipo.includes(normalize('Liberação')) : demanda.includes(normalize('Liberação'));
+        if (liberacao) return ['Liberado', 'Notificado'];
+        const fiscalizacao = tipo ? tipo.includes(normalize('Fiscalização')) : !liberacao;
+        if (!fiscalizacao) return [];
+        if (demanda.includes(normalize('Vistoria Acessória'))) return ['Autuado', 'Advertência', 'Regularizado'];
+        return ['Autuado', 'Regularizado'];
+      }
+
+      function configurarCorrecaoResultadoFicha_(registro) {
+        recordResultRegistroAtual = registro || null;
+        if (!recordResultCorrectionPanel || !recordResultCorrectionBtn) return;
+        const opcoes = opcoesCorrecaoResultadoFicha_(registro);
+        recordResultCorrectionPanel.hidden = !opcoes.length;
+        recordResultCorrectionBtn.disabled = !opcoes.length;
+      }
+
+      function abrirCorrecaoResultadoVistoria_() {
+        if (!recordResultRegistroAtual || !recordResultCorrectionModal || !usuarioPodeOperar_()) return;
+        const opcoes = opcoesCorrecaoResultadoFicha_(recordResultRegistroAtual);
+        if (!opcoes.length) return;
+        const atual = String(recordResultRegistroAtual?.situacaoAtual || valorCampoFicha_(recordResultRegistroAtual, 'Sanção') || '').trim();
+        if (recordResultCorrectionCurrent) recordResultCorrectionCurrent.textContent = atual || '—';
+        if (recordResultCorrectionSelect) {
+          recordResultCorrectionSelect.innerHTML = ['<option value="">Selecione o resultado correto</option>']
+            .concat(opcoes.map(v => `<option value="${escapeAttr(v)}"${normalize(v) === normalize(atual) ? ' selected' : ''}>${escapeHtml(v)}</option>`))
+            .join('');
+        }
+        if (recordResultCorrectionReason) recordResultCorrectionReason.value = '';
+        if (recordResultCorrectionMessage) {
+          recordResultCorrectionMessage.textContent = '';
+          recordResultCorrectionMessage.className = 'record-status-update-message';
+        }
+        if (recordResultCorrectionSaveBtn) recordResultCorrectionSaveBtn.disabled = false;
+        recordResultCorrectionModal.hidden = false;
+        document.body.classList.add('record-result-correction-open');
+        setTimeout(() => recordResultCorrectionSelect?.focus(), 30);
+      }
+
+      function fecharCorrecaoResultadoVistoria_() {
+        if (!recordResultCorrectionModal || recordResultCorrectionModal.hidden) return;
+        recordResultCorrectionModal.hidden = true;
+        document.body.classList.remove('record-result-correction-open');
+        if (recordResultCorrectionSaveBtn) recordResultCorrectionSaveBtn.disabled = false;
+      }
+
+      async function salvarCorrecaoResultadoVistoria_() {
+        if (!recordResultRegistroAtual || !recordsState.chaveSelecionada) return;
+        const novoResultado = String(recordResultCorrectionSelect?.value || '').trim();
+        const motivo = String(recordResultCorrectionReason?.value || '').replace(/\s+/g, ' ').trim();
+        const atual = String(recordResultRegistroAtual?.situacaoAtual || valorCampoFicha_(recordResultRegistroAtual, 'Sanção') || '').trim();
+        if (!novoResultado) {
+          if (recordResultCorrectionMessage) {
+            recordResultCorrectionMessage.textContent = 'Selecione o resultado correto da vistoria.';
+            recordResultCorrectionMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+        if (normalize(novoResultado) === normalize(atual)) {
+          if (recordResultCorrectionMessage) {
+            recordResultCorrectionMessage.textContent = 'O resultado selecionado já é o resultado atual.';
+            recordResultCorrectionMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+        if (motivo.length < 5) {
+          if (recordResultCorrectionMessage) {
+            recordResultCorrectionMessage.textContent = 'Informe o motivo da correção com pelo menos 5 caracteres.';
+            recordResultCorrectionMessage.className = 'record-status-update-message error';
+          }
+          recordResultCorrectionReason?.focus();
+          return;
+        }
+        if (!navigator.onLine) {
+          if (recordResultCorrectionMessage) {
+            recordResultCorrectionMessage.textContent = 'A correção do resultado exige conexão com a internet.';
+            recordResultCorrectionMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+
+        const confirmar = await confirmarGpv_(
+          `Resultado atual: ${atual || '—'}\nNovo resultado: ${novoResultado}\n\nMotivo: ${motivo}`,
+          'Confirmar correção do resultado',
+          { rotuloConfirmar: 'Salvar correção', rotuloCancelar: 'Voltar e revisar' }
+        );
+        if (!confirmar) return;
+
+        if (recordResultCorrectionSaveBtn) recordResultCorrectionSaveBtn.disabled = true;
+        if (recordResultCorrectionMessage) {
+          recordResultCorrectionMessage.textContent = 'Salvando correção e registrando auditoria...';
+          recordResultCorrectionMessage.className = 'record-status-update-message';
+        }
+        const chave = recordsState.chaveSelecionada;
+        const linhaHint = Number(recordsState.linhaSelecionada || recordResultRegistroAtual?.linhaAtual || 0);
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'resultado_corrigir',
+            chave,
+            linhaHint,
+            novoResultado,
+            motivo,
+            dispositivo: nomeDispositivo_()
+          }, 55000);
+          fecharCorrecaoResultadoVistoria_();
+          limparCachesConsulta_();
+          appStatus.textContent = `Resultado da vistoria corrigido para ${resposta?.resultadoAtual || novoResultado}.`;
+          await abrirDetalheRegistro_(chave, Number(resposta?.linha || linhaHint));
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'resultado corrigido' });
+        } catch (erro) {
+          if (recordResultCorrectionMessage) {
+            recordResultCorrectionMessage.textContent = erro?.message || 'Não foi possível corrigir o resultado da vistoria.';
+            recordResultCorrectionMessage.className = 'record-status-update-message error';
+          }
+        } finally {
+          if (recordResultCorrectionSaveBtn) recordResultCorrectionSaveBtn.disabled = false;
+        }
+      }
+
       function registroEhEventoDeclaratorio_(registro) {
         return Boolean(valorCampoFicha_(registro, 'Nº da declaração INFOSCIP')) ||
           normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Eventos declaratórios'));
@@ -8817,7 +8965,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function registroEhLiberacao_(registro) {
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
-        return tipo.includes(normalize('Liberação')) || demanda.includes(normalize('Liberação'));
+        if (tipo) return tipo.includes(normalize('Liberação'));
+        return demanda.includes(normalize('Liberação'));
       }
 
       function registroEhAcessoria_(registro) {
@@ -9318,6 +9467,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
         configurarCorrecaoFicha_(registro);
+        configurarCorrecaoResultadoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
         renderizarNotificacoesFicha_(registro);
         renderizarFotosGeraisFicha_(registro);
@@ -20231,6 +20381,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
       recordCorrectionBtn?.addEventListener('click', abrirCorrecaoRegistro_);
+      recordResultCorrectionBtn?.addEventListener('click', abrirCorrecaoResultadoVistoria_);
+      recordResultCorrectionCloseBtn?.addEventListener('click', fecharCorrecaoResultadoVistoria_);
+      recordResultCorrectionCancelBtn?.addEventListener('click', fecharCorrecaoResultadoVistoria_);
+      recordResultCorrectionSaveBtn?.addEventListener('click', salvarCorrecaoResultadoVistoria_);
+      recordResultCorrectionModal?.addEventListener('click', event => { if (event.target === recordResultCorrectionModal) fecharCorrecaoResultadoVistoria_(); });
       recordCorrectionCloseBtn?.addEventListener('click', fecharCorrecaoRegistro_);
       recordCorrectionCancelBtn?.addEventListener('click', fecharCorrecaoRegistro_);
       recordCorrectionSaveBtn?.addEventListener('click', salvarCorrecaoRegistro_);
@@ -20690,7 +20845,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99df', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dg', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

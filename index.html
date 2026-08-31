@@ -69,7 +69,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99df">
+  <link rel="stylesheet" href="styles.css?v=23.9.99dg">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -542,7 +542,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 31/08/2026 — V23.9.99df.</div>
+        <div class="system-manual-revision">Última revisão: 31/08/2026 — V23.9.99dg.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
       </div>
@@ -1075,7 +1075,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99df</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dg</div>
           </section>
         </div>
       </section>
@@ -1806,6 +1806,13 @@
           </div>
           <button class="record-correction-btn" id="recordCorrectionBtn" type="button">Corrigir dados</button>
         </section>
+        <section class="record-correction-panel" id="recordResultCorrectionPanel" hidden>
+          <div>
+            <h3>Resultado da vistoria</h3>
+            <span>Use somente para corrigir um resultado registrado incorretamente. A alteração fica registrada na auditoria.</span>
+          </div>
+          <button class="record-correction-btn" id="recordResultCorrectionBtn" type="button">Corrigir resultado</button>
+        </section>
         <section class="record-infoscip-update-panel" id="recordInfoscipUpdatePanel" hidden>
           <div>
             <h3>Atualização de acompanhamento</h3>
@@ -1903,6 +1910,34 @@
         </section>
       </div>
     </aside>
+  </div>
+
+  <div class="record-status-update-overlay" id="recordResultCorrectionModal" hidden>
+    <section class="record-status-update-card" role="dialog" aria-modal="true" aria-labelledby="recordResultCorrectionTitle">
+      <header>
+        <div>
+          <span>Ficha da vistoria</span>
+          <h2 id="recordResultCorrectionTitle">Corrigir resultado da vistoria</h2>
+        </div>
+        <button id="recordResultCorrectionCloseBtn" type="button" aria-label="Fechar">×</button>
+      </header>
+      <div class="record-status-update-body">
+        <div class="record-status-current">Resultado atual: <strong id="recordResultCorrectionCurrent">—</strong></div>
+        <label>Resultado correto
+          <select id="recordResultCorrectionSelect"></select>
+        </label>
+        <label class="record-correction-reason" for="recordResultCorrectionReason">
+          <span>Motivo da correção <strong>*</strong></span>
+          <textarea id="recordResultCorrectionReason" rows="3" maxlength="500" placeholder="Ex.: Resultado lançado incorretamente. Correção após conferência do registro da vistoria."></textarea>
+          <small>Obrigatório. A alteração, o resultado anterior e o novo resultado serão registrados na auditoria.</small>
+        </label>
+        <div class="record-status-update-message" id="recordResultCorrectionMessage" role="status" aria-live="polite"></div>
+      </div>
+      <footer>
+        <button class="secondary" id="recordResultCorrectionCancelBtn" type="button">Cancelar</button>
+        <button class="primary" id="recordResultCorrectionSaveBtn" type="button">Revisar e salvar</button>
+      </footer>
+    </section>
   </div>
 
   <div class="record-status-update-overlay" id="recordStatusUpdateModal" hidden>
@@ -2590,12 +2625,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99df — mantém os scripts após todos os modais e controles
+  <!-- V23.9.99dg — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99df"></script>
-  <script src="ocupacoes.js?v=23.9.99df"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99df"></script>
-  <script src="app.js?v=23.9.99df"></script>
+  <script src="config.js?v=23.9.99dg"></script>
+  <script src="ocupacoes.js?v=23.9.99dg"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99dg"></script>
+  <script src="app.js?v=23.9.99dg"></script>
 
 </body>
 </html>
