@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dg';
+      const APP_VERSION = '23.9.99dh';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2340,7 +2340,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dg';
+      const APP_REVISION_UI_ = '23.9.99dh';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4369,7 +4369,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dg', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dh', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7739,7 +7739,7 @@ O RESPONSÁVEL FOI CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA
           titulo: 'Fiscalização — sem AVCB/CLCB',
           texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
-DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES QUANTO ÀS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO. AS IRREGULARIDADES FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}.
+DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB E APRESENTA IRREGULARIDADES QUANTO ÀS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO. AS IRREGULARIDADES FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45/2025, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
 
 O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DA EDIFICAÇÃO JUNTO AO CBMMG.`
         },
@@ -7927,6 +7927,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         redsTemplateMessage.classList.toggle('success', tipo === 'success');
       }
 
+      // V23.9.99dh — mostra também os marcadores disponíveis e valida persistência real no backend.
       function atualizarMarcadoresModeloReds_() {
         const modelo = modeloRedsPadraoPorId_(redsTemplateAtualId_);
         if (!modelo || !redsTemplateText || !redsTemplateMarkers || !redsTemplateMarkerWarning) return;
@@ -7935,9 +7936,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const atuais = new Set(marcadoresTextoReds_(redsTemplateText.value));
         const ausentes = obrigatorios.filter(marcador => !atuais.has(marcador));
 
-        redsTemplateMarkers.innerHTML = obrigatorios.length
-          ? obrigatorios.map(marcador => `<span class="reds-template-marker">${escapeHtml(marcador)}</span>`).join('')
-          : '<span class="reds-template-marker none">Este modelo não utiliza marcadores automáticos.</span>';
+        const disponiveis = Object.keys(REDS_TEMPLATE_EXEMPLOS);
+        const usadosHtml = obrigatorios.length
+          ? obrigatorios.map(marcador => `<span class="reds-template-marker" title="Usado no modelo padrão">${escapeHtml(marcador)}</span>`).join('')
+          : '<span class="reds-template-marker none">Nenhum marcador obrigatório neste modelo.</span>';
+        const extrasHtml = disponiveis
+          .filter(marcador => !obrigatorios.includes(marcador))
+          .map(marcador => `<span class="reds-template-marker none" title="Marcador disponível para uso">${escapeHtml(marcador)}</span>`)
+          .join('');
+        redsTemplateMarkers.innerHTML = `${usadosHtml}${extrasHtml}`;
 
         redsTemplateMarkerWarning.hidden = !ausentes.length;
         redsTemplateMarkerWarning.textContent = ausentes.length
@@ -8021,14 +8028,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         redsTemplateCarregando_ = true;
         try {
           const resposta = await apiRequest('config', { consulta: 'reds_modelos' }, 30000);
-          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível carregar os históricos padrão.');
+          const respostaValida = resposta?.ok === true &&
+            Object.prototype.hasOwnProperty.call(resposta, 'modelos') &&
+            resposta.modelos && typeof resposta.modelos === 'object' &&
+            Object.prototype.hasOwnProperty.call(resposta, 'metadata') &&
+            resposta.metadata && typeof resposta.metadata === 'object';
+          if (!respostaValida) {
+            throw new Error(resposta?.error || 'O backend não confirmou o carregamento dos históricos padrão. Atualize o AppVistoriaBackend.gs.');
+          }
 
-          redsTemplatesOverrides_ = resposta.modelos && typeof resposta.modelos === 'object'
-            ? { ...resposta.modelos }
-            : {};
-          redsTemplatesMetadata_ = resposta.metadata && typeof resposta.metadata === 'object'
-            ? { ...resposta.metadata }
-            : {};
+          redsTemplatesOverrides_ = { ...resposta.modelos };
+          redsTemplatesMetadata_ = { ...resposta.metadata };
           redsTemplatesCarregados_ = true;
           redsTemplatesCarregadosEm_ = Date.now();
 
@@ -8131,9 +8141,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             texto
           }, 30000);
 
-          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível salvar o histórico.');
+          const salvamentoConfirmado = resposta?.ok === true &&
+            String(resposta?.modeloId || '') === redsTemplateAtualId_ &&
+            typeof resposta?.texto === 'string';
+          if (!salvamentoConfirmado) {
+            throw new Error(resposta?.error || 'O backend não confirmou o salvamento do histórico. Atualize o AppVistoriaBackend.gs e tente novamente.');
+          }
 
-          redsTemplatesOverrides_[redsTemplateAtualId_] = String(resposta.texto || texto);
+          redsTemplatesOverrides_[redsTemplateAtualId_] = String(resposta.texto);
           redsTemplatesMetadata_[redsTemplateAtualId_] = resposta.metadata || {};
           redsTemplatesCarregados_ = true;
           redsTemplatesCarregadosEm_ = Date.now();
@@ -8179,7 +8194,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             modeloId: redsTemplateAtualId_
           }, 30000);
 
-          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível restaurar o histórico.');
+          const restauracaoConfirmada = resposta?.ok === true &&
+            String(resposta?.modeloId || '') === redsTemplateAtualId_ &&
+            resposta?.restaurado === true;
+          if (!restauracaoConfirmada) {
+            throw new Error(resposta?.error || 'O backend não confirmou a restauração do histórico.');
+          }
 
           delete redsTemplatesOverrides_[redsTemplateAtualId_];
           delete redsTemplatesMetadata_[redsTemplateAtualId_];
@@ -20845,7 +20865,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dg', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dh', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
