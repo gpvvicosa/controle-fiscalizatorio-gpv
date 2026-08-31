@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dd';
+      const APP_VERSION = '23.9.99de';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2137,7 +2137,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dd';
+      const APP_REVISION_UI_ = '23.9.99de';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4165,7 +4165,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dd', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99de', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -12860,14 +12860,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         let resposta = respostaRetornoLiberacaoAtual_();
-        // V23.9.99dd — se o backend encontrou o mesmo PSCIP (ou documento + endereço),
+        // V23.9.99de — se o backend encontrou o mesmo PSCIP (ou documento + endereço),
         // o retorno é assumido automaticamente. O militar só precisa agir se NÃO for retorno.
         if (!resposta && candidatoSelecionado?.deteccaoAutomatica === true) {
           if (retornoLiberacaoInput) retornoLiberacaoInput.value = 'Sim';
           resposta = 'sim';
           aplicarCandidatoRetornoLiberacao_(candidatoSelecionado, { preservarPendencias: false });
           if (retornoLiberacaoResumoAnterior) {
-            retornoLiberacaoResumoAnterior.textContent = `Retorno detectado automaticamente · ${[candidatoSelecionado.carimbo, candidatoSelecionado.situacao, candidatoSelecionado.pscip ? `PSCIP ${candidatoSelecionado.pscip}` : ''].filter(Boolean).join(' • ')}`;
+            retornoLiberacaoResumoAnterior.textContent = `Retorno de vistoria de liberação · ${[candidatoSelecionado.carimbo, candidatoSelecionado.situacao, candidatoSelecionado.pscip ? `PSCIP ${candidatoSelecionado.pscip}` : ''].filter(Boolean).join(' • ')}`;
           }
           scheduleDraftSave();
         }
@@ -18518,6 +18518,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return `<article class="prepared-card programmed-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-preparacao-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="Abrir vistoria programada: ${escapeAttr(titulo)}">
             <div class="prepared-card-main">
               <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização')}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
+              ${liberacao && item.retornoLiberacao ? '<div><span class="prepared-kind release">Retorno de vistoria de liberação</span></div>' : ''}
               <h3>${escapeHtml(titulo)}</h3>
               <p class="prepared-identifiers">${escapeHtml(identificadorPrincipal)}${item.pf ? ` <span aria-hidden="true">•</span> PF ${escapeHtml(item.pf)}` : ''}${item.area && !eventoDeclaratorio ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
               <p class="prepared-address">${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
@@ -20470,7 +20471,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dd', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99de', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
