@@ -14599,3 +14599,15 @@ body.location-picker-open{overflow:hidden}
     width:min(270px,44vw)!important;
   }
 }
+
+/* V23.9.99dr — referência cartográfica aproximada quando não houve GPS real */
+.location-map-card--address .location-map-head em{
+  background:#fff4cf;
+  color:#8a5b00;
+}
+.location-map-card--address .location-map-offline{
+  background:#fffaf0;
+}
+.location-map-card--address .location-map-offline strong{
+  color:#744c00;
+}

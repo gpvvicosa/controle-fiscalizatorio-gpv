@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dq';
+      const APP_VERSION = '23.9.99dr';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1554,7 +1554,9 @@
           'REQUEST_TIMEOUT',
           'NETWORK_ERROR',
           'GEOCODIFICACAO_INDISPONIVEL',
-          'GEOCODIFICACAO_FORMATO'
+          'GEOCODIFICACAO_FORMATO',
+          'GEOCODIFICACAO_ENDERECO_INDISPONIVEL',
+          'GEOCODIFICACAO_ENDERECO_FORMATO'
         ].includes(codigo)) return true;
         return [408, 425, 429, 500, 502, 503, 504].includes(status);
       }
@@ -2351,7 +2353,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dq';
+      const APP_REVISION_UI_ = '23.9.99dr';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4384,7 +4386,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dq', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dr', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4833,20 +4835,28 @@
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
         const contexto = opcoes.contexto === 'ficha' ? 'record' : 'review';
         const origemInformadaMapa = normalize(opcoes.origem || '');
-        const origemMapa = origemInformadaMapa === normalize('mapa')
-          ? 'mapa'
-          : (origemInformadaMapa === normalize('gps_auto') ? 'gps_auto' : 'gps');
-        const rotuloOrigemMapa = origemMapa === 'mapa' ? 'MAPA' : (origemMapa === 'gps_auto' ? 'GPS AUTO' : 'GPS');
+        const origemMapa = origemInformadaMapa === normalize('endereco')
+          ? 'endereco'
+          : (origemInformadaMapa === normalize('mapa')
+            ? 'mapa'
+            : (origemInformadaMapa === normalize('gps_auto') ? 'gps_auto' : 'gps'));
+        const rotuloOrigemMapa = origemMapa === 'endereco'
+          ? 'ENDEREÇO'
+          : (origemMapa === 'mapa' ? 'MAPA' : (origemMapa === 'gps_auto' ? 'GPS AUTO' : 'GPS'));
+        const tituloMapa = origemMapa === 'endereco' ? 'Referência aproximada pelo endereço' : 'Localização registrada';
+        const rotuloCoordenadas = origemMapa === 'endereco' ? 'Coordenadas aproximadas' : 'Coordenadas';
+        const fonteMapa = String(opcoes.fonte || '').trim();
 
-        return `<section class="location-map-card location-map-card--${contexto}" aria-label="Localização no mapa">
+        return `<section class="location-map-card location-map-card--${contexto}${origemMapa === 'endereco' ? ' location-map-card--address' : ''}" aria-label="Localização no mapa">
           <div class="location-map-head">
-            <div><span>Conferência geográfica</span><strong>Localização registrada</strong></div>
+            <div><span>Conferência geográfica</span><strong>${escapeHtml(tituloMapa)}</strong></div>
             <em>${escapeHtml(rotuloOrigemMapa)}</em>
           </div>
           <div class="location-map-meta">
             ${endereco && endereco !== '—' ? `<div><span>Endereço</span><strong>${escapeHtml(endereco)}</strong></div>` : ''}
-            <div><span>Coordenadas</span><strong>${escapeHtml(formatarCoordenadasMapa_(coordenadas))}</strong></div>
-            ${precisao && origemMapa !== 'mapa' ? `<div><span>Precisão</span><strong>${escapeHtml(precisao)}</strong></div>` : ''}
+            <div><span>${escapeHtml(rotuloCoordenadas)}</span><strong>${escapeHtml(formatarCoordenadasMapa_(coordenadas))}</strong></div>
+            ${precisao && origemMapa !== 'mapa' && origemMapa !== 'endereco' ? `<div><span>Precisão</span><strong>${escapeHtml(precisao)}</strong></div>` : ''}
+            ${origemMapa === 'endereco' && fonteMapa ? `<div><span>Fonte</span><strong>${escapeHtml(fonteMapa)}</strong></div>` : ''}
           </div>
           ${offline
             ? `<div class="location-map-offline"><strong>Mapa indisponível offline.</strong><span>As coordenadas permanecem preservadas no registro.</span></div>`
@@ -4864,7 +4874,11 @@
                 </div>
               </div>`}
           <div class="location-map-actions">
-            <small>${offline ? 'O mapa poderá ser consultado quando houver internet.' : 'Mapa: OpenStreetMap · Satélite: Esri World Imagery. Requer conexão com a internet.'}</small>
+            <small>${offline
+              ? 'O mapa poderá ser consultado quando houver internet.'
+              : (origemMapa === 'endereco'
+                ? 'Referência cartográfica aproximada pelo endereço; não representa GPS capturado na vistoria. Mapa: OpenStreetMap · Satélite: Esri World Imagery.'
+                : 'Mapa: OpenStreetMap · Satélite: Esri World Imagery. Requer conexão com a internet.')}</small>
             <a href="${escapeAttr(abrirUrl)}" target="_blank" rel="noopener noreferrer">Abrir localização no mapa ↗</a>
           </div>
         </section>`;
@@ -9483,7 +9497,124 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordGeneralPhotosStatus) recordGeneralPhotosStatus.textContent = '';
       }
 
+      // V23.9.99dr — quando uma vistoria antiga não possui GPS real, a Ficha pode
+      // obter somente uma referência cartográfica aproximada pelo endereço. Essa
+      // coordenada NÃO é gravada como GPS da vistoria e serve apenas para mapa/satélite.
+      const ADDRESS_GEOCODE_CACHE_STORAGE_ = 'gpvEnderecoGeocodificadoFichaV1';
+      let recordAddressMapRequestSeq_ = 0;
+
+      function dadosEnderecoGeocodificacaoFicha_(registro) {
+        const endereco = valorCampoFicha_(registro, 'Endereço do estabelecimento', 'Endereço');
+        const numero = valorCampoFicha_(registro, 'Nº', 'Número');
+        const complemento = valorCampoFicha_(registro, 'Complemento');
+        const bairro = valorCampoFicha_(registro, 'Bairro');
+        const cidade = valorCampoFicha_(registro, 'Cidade', 'Município');
+        const uf = valorCampoFicha_(registro, 'UF', 'Estado') || 'MG';
+        const enderecoExibicao = enderecoFicha_(registro);
+        return { endereco, numero, complemento, bairro, cidade, uf, enderecoExibicao };
+      }
+
+      function chaveCacheEnderecoGeocodificado_(dados) {
+        return normalize([dados?.endereco, dados?.numero, dados?.bairro, dados?.cidade, dados?.uf].filter(Boolean).join('|'));
+      }
+
+      function lerCacheEnderecoGeocodificado_(dados) {
+        const chave = chaveCacheEnderecoGeocodificado_(dados);
+        if (!chave) return null;
+        try {
+          const cache = JSON.parse(localStorage.getItem(ADDRESS_GEOCODE_CACHE_STORAGE_) || '{}');
+          const item = cache && typeof cache === 'object' ? cache[chave] : null;
+          if (!item?.salvoEm || Date.now() - Number(item.salvoEm) > 30 * 24 * 60 * 60 * 1000) return null;
+          return item.resposta || null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function salvarCacheEnderecoGeocodificado_(dados, resposta) {
+        const chave = chaveCacheEnderecoGeocodificado_(dados);
+        if (!chave || !resposta) return;
+        try {
+          const atual = JSON.parse(localStorage.getItem(ADDRESS_GEOCODE_CACHE_STORAGE_) || '{}');
+          const cache = atual && typeof atual === 'object' ? atual : {};
+          cache[chave] = { salvoEm: Date.now(), resposta };
+          const entradas = Object.entries(cache)
+            .sort((a, b) => Number(b[1]?.salvoEm || 0) - Number(a[1]?.salvoEm || 0))
+            .slice(0, 80);
+          localStorage.setItem(ADDRESS_GEOCODE_CACHE_STORAGE_, JSON.stringify(Object.fromEntries(entradas)));
+        } catch (_) {}
+      }
+
+      function montarReferenciaEnderecoPendenteFicha_(registro, token) {
+        const dados = dadosEnderecoGeocodificacaoFicha_(registro);
+        if (!dados.enderecoExibicao || (!dados.endereco && !dados.cidade)) return '';
+        const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        return `<section class="location-map-card location-map-card--record location-map-card--address location-map-address-pending" data-address-map-token="${escapeAttr(token)}">
+          <div class="location-map-head">
+            <div><span>Referência geográfica</span><strong>Localização aproximada pelo endereço</strong></div>
+            <em>ENDEREÇO</em>
+          </div>
+          <div class="location-map-meta">
+            <div><span>Endereço</span><strong>${escapeHtml(dados.enderecoExibicao)}</strong></div>
+          </div>
+          <div class="location-map-offline">
+            <strong>${offline ? 'Sem internet para localizar o endereço agora.' : 'Localizando o endereço para exibir o mapa...'}</strong>
+            <span>${offline ? 'O endereço permanece disponível na Ficha. O mapa será carregado quando houver conexão.' : 'Esta referência não será gravada como GPS da vistoria.'}</span>
+          </div>
+        </section>`;
+      }
+
+      async function hidratarMapaPorEnderecoFicha_(registro, token) {
+        const seletor = `[data-address-map-token="${String(token)}"]`;
+        let alvo = document.querySelector(seletor);
+        if (!alvo || token !== recordAddressMapRequestSeq_) return;
+        const dados = dadosEnderecoGeocodificacaoFicha_(registro);
+        if (!dados.enderecoExibicao || (!dados.endereco && !dados.cidade) || !navigator.onLine) return;
+
+        try {
+          let resposta = lerCacheEnderecoGeocodificado_(dados);
+          if (!resposta) {
+            resposta = await apiRequest('config', {
+              consulta: 'geocodificar_localizacao',
+              endereco: dados.endereco,
+              numero: dados.numero,
+              complemento: dados.complemento,
+              bairro: dados.bairro,
+              cidade: dados.cidade,
+              uf: dados.uf
+            }, 18000);
+            if (resposta?.encontrada) salvarCacheEnderecoGeocodificado_(dados, resposta);
+          }
+
+          if (token !== recordAddressMapRequestSeq_) return;
+          alvo = document.querySelector(seletor);
+          if (!alvo) return;
+          const coordenadas = extrairCoordenadasMapa_(resposta?.latitude, resposta?.longitude, '');
+          if (!resposta?.encontrada || !coordenadas) {
+            alvo.querySelector('.location-map-offline')?.replaceChildren();
+            const bloco = alvo.querySelector('.location-map-offline');
+            if (bloco) bloco.innerHTML = '<strong>Endereço não localizado automaticamente.</strong><span>O registro permanece sem GPS. Confira o endereço cadastrado para utilizar a referência cartográfica.</span>';
+            return;
+          }
+
+          alvo.outerHTML = montarMapaLocalizacao_({
+            latitude: coordenadas.lat,
+            longitude: coordenadas.lon,
+            origem: 'endereco',
+            endereco: dados.enderecoExibicao,
+            fonte: resposta?.fonte || '',
+            contexto: 'ficha'
+          });
+        } catch (erro) {
+          if (token !== recordAddressMapRequestSeq_) return;
+          alvo = document.querySelector(seletor);
+          const bloco = alvo?.querySelector('.location-map-offline');
+          if (bloco) bloco.innerHTML = '<strong>Não foi possível carregar a referência pelo endereço.</strong><span>O GPS original continua preservado como não capturado. Tente novamente com internet estável.</span>';
+        }
+      }
+
       function renderizarFichaRegistro_(registro) {
+        const addressMapRequestToken = ++recordAddressMapRequestSeq_;
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
         const eventoDeclaracaoFicha = valorCampoFicha_(registro, 'Nº da declaração INFOSCIP');
@@ -9551,7 +9682,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ...(origemFichaRotulo ? [['Origem', origemFichaRotulo]] : []),
               ...(capturadaEmFicha ? [['Capturada em', capturadaEmFicha]] : [])
             ]
-          : [['Situação', 'Localização não capturada nesta vistoria']];
+          : [['Situação', 'GPS não capturado nesta vistoria']];
         const mapaLocalizacaoFicha = coordenadasFicha
           ? montarMapaLocalizacao_({
               latitude: coordenadasFicha.lat,
@@ -9562,7 +9693,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               endereco: enderecoFicha_(registro),
               contexto: 'ficha'
             })
-          : '';
+          : montarReferenciaEnderecoPendenteFicha_(registro, addressMapRequestToken);
         const responsavel = [
           ['Responsável / vínculo', valorCampoFicha_(registro, 'Responsável')],
           ['Nome', valorCampoFicha_(registro, 'Nome')],
@@ -9657,6 +9788,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         renderizarAuditoriaRegistro_(registro?.auditoria || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
         aplicarPermissoesInterface_();
+        if (!coordenadasFicha) void hidratarMapaPorEnderecoFicha_(registro, addressMapRequestToken);
       }
 
       function estadoCarregandoFicha_(mensagem = 'Carregando ficha do processo...') {
@@ -14345,6 +14477,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       // escolhido manualmente. A finalidade é preservar a posição da vistoria
       // para conferência posterior, sem criar nova etapa no preenchimento.
       let capturaLocalizacaoAutomaticaPromise_ = null;
+      let ultimoErroCapturaLocalizacaoAutomatica_ = '';
 
       async function estadoPermissaoLocalizacao_() {
         try {
@@ -14357,17 +14490,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function capturarLocalizacaoAutomatica_(opcoes = {}) {
-        if (!usuarioPodeOperar_() || !navigator.geolocation) return false;
-        if (localizacaoValidaFormulario_()) return true;
+        if (!usuarioPodeOperar_()) return false;
+        if (!navigator.geolocation) {
+          ultimoErroCapturaLocalizacaoAutomatica_ = 'Este aparelho ou navegador não disponibiliza a localização.';
+          return false;
+        }
+        if (localizacaoValidaFormulario_()) {
+          ultimoErroCapturaLocalizacaoAutomatica_ = '';
+          return true;
+        }
         if (document.visibilityState === 'hidden') return false;
         if (capturaLocalizacaoAutomaticaPromise_) return capturaLocalizacaoAutomaticaPromise_;
 
         if (opcoes.somenteSeAutorizada) {
           const estado = await estadoPermissaoLocalizacao_();
-          if (estado && estado !== 'granted') return false;
+          if (estado && estado !== 'granted') {
+            ultimoErroCapturaLocalizacaoAutomatica_ = estado === 'denied'
+              ? 'A permissão de localização está bloqueada para o aplicativo.'
+              : 'A localização ainda não foi autorizada neste aparelho.';
+            return false;
+          }
           // Em navegadores sem Permissions API, evita abrir um novo prompt no
           // instante final do registro. A tentativa principal ocorre no início.
-          if (!estado && opcoes.naoSolicitarSemPermissionsApi) return false;
+          if (!estado && opcoes.naoSolicitarSemPermissionsApi) {
+            ultimoErroCapturaLocalizacaoAutomatica_ = 'Não foi possível confirmar a permissão de localização automaticamente.';
+            return false;
+          }
         }
 
         const timeout = Math.max(2500, Math.min(12000, Number(opcoes.timeout || 9000)));
@@ -14396,9 +14544,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
             if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
             if (localizacaoOrigemInput) localizacaoOrigemInput.value = 'gps_auto';
+            ultimoErroCapturaLocalizacaoAutomatica_ = '';
             scheduleDraftSave();
             resolve(true);
-          }, () => resolve(false), {
+          }, erro => {
+            if (erro?.code === 1) ultimoErroCapturaLocalizacaoAutomatica_ = 'A permissão de localização foi negada ou está bloqueada.';
+            else if (erro?.code === 2) ultimoErroCapturaLocalizacaoAutomatica_ = 'O aparelho não conseguiu determinar a localização neste momento.';
+            else if (erro?.code === 3) ultimoErroCapturaLocalizacaoAutomatica_ = 'O GPS demorou além do limite para obter a posição.';
+            else ultimoErroCapturaLocalizacaoAutomatica_ = 'Não foi possível obter a localização automaticamente.';
+            resolve(false);
+          }, {
             enableHighAccuracy: true,
             timeout,
             maximumAge
@@ -16902,12 +17057,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // para não interromper o registro com um prompt inesperado. Se não houver
         // coordenadas, a vistoria segue normalmente com as regras já existentes.
         if (usuarioPodeOperar_() && !localizacaoValidaFormulario_()) {
-          await capturarLocalizacaoAutomatica_({
+          const gpsObtidoNoEnvio = await capturarLocalizacaoAutomatica_({
             timeout: 3500,
             maximumAge: 180000,
             somenteSeAutorizada: true,
             naoSolicitarSemPermissionsApi: true
           });
+          if (!gpsObtidoNoEnvio && !localizacaoValidaFormulario_() && ultimoErroCapturaLocalizacaoAutomatica_) {
+            mostrarStatusLocalizacao_(
+              `<strong>GPS não capturado nesta vistoria.</strong><div>${escapeHtml(ultimoErroCapturaLocalizacaoAutomatica_)} Você pode usar o botão de localização para tentar novamente. O registro não receberá coordenadas artificiais.</div>`,
+              'info'
+            );
+          }
         }
         if (!validateRequired(true)) return;
 
@@ -21205,7 +21366,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dr', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

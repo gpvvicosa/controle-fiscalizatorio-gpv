@@ -45,8 +45,8 @@
     })();
   </script>
   <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99cz">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99dq" media="(max-width: 899px)" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dq" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99dr" media="(max-width: 899px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dr" media="(min-width: 900px)" fetchpriority="high">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <style id="gpv-critical-boot">
@@ -56,7 +56,7 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99dq") center 28%/cover no-repeat}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99dr") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
     .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
     .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
@@ -70,7 +70,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99dq">
+  <link rel="stylesheet" href="styles.css?v=23.9.99dr">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -432,7 +432,7 @@
           <p>Escolha Vistoria de Fiscalização ou Vistoria de Liberação e preencha os dados solicitados pelo fluxo.</p>
           <p>Durante o cadastro, o app consulta CNPJ/CPF, Nº do PSCIP ou processo antigo e endereço da edificação. Processos do sistema antigo podem aparecer no formato <strong>44/2016</strong>. Eles permanecem assim até que uma Vistoria de Liberação seja solicitada no sistema atual, quando passa a existir um novo número <strong>PRJ + 10 números</strong>. Quando houver histórico, o app apresenta situação, PF, última vistoria, prazo e atalho para a Ficha.</p>
           <p>Na Fiscalização comum, a área é obrigatória; acima de 930 m² a categoria Nível de risco III é considerada automaticamente. Em Eventos declaratórios, o fluxo usa os dados próprios da declaração INFOSCIP e o endereço real do evento, sem exigir Nº do PSCIP ou área da edificação. A classificação do evento possui somente as opções <strong>Risco mínimo</strong>, <strong>Risco baixo</strong> e <strong>Risco médio</strong>.</p>
-          <p>Quando houver coordenadas GPS válidas, a <strong>Conferência antes do envio</strong> exibe a localização em mapa, com coordenadas e precisão disponível. O mapa é apenas um apoio visual: sem internet, as coordenadas permanecem preservadas e o registro não é bloqueado.</p>
+          <p>Quando houver coordenadas GPS válidas, a <strong>Conferência antes do envio</strong> exibe a localização em mapa, com coordenadas e precisão disponível. Se uma vistoria antiga não possuir GPS real, a Ficha pode apresentar uma <strong>referência geográfica aproximada pelo endereço</strong>, claramente identificada e sem gravá-la como GPS da vistoria. O mapa é apenas um apoio visual: sem internet, os dados do registro permanecem preservados e o registro não é bloqueado.</p>
           <p><strong>PET — Projeto de Evento Temporário:</strong> quando o evento temporário não se enquadrar como Evento declaratório, selecione PET. O fluxo inicial normal é Vistoria de Liberação; posteriormente, um PET já existente também pode ser objeto de Vistoria de Fiscalização.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
@@ -543,7 +543,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99dq.</div>
+        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99dr.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
       </div>
@@ -707,7 +707,7 @@
         <article class="tutorial-step" data-tutorial-step="5">
           <div class="tutorial-step-icon">📋</div>
           <h3>5. Abrir a Ficha do Processo</h3>
-          <p>No computador, clique no ícone de ficha ao final da linha. No celular, toque no cartão do registro. A ficha abre em uma janela ampla com situação atual, dados do processo, local e histórico disponível. Registros com GPS válido também mostram um mapa da localização, sem tornar o mapa obrigatório para consultar a Ficha.</p>
+          <p>No computador, clique no ícone de ficha ao final da linha. No celular, toque no cartão do registro. A ficha abre em uma janela ampla com situação atual, dados do processo, local e histórico disponível. Registros com GPS válido mostram o mapa da localização. Quando não houver GPS real, mas existir endereço suficiente, a Ficha tenta mostrar mapa/satélite por referência aproximada do endereço, sem alterar o histórico da vistoria.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="6">
           <div class="tutorial-step-icon">🚦</div>
@@ -1076,7 +1076,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dq</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dr</div>
           </section>
         </div>
       </section>
@@ -1534,7 +1534,7 @@
                 <option value="Não possui multa em aberto">Não possui multa em aberto</option>
                 <option value="Possui multa em aberto">Possui multa em aberto</option>
               </select>
-              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99dq, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
+              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99dr, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
             </div>
             <div class="field release-document-pending-field" id="pendenciaDocumentalWrap" hidden>
               <label class="required" for="pendenciaDocumental">Há pendência documental?</label>
@@ -2482,13 +2482,13 @@
     <picture class="gpv-splash-picture" aria-hidden="true">
       <source
         media="(min-width: 900px)"
-        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dq"
+        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dr"
         width="1672"
         height="941"
       >
       <img
         class="gpv-splash-art"
-        src="assets/splash-app-vistoriador.webp?v=23.9.99dq"
+        src="assets/splash-app-vistoriador.webp?v=23.9.99dr"
         alt=""
         width="941"
         height="1672"
@@ -2640,12 +2640,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99dq — mantém os scripts após todos os modais e controles
+  <!-- V23.9.99dr — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99dq"></script>
-  <script src="ocupacoes.js?v=23.9.99dq"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99dq"></script>
-  <script src="app.js?v=23.9.99dq"></script>
+  <script src="config.js?v=23.9.99dr"></script>
+  <script src="ocupacoes.js?v=23.9.99dr"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99dr"></script>
+  <script src="app.js?v=23.9.99dr"></script>
 
 </body>
 </html>
