@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260902-v23-9-99-dm';
-const VERSION = '23.9.99dm';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260902-v23-9-99-dn';
+const VERSION = '23.9.99dn';
 
 const CORE_SHELL = [
   './',
@@ -13,6 +13,7 @@ const CORE_SHELL = [
   `./assets/app-vistoriador-icon-192-ck.png?v=${VERSION}`,
   `./assets/app-vistoriador-icon-512-ck.png?v=${VERSION}`,
   `./assets/splash-app-vistoriador.webp?v=${VERSION}`,
+  `./assets/splash-app-vistoriador-desktop.webp?v=${VERSION}`,
   './offline.html'
 ];
 

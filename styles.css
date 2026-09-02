@@ -14480,7 +14480,7 @@ body.location-picker-open{overflow:hidden}
 
 
 /* =========================================================
-   V23.9.99dm — splash responsivo sem cortes
+   V23.9.99dn — splash responsivo sem cortes
    Desktop/tablet: mantém a arte principal inteira e centralizada.
    A mesma arte preenche o fundo de forma suave, sem ampliar a
    imagem principal nem usar animação de zoom.
@@ -14500,7 +14500,7 @@ body.location-picker-open{overflow:hidden}
     pointer-events:none!important;
     background:
       linear-gradient(rgba(48,4,7,.38),rgba(48,4,7,.46)),
-      url("assets/splash-app-vistoriador.webp?v=23.9.99dm") center center/cover no-repeat!important;
+      url("assets/splash-app-vistoriador.webp?v=23.9.99dn") center center/cover no-repeat!important;
     filter:blur(18px) brightness(.78)!important;
     transform:scale(1.06)!important;
     opacity:.96!important;
@@ -14538,5 +14538,54 @@ body.location-picker-open{overflow:hidden}
     animation:none!important;
     transform:none!important;
     filter:none!important;
+  }
+}
+
+
+/* =========================================================
+   V23.9.99dn — splash dedicado para PC / telas largas
+   A arte horizontal fornecida é usada a partir de 900 px.
+   A imagem principal permanece inteira (contain), enquanto
+   uma cópia suavizada preenche apenas eventual sobra lateral.
+   Celulares continuam usando a arte vertical anterior.
+   ========================================================= */
+.gpv-splash-picture{
+  display:contents;
+}
+@media (min-width:900px){
+  .loading.gpv-image-splash{
+    background:#160204!important;
+  }
+  .loading.gpv-image-splash::before{
+    background:
+      linear-gradient(rgba(12,1,2,.34),rgba(12,1,2,.44)),
+      url("assets/splash-app-vistoriador-desktop.webp?v=23.9.99dn") center center/cover no-repeat!important;
+    filter:blur(14px) brightness(.74)!important;
+    transform:scale(1.045)!important;
+    opacity:.94!important;
+  }
+  .loading.gpv-image-splash::after{
+    background:linear-gradient(90deg,rgba(0,0,0,.16),transparent 18%,transparent 82%,rgba(0,0,0,.16))!important;
+  }
+  .gpv-image-splash .gpv-splash-art{
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    object-position:center center!important;
+    transform:none!important;
+    animation:none!important;
+    filter:none!important;
+  }
+  .gpv-image-splash .gpv-splash-status{
+    bottom:max(22px,calc(env(safe-area-inset-bottom) + 16px))!important;
+    width:min(420px,72vw)!important;
+    gap:8px!important;
+  }
+  .gpv-image-splash #loadingText{
+    font-size:12.5px!important;
+  }
+  .gpv-image-splash .gpv-splash-progress{
+    width:min(270px,44vw)!important;
   }
 }
