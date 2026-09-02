@@ -14673,7 +14673,7 @@ body.location-picker-open{overflow:hidden}
 }
 
 
-/* V23.9.99dt — estimativa orientativa de multas durante a vistoria e na Ficha */
+/* V23.9.99du — estimativa orientativa de multas durante a vistoria e na Ficha */
 .inspection-fine-estimate{
   border:1px solid #ead3a4;
   border-radius:18px;
@@ -14867,4 +14867,21 @@ body.records-mode .record-fine-estimate-card{margin-bottom:10px}
   .inspection-fine-estimate-footer{align-items:stretch;flex-direction:column}
   .inspection-fine-estimate-footer .btn{width:100%}
   .record-fine-estimate-card{padding:14px}
+}
+
+
+/* V23.9.99du — Ficha rápida, carregamento progressivo e validade do cache */
+.record-sync-banner{
+  display:flex;flex-direction:column;gap:4px;margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;
+}
+.record-sync-banner strong{font-size:13px;line-height:1.25}
+.record-sync-banner span{font-size:12px;line-height:1.45}
+.record-sync-banner--loading,.record-sync-banner--info{background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}
+.record-sync-banner--warning{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+.record-sync-banner--danger{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.record-progress-placeholder{min-height:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;background:#f8fafc;border-style:dashed}
+.record-progress-placeholder strong{font-size:13px;color:#334155}
+.record-progress-placeholder span{font-size:12px;color:#64748b}
+@media (max-width:640px){
+  .record-sync-banner{margin-bottom:10px;padding:10px 12px}
 }

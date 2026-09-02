@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dt';
+      const APP_VERSION = '23.9.99du';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -25,6 +25,13 @@
       const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV2Cronologica';
       const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
       const PANEL_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
+      // V23.9.99du — a Ficha pode usar uma cópia antiga apenas como referência offline,
+      // mas nunca apresenta essa cópia como se fosse necessariamente atual.
+      const RECORD_CACHE_FRESH_MS = 10 * 60 * 1000;
+      const RECORD_CACHE_WARNING_MS = 24 * 60 * 60 * 1000;
+      const RECORD_CACHE_CRITICAL_MS = 72 * 60 * 60 * 1000;
+      const RECORD_CACHE_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
+      const PROCESS_STATUS_SYNC_STORAGE = 'gpvProcessStatusSyncV1';
       const PANEL_FOREGROUND_REFRESH_MS = 15 * 1000;
       const PANEL_PERIODIC_REFRESH_MS = 60 * 1000;
       const PANEL_REQUEST_STALE_MS = 25 * 1000;
@@ -33,7 +40,6 @@
       const APP_LAST_API_SUCCESS_STORAGE = 'gpvUltimaRespostaApiV1';
       const APP_LAST_SYNC_SUCCESS_STORAGE = 'gpvUltimaSincronizacaoOkV1';
       const DRAFT_CANCEL_QUEUE_STORAGE = 'gpvRascunhosCancelamentoPendenteV1';
-      const RECORD_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_TTL_MS = 10 * 60 * 1000;
       const GOALS_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
       const SUGGESTIONS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -2380,7 +2386,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dt';
+      const APP_REVISION_UI_ = '23.9.99du';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4413,7 +4419,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dt', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99du', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7075,16 +7081,90 @@
         const mapa = lerStorageJson_(RECORD_CACHE_STORAGE, {});
         const item = mapa[String(chave || '')];
         if (!item || !item.salvoEm || !item.registro) return null;
-        if (Date.now() - Number(item.salvoEm) > RECORD_CACHE_TTL_MS) return null;
-        return item;
+        const idade = Math.max(0, Date.now() - Number(item.salvoEm));
+        if (idade > RECORD_CACHE_MAX_AGE_MS) return null;
+        const criticoSalvoEm = Number(item.criticoSalvoEm || item.salvoEm || 0);
+        const idadeCritica = Math.max(0, Date.now() - criticoSalvoEm);
+        return {
+          ...item,
+          idade,
+          idadeCritica,
+          desatualizado: idade > RECORD_CACHE_FRESH_MS,
+          antigo: idade > RECORD_CACHE_WARNING_MS,
+          muitoAntigo: idade > RECORD_CACHE_CRITICAL_MS,
+          criticoSalvoEm,
+          criticoAntigo: idadeCritica > RECORD_CACHE_WARNING_MS,
+          criticoMuitoAntigo: idadeCritica > RECORD_CACHE_CRITICAL_MS
+        };
       }
 
-      function salvarCacheFicha_(chave, registro) {
+      function salvarCacheFicha_(chave, registro, opcoes = {}) {
         if (!chave || !registro) return;
         const mapa = lerStorageJson_(RECORD_CACHE_STORAGE, {});
-        mapa[String(chave)] = { salvoEm: Date.now(), registro };
+        const limpo = { ...(registro || {}) };
+        delete limpo.__cacheMeta;
+        delete limpo.__syncMeta;
+        mapa[String(chave)] = {
+          salvoEm: Number(opcoes.salvoEm || Date.now()),
+          criticoSalvoEm: Number(opcoes.criticoSalvoEm || Date.now()),
+          servidorEm: String(opcoes.servidorEm || registro?.servidorEm || new Date().toISOString()),
+          registro: limpo
+        };
         const entradas = Object.entries(mapa).sort((a,b) => Number(b[1]?.salvoEm || 0) - Number(a[1]?.salvoEm || 0));
-        gravarStorageJson_(RECORD_CACHE_STORAGE, Object.fromEntries(entradas.slice(0, 12)));
+        gravarStorageJson_(RECORD_CACHE_STORAGE, Object.fromEntries(entradas.slice(0, 30)));
+      }
+
+      function formatarMomentoSincronizacaoFicha_(timestamp) {
+        const numero = Number(timestamp || 0);
+        if (!numero) return 'não identificada';
+        try {
+          return new Date(numero).toLocaleString('pt-BR', {
+            day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+          });
+        } catch (_) { return 'não identificada'; }
+      }
+
+      function montarAvisoSincronizacaoFicha_(registro) {
+        const meta = registro?.__cacheMeta || null;
+        if (!meta) {
+          if (registro?.parcial) return '<section class="record-sync-banner record-sync-banner--loading"><strong>Dados principais carregados</strong><span>Histórico, localização, fotos e demais complementos estão sendo carregados em segundo plano.</span></section>';
+          return '';
+        }
+        const quando = formatarMomentoSincronizacaoFicha_(meta.salvoEm);
+        const quandoCritico = formatarMomentoSincronizacaoFicha_(meta.criticoSalvoEm || meta.salvoEm);
+        const offline = meta.offline === true;
+        const muitoAntigo = meta.muitoAntigo === true;
+        const antigo = meta.antigo === true;
+        const criticoMuitoAntigo = meta.criticoMuitoAntigo === true;
+        const criticoAntigo = meta.criticoAntigo === true;
+        const classe = criticoMuitoAntigo ? 'danger' : ((criticoAntigo || antigo || offline) ? 'warning' : 'info');
+        let titulo = offline ? 'OFFLINE — dados salvos no aparelho' : 'Abrindo dados salvos — conferindo com o servidor';
+        let texto = meta.criticoSalvoEm && Number(meta.criticoSalvoEm) !== Number(meta.salvoEm)
+          ? `Situação crítica conferida em ${quandoCritico}; demais dados da Ficha salvos em ${quando}.`
+          : `Última sincronização desta Ficha: ${quando}.`;
+        if (criticoMuitoAntigo) texto += ' A situação do processo pode ter mudado desde então. Atualize assim que houver internet.';
+        else if (criticoAntigo) texto += ' A situação crítica tem mais de 24 horas e deve ser confirmada online antes de orientar o interessado.';
+        else if (muitoAntigo || antigo) texto += ' Alguns detalhes da Ficha podem estar desatualizados, embora a situação crítica tenha sido sincronizada mais recentemente.';
+        else if (offline) texto += ' Os dados exibidos correspondem à última confirmação disponível neste aparelho.';
+        else texto += ' A Ficha permanece utilizável enquanto o servidor confirma os dados atuais.';
+        return `<section class="record-sync-banner record-sync-banner--${classe}"><strong>${escapeHtml(titulo)}</strong><span>${escapeHtml(texto)}</span></section>`;
+      }
+
+      function comMetaCacheFicha_(registro, cache) {
+        if (!registro || !cache) return registro;
+        return {
+          ...registro,
+          __cacheMeta: {
+            salvoEm: Number(cache.salvoEm || 0),
+            criticoSalvoEm: Number(cache.criticoSalvoEm || cache.salvoEm || 0),
+            offline: !navigator.onLine,
+            desatualizado: Boolean(cache.desatualizado),
+            antigo: Boolean(cache.antigo),
+            muitoAntigo: Boolean(cache.muitoAntigo),
+            criticoAntigo: Boolean(cache.criticoAntigo),
+            criticoMuitoAntigo: Boolean(cache.criticoMuitoAntigo)
+          }
+        };
       }
 
       function limparCachesConsulta_() {
@@ -7096,6 +7176,62 @@
         sugestoesFiscalizacao = [];
         sugestoesFiscalizacaoGeradoEm = '';
         metasMensaisAtual = null;
+      }
+
+      function atualizarCampoCriticoCacheFicha_(registro, rotulo, valor) {
+        if (!registro || !Array.isArray(registro.campos) || !rotulo) return;
+        const alvo = normalize(rotulo);
+        const existente = registro.campos.find(c => normalize(c?.rotulo) === alvo);
+        if (existente) existente.valor = String(valor == null ? '' : valor);
+      }
+
+      function aplicarResumoCriticoAoCacheFicha_(item) {
+        const chave = String(item?.chave || '');
+        if (!chave) return false;
+        const mapa = lerStorageJson_(RECORD_CACHE_STORAGE, {});
+        const cache = mapa[chave];
+        if (!cache?.registro) return false;
+        const registro = { ...cache.registro, campos: Array.isArray(cache.registro.campos) ? cache.registro.campos.map(c => ({...c})) : [] };
+        registro.situacaoAtual = String(item.sancao || registro.situacaoAtual || '');
+        atualizarCampoCriticoCacheFicha_(registro, 'Sanção', item.sancao);
+        atualizarCampoCriticoCacheFicha_(registro, 'Dias desde a Autuação', item.diasAutuacao);
+        atualizarCampoCriticoCacheFicha_(registro, 'Alerta de Prazo', item.alertaPrazo);
+        atualizarCampoCriticoCacheFicha_(registro, 'Ação sugerida', item.acaoSugerida);
+        atualizarCampoCriticoCacheFicha_(registro, 'Situação de multa no INFOSCIP', item.situacaoMulta);
+        atualizarCampoCriticoCacheFicha_(registro, 'Multa conferida em', item.multaConferidaEm);
+        atualizarCampoCriticoCacheFicha_(registro, 'Multa conferida por', item.multaConferidaPor);
+        mapa[chave] = {
+          ...cache,
+          criticoSalvoEm: Date.now(),
+          servidorEm: String(item.servidorEm || new Date().toISOString()),
+          registro
+        };
+        gravarStorageJson_(RECORD_CACHE_STORAGE, mapa);
+        return true;
+      }
+
+      async function sincronizarSituacoesCriticasProcessos_(opcoes = {}) {
+        if (!navigator.onLine || !authState.sessionToken) return null;
+        try {
+          const resposta = await apiRequest('config', { consulta:'registros_sync' }, 25000);
+          const itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
+          let cachesAtualizados = 0;
+          itens.forEach(item => { if (aplicarResumoCriticoAoCacheFicha_(item)) cachesAtualizados += 1; });
+          gravarStorageJson_(PROCESS_STATUS_SYNC_STORAGE, {
+            sincronizadoEm: String(resposta?.sincronizadoEm || new Date().toISOString()),
+            salvoEm: Date.now(),
+            total: itens.length,
+            itens
+          });
+          if (opcoes.atualizarFichaAberta && recordsState.chaveSelecionada && recordDetailScreen?.classList.contains('show')) {
+            const cache = lerCacheFicha_(recordsState.chaveSelecionada);
+            if (cache?.registro) renderizarFichaRegistro_(cache.registro);
+          }
+          return { total: itens.length, cachesAtualizados };
+        } catch (erro) {
+          console.warn('Sincronização crítica dos processos não concluída:', erro?.message || erro);
+          return null;
+        }
       }
 
       async function preaquecerPainel_() {
@@ -9711,7 +9847,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ...(origemFichaRotulo ? [['Origem', origemFichaRotulo]] : []),
               ...(capturadaEmFicha ? [['Capturada em', capturadaEmFicha]] : [])
             ]
-          : [['Situação', 'GPS não capturado nesta vistoria']];
+          : [['Situação', registro?.parcial ? 'Carregando localização...' : 'GPS não capturado nesta vistoria']];
         const mapaLocalizacaoFicha = coordenadasFicha
           ? montarMapaLocalizacao_({
               latitude: coordenadasFicha.lat,
@@ -9722,7 +9858,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               endereco: enderecoFicha_(registro),
               contexto: 'ficha'
             })
-          : montarReferenciaEnderecoPendenteFicha_(registro, addressMapRequestToken);
+          : (registro?.parcial ? '<section class="location-map-card location-map-card--record record-progress-placeholder"><strong>Localização e mapa</strong><span>Carregando em segundo plano...</span></section>' : montarReferenciaEnderecoPendenteFicha_(registro, addressMapRequestToken));
         const responsavel = [
           ['Responsável / vínculo', valorCampoFicha_(registro, 'Responsável')],
           ['Nome', valorCampoFicha_(registro, 'Nome')],
@@ -9788,6 +9924,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         </section>` : (registro?.avisoHistorico ? `<section class="record-history-reset-note">${escapeHtml(registro.avisoHistorico)}</section>` : ''));
 
         recordDetailGroups.innerHTML =
+          montarAvisoSincronizacaoFicha_(registro) +
           avisoSugestao +
           blocoObservacoesSugestao +
           montarBlocoRetornoLiberacaoFicha_(registro) +
@@ -9819,7 +9956,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         renderizarAuditoriaRegistro_(registro?.auditoria || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
         aplicarPermissoesInterface_();
-        if (!coordenadasFicha) void hidratarMapaPorEnderecoFicha_(registro, addressMapRequestToken);
+        if (!coordenadasFicha && !registro?.parcial) void hidratarMapaPorEnderecoFicha_(registro, addressMapRequestToken);
       }
 
       function estadoCarregandoFicha_(mensagem = 'Carregando ficha do processo...') {
@@ -9837,22 +9974,29 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function consultarRegistroComRetry_(chave, linhaHint = 0, modoRapido = true) {
+        // V23.9.99du — a consulta principal não repete uma chamada lenta. O objetivo
+        // é abrir a Ficha; complementos e nova confirmação seguem separadamente.
+        if (modoRapido) {
+          return apiRequest('config', {
+            consulta: 'registro',
+            chave,
+            linhaHint: Number(linhaHint || 0),
+            modoRapido: true
+          }, 15000);
+        }
         let ultimoErro = null;
         for (let tentativa = 0; tentativa < 2; tentativa += 1) {
           try {
-            if (tentativa > 0) {
-              estadoCarregandoFicha_('Tentando novamente...');
-              await new Promise(resolve => setTimeout(resolve, 350));
-            }
             return await apiRequest('config', {
               consulta: 'registro',
               chave,
               linhaHint: Number(linhaHint || 0),
-              modoRapido: modoRapido === true
-            }, modoRapido ? 30000 : 50000);
+              modoRapido: false
+            }, 45000);
           } catch (erro) {
             ultimoErro = erro;
             if (!navigator.onLine) break;
+            await new Promise(resolve => setTimeout(resolve, 350));
           }
         }
         throw ultimoErro || new Error('Não foi possível consultar o processo.');
@@ -9865,23 +10009,33 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             consulta: 'registro_extras',
             chave,
             linhaHint: Number(linhaHint || 0)
-          }, 50000);
-          if (!extras || !Array.isArray(extras.historico) || !Array.isArray(extras.auditoria)) return;
+          }, 45000);
+          if (!extras) return;
           if (recordsState.chaveSelecionada !== chave || !recordDetailScreen?.classList.contains('show')) return;
-          renderizarHistorico_(extras.historico || []);
-          renderizarAuditoriaRegistro_(extras.auditoria || []);
           const completo = {
             ...(registroBase || {}),
-            historico: extras.historico || [],
-            auditoria: extras.auditoria || [],
+            notificacoesTemporarias: String(extras.notificacoesTemporarias || ''),
+            notificacoesDisponiveisAte: String(extras.notificacoesDisponiveisAte || ''),
+            fotosGerais: Array.isArray(extras.fotosGerais) ? extras.fotosGerais : [],
+            localizacao: extras.localizacao || null,
+            retornoLiberacao: extras.retornoLiberacao || null,
+            retornosPosterioresLiberacao: Array.isArray(extras.retornosPosterioresLiberacao) ? extras.retornosPosterioresLiberacao : [],
+            historico: Array.isArray(extras.historico) ? extras.historico : [],
+            auditoria: Array.isArray(extras.auditoria) ? extras.auditoria : [],
             sugestaoFiscalizacao: extras.sugestaoFiscalizacao || registroBase?.sugestaoFiscalizacao || null,
             controleSugestaoFiscalizacao: extras.controleSugestaoFiscalizacao || registroBase?.controleSugestaoFiscalizacao || null,
+            planilhaUrl: extras.planilhaUrl || registroBase?.planilhaUrl || '',
             parcial: false
           };
-          salvarCacheFicha_(chave, completo);
+          renderizarFichaRegistro_(completo);
+          salvarCacheFicha_(chave, completo, { servidorEm: extras.servidorEm || new Date().toISOString() });
         } catch (erro) {
-          // A ficha principal permanece utilizável mesmo se histórico/auditoria demorarem.
+          // A Ficha principal permanece utilizável mesmo quando um complemento falha.
           console.warn('Complementos da ficha não carregados:', erro?.message || erro);
+          if (recordsState.chaveSelecionada === chave && recordDetailScreen?.classList.contains('show')) {
+            const cache = lerCacheFicha_(chave);
+            if (cache?.registro) renderizarFichaRegistro_(comMetaCacheFicha_(cache.registro, cache));
+          }
         }
       }
 
@@ -9911,7 +10065,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (cache?.registro) {
           recordDetailScreen.classList.remove('is-detail-loading', 'is-detail-error');
           recordDetailLoading.hidden = true;
-          renderizarFichaRegistro_(cache.registro);
+          renderizarFichaRegistro_(comMetaCacheFicha_(cache.registro, cache));
         } else {
           recordDetailGroups.innerHTML = '';
           recordHistoryTimeline.innerHTML = '';
@@ -9938,16 +10092,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           // Com linhaHint, o backend valida e lê somente a linha escolhida primeiro.
           const registro = await consultarRegistroComRetry_(chave, linhaHint, true);
           const registroParaRender = cache?.registro
-            ? { ...registro, historico: cache.registro.historico || [], auditoria: cache.registro.auditoria || [] }
+            ? {
+                ...cache.registro,
+                ...registro,
+                notificacoesTemporarias: cache.registro.notificacoesTemporarias || registro.notificacoesTemporarias || '',
+                notificacoesDisponiveisAte: cache.registro.notificacoesDisponiveisAte || registro.notificacoesDisponiveisAte || '',
+                fotosGerais: Array.isArray(cache.registro.fotosGerais) ? cache.registro.fotosGerais : [],
+                localizacao: cache.registro.localizacao || registro.localizacao || null,
+                retornoLiberacao: cache.registro.retornoLiberacao || registro.retornoLiberacao || null,
+                retornosPosterioresLiberacao: Array.isArray(cache.registro.retornosPosterioresLiberacao) ? cache.registro.retornosPosterioresLiberacao : [],
+                sugestaoFiscalizacao: cache.registro.sugestaoFiscalizacao || registro.sugestaoFiscalizacao || null,
+                controleSugestaoFiscalizacao: cache.registro.controleSugestaoFiscalizacao || registro.controleSugestaoFiscalizacao || null,
+                historico: cache.registro.historico || [],
+                auditoria: cache.registro.auditoria || [],
+                parcial: true
+              }
             : registro;
           recordDetailScreen.classList.remove('is-detail-loading', 'is-detail-error');
           recordDetailLoading.hidden = true;
           renderizarFichaRegistro_(registroParaRender);
-          salvarCacheFicha_(chave, registroParaRender);
+          salvarCacheFicha_(chave, registroParaRender, { servidorEm: registro?.servidorEm || new Date().toISOString() });
           void carregarComplementosFicha_(chave, registro?.linhaAtual || linhaHint, registroParaRender);
         } catch (erro) {
           if (cache?.registro) {
-            appStatus.textContent = 'Ficha aberta com os dados recentes salvos; a atualização online não respondeu agora.';
+            renderizarFichaRegistro_(comMetaCacheFicha_(cache.registro, cache));
+            appStatus.textContent = 'Ficha aberta com dados salvos; a confirmação online não respondeu agora.';
           } else {
             const msg = String(erro?.message || 'Não foi possível abrir a ficha.').replace('O registro continua seguro neste aparelho.', '').trim();
             estadoErroFicha_(msg);
@@ -18146,7 +18315,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return UFEMG_FAIXAS_[4];
       }
 
-      // V23.9.99dt — estimativa orientativa de 1ª e 2ª multa.
+      // V23.9.99du — estimativa orientativa de 1ª e 2ª multa.
       // A 2ª multa usa o dobro da multa-base e o total acumulado após a
       // 2ª multa equivale a 3 vezes a multa-base (1x + 2x).
       let ufemgEstimativaAutoCarregadaAno_ = 0;
@@ -20555,8 +20724,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           appStatus.textContent = 'Este link de notificações exige um usuário com perfil GPV.';
         }
 
-        // V23.9.99bz: retomada rápida após horas/dias sem uso. Dados auxiliares
-        // são confirmados de forma progressiva para não disputar a conexão na abertura.
+        // V23.9.99du — confirma em segundo plano as situações críticas de todos os
+        // processos. Não bloqueia login, formulário nem a abertura do Painel/Ficha.
+        if (navigator.onLine) {
+          setTimeout(() => { void sincronizarSituacoesCriticasProcessos_(); }, appRetomadaAposLongaPausa_ ? 4200 : 1800);
+        }
+
+        // Retomada rápida após horas/dias sem uso. Dados auxiliares são confirmados
+        // progressivamente para não disputar a conexão na abertura.
         if (navigator.onLine && usuarioPodeOperar_()) {
           setTimeout(() => { void processarFilaFotosPendentes_(); }, appRetomadaAposLongaPausa_ ? 7000 : 3000);
           agendarCargaAuxiliarProgressiva_();
@@ -21654,6 +21829,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (navigator.onLine && usuarioPodeOperar_()) {
             setTimeout(() => { void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false }); }, 180);
           }
+          if (navigator.onLine && ficouForaPor >= 30 * 60 * 1000) {
+            setTimeout(() => { void sincronizarSituacoesCriticasProcessos_({ atualizarFichaAberta: true }); }, 520);
+          }
           appOcultadoEm_ = 0;
         }
       });
@@ -21754,6 +21932,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           setTimeout(() => { void sincronizarTudoPendente_(true); }, 450);
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
         }
+        setTimeout(() => { void sincronizarSituacoesCriticasProcessos_({ atualizarFichaAberta: true }); }, 650);
         if (document.body.classList.contains('records-mode')) {
           setTimeout(() => agendarAtualizacaoPainelAoRetornar_('internet restabelecida', { forcar: true, atraso: 80 }), 900);
         }
@@ -21793,7 +21972,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dt', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99du', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
