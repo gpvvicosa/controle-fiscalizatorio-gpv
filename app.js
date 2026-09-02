@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99do';
+      const APP_VERSION = '23.9.99dp';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1880,6 +1880,12 @@
       const recordCurrentStatus = document.querySelector('.record-current-status');
       const recordInfoscipUpdatePanel = document.getElementById('recordInfoscipUpdatePanel');
       const recordInfoscipUpdateBtn = document.getElementById('recordInfoscipUpdateBtn');
+      const recordFineCheckPanel = document.getElementById('recordFineCheckPanel');
+      const recordFineCheckTitle = document.getElementById('recordFineCheckTitle');
+      const recordFineCheckText = document.getElementById('recordFineCheckText');
+      const recordFineCheckMessage = document.getElementById('recordFineCheckMessage');
+      const recordFineNoBtn = document.getElementById('recordFineNoBtn');
+      const recordFineYesBtn = document.getElementById('recordFineYesBtn');
       const recordStatusUpdateModal = document.getElementById('recordStatusUpdateModal');
       const recordStatusUpdateCloseBtn = document.getElementById('recordStatusUpdateCloseBtn');
       const recordStatusUpdateCancelBtn = document.getElementById('recordStatusUpdateCancelBtn');
@@ -2326,6 +2332,7 @@
       let homeOperationalServidor_ = { hoje: null, ultimo: null, carregadoEm: 0, carregando: false };
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
+      let recordFineCheckRegistroAtual = null;
       let recordCorrectionRegistroAtual = null;
       let recordResultRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
@@ -2344,7 +2351,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99do';
+      const APP_REVISION_UI_ = '23.9.99dp';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4377,7 +4384,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99do', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dp', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4483,7 +4490,7 @@
       let processoPfLookupSequencia = 0;
       let processoPfCandidatos = [];
       let processoPfAutoAtual = '';
-      // V23.9.99do — a conferência de multa só se aplica quando o servidor
+      // V23.9.99dp — a conferência de multa só se aplica quando o servidor
       // confirma histórico anterior de Vistoria de Fiscalização desde 02/07/2025.
       let processoTemHistoricoFiscalizacaoValido = false;
       let processoHistoricoFiscalizacaoConsultado = false;
@@ -7287,11 +7294,13 @@
         if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
+        recordFineCheckRegistroAtual = null;
         recordCorrectionRegistroAtual = null;
         recordResultRegistroAtual = null;
         recordCorrectionOriginal = new Map();
         if (recordCorrectionPanel) recordCorrectionPanel.hidden = true;
         if (recordInfoscipUpdatePanel) recordInfoscipUpdatePanel.hidden = true;
+        if (recordFineCheckPanel) recordFineCheckPanel.hidden = true;
         fecharCorrecaoRegistro_();
         fecharCorrecaoResultadoVistoria_();
         fecharAtualizacaoSituacaoInfoscip_();
@@ -7426,9 +7435,9 @@
           ['REDS', valorCampoFicha_(registro, 'REDS')],
           ['Nº do Auto', valorCampoFicha_(registro, 'Nº do Auto')],
           ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
-          ['Situação de multa', valorCampoFicha_(registro, 'Situação de multa no INFOSCIP')],
-          ['Multa conferida em', valorCampoFicha_(registro, 'Multa conferida em')],
-          ['Multa conferida por', valorCampoFicha_(registro, 'Multa conferida por')],
+          ['Situação de multa', textoSituacaoMultaFicha_(registro)],
+          ['Multa conferida em', textoSituacaoMultaFicha_(registro) ? valorCampoFicha_(registro, 'Multa conferida em') : ''],
+          ['Multa conferida por', textoSituacaoMultaFicha_(registro) ? valorCampoFicha_(registro, 'Multa conferida por') : ''],
           ['Prazo / Próxima ação', [acao.principal, acao.detalhe].filter(Boolean).join(' — ')]
         ];
       }
@@ -8706,14 +8715,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function opcoesAtualizacaoInfoscipFicha_(registro) {
         const atual = normalize(registro?.situacaoAtual || '');
-        const pendente = atual.startsWith(normalize('Pendente'));
-        if (fluxoLiberacaoFicha_(registro)) {
-          // V23.9.99dg — “Atualizar situação” fica restrito ao acompanhamento no
-          // INFOSCIP. Erro no resultado original é tratado em “Corrigir resultado”.
-          return pendente ? ['Notificado', 'Liberado'] : [];
-        }
+        if (fluxoLiberacaoFicha_(registro)) return [];
         if (atual === normalize('Autuado')) return ['Advertência'];
-        if (pendente) return ['Regularizado'];
         return [];
       }
 
@@ -8730,6 +8733,108 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordInfoscipUpdateBtn.disabled = !opcoes.length;
       }
 
+      function etapaMultaAlertaTela_(valor) {
+        const n = normalize(valor || '');
+        if (n.includes(normalize('Sujeito a 2ª multa')) || n.includes(normalize('Sujeito a 2a multa'))) return 2;
+        if (n.includes(normalize('Sujeito a 1ª multa')) || n.includes(normalize('Sujeito a 1a multa'))) return 1;
+        return 0;
+      }
+
+      function avaliarMultaFicha_(registro) {
+        const situacao = normalizarSituacaoMultaInfoscip_(valorCampoFicha_(registro, 'Situação de multa no INFOSCIP'));
+        const alerta = valorCampoFicha_(registro, 'Alerta de Prazo');
+        const etapaAtual = etapaMultaAlertaTela_(alerta);
+        const etapaConferida = Number(valorCampoFicha_(registro, 'Etapa da multa conferida') || 0) || 0;
+        const multaConfirmada = situacao === 'Possui multa em aberto';
+        const necessita = !multaConfirmada && etapaAtual > 0 && (situacao === 'Não conferido' || etapaAtual > etapaConferida);
+        return { situacao, alerta, etapaAtual, etapaConferida, multaConfirmada, necessita };
+      }
+
+      function textoSituacaoMultaFicha_(registro) {
+        if (!registro || fluxoLiberacaoFicha_(registro)) return '';
+        const a = avaliarMultaFicha_(registro);
+        if (a.multaConfirmada) return 'Possui multa em aberto';
+        if (a.situacao === 'Não possui multa em aberto' && !a.necessita) return 'Não possui multa em aberto';
+        if (a.necessita) return a.etapaAtual >= 2 ? 'Possível 2ª multa — conferir' : 'Possível 1ª multa — conferir';
+        return 'Sem indicação atual de multa';
+      }
+
+      function fichaEhFiscalizacaoAtualParaMulta_(registro) {
+        if (!registro || !usuarioPodeOperar_()) return false;
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        if (!tipo.includes(normalize('Fiscalização'))) return false;
+        if (demanda.includes(normalize('Eventos declaratórios'))) return false;
+        return true;
+      }
+
+      function configurarConferenciaMultaFicha_(registro) {
+        if (!recordFineCheckPanel) return;
+        recordFineCheckRegistroAtual = registro || null;
+        if (!fichaEhFiscalizacaoAtualParaMulta_(registro)) {
+          recordFineCheckPanel.hidden = true;
+          return;
+        }
+        const a = avaliarMultaFicha_(registro);
+        const mostrar = a.multaConfirmada || a.necessita;
+        recordFineCheckPanel.hidden = !mostrar;
+        if (!mostrar) return;
+        if (recordFineCheckMessage) { recordFineCheckMessage.textContent = ''; recordFineCheckMessage.style.color = ''; }
+        if (a.multaConfirmada) {
+          if (recordFineCheckTitle) recordFineCheckTitle.textContent = '⛔ Multa em aberto confirmada';
+          const quando = valorCampoFicha_(registro, 'Multa conferida em');
+          const por = valorCampoFicha_(registro, 'Multa conferida por');
+          if (recordFineCheckText) recordFineCheckText.textContent = `O INFOSCIP Fiscalização registra multa em aberto${quando ? ` — conferida em ${quando}` : ''}${por ? ` por ${por}` : ''}. Atualize abaixo após nova consulta.`;
+        } else {
+          if (recordFineCheckTitle) recordFineCheckTitle.textContent = '⚠ Conferência de multa necessária';
+          if (recordFineCheckText) recordFineCheckText.textContent = a.etapaAtual >= 2
+            ? 'O prazo do processo indica possível 2ª multa. Consulte o INFOSCIP Fiscalização e registre o resultado.'
+            : 'O prazo do processo indica possível 1ª multa. Consulte o INFOSCIP Fiscalização e registre o resultado.';
+        }
+      }
+
+      async function salvarConferenciaMultaFicha_(situacao) {
+        if (!recordFineCheckRegistroAtual || !recordsState.chaveSelecionada) return;
+        if (!navigator.onLine) {
+          if (recordFineCheckMessage) { recordFineCheckMessage.textContent = 'Esta conferência exige conexão com a internet.'; recordFineCheckMessage.style.color = '#a51d21'; }
+          return;
+        }
+        const possui = normalizarSituacaoMultaInfoscip_(situacao) === 'Possui multa em aberto';
+        const confirmar = await confirmarGpv_(
+          possui
+            ? 'Confirma que você consultou o INFOSCIP Fiscalização e existe multa em aberto vinculada a este processo?'
+            : 'Confirma que você consultou o INFOSCIP Fiscalização e não existe multa em aberto vinculada a este processo nesta etapa?',
+          'Registrar conferência de multa?',
+          { rotuloConfirmar: 'Confirmar', rotuloCancelar: 'Cancelar' }
+        );
+        if (!confirmar) return;
+        if (recordFineNoBtn) recordFineNoBtn.disabled = true;
+        if (recordFineYesBtn) recordFineYesBtn.disabled = true;
+        if (recordFineCheckMessage) { recordFineCheckMessage.textContent = 'Salvando conferência...'; recordFineCheckMessage.style.color = ''; }
+        try {
+          const chave = recordsState.chaveSelecionada;
+          const linhaHint = Number(recordFineCheckRegistroAtual?.linhaAtual || recordsState.linhaSelecionada || 0);
+          await apiRequest('config', {
+            consulta: 'multa_atualizar',
+            chave,
+            linhaHint,
+            situacaoMultaInfoscip: normalizarSituacaoMultaInfoscip_(situacao),
+            confirmadoInfoscip: true,
+            dispositivo: nomeDispositivo_()
+          }, 55000);
+          limparCachesConsulta_();
+          if (recordFineCheckMessage) { recordFineCheckMessage.textContent = '✓ Conferência registrada.'; recordFineCheckMessage.style.color = '#176b3a'; }
+          appStatus.textContent = possui ? '✓ Multa em aberto registrada na Ficha.' : '✓ Conferência registrada: não possui multa em aberto.';
+          await abrirDetalheRegistro_(chave, linhaHint, { forcarRede: true });
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'multa atualizada' });
+        } catch (erro) {
+          if (recordFineCheckMessage) { recordFineCheckMessage.textContent = erro.message || 'Não foi possível salvar a conferência.'; recordFineCheckMessage.style.color = '#a51d21'; }
+        } finally {
+          if (recordFineNoBtn) recordFineNoBtn.disabled = false;
+          if (recordFineYesBtn) recordFineYesBtn.disabled = false;
+        }
+      }
+
       function abrirAtualizacaoSituacaoInfoscip_() {
         if (!recordStatusRegistroAtual || !recordStatusUpdateModal) return;
         const opcoes = opcoesAtualizacaoInfoscipFicha_(recordStatusRegistroAtual);
@@ -8737,9 +8842,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordStatusUpdateCurrent) recordStatusUpdateCurrent.textContent = recordStatusRegistroAtual.situacaoAtual || '—';
         if (recordStatusUpdateSelect) {
           recordStatusUpdateSelect.innerHTML = opcoes.map(v => `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
-        }
-        if (recordFineUpdateSelect) {
-          recordFineUpdateSelect.value = normalizarSituacaoMultaInfoscip_(valorCampoFicha_(recordStatusRegistroAtual, 'Situação de multa no INFOSCIP'));
         }
         if (recordStatusUpdateConfirm) recordStatusUpdateConfirm.checked = false;
         if (recordStatusUpdateMessage) { recordStatusUpdateMessage.textContent = ''; recordStatusUpdateMessage.className = 'record-status-update-message'; }
@@ -8755,33 +8857,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordStatusUpdateSaveBtn) recordStatusUpdateSaveBtn.disabled = false;
       }
 
-      function situacaoEsperadaAposConferencia_(novaSituacao, situacaoMultaInfoscip) {
-        const nova = String(novaSituacao || '').trim();
-        const multa = normalizarSituacaoMultaInfoscip_(situacaoMultaInfoscip || 'Não conferido');
-        if (['Liberado', 'Regularizado'].some(v => normalize(v) === normalize(nova))) {
-          if (multa === 'Possui multa em aberto') return 'Pendente — multa em aberto';
-          if (multa !== 'Não possui multa em aberto') return 'Pendente — conferir multa no INFOSCIP';
-        }
-        return nova;
+      function situacaoEsperadaAposConferencia_(novaSituacao) {
+        return String(novaSituacao || '').trim();
       }
 
-      function atualizacaoSituacaoConfirmadaNaFicha_(registro, novaSituacao, situacaoMultaInfoscip) {
+      function atualizacaoSituacaoConfirmadaNaFicha_(registro, novaSituacao) {
         if (!registro) return false;
-        const esperada = situacaoEsperadaAposConferencia_(novaSituacao, situacaoMultaInfoscip);
+        const esperada = situacaoEsperadaAposConferencia_(novaSituacao);
         const atual = String(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '').trim();
-        if (normalize(atual) !== normalize(esperada)) return false;
-        const multaAtual = normalizarSituacaoMultaInfoscip_(valorCampoFicha_(registro, 'Situação de multa no INFOSCIP'));
-        return multaAtual === normalizarSituacaoMultaInfoscip_(situacaoMultaInfoscip);
+        return normalize(atual) === normalize(esperada);
       }
 
-      async function verificarAtualizacaoSituacaoAposTimeout_(chave, linhaHint, novaSituacao, situacaoMultaInfoscip) {
+      async function verificarAtualizacaoSituacaoAposTimeout_(chave, linhaHint, novaSituacao) {
         // O AbortController encerra apenas a espera no navegador; o Apps Script pode
         // concluir a gravação logo depois. Antes de sugerir uma nova tentativa,
         // consultamos a Ficha para evitar duplicidade de auditoria.
         await new Promise(resolve => setTimeout(resolve, 1800));
         try {
           const registro = await consultarRegistroComRetry_(chave, linhaHint, true);
-          if (atualizacaoSituacaoConfirmadaNaFicha_(registro, novaSituacao, situacaoMultaInfoscip)) {
+          if (atualizacaoSituacaoConfirmadaNaFicha_(registro, novaSituacao)) {
             gravarCacheFicha_(chave, registro);
             return registro;
           }
@@ -8792,7 +8886,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function salvarAtualizacaoSituacaoInfoscip_() {
         if (!recordStatusRegistroAtual || !recordsState.chaveSelecionada) return;
         const novaSituacao = String(recordStatusUpdateSelect?.value || '').trim();
-        const situacaoMultaInfoscip = normalizarSituacaoMultaInfoscip_(recordFineUpdateSelect?.value || 'Não conferido');
         if (!novaSituacao) return;
         if (!recordStatusUpdateConfirm?.checked) {
           if (recordStatusUpdateMessage) {
@@ -8823,7 +8916,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             chave,
             linhaHint,
             novaSituacao,
-            situacaoMultaInfoscip,
             confirmadoInfoscip: true,
             dispositivo: nomeDispositivo_()
           }, 55000);
@@ -8839,7 +8931,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               recordStatusUpdateMessage.textContent = 'A confirmação está demorando. Verificando se a atualização já foi concluída...';
               recordStatusUpdateMessage.className = 'record-status-update-message';
             }
-            const confirmada = await verificarAtualizacaoSituacaoAposTimeout_(chave, linhaHint, novaSituacao, situacaoMultaInfoscip);
+            const confirmada = await verificarAtualizacaoSituacaoAposTimeout_(chave, linhaHint, novaSituacao);
             if (confirmada) {
               fecharAtualizacaoSituacaoInfoscip_();
               limparCachesConsulta_();
@@ -8869,12 +8961,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
         if (historico || !usuarioPodeOperar_()) return [];
         const atual = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '');
-        // V23.9.99do — uma antiga “Pendente — conferir multa no INFOSCIP” pode
-        // ter sido criada pela regra anterior mesmo sem histórico fiscalizatório. Nessa
-        // situação específica a correção volta a ficar disponível; o backend só aceita
-        // Liberado/Regularizado se comprovar que não havia fiscalização anterior válida.
-        const pendenteConferirSemRegraNova = atual === normalize('Pendente — conferir multa no INFOSCIP');
-        if (atual === normalize('Advertência') || (atual.startsWith(normalize('Pendente')) && !pendenteConferirSemRegraNova)) return [];
+        // Compatibilidade com registros ainda não migrados pela V23.9.99dp.
+        const pendenteMultaLegado = [normalize('Pendente — conferir multa no INFOSCIP'), normalize('Pendente — multa em aberto')].includes(atual);
+        if (atual === normalize('Advertência') || (atual.startsWith(normalize('Pendente')) && !pendenteMultaLegado)) return [];
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const liberacao = tipo ? tipo.includes(normalize('Liberação')) : demanda.includes(normalize('Liberação'));
@@ -9382,9 +9471,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['REDS', valorCampoFicha_(registro, 'REDS')],
           ['Enviado por', valorCampoFicha_(registro, 'Enviado por')],
           ['Pendência documental', valorCampoFicha_(registro, 'Pendência documental')],
-          ['Situação de multa no INFOSCIP', valorCampoFicha_(registro, 'Situação de multa no INFOSCIP')],
-          ['Multa conferida em', valorCampoFicha_(registro, 'Multa conferida em')],
-          ['Multa conferida por', valorCampoFicha_(registro, 'Multa conferida por')]
+          ['Situação de multa no INFOSCIP', textoSituacaoMultaFicha_(registro)],
+          ['Multa conferida em', textoSituacaoMultaFicha_(registro) ? valorCampoFicha_(registro, 'Multa conferida em') : ''],
+          ['Multa conferida por', textoSituacaoMultaFicha_(registro) ? valorCampoFicha_(registro, 'Multa conferida por') : '']
         ];
         const local = [
           ['Estabelecimento', estabelecimento],
@@ -9516,6 +9605,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         configurarCorrecaoFicha_(registro);
         configurarCorrecaoResultadoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
+        configurarConferenciaMultaFicha_(registro);
         renderizarNotificacoesFicha_(registro);
         renderizarFotosGeraisFicha_(registro);
         renderizarRelatorioReds_(registro, situacao);
@@ -10571,7 +10661,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (fluxoVistoriaAtualTexto) {
           fluxoVistoriaAtualTexto.hidden = !f;
           fluxoVistoriaAtualTexto.textContent = f === 'liberacao'
-            ? 'Fluxo selecionado: Vistoria de Liberação — resultado pretendido: Liberado ou Notificado. Pendências de multa impedem a liberação.'
+            ? 'Fluxo selecionado: Vistoria de Liberação — resultado: Liberado ou Notificado. O acompanhamento de multa do INFOSCIP Fiscalização é tratado separadamente.'
             : (f === 'fiscalizacao' ? 'Fluxo selecionado: Vistoria de Fiscalização.' : '');
         }
         atualizarOpcoesDemandaPorFluxo_();
@@ -12489,29 +12579,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function exigeConferenciaMultaPorHistorico_() {
-        return Boolean(processoHistoricoFiscalizacaoConsultado && processoTemHistoricoFiscalizacaoValido);
+        // V23.9.99dp — a nova vistoria não bloqueia o resultado para pedir consulta.
+        // A conferência ocorre na Ficha da fiscalização anterior somente quando o
+        // histórico/prazo indicar possível multa.
+        return false;
       }
 
       function atualizarVisibilidadeConferenciaMulta_() {
         if (!situacaoMultaInfoscipWrap) return;
-        const evento = ehEventoDeclaratorio_();
-        const exige = !evento && exigeConferenciaMultaPorHistorico_();
-        situacaoMultaInfoscipWrap.hidden = !exige;
-        if (!exige && situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
+        situacaoMultaInfoscipWrap.hidden = true;
+        if (situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
       }
 
-      function situacaoFinalPorMulta_(sancaoPretendida, situacaoMulta) {
-        const pretendida = String(sancaoPretendida || '').trim();
-        const n = normalize(pretendida);
-        if (n !== normalize('Regularizado') && n !== normalize('Liberado')) return pretendida;
-        // V23.9.99do — sem histórico fiscalizatório anterior válido não há motivo
-        // para criar a situação “Pendente — conferir multa no INFOSCIP”. O backend
-        // repete esta validação antes da gravação e permanece como fonte de verdade.
-        if (!exigeConferenciaMultaPorHistorico_()) return pretendida;
-        const multa = normalizarSituacaoMultaInfoscip_(situacaoMulta);
-        if (multa === 'Não possui multa em aberto') return pretendida;
-        if (multa === 'Possui multa em aberto') return 'Pendente — multa em aberto';
-        return 'Pendente — conferir multa no INFOSCIP';
+      function situacaoFinalPorMulta_(sancaoPretendida) {
+        return String(sancaoPretendida || '').trim();
       }
 
       function buildPayload() {
@@ -12526,7 +12607,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             sancaoPretendida = 'Notificado';
           }
         }
-        const situacaoMultaInfoscip = normalizarSituacaoMultaInfoscip_(value('situacaoMultaInfoscip'));
+        const situacaoMultaInfoscip = 'Não conferido';
         return {
           _appRegistroId: currentRecordId,
           _appUsuarioId: String(authState.usuario?.id || ''),
@@ -12552,8 +12633,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           situacaoPscip: eventoDeclaratorio ? '' : value('situacaoPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
           _appSancaoPretendida: sancaoPretendida,
-          sancao: eventoDeclaratorio ? sancaoPretendida : situacaoFinalPorMulta_(sancaoPretendida, situacaoMultaInfoscip),
-          situacaoMultaInfoscip: eventoDeclaratorio ? '' : situacaoMultaInfoscip,
+          sancao: sancaoPretendida,
+          situacaoMultaInfoscip: (eventoDeclaratorio || ehFluxoLiberacao_()) ? '' : situacaoMultaInfoscip,
           pendenciaDocumental: value('pendenciaDocumental'),
           tipoLiberacao: ehFluxoLiberacao_() ? (value('tipoLiberacao') || 'final') : '',
           liberacaoParcialDescricao: ehFluxoLiberacao_() && normalize(value('tipoLiberacao')) === normalize('parcial') ? value('liberacaoParcialDescricao') : '',
@@ -15759,8 +15840,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const endereco = [principal.endereco, principal.numero, principal.bairro, principal.cidade].filter(Boolean).join(', ');
         const titulo = principal.estabelecimento || (historicoEvento ? 'Evento anteriormente fiscalizado' : 'Processo fiscalizatório localizado');
         const criterio = principal.criterio || 'Histórico compatível';
-        const alertaForte = !historicoEvento && (Boolean(principal.aberto) || normalize(prazo).includes('multa') || normalize(prazo).includes('prazo'));
-        priorProcessAlert.classList.toggle('is-critical', alertaForte);
+        const multaConfirmada = Boolean(principal.possuiMultaConfirmada) || normalizarSituacaoMultaInfoscip_(situacaoMulta) === 'Possui multa em aberto';
+        const conferirMulta = !multaConfirmada && Boolean(principal.necessitaConferenciaMulta);
+        priorProcessAlert.classList.toggle('is-critical', !historicoEvento && (multaConfirmada || conferirMulta));
         if (historicoEvento) {
           priorProcessAlert.innerHTML = `
             <div class="prior-process-alert-head">
@@ -15781,9 +15863,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           priorProcessAlert.hidden = false;
           return;
         }
+
+        const rotuloAlerta = multaConfirmada
+          ? '⛔ Multa em aberto confirmada'
+          : (conferirMulta ? '⚠ Possível multa — conferência necessária' : '✓ Histórico fiscalizatório localizado');
+        const mensagemMulta = multaConfirmada
+          ? `Multa confirmada${principal.multaConferidaEm ? ` em ${principal.multaConferidaEm}` : ''}${principal.multaConferidaPor ? ` por ${principal.multaConferidaPor}` : ''}.`
+          : (conferirMulta
+            ? (principal.mensagemMultaOperacional || 'O prazo indica possível multa. Consulte o INFOSCIP Fiscalização e registre o resultado na Ficha.')
+            : 'Sem indicação atual de multa que exija consulta ao INFOSCIP Fiscalização.');
         priorProcessAlert.innerHTML = `
           <div class="prior-process-alert-head">
-            <div><span>⚠ Processo fiscalizatório existente</span><strong>${escapeHtml(titulo)}</strong></div>
+            <div><span>${escapeHtml(rotuloAlerta)}</span><strong>${escapeHtml(titulo)}</strong></div>
             <span class="prior-process-match">${escapeHtml(criterio)}</span>
           </div>
           <div class="prior-process-alert-grid">
@@ -15792,11 +15883,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <div><span>Última vistoria</span><strong>${escapeHtml(principal.carimbo || '—')}</strong></div>
             <div><span>Multa no INFOSCIP</span><strong>${escapeHtml(situacaoMulta)}</strong></div>
           </div>
-          <div class="prior-process-next-action"><span>Prazo / acompanhamento</span><strong>${escapeHtml(prazo)}</strong></div>
+          <div class="prior-process-next-action"><span>Acompanhamento fiscalizatório</span><strong>${escapeHtml(mensagemMulta)}</strong></div>
           ${endereco ? `<div class="prior-process-address">${escapeHtml(endereco)}</div>` : ''}
           <div class="prior-process-alert-actions">
-            ${lista.length > 1 ? `<span>${lista.length} processos compatíveis encontrados. Confira o PF correto.</span>` : '<span>Confira o processo antes de concluir a nova vistoria.</span>'}
-            ${principal.chave ? `<button type="button" class="btn btn-secondary prior-process-open-btn" data-open-prior-record="${escapeAttr(principal.chave)}" data-record-line="${Number(principal.linha || 0)}">Abrir Ficha</button>` : ''}
+            <span>${conferirMulta ? 'Abra a Ficha para registrar a conferência.' : (multaConfirmada ? 'Acompanhe a multa no processo fiscalizatório.' : (lista.length > 1 ? `${lista.length} processos compatíveis encontrados.` : 'Nenhuma consulta de multa é necessária neste momento.'))}</span>
+            ${principal.chave ? `<button type="button" class="btn btn-secondary prior-process-open-btn" data-open-prior-record="${escapeAttr(principal.chave)}" data-record-line="${Number(principal.linha || 0)}">${conferirMulta ? 'Abrir Ficha para conferir' : 'Abrir Ficha'}</button>` : ''}
           </div>`;
         priorProcessAlert.hidden = false;
       }
@@ -16008,7 +16099,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function situacaoAtualPodeEncerrarFiscalizacao_() {
         if (ehEventoDeclaratorio_()) return false;
-        const final = situacaoFinalPorMulta_(value('sancao'), value('situacaoMultaInfoscip'));
+        const final = value('sancao');
         const n = normalize(final);
         return n === normalize('Regularizado') || n === normalize('Liberado');
       }
@@ -20613,6 +20704,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (campo) campo.dataset.correctionTouched = '1';
       });
       recordInfoscipUpdateBtn?.addEventListener('click', abrirAtualizacaoSituacaoInfoscip_);
+      recordFineNoBtn?.addEventListener('click', () => salvarConferenciaMultaFicha_('Não possui multa em aberto'));
+      recordFineYesBtn?.addEventListener('click', () => salvarConferenciaMultaFicha_('Possui multa em aberto'));
       recordStatusUpdateCloseBtn?.addEventListener('click', fecharAtualizacaoSituacaoInfoscip_);
       recordStatusUpdateCancelBtn?.addEventListener('click', fecharAtualizacaoSituacaoInfoscip_);
       recordStatusUpdateSaveBtn?.addEventListener('click', salvarAtualizacaoSituacaoInfoscip_);
@@ -21065,7 +21158,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99do', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dp', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
