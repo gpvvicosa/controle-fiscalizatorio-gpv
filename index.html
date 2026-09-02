@@ -45,8 +45,8 @@
     })();
   </script>
   <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99cz">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99ds" media="(max-width: 899px)" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ds" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99dt" media="(max-width: 899px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dt" media="(min-width: 900px)" fetchpriority="high">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <style id="gpv-critical-boot">
@@ -56,7 +56,7 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99ds") center 28%/cover no-repeat}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99dt") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
     .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
     .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
@@ -70,7 +70,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99ds">
+  <link rel="stylesheet" href="styles.css?v=23.9.99dt">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -547,7 +547,8 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99ds.</div>
+        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99dt.</div>
+        <div class="system-manual-update-note"><strong>Estimativa orientativa de multa:</strong> nas Vistorias de Fiscalização e nas Fichas já registradas, o app pode apresentar a 1ª multa estimada, a 2ª multa em dobro e o total acumulado. Para F-6/F-7, aplica 2.400 UFEMGs independentemente da área. A estimativa não representa aplicação de sanção.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
       </div>
@@ -1080,7 +1081,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99ds</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dt</div>
           </section>
         </div>
       </section>
@@ -1538,7 +1539,7 @@
                 <option value="Não possui multa em aberto">Não possui multa em aberto</option>
                 <option value="Possui multa em aberto">Possui multa em aberto</option>
               </select>
-              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99ds, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
+              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99dt, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
             </div>
             <div class="field release-document-pending-field" id="pendenciaDocumentalWrap" hidden>
               <label class="required" for="pendenciaDocumental">Há pendência documental?</label>
@@ -1727,6 +1728,38 @@
               <div class="hint">Você pode digitar para pesquisar ou tocar na seta para selecionar na lista. É possível adicionar mais de uma ocupação. Você pode digitar D-1 ou simplesmente D1; o app entende os dois formatos.</div>
               <div class="occupancy-results" id="ocupacaoResultados" role="listbox" aria-label="Sugestões de ocupação"></div>
               <div class="occupancy-meta" id="ocupacaoMeta"></div>
+            </div>
+            <div class="field wide inspection-fine-estimate" id="vistoriaFineEstimate" hidden aria-live="polite">
+              <div class="inspection-fine-estimate-head">
+                <div>
+                  <span>Orientação durante a fiscalização</span>
+                  <strong>Estimativa de eventual multa em caso de não regularização</strong>
+                </div>
+                <b>Não oficial</b>
+              </div>
+              <p class="inspection-fine-estimate-basis" id="vistoriaFineEstimateBasis">Informe a área da edificação para calcular.</p>
+              <div class="inspection-fine-estimate-grid">
+                <div class="inspection-fine-estimate-item">
+                  <span>1ª multa estimada</span>
+                  <strong id="vistoriaFineEstimateFirstValue">—</strong>
+                  <small id="vistoriaFineEstimateFirstUfemg">1ª multa</small>
+                </div>
+                <div class="inspection-fine-estimate-item">
+                  <span>2ª multa estimada</span>
+                  <strong id="vistoriaFineEstimateSecondValue">—</strong>
+                  <small id="vistoriaFineEstimateSecondUfemg">2ª multa = 2× a base</small>
+                </div>
+                <div class="inspection-fine-estimate-item total">
+                  <span>Total acumulado após a 2ª</span>
+                  <strong id="vistoriaFineEstimateTotalValue">—</strong>
+                  <small id="vistoriaFineEstimateTotalUfemg">Total = 3× a base</small>
+                </div>
+              </div>
+              <div class="inspection-fine-estimate-footer">
+                <small id="vistoriaFineEstimateSource">Estimativa orientativa. A sanção e o valor oficial dependem do INFOSCIP Fiscalização.</small>
+                <button class="btn btn-secondary" id="vistoriaFineEstimateTableBtn" type="button">Ver tabela de UFEMG</button>
+              </div>
+              <p class="inspection-fine-estimate-note">A 2ª multa é estimada em dobro da multa-base. Assim, quando houver 1ª e 2ª multas, o total acumulado corresponde a 3 vezes a multa-base. Para F-6 ou F-7, aplica-se a faixa máxima de 2.400 UFEMGs, independentemente da área.</p>
             </div>
           </div>
         </div>
@@ -2559,13 +2592,13 @@
     <picture class="gpv-splash-picture" aria-hidden="true">
       <source
         media="(min-width: 900px)"
-        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ds"
+        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dt"
         width="1672"
         height="941"
       >
       <img
         class="gpv-splash-art"
-        src="assets/splash-app-vistoriador.webp?v=23.9.99ds"
+        src="assets/splash-app-vistoriador.webp?v=23.9.99dt"
         alt=""
         width="941"
         height="1672"
@@ -2717,12 +2750,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99ds — mantém os scripts após todos os modais e controles
+  <!-- V23.9.99dt — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99ds"></script>
-  <script src="ocupacoes.js?v=23.9.99ds"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99ds"></script>
-  <script src="app.js?v=23.9.99ds"></script>
+  <script src="config.js?v=23.9.99dt"></script>
+  <script src="ocupacoes.js?v=23.9.99dt"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99dt"></script>
+  <script src="app.js?v=23.9.99dt"></script>
 
 </body>
 </html>

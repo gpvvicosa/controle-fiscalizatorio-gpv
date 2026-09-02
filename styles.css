@@ -14671,3 +14671,200 @@ body.location-picker-open{overflow:hidden}
   .ufemg-table{min-width:680px}
   .ufemg-footer-actions .btn{width:100%;text-align:center}
 }
+
+
+/* V23.9.99dt — estimativa orientativa de multas durante a vistoria e na Ficha */
+.inspection-fine-estimate{
+  border:1px solid #ead3a4;
+  border-radius:18px;
+  background:linear-gradient(145deg,#fffdf7,#fff8e8);
+  padding:16px 17px;
+  overflow:hidden;
+}
+.inspection-fine-estimate[hidden]{display:none!important}
+.inspection-fine-estimate-head,
+.record-fine-estimate-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
+.inspection-fine-estimate-head>div>span,
+.record-fine-estimate-head>div>span{
+  display:block;
+  margin-bottom:4px;
+  color:#8a5b00;
+  font-size:10.5px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.055em;
+}
+.inspection-fine-estimate-head>div>strong{
+  display:block;
+  color:#3e2c0b;
+  font-size:15px;
+  line-height:1.3;
+}
+.inspection-fine-estimate-head>b,
+.record-fine-estimate-head>b{
+  flex:0 0 auto;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#fff1c2;
+  color:#7a4b00;
+  font-size:10px;
+  line-height:1;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.inspection-fine-estimate.is-f67{
+  border-color:#d9b86c;
+  background:linear-gradient(145deg,#fffaf0,#fff2cf);
+}
+.inspection-fine-estimate-basis{
+  margin:11px 0 0;
+  color:#5f4a20;
+  font-size:12.5px;
+  line-height:1.45;
+}
+.inspection-fine-estimate-grid,
+.record-fine-estimate-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:13px;
+}
+.inspection-fine-estimate-item,
+.record-fine-estimate-item{
+  min-width:0;
+  padding:12px 13px;
+  border:1px solid #eadfc8;
+  border-radius:13px;
+  background:#fff;
+}
+.inspection-fine-estimate-item>span,
+.record-fine-estimate-item>span{
+  display:block;
+  color:#6b5b3f;
+  font-size:10.5px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.035em;
+}
+.inspection-fine-estimate-item>strong,
+.record-fine-estimate-item>strong{
+  display:block;
+  margin-top:5px;
+  color:#7e171b;
+  font-size:18px;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
+.inspection-fine-estimate-item>small,
+.record-fine-estimate-item>small{
+  display:block;
+  margin-top:5px;
+  color:#6b7280;
+  font-size:10.5px;
+  line-height:1.3;
+}
+.inspection-fine-estimate-item.total,
+.record-fine-estimate-item.total{
+  border-color:#d5c28e;
+  background:#fffbef;
+}
+.inspection-fine-estimate-item.total>strong,
+.record-fine-estimate-item.total>strong{
+  color:#5f4200;
+}
+.inspection-fine-estimate-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px;
+}
+.inspection-fine-estimate-footer>small{
+  color:#6b5b3f;
+  font-size:11px;
+  line-height:1.4;
+}
+.inspection-fine-estimate-footer .btn{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:8px 11px;
+  font-size:11px;
+}
+.inspection-fine-estimate-note{
+  margin:11px 0 0;
+  padding-top:10px;
+  border-top:1px dashed #dfcca4;
+  color:#6b5b3f;
+  font-size:10.8px;
+  line-height:1.45;
+}
+.record-fine-estimate-card{
+  grid-column:1/-1;
+  padding:15px 16px;
+  border:1px solid #e5d5ad;
+  border-radius:15px;
+  background:linear-gradient(145deg,#fffdf8,#fff8e8);
+}
+.record-fine-estimate-card.is-f67{
+  border-color:#d5b15c;
+  background:linear-gradient(145deg,#fffaf0,#fff1cc);
+}
+.record-fine-estimate-card.is-unavailable{
+  background:#fafafa;
+  border-color:#e5e7eb;
+}
+.record-fine-estimate-head h3{
+  margin:0;
+  color:#3d2b0c;
+  font-size:15px;
+  line-height:1.25;
+}
+.record-fine-estimate-basis{
+  margin:10px 0 0;
+  color:#5e4b27;
+  font-size:12px;
+  line-height:1.45;
+}
+.record-fine-estimate-item.is-current{
+  border-color:#c9972d;
+  box-shadow:0 0 0 2px rgba(201,151,45,.12);
+  background:#fff7db;
+}
+.record-fine-estimate-item.is-current>span::after{
+  content:" · etapa atual";
+  color:#8a5b00;
+}
+.record-fine-estimate-source{
+  margin-top:11px;
+  color:#6b5b3f;
+  font-size:11px;
+  font-weight:700;
+}
+.record-fine-estimate-note{
+  margin:10px 0 0;
+  padding-top:9px;
+  border-top:1px dashed #ddcda9;
+  color:#6b5b3f;
+  font-size:10.8px;
+  line-height:1.45;
+}
+body.records-mode .record-fine-estimate-card{margin-bottom:10px}
+@media(max-width:700px){
+  .inspection-fine-estimate{padding:14px}
+  .inspection-fine-estimate-head,
+  .record-fine-estimate-head{gap:9px}
+  .inspection-fine-estimate-grid,
+  .record-fine-estimate-grid{grid-template-columns:1fr}
+  .inspection-fine-estimate-item,
+  .record-fine-estimate-item{padding:11px 12px}
+  .inspection-fine-estimate-item>strong,
+  .record-fine-estimate-item>strong{font-size:17px}
+  .inspection-fine-estimate-footer{align-items:stretch;flex-direction:column}
+  .inspection-fine-estimate-footer .btn{width:100%}
+  .record-fine-estimate-card{padding:14px}
+}

@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ds';
+      const APP_VERSION = '23.9.99dt';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2043,6 +2043,16 @@
       const areaInput = document.getElementById('area');
       const areaLabel = document.getElementById('areaLabel');
       const areaMetaStatus = document.getElementById('areaMetaStatus');
+      const vistoriaFineEstimate = document.getElementById('vistoriaFineEstimate');
+      const vistoriaFineEstimateBasis = document.getElementById('vistoriaFineEstimateBasis');
+      const vistoriaFineEstimateFirstValue = document.getElementById('vistoriaFineEstimateFirstValue');
+      const vistoriaFineEstimateFirstUfemg = document.getElementById('vistoriaFineEstimateFirstUfemg');
+      const vistoriaFineEstimateSecondValue = document.getElementById('vistoriaFineEstimateSecondValue');
+      const vistoriaFineEstimateSecondUfemg = document.getElementById('vistoriaFineEstimateSecondUfemg');
+      const vistoriaFineEstimateTotalValue = document.getElementById('vistoriaFineEstimateTotalValue');
+      const vistoriaFineEstimateTotalUfemg = document.getElementById('vistoriaFineEstimateTotalUfemg');
+      const vistoriaFineEstimateSource = document.getElementById('vistoriaFineEstimateSource');
+      const vistoriaFineEstimateTableBtn = document.getElementById('vistoriaFineEstimateTableBtn');
       const eventosDeclaratoriosSecao = document.getElementById('eventosDeclaratoriosSecao');
       const consultaTecnicaSecao = document.getElementById('consultaTecnicaSecao');
       const consultaTecnicaDescricao = document.getElementById('consultaTecnicaDescricao');
@@ -2351,6 +2361,7 @@
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
       let recordFineCheckRegistroAtual = null;
+      let recordFineEstimateRegistroAtual = null;
       let recordCorrectionRegistroAtual = null;
       let recordResultRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
@@ -2369,7 +2380,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ds';
+      const APP_REVISION_UI_ = '23.9.99dt';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4402,7 +4413,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ds', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dt', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -9631,6 +9642,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function renderizarFichaRegistro_(registro) {
+        recordFineEstimateRegistroAtual = registro || null;
         const addressMapRequestToken = ++recordAddressMapRequestSeq_;
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
@@ -9780,6 +9792,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           blocoObservacoesSugestao +
           montarBlocoRetornoLiberacaoFicha_(registro) +
           montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary') +
+          montarEstimativaMultaFicha_(registro) +
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
           montarGrupoFicha_('Edificação', local) +
@@ -9797,6 +9810,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         configurarCorrecaoResultadoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
         configurarConferenciaMultaFicha_(registro);
+        garantirUfemgEstimativaAtual_();
         renderizarNotificacoesFicha_(registro);
         renderizarFotosGeraisFicha_(registro);
         renderizarRelatorioReds_(registro, situacao);
@@ -10110,6 +10124,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacoesSelecionadasLista.innerHTML = '';
         if (!ocupacoesSelecionadas.length) {
           ocupacoesSelecionadasBox.classList.remove('show');
+          atualizarEstimativaMultaVistoria_();
           return;
         }
 
@@ -10151,6 +10166,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         ocupacoesSelecionadasBox.classList.add('show');
+        atualizarEstimativaMultaVistoria_();
       }
 
       function adicionarOcupacaoValor(valor, item, salvar = true) {
@@ -10715,6 +10731,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarOpcoesSancaoPorFluxo_();
         if (evento && sancaoSelect && !['Regularizado','Autuado'].some(v => normalize(v) === normalize(sancaoSelect.value))) sancaoSelect.value = '';
         atualizarVerificacaoMetasFiscalizacao_();
+        atualizarEstimativaMultaVistoria_();
         syncLicenciamento();
         if (evento) {
           esconderAvisoEncerramentoFiscal_();
@@ -10874,6 +10891,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         aplicarModoEventoDeclaratorio_({ silencioso: true });
         syncNotificado();
         atualizarVerificacaoMetasFiscalizacao_();
+        atualizarEstimativaMultaVistoria_();
+        if (f === 'fiscalizacao') garantirUfemgEstimativaAtual_();
         if (!opcoes.silencioso && f) {
           document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           scheduleDraftSave();
@@ -18116,6 +18135,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function faixaUfemgPorArea_(area, especialF67) {
+        // A regra F-6/F-7 é prioritária: sempre utiliza a faixa máxima,
+        // independentemente da área informada.
         if (especialF67) return UFEMG_FAIXAS_[4];
         if (!Number.isFinite(area) || area <= 0) return null;
         if (area <= 200) return UFEMG_FAIXAS_[0];
@@ -18123,6 +18144,188 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (area <= 1500) return UFEMG_FAIXAS_[2];
         if (area <= 5000) return UFEMG_FAIXAS_[3];
         return UFEMG_FAIXAS_[4];
+      }
+
+      // V23.9.99dt — estimativa orientativa de 1ª e 2ª multa.
+      // A 2ª multa usa o dobro da multa-base e o total acumulado após a
+      // 2ª multa equivale a 3 vezes a multa-base (1x + 2x).
+      let ufemgEstimativaAutoCarregadaAno_ = 0;
+
+      function ocupacaoTemF67_(texto) {
+        const bruto = String(texto || '').toUpperCase();
+        return /(^|[^A-Z0-9])F\s*[-–—]?\s*[67](?=[^0-9]|$)/i.test(bruto);
+      }
+
+      function dadosUfemgEstimativa_() {
+        const ano = new Date().getFullYear();
+        const atual = ufemgState_ && Number(ufemgState_.ano) === ano &&
+          Number.isFinite(Number(ufemgState_.valor)) && Number(ufemgState_.valor) > 0
+          ? ufemgState_
+          : null;
+        if (atual) return { ...atual, ano, valor: Number(atual.valor) };
+        const cache = lerCacheUfemgLocal_(ano);
+        if (cache && Number.isFinite(Number(cache.valor)) && Number(cache.valor) > 0) {
+          return { ...cache, ano, valor: Number(cache.valor), origem: cache.origem || 'cache_local' };
+        }
+        const fallback = UFEMG_FALLBACK_LOCAL_[ano] || null;
+        if (fallback && Number.isFinite(Number(fallback.valor)) && Number(fallback.valor) > 0) {
+          return { ...fallback, ano, valor: Number(fallback.valor), origem: fallback.origem || 'fallback' };
+        }
+        return { ano, valor: null, origem: 'indisponivel', resolucao: '', consultadoEm: '' };
+      }
+
+      function rotuloOrigemUfemgEstimativa_(dados) {
+        const origem = String(dados?.origem || '').toLowerCase();
+        if (origem === 'oficial') return 'valor oficial confirmado';
+        if (origem.includes('cache')) return 'último valor oficial salvo';
+        if (origem === 'fallback') return 'referência local do exercício';
+        return 'valor do exercício ainda não confirmado';
+      }
+
+      function calcularEstimativaMulta_(areaValor, ocupacaoTexto) {
+        const area = numeroAreaM2_(areaValor);
+        const especialF67 = ocupacaoTemF67_(ocupacaoTexto);
+        const faixa = faixaUfemgPorArea_(area, especialF67);
+        const ufemg = dadosUfemgEstimativa_();
+        const valorUfemg = Number(ufemg.valor);
+        const baseUfemg = faixa ? Number(faixa.quantidade) : 0;
+        const primeira = faixa && Number.isFinite(valorUfemg) && valorUfemg > 0 ? baseUfemg * valorUfemg : null;
+        const segunda = primeira == null ? null : primeira * 2;
+        const acumulado = primeira == null ? null : primeira * 3;
+        let criterio = '';
+        if (especialF67) criterio = 'F-6/F-7 — faixa máxima de 2.400 UFEMGs, independentemente da área';
+        else if (faixa && Number.isFinite(area) && area > 5000) criterio = `Área ${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m² — superior a 5.000 m², faixa máxima`;
+        else if (faixa && Number.isFinite(area)) criterio = `${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m² — ${faixa.rotulo}`;
+        return { area, especialF67, faixa, ufemg, baseUfemg, primeira, segunda, acumulado, criterio };
+      }
+
+      function garantirUfemgEstimativaAtual_() {
+        const ano = new Date().getFullYear();
+        if (ufemgEstimativaAutoCarregadaAno_ === ano) return;
+        ufemgEstimativaAutoCarregadaAno_ = ano;
+        setTimeout(() => { void carregarUfemg_(false); }, 0);
+      }
+
+      function atualizarEstimativaMultaVistoria_() {
+        if (!vistoriaFineEstimate) return;
+        const fiscalizacao = fluxoVistoriaAtual_() === 'fiscalizacao' && !ehEventoDeclaratorio_();
+        vistoriaFineEstimate.hidden = !fiscalizacao;
+        if (!fiscalizacao) return;
+
+        const calculo = calcularEstimativaMulta_(areaInput?.value || '', ocupacaoTextoFinal());
+        vistoriaFineEstimate.classList.toggle('is-ready', Boolean(calculo.faixa));
+        vistoriaFineEstimate.classList.toggle('is-f67', Boolean(calculo.especialF67));
+
+        if (!calculo.faixa) {
+          if (vistoriaFineEstimateBasis) vistoriaFineEstimateBasis.textContent = 'Informe a área da edificação para calcular. Se a ocupação for F-6 ou F-7, o app aplica automaticamente 2.400 UFEMGs independentemente da área.';
+          if (vistoriaFineEstimateFirstValue) vistoriaFineEstimateFirstValue.textContent = '—';
+          if (vistoriaFineEstimateFirstUfemg) vistoriaFineEstimateFirstUfemg.textContent = '1ª multa';
+          if (vistoriaFineEstimateSecondValue) vistoriaFineEstimateSecondValue.textContent = '—';
+          if (vistoriaFineEstimateSecondUfemg) vistoriaFineEstimateSecondUfemg.textContent = '2ª multa = 2× a base';
+          if (vistoriaFineEstimateTotalValue) vistoriaFineEstimateTotalValue.textContent = '—';
+          if (vistoriaFineEstimateTotalUfemg) vistoriaFineEstimateTotalUfemg.textContent = 'Total após a 2ª = 3× a base';
+          if (vistoriaFineEstimateSource) vistoriaFineEstimateSource.textContent = 'Estimativa orientativa. A sanção e o valor oficial dependem do INFOSCIP Fiscalização.';
+          return;
+        }
+
+        const primeiraUfemg = calculo.baseUfemg;
+        const segundaUfemg = calculo.baseUfemg * 2;
+        const totalUfemg = calculo.baseUfemg * 3;
+        if (vistoriaFineEstimateBasis) vistoriaFineEstimateBasis.textContent = `${calculo.criterio}. Multa-base: ${primeiraUfemg.toLocaleString('pt-BR')} UFEMGs.`;
+        if (vistoriaFineEstimateFirstValue) vistoriaFineEstimateFirstValue.textContent = calculo.primeira == null ? 'Valor em R$ indisponível' : formatarMoedaUfemg_(calculo.primeira);
+        if (vistoriaFineEstimateFirstUfemg) vistoriaFineEstimateFirstUfemg.textContent = `${primeiraUfemg.toLocaleString('pt-BR')} UFEMGs`;
+        if (vistoriaFineEstimateSecondValue) vistoriaFineEstimateSecondValue.textContent = calculo.segunda == null ? 'Valor em R$ indisponível' : formatarMoedaUfemg_(calculo.segunda);
+        if (vistoriaFineEstimateSecondUfemg) vistoriaFineEstimateSecondUfemg.textContent = `${segundaUfemg.toLocaleString('pt-BR')} UFEMGs · dobro da 1ª`;
+        if (vistoriaFineEstimateTotalValue) vistoriaFineEstimateTotalValue.textContent = calculo.acumulado == null ? 'Valor em R$ indisponível' : formatarMoedaUfemg_(calculo.acumulado);
+        if (vistoriaFineEstimateTotalUfemg) vistoriaFineEstimateTotalUfemg.textContent = `${totalUfemg.toLocaleString('pt-BR')} UFEMGs · 1ª + 2ª`;
+        if (vistoriaFineEstimateSource) {
+          const d = calculo.ufemg;
+          const valor = Number(d.valor);
+          vistoriaFineEstimateSource.textContent = valor > 0
+            ? `UFEMG ${d.ano}: ${formatarUfemgValor_(valor)} · ${rotuloOrigemUfemgEstimativa_(d)}. Valores orientativos; conferir a sanção oficial no INFOSCIP Fiscalização.`
+            : `UFEMG ${d.ano}: valor ainda indisponível. As quantidades em UFEMGs permanecem válidas, mas o valor em reais não será estimado até a confirmação do exercício.`;
+        }
+      }
+
+      function registroEhFiscalizacaoParaEstimativa_(registro) {
+        if (!registro || registroEhEventoDeclaratorio_(registro) || registroEhLiberacao_(registro)) return false;
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        if (tipo) return tipo.includes(normalize('Fiscalização'));
+        const situacao = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '');
+        return [
+          'Autuado', 'Advertência', 'Regularizado',
+          'Sujeito a 1ª multa', 'Sujeito a 1a multa',
+          'Sujeito a 2ª multa', 'Sujeito a 2a multa'
+        ].some(v => situacao.includes(normalize(v)));
+      }
+
+      function montarEstimativaMultaFicha_(registro) {
+        if (!registroEhFiscalizacaoParaEstimativa_(registro)) return '';
+        const area = valorCampoFicha_(registro, 'Área m²', 'Área (m²)', 'Área');
+        const ocupacao = valorCampoFicha_(registro, 'Ocupação', 'Ocupação / Divisão', 'Divisão');
+        const calculo = calcularEstimativaMulta_(area, ocupacao);
+        const avaliacao = avaliarMultaFicha_(registro);
+        const etapa = Number(avaliacao?.etapaAtual || 0);
+        const classePrimeira = etapa === 1 ? ' is-current' : '';
+        const classeSegunda = etapa >= 2 ? ' is-current' : '';
+
+        if (!calculo.faixa) {
+          return `<section class="record-fine-estimate-card is-unavailable" id="recordFineEstimateCard">
+            <div class="record-fine-estimate-head">
+              <div><span>Referência orientativa</span><h3>Estimativa de eventual multa</h3></div>
+              <b>Não oficial</b>
+            </div>
+            <p class="record-fine-estimate-basis">Estimativa indisponível: a ficha não possui área suficiente para definir a faixa e não há classificação F-6/F-7 identificada.</p>
+            <p class="record-fine-estimate-note">O app não cria nem aplica sanção. A situação oficial deve ser conferida no INFOSCIP Fiscalização.</p>
+          </section>`;
+        }
+
+        const primeiraUfemg = calculo.baseUfemg;
+        const segundaUfemg = primeiraUfemg * 2;
+        const totalUfemg = primeiraUfemg * 3;
+        const d = calculo.ufemg;
+        const valorUfemg = Number(d.valor);
+        const valor1 = calculo.primeira == null ? '—' : formatarMoedaUfemg_(calculo.primeira);
+        const valor2 = calculo.segunda == null ? '—' : formatarMoedaUfemg_(calculo.segunda);
+        const valor3 = calculo.acumulado == null ? '—' : formatarMoedaUfemg_(calculo.acumulado);
+        const fonte = valorUfemg > 0
+          ? `UFEMG ${d.ano}: ${formatarUfemgValor_(valorUfemg)} · ${rotuloOrigemUfemgEstimativa_(d)}`
+          : `UFEMG ${d.ano}: valor em reais ainda não confirmado`;
+
+        return `<section class="record-fine-estimate-card${calculo.especialF67 ? ' is-f67' : ''}" id="recordFineEstimateCard">
+          <div class="record-fine-estimate-head">
+            <div><span>Referência orientativa</span><h3>Estimativa de eventual multa</h3></div>
+            <b>Não oficial</b>
+          </div>
+          <p class="record-fine-estimate-basis">${escapeHtml(calculo.criterio)}. Multa-base: <strong>${primeiraUfemg.toLocaleString('pt-BR')} UFEMGs</strong>.</p>
+          <div class="record-fine-estimate-grid">
+            <div class="record-fine-estimate-item${classePrimeira}">
+              <span>1ª multa estimada</span>
+              <strong>${escapeHtml(valor1)}</strong>
+              <small>${primeiraUfemg.toLocaleString('pt-BR')} UFEMGs</small>
+            </div>
+            <div class="record-fine-estimate-item${classeSegunda}">
+              <span>2ª multa estimada</span>
+              <strong>${escapeHtml(valor2)}</strong>
+              <small>${segundaUfemg.toLocaleString('pt-BR')} UFEMGs · dobro</small>
+            </div>
+            <div class="record-fine-estimate-item total${classeSegunda}">
+              <span>Total acumulado após a 2ª</span>
+              <strong>${escapeHtml(valor3)}</strong>
+              <small>${totalUfemg.toLocaleString('pt-BR')} UFEMGs · 1ª + 2ª</small>
+            </div>
+          </div>
+          <div class="record-fine-estimate-source">${escapeHtml(fonte)}</div>
+          <p class="record-fine-estimate-note">Valores meramente orientativos. A 2ª multa é estimada em dobro da multa-base; o total acumulado considera 1ª + 2ª multa. O app não aplica sanção e a situação oficial deve ser conferida no INFOSCIP Fiscalização.</p>
+        </section>`;
+      }
+
+      function atualizarEstimativaMultaFicha_() {
+        if (!recordFineEstimateRegistroAtual) return;
+        const atual = document.getElementById('recordFineEstimateCard');
+        if (!atual) return;
+        const novo = montarEstimativaMultaFicha_(recordFineEstimateRegistroAtual);
+        if (novo) atual.outerHTML = novo;
       }
 
       function salvarCacheUfemgLocal_(dados) {
@@ -18194,6 +18397,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : 'Não foi possível calcular os valores em reais sem o valor da UFEMG do exercício.';
         }
         atualizarCalculadoraUfemg_();
+        atualizarEstimativaMultaVistoria_();
+        atualizarEstimativaMultaFicha_();
       }
 
       function atualizarCalculadoraUfemg_() {
@@ -20679,8 +20884,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       form.addEventListener('focusout', event => {
         agendarAvancoValidacaoGuiada_(event);
       });
-      areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
-      areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
+      areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); atualizarEstimativaMultaVistoria_(); scheduleDraftSave(); });
+      areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); atualizarEstimativaMultaVistoria_(); scheduleDraftSave(); });
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       document.getElementById('demandaPrincipal')?.addEventListener('input', () => { atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); atualizarCampoRenovacaoAvcb_(); agendarConsultaProcessoPf_('form', 250); });
       document.getElementById('demandaPrincipal')?.addEventListener('change', () => { if (ehFluxoLiberacao_()) atualizarOpcoesDemandaPorFluxo_(); atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); atualizarCampoRenovacaoAvcb_(); agendarConsultaProcessoPf_('form', 100); });
@@ -20991,6 +21196,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacaoSelecionada = localizarOcupacaoPorValor(ocupacaoInput.value);
         mostrarMetaOcupacao(ocupacaoSelecionada);
         pesquisarOcupacoes(ocupacaoInput.value);
+        atualizarEstimativaMultaVistoria_();
       });
       ocupacaoInput.addEventListener('blur', () => {
         setTimeout(() => {
@@ -21314,6 +21520,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       ufemgCloseBtn?.addEventListener('click', fecharUfemg_);
       ufemgModal?.addEventListener('click', event => { if (event.target === ufemgModal) fecharUfemg_(); });
       ufemgRefreshBtn?.addEventListener('click', () => { void carregarUfemg_(true); });
+      vistoriaFineEstimateTableBtn?.addEventListener('click', abrirUfemg_);
       ufemgAreaInput?.addEventListener('input', atualizarCalculadoraUfemg_);
       ufemgSpecialF67?.addEventListener('change', atualizarCalculadoraUfemg_);
       redsMobileAppLink?.addEventListener('click', abrirRedsMobile_);
@@ -21586,7 +21793,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ds', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dt', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
