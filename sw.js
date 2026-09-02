@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260902-v23-9-99-dk';
-const VERSION = '23.9.99dk';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260902-v23-9-99-dl';
+const VERSION = '23.9.99dl';
 
 const CORE_SHELL = [
   './',
@@ -159,7 +159,34 @@ const OPTIONAL_SHELL = [
   './instrucoes-tecnicas/its/it-43.html',
   './instrucoes-tecnicas/its/it-44.html',
   './instrucoes-tecnicas/its/it-45.html'
+
 ];
+
+// V23.9.99dl — recursos compartilhados do acervo de ITs devem ser renovados
+// na atualização para evitar manter CSS/JS antigo ou incompleto no cache.
+const IT_SHARED_CRITICAL_PATHS = new Set([
+  '/instrucoes-tecnicas/assets/app.js',
+  '/instrucoes-tecnicas/assets/its.js',
+  '/instrucoes-tecnicas/assets/portal.js',
+  '/instrucoes-tecnicas/assets/search-index.js',
+  '/instrucoes-tecnicas/assets/style.css'
+]);
+
+function caminhoRelativoAoEscopo_(url) {
+  const scope = new URL(self.registration.scope);
+  const path = new URL(url, scope).pathname;
+  const base = scope.pathname.endsWith('/') ? scope.pathname.slice(0, -1) : scope.pathname;
+  return base && path.startsWith(base) ? path.slice(base.length) || '/' : path;
+}
+
+function ehRotaIts_(url) {
+  const path = caminhoRelativoAoEscopo_(url);
+  return path === '/instrucoes-tecnicas' || path.startsWith('/instrucoes-tecnicas/');
+}
+
+function ehAssetCompartilhadoIts_(url) {
+  return IT_SHARED_CRITICAL_PATHS.has(caminhoRelativoAoEscopo_(url));
+}
 
 async function buscarOpcionalComLimite(request, timeoutMs = 6000) {
   const controller = new AbortController();
@@ -183,16 +210,26 @@ async function copiarOpcionaisDaVersaoAnterior(cacheAtual) {
   const cachesAntigos = await Promise.all(chaves.map(key => caches.open(key)));
   await Promise.allSettled(OPTIONAL_SHELL.map(async url => {
     const req = new Request(new URL(url, self.location.href).href);
+
+    // CSS/JS compartilhados das ITs: tenta sempre a versão publicada primeiro.
+    // Se a rede falhar, reaproveita a última cópia válida para manter o offline.
+    if (ehAssetCompartilhadoIts_(req.url)) {
+      const nova = await buscarOpcionalComLimite(req);
+      if (nova) {
+        await cacheAtual.put(req, nova.clone());
+        return;
+      }
+    }
+
     for (const cacheAntigo of cachesAntigos) {
-      const resposta = await cacheAntigo.match(req, { ignoreSearch: false });
+      const resposta = await cacheAntigo.match(req, { ignoreSearch: true });
       if (resposta) {
         await cacheAtual.put(req, resposta.clone());
         return;
       }
     }
 
-    // Se este arquivo ainda não existia na versão anterior, tenta baixar apenas ele,
-    // com limite curto para uma conexão ruim não prender a atualização inteira.
+    // Arquivo ainda ausente: tenta baixar com limite curto.
     const nova = await buscarOpcionalComLimite(req);
     if (nova) await cacheAtual.put(req, nova.clone());
   }));
@@ -261,6 +298,29 @@ async function cacheRapidoComAtualizacao(request, fallbackUrl = '', cacheKey = r
   return { response, refresh: Promise.resolve() };
 }
 
+async function redePrimeiroComCache_(request, fallbackUrl = '') {
+  let response = null;
+  try {
+    response = await fetch(request, { cache: 'no-store' });
+    if (response && response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(request, response.clone());
+      return response;
+    }
+  } catch (_) {
+    response = null;
+  }
+
+  const cached = await caches.match(request, { ignoreSearch: true });
+  if (cached) return cached;
+  if (fallbackUrl) {
+    const fallback = await caches.match(fallbackUrl, { ignoreSearch: true });
+    if (fallback) return fallback;
+  }
+  if (response) return response;
+  throw new Error('Recurso indisponível na rede e no cache.');
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -269,11 +329,25 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
+    // As páginas das Instruções Técnicas são documentos próprios. Nunca usar
+    // o index.html do App como fallback de uma URL do acervo.
+    if (ehRotaIts_(url)) {
+      event.respondWith(redePrimeiroComCache_(request, './instrucoes-tecnicas/index.html'));
+      return;
+    }
+
     event.respondWith((async () => {
       const resultado = await cacheRapidoComAtualizacao(request, './index.html', './index.html');
       event.waitUntil(resultado.refresh.catch(() => {}));
       return resultado.response;
     })());
+    return;
+  }
+
+  // CSS/JS do acervo: rede primeiro para recuperar imediatamente uma cópia
+  // íntegra; cache é fallback para uso offline.
+  if (ehAssetCompartilhadoIts_(url)) {
+    event.respondWith(redePrimeiroComCache_(request));
     return;
   }
 
