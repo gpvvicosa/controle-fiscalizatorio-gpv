@@ -81,19 +81,19 @@
       </div>
       <span class="auth-kicker">Controle Fiscalizatório</span>
       <h1 id="authTitle">App do Vistoriador</h1>
-      <p class="auth-subtitle" id="authSubtitle">Informe seu <strong>Nº BM e senha</strong> para acessar o aplicativo.</p>
+      <p class="auth-subtitle" id="authSubtitle">Informe seu <strong>Nº BM ou celular e senha</strong> para acessar o aplicativo.</p>
 
       <div class="auth-device-choice" id="authDeviceChoice" hidden>
         <strong>Escolha seu usuário</strong>
         <span>Este aparelho já foi utilizado por mais de um usuário.</span>
         <div class="auth-device-profile-list" id="authDeviceProfileList"></div>
-        <button class="auth-other-bm-btn" id="authUseOtherBmBtn" type="button">Entrar com outro Nº BM</button>
+        <button class="auth-other-bm-btn" id="authUseOtherBmBtn" type="button">Entrar com outro Nº BM ou celular</button>
       </div>
 
       <div class="auth-manual-login" id="authManualLogin">
         <form id="authForm" autocomplete="off">
-          <label class="auth-label" for="authBmInput">Nº BM</label>
-          <input class="auth-input" id="authBmInput" type="text" inputmode="numeric" maxlength="7" placeholder="0000000" autocomplete="username">
+          <label class="auth-label" for="authBmInput">Nº BM ou celular</label>
+          <input class="auth-input" id="authBmInput" type="text" inputmode="numeric" maxlength="13" placeholder="1264894 ou 31999999999" autocomplete="username">
           <label class="auth-label" for="authPinInput">Senha</label>
           <div class="auth-pin-wrap">
             <input class="auth-input auth-pin-input" id="authPinInput" type="password" inputmode="numeric" maxlength="6" placeholder="6 dígitos" autocomplete="current-password">
@@ -116,8 +116,8 @@
           <button class="auth-enter-btn" id="authCreatePinBtn" type="button">Criar senha e entrar</button>
         </div>
         <div class="auth-profile-choice" id="authProfileChoice" hidden>
-          <strong>Este Nº BM está temporariamente associado a mais de um usuário.</strong>
-          <span>Escolha seu nome para continuar e depois atualize o Nº BM em Mais → Gerenciar usuários.</span>
+          <strong>Este identificador está associado a mais de um usuário.</strong>
+          <span>Escolha seu nome para continuar. Se necessário, atualize os dados em Mais → Gerenciar usuários.</span>
           <div class="auth-profile-list" id="authProfileList"></div>
         </div>
         <p class="auth-offline-note" id="authOfflineNote" hidden>Primeiro acesso neste aparelho exige conexão com a internet.</p>
@@ -218,7 +218,7 @@
     </button>
     <button class="app-more-menu-item" id="manageUsersBtn" data-menu-tone="indigo" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.5-5 5.5-5s4.9 1.8 5.5 5M16 8h5M18.5 5.5v5"/></svg>
-      <span><strong>Gerenciar usuários</strong><small>Incluir, editar, redefinir senha ou excluir Nº BM</small></span>
+      <span><strong>Gerenciar usuários</strong><small>Incluir, editar, celular, senha e perfil de acesso</small></span>
     </button>
     <button class="app-more-menu-item" id="redsTemplatesMenuBtn" data-menu-tone="crimson" type="button" role="menuitem" hidden>
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M17.5 14.5l2 2-4 4H13.5v-2z"/></svg>
@@ -485,7 +485,7 @@
 
         <section class="system-manual-section" id="manualSec9">
           <h3>9. Acesso dos militares</h3>
-          <p>Todo usuário precisa ter o Nº BM cadastrado previamente. No primeiro acesso, cria uma senha pessoal de 6 dígitos.</p>
+          <p>Todo usuário precisa ter o Nº BM cadastrado previamente. O celular pode ser cadastrado como identificador alternativo de login. No primeiro acesso, o militar cria uma senha pessoal de 6 dígitos.</p>
           <p>Os militares do GPV mantêm as funções operacionais. Os militares cadastrados no setor GERAL podem consultar o sistema e também percorrer o fluxo de Vistoria e de Cadastrar vistoria para conhecer e praticar seu funcionamento.</p>
           <p>Nesse acesso, pesquisas e validações de consulta continuam disponíveis, mas nenhuma vistoria, programação ou alteração é enviada ou registrada. A restrição também é validada pelo servidor; não depende apenas dos botões exibidos na tela.</p>
           <p>Em aparelho compartilhado, a senha não permanece armazenada pelo app e a sessão pessoal expira após 10 horas. Em aparelhos sem senha salva, a sessão também é limitada a 10 horas.</p>
@@ -542,7 +542,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 31/08/2026 — V23.9.99di.</div>
+        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99dj.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
       </div>
@@ -1075,7 +1075,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99di</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dj</div>
           </section>
         </div>
       </section>
@@ -2034,9 +2034,9 @@
     <section class="user-manager-card" role="dialog" aria-modal="true" aria-labelledby="userManagerTitle">
       <header class="user-manager-header">
         <div>
-          <span class="user-manager-kicker">Acesso por Nº BM</span>
+          <span class="user-manager-kicker">Acesso por Nº BM ou celular</span>
           <h2 id="userManagerTitle">Gerenciar usuários</h2>
-          <p>Cadastre o Nº BM previamente e defina o setor de acesso. O militar criará a própria senha no primeiro acesso.</p>
+          <p>Cadastre o Nº BM e, se desejar, o celular para login alternativo. O militar usará a mesma senha de 6 dígitos.</p>
         </div>
         <button class="user-manager-close" id="userManagerCloseBtn" type="button" aria-label="Fechar">×</button>
       </header>
@@ -2050,6 +2050,9 @@
         </label>
         <label>Nº BM
           <input id="userManagerBm" type="text" inputmode="numeric" maxlength="7" placeholder="0000000">
+        </label>
+        <label>Celular para login <small>(opcional)</small>
+          <input id="userManagerPhone" type="tel" inputmode="numeric" maxlength="15" placeholder="(31) 99999-9999" autocomplete="tel">
         </label>
         <label>Setor de acesso
           <select id="userManagerProfile">
@@ -2310,7 +2313,7 @@
         <div>
           <span>Acesso do auxiliar</span>
           <h2 id="auxNotificationsShareTitle">Compartilhar lançamento de notificações</h2>
-          <p>O link abre somente a área de notificações desta vistoria. O auxiliar ainda precisa entrar com o próprio Nº BM e senha.</p>
+          <p>O link abre somente a área de notificações desta vistoria. O auxiliar ainda precisa entrar com o próprio Nº BM ou celular e senha.</p>
         </div>
         <button class="review-close" id="auxNotificationsShareCloseBtn" type="button" aria-label="Fechar">×</button>
       </header>
@@ -2625,12 +2628,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99di — mantém os scripts após todos os modais e controles
+  <!-- V23.9.99dj — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99di"></script>
-  <script src="ocupacoes.js?v=23.9.99di"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99di"></script>
-  <script src="app.js?v=23.9.99di"></script>
+  <script src="config.js?v=23.9.99dj"></script>
+  <script src="ocupacoes.js?v=23.9.99dj"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99dj"></script>
+  <script src="app.js?v=23.9.99dj"></script>
 
 </body>
 </html>

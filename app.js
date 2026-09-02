@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99di';
+      const APP_VERSION = '23.9.99dj';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -131,7 +131,7 @@
         } catch (_) { return 0; }
       }
 
-      function dispositivoCompartilhadoPrevistoBm_(bm = '', userId = '') {
+      function dispositivoCompartilhadoPrevistoBm_(identificador = '', userId = '') {
         if (dispositivoCompartilhadoBm_()) return true;
         let lista = [];
         try {
@@ -141,11 +141,14 @@
         if (lista.length > 1) return true;
         if (!lista.length) return false;
         const alvoId = String(userId || '').trim();
-        const alvoBm = normalizarBmCliente_(bm || '');
+        const alvo = normalizarIdentificadorAcessoCliente_(identificador || '');
         return lista.some(item => {
           if (alvoId) return String(item.usuario?.id || '') !== alvoId;
-          if (alvoBm) return normalizarBmCliente_(item.usuario?.bm || '') !== alvoBm;
-          return false;
+          if (!alvo) return false;
+          const mesmoUsuario = /^\d{7}$/.test(alvo)
+            ? normalizarBmCliente_(item.usuario?.bm || '') === alvo
+            : normalizarCelularAcessoCliente_(item.usuario?.celular || '') === alvo;
+          return !mesmoUsuario;
         });
       }
 
@@ -1815,6 +1818,7 @@
       const userManagerId = document.getElementById('userManagerId');
       const userManagerName = document.getElementById('userManagerName');
       const userManagerBm = document.getElementById('userManagerBm');
+      const userManagerPhone = document.getElementById('userManagerPhone');
       const userManagerProfile = document.getElementById('userManagerProfile');
       const userManagerMessage = document.getElementById('userManagerMessage');
       const userManagerFormTitle = document.getElementById('userManagerFormTitle');
@@ -2340,7 +2344,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99di';
+      const APP_REVISION_UI_ = '23.9.99dj';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4369,7 +4373,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99di', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dj', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -17001,7 +17005,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         document.body.classList.add('auth-locked');
         if (authManualLogin) authManualLogin.hidden = false;
         if (authDeviceChoice) authDeviceChoice.hidden = true;
-        if (authSubtitle) authSubtitle.textContent = mensagem || 'Informe seu Nº BM e sua senha de 6 dígitos.';
+        if (authSubtitle) authSubtitle.textContent = mensagem || 'Informe seu Nº BM ou celular e sua senha de 6 dígitos.';
         if (authMessage) authMessage.textContent = '';
         if (authProfileChoice) authProfileChoice.hidden = true;
         if (authPinSetup) authPinSetup.hidden = true;
@@ -17180,6 +17184,29 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return String(valor || '').replace(/\D/g, '').slice(0, 7);
       }
 
+      function normalizarCelularAcessoCliente_(valor) {
+        let digitos = String(valor || '').replace(/\D/g, '');
+        if (digitos.length === 13 && digitos.startsWith('55')) digitos = digitos.slice(2);
+        return digitos;
+      }
+
+      function normalizarIdentificadorAcessoCliente_(valor) {
+        let digitos = String(valor || '').replace(/\D/g, '');
+        if (digitos.length === 13 && digitos.startsWith('55')) digitos = digitos.slice(2);
+        return digitos;
+      }
+
+      function identificadorAcessoValidoCliente_(valor) {
+        const id = normalizarIdentificadorAcessoCliente_(valor);
+        return /^\d{7}$/.test(id) || /^\d{11}$/.test(id);
+      }
+
+      function formatarCelularAcessoCliente_(valor) {
+        const digitos = normalizarCelularAcessoCliente_(valor);
+        if (digitos.length !== 11) return digitos;
+        return `(${digitos.slice(0,2)}) ${digitos.slice(2,7)}-${digitos.slice(7)}`;
+      }
+
       function prepararLoginPerfilBm_(perfil) {
         if (!perfil?.usuario) return;
         authPendingUserId = String(perfil.usuario.id || '');
@@ -17192,18 +17219,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         setTimeout(() => authPinInput?.focus(), 30);
       }
 
-      async function concluirLoginBm_(bm, userId = '', pin = '', newPin = '') {
-        const numero = normalizarBmCliente_(bm);
+      async function concluirLoginBm_(identificador, userId = '', pin = '', newPin = '') {
+        const numero = normalizarIdentificadorAcessoCliente_(identificador);
         const senha = normalizarPinCliente_(pin);
         const novaSenha = normalizarPinCliente_(newPin);
         const alvoId = String(userId || authPendingUserId || '').trim();
-        if (!/^\d{7}$/.test(numero)) {
-          if (authMessage) authMessage.textContent = 'Informe um Nº BM com 7 dígitos.';
+        if (!identificadorAcessoValidoCliente_(numero)) {
+          if (authMessage) authMessage.textContent = 'Informe um Nº BM com 7 dígitos ou celular com DDD e 11 dígitos.';
           return false;
         }
 
         if (!navigator.onLine) {
-          const perfis = carregarPerfisConhecidosBm_().filter(p => String(p.usuario.bm || '') === numero);
+          const perfis = carregarPerfisConhecidosBm_().filter(p => /^\d{7}$/.test(numero)
+            ? normalizarBmCliente_(p.usuario.bm || '') === numero
+            : normalizarCelularAcessoCliente_(p.usuario.celular || '') === numero);
           let perfil = alvoId ? perfis.find(p => String(p.usuario.id) === alvoId) : (perfis.length === 1 ? perfis[0] : null);
           if (!perfil) {
             if (authMessage) authMessage.textContent = perfis.length > 1 ? 'Escolha seu usuário antes de entrar offline.' : 'Este usuário ainda não possui acesso offline validado neste aparelho.';
@@ -17239,7 +17268,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const sessaoLimitada10h = sessaoDeveSerLimitada10hBm_(numero, alvoId);
           if (sessaoLimitada10h && dispositivoCompartilhadoPrevistoBm_(numero, alvoId)) marcarDispositivoCompartilhadoBm_();
           const result = await authRequest_({
-            bm: numero,
+            login: numero,
+            bm: /^\d{7}$/.test(numero) ? numero : '',
             userId: alvoId,
             pin: senha,
             newPin: novaSenha,
@@ -17353,6 +17383,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (userManagerId) userManagerId.value = '';
         if (userManagerName) userManagerName.value = '';
         if (userManagerBm) userManagerBm.value = '';
+        if (userManagerPhone) userManagerPhone.value = '';
         if (userManagerProfile) userManagerProfile.value = 'GERAL';
         if (userManagerFormTitle) userManagerFormTitle.textContent = 'Adicionar usuário';
         if (userManagerSaveBtn) userManagerSaveBtn.textContent = 'Adicionar usuário';
@@ -17369,10 +17400,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <div class="user-manager-avatar" aria-hidden="true">${escapeHtml(String(u.nome || '?').charAt(0).toUpperCase())}</div>
             <div class="user-manager-item-copy">
               <strong>${escapeHtml(u.nome)}</strong>
-              <span>Nº BM ${escapeHtml(u.bm)}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''} · ${u.senhaConfigurada ? 'senha ativa' : 'senha a criar'} · ${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}</span>
+              <span>Nº BM ${escapeHtml(u.bm)}${u.celular ? ` · Cel. ${escapeHtml(formatarCelularAcessoCliente_(u.celular))}` : ''}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''} · ${u.senhaConfigurada ? 'senha ativa' : 'senha a criar'} · ${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}</span>
             </div>
             <div class="user-manager-item-actions">
-              <button type="button" class="user-edit-btn" data-user-edit="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" data-user-bm="${escapeHtml(u.bm)}" data-user-profile="${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}">Editar</button>
+              <button type="button" class="user-edit-btn" data-user-edit="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" data-user-bm="${escapeHtml(u.bm)}" data-user-phone="${escapeHtml(u.celular || '')}" data-user-profile="${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}">Editar</button>
               <button type="button" class="user-reset-pin-btn" data-user-reset-pin="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}">Redefinir senha</button>
               <button type="button" class="user-delete-btn" data-user-delete="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" ${ehAtual ? 'disabled title="Você está conectado com este usuário"' : ''}>Excluir</button>
             </div>
@@ -17414,16 +17445,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const id = String(userManagerId?.value || '').trim();
         const nome = String(userManagerName?.value || '').trim();
         const bm = normalizarBmCliente_(userManagerBm?.value || '');
+        const celular = normalizarCelularAcessoCliente_(userManagerPhone?.value || '');
         const perfil = String(userManagerProfile?.value || 'GERAL').toUpperCase() === 'GPV' ? 'GPV' : 'GERAL';
         if (userManagerMessage) userManagerMessage.textContent = '';
         if (!nome || !/^\d{7}$/.test(bm)) {
           if (userManagerMessage) userManagerMessage.textContent = 'Informe nome e Nº BM com 7 dígitos.';
           return;
         }
+        if (celular && !/^\d{11}$/.test(celular)) {
+          if (userManagerMessage) userManagerMessage.textContent = 'Informe o celular com DDD e 11 dígitos, ou deixe o campo vazio.';
+          return;
+        }
         if (userManagerSaveBtn) userManagerSaveBtn.disabled = true;
         try {
           const action = id ? 'user_update' : 'user_add';
-          const result = await apiRequest(action, { userId: id, nome, bm, perfil }, 30000);
+          const result = await apiRequest(action, { userId: id, nome, bm, celular, perfil }, 30000);
           if (result?.sessionToken && result?.usuarioAtual) {
             salvarSessaoLocalBm_(result.usuarioAtual, result.sessionToken);
             aplicarPermissoesInterface_();
@@ -17533,7 +17569,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const usuario = authState.usuario;
         if (!usuario?.id || !perfilTemSenhaSalvaBm_(usuario.id)) return;
         if (!(await confirmarGpv_(
-          `A senha salva de ${usuario.nome} será removida deste aparelho. O Nº BM continuará lembrado.`,
+          `A senha salva de ${usuario.nome} será removida deste aparelho. O usuário continuará lembrado.`,
           'Esquecer senha salva?',
           { rotuloConfirmar: 'Esquecer senha' }
         ))) return;
@@ -17574,7 +17610,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function sairUsuarioBm_() {
         fecharMenuMais_();
         if (!(await confirmarGpv_(
-          'Sua sessão será encerrada neste aparelho. O Nº BM continuará lembrado.',
+          'Sua sessão será encerrada neste aparelho. O usuário continuará lembrado.',
           'Sair do aplicativo?',
           { tom: 'danger', rotuloConfirmar: 'Sair' }
         ))) return;
@@ -20231,7 +20267,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try {
           await navigator.share({
             title: 'Notificações da vistoria',
-            text: 'Acesse este link para lançar as notificações desta vistoria. Entre com seu Nº BM e senha.',
+            text: 'Acesse este link para lançar as notificações desta vistoria. Entre com seu Nº BM ou celular e senha.',
             url: link
           });
         } catch (e) {
@@ -20867,7 +20903,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           aplicarAtualizacaoSilenciosaSeSeguro_();
         }
       });
-      authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarBmCliente_(authBmInput.value); authPendingUserId = ''; authPendingBm = ''; });
+      authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarIdentificadorAcessoCliente_(authBmInput.value); authPendingUserId = ''; authPendingBm = ''; });
       authForm?.addEventListener('submit', async event => {
         event.preventDefault();
         const entrou = await concluirLoginBm_(authBmInput?.value || '', authPendingUserId, authPinInput?.value || '');
@@ -20885,7 +20921,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const btn = event.target.closest('[data-auth-user-id]');
         if (!btn) return;
         authPendingUserId = String(btn.dataset.authUserId || '');
-        authPendingBm = normalizarBmCliente_(authBmInput?.value || authPendingBm);
+        authPendingBm = normalizarIdentificadorAcessoCliente_(authBmInput?.value || authPendingBm);
         if (authProfileChoice) authProfileChoice.hidden = true;
         if (authMessage) authMessage.textContent = 'Agora informe a senha de 6 dígitos.';
         authPinInput?.focus();
@@ -20895,10 +20931,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!btn) return;
         selecionarPerfilConhecidoBm_(btn.dataset.deviceUserId || '');
       });
-      authUseOtherBmBtn?.addEventListener('click', () => { limparEstadoPinLogin_(); mostrarTelaLoginBm_('Informe seu Nº BM e sua senha.'); });
+      authUseOtherBmBtn?.addEventListener('click', () => { limparEstadoPinLogin_(); mostrarTelaLoginBm_('Informe seu Nº BM ou celular e sua senha.'); });
       userManagerCloseBtn?.addEventListener('click', fecharGerenciadorUsuarios_);
       userManagerModal?.addEventListener('click', event => { if (event.target === userManagerModal) fecharGerenciadorUsuarios_(); });
       userManagerBm?.addEventListener('input', () => { userManagerBm.value = normalizarBmCliente_(userManagerBm.value); });
+      userManagerPhone?.addEventListener('input', () => { userManagerPhone.value = formatarCelularAcessoCliente_(userManagerPhone.value); });
       userManagerCancelBtn?.addEventListener('click', resetarFormularioUsuario_);
       userManagerForm?.addEventListener('submit', salvarUsuarioGerenciado_);
       userManagerList?.addEventListener('click', event => {
@@ -20909,6 +20946,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           userManagerId.value = editar.dataset.userEdit || '';
           userManagerName.value = editar.dataset.userName || '';
           userManagerBm.value = editar.dataset.userBm || '';
+          if (userManagerPhone) userManagerPhone.value = formatarCelularAcessoCliente_(editar.dataset.userPhone || '');
           if (userManagerProfile) userManagerProfile.value = String(editar.dataset.userProfile || 'GPV').toUpperCase() === 'GERAL' ? 'GERAL' : 'GPV';
           userManagerFormTitle.textContent = 'Editar usuário';
           userManagerSaveBtn.textContent = 'Salvar alterações';
@@ -20981,7 +21019,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99di', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dj', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
