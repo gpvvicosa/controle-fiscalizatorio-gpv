@@ -14477,3 +14477,66 @@ body.location-picker-open{overflow:hidden}
 }
 
 /* V23.9.99da — hotfix de carregamento do seletor de localização no mapa. */
+
+
+/* =========================================================
+   V23.9.99dm — splash responsivo sem cortes
+   Desktop/tablet: mantém a arte principal inteira e centralizada.
+   A mesma arte preenche o fundo de forma suave, sem ampliar a
+   imagem principal nem usar animação de zoom.
+   Celular: preserva o tratamento compacto da versão anterior.
+   ========================================================= */
+@media (min-width:641px){
+  .loading.gpv-image-splash{
+    isolation:isolate!important;
+    background:#390609!important;
+  }
+  .loading.gpv-image-splash::before{
+    content:""!important;
+    display:block!important;
+    position:absolute!important;
+    inset:-26px!important;
+    z-index:0!important;
+    pointer-events:none!important;
+    background:
+      linear-gradient(rgba(48,4,7,.38),rgba(48,4,7,.46)),
+      url("assets/splash-app-vistoriador.webp?v=23.9.99dm") center center/cover no-repeat!important;
+    filter:blur(18px) brightness(.78)!important;
+    transform:scale(1.06)!important;
+    opacity:.96!important;
+  }
+  .loading.gpv-image-splash::after{
+    content:""!important;
+    display:block!important;
+    position:absolute!important;
+    inset:0!important;
+    z-index:0!important;
+    pointer-events:none!important;
+    background:linear-gradient(90deg,rgba(34,2,4,.20),transparent 22%,transparent 78%,rgba(34,2,4,.20))!important;
+  }
+  .gpv-image-splash .gpv-splash-art{
+    z-index:1!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    object-position:center center!important;
+    transform:none!important;
+    animation:gpvSplashImageGlowDm 2.4s ease-in-out infinite alternate!important;
+    filter:none!important;
+  }
+  @keyframes gpvSplashImageGlowDm{
+    from{opacity:.985;filter:brightness(.99)}
+    to{opacity:1;filter:brightness(1.025)}
+  }
+  .gpv-image-splash .gpv-splash-status{
+    z-index:3!important;
+  }
+}
+@media (min-width:641px) and (prefers-reduced-motion:reduce){
+  .gpv-image-splash .gpv-splash-art{
+    animation:none!important;
+    transform:none!important;
+    filter:none!important;
+  }
+}
