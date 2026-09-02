@@ -45,8 +45,8 @@
     })();
   </script>
   <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99cz">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99dr" media="(max-width: 899px)" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dr" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99ds" media="(max-width: 899px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ds" media="(min-width: 900px)" fetchpriority="high">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <style id="gpv-critical-boot">
@@ -56,7 +56,7 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99dr") center 28%/cover no-repeat}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99ds") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
     .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
     .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
@@ -70,7 +70,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99dr">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ds">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -268,6 +268,10 @@
     <button class="app-more-menu-item" id="tutorialMenuBtn" data-menu-tone="blue" type="button" role="menuitem">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 4.5h10.8A2.7 2.7 0 0 1 19 7.2v12.3H8.1a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M8.1 19.5A2.6 2.6 0 0 1 10.7 17H19M9 8.5h6M9 12h6"/></svg>
       <span><strong>Tutorial</strong><small>Guia rápido para usar o aplicativo</small></span>
+    </button>
+    <button class="app-more-menu-item" id="ufemgMenuBtn" data-menu-tone="amber" type="button" role="menuitem">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M16.5 15.2c0-1-1-1.7-2.2-1.7s-2.2.6-2.2 1.5c0 2.3 4.4 1.1 4.4 3.2 0 .9-.9 1.5-2.2 1.5s-2.3-.7-2.3-1.7M14.3 12.4v8.2"/></svg>
+      <span><strong>Valores de Multa — UFEMG</strong><small>Tabela anual e cálculo por área</small></span>
     </button>
   </div>
 
@@ -543,7 +547,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99dr.</div>
+        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99ds.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
       </div>
@@ -1076,7 +1080,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dr</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99ds</div>
           </section>
         </div>
       </section>
@@ -1534,7 +1538,7 @@
                 <option value="Não possui multa em aberto">Não possui multa em aberto</option>
                 <option value="Possui multa em aberto">Possui multa em aberto</option>
               </select>
-              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99dr, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
+              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99ds, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
             </div>
             <div class="field release-document-pending-field" id="pendenciaDocumentalWrap" hidden>
               <label class="required" for="pendenciaDocumental">Há pendência documental?</label>
@@ -2443,8 +2447,81 @@
           <span><strong>REDS — Web</strong><small>Registro de eventos de defesa social</small></span>
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
+        <button class="useful-link-card useful-link-button" id="ufemgUsefulLinkBtn" type="button">
+          <span class="useful-link-icon" aria-hidden="true">💰</span>
+          <span><strong>Valores de Multa — UFEMG</strong><small>Tabela anual com atualização automática da UFEMG</small></span>
+          <span class="useful-link-arrow" aria-hidden="true">→</span>
+        </button>
       </div>
       <p class="useful-links-note">Os links web abrem os sistemas oficiais em uma nova aba. No Android, o atalho REDS Mobile tenta abrir o aplicativo instalado. Alguns serviços podem exigir login institucional.</p>
+    </section>
+  </div>
+
+  <div class="useful-links-overlay ufemg-overlay" id="ufemgModal" hidden>
+    <section class="useful-links-card ufemg-card" role="dialog" aria-modal="true" aria-labelledby="ufemgTitle">
+      <header class="useful-links-header ufemg-header">
+        <div>
+          <span>Referência operacional</span>
+          <h2 id="ufemgTitle">Valores de Multa — UFEMG <b id="ufemgYearTitle"></b></h2>
+        </div>
+        <button class="review-close" id="ufemgCloseBtn" type="button" aria-label="Fechar valores de multa">×</button>
+      </header>
+
+      <div class="ufemg-body">
+        <section class="ufemg-summary" aria-live="polite">
+          <div>
+            <span class="ufemg-kicker">Valor da UFEMG do exercício</span>
+            <strong id="ufemgCurrentValue">Consultando...</strong>
+            <small id="ufemgResolutionText">Fonte oficial: Secretaria de Estado de Fazenda de Minas Gerais</small>
+          </div>
+          <div class="ufemg-source-box">
+            <span class="ufemg-status-badge" id="ufemgStatusBadge">Verificando</span>
+            <small id="ufemgUpdatedAt"></small>
+          </div>
+        </section>
+
+        <section class="ufemg-calculator">
+          <div class="ufemg-calculator-head">
+            <div>
+              <span>Cálculo rápido</span>
+              <strong>Informe a área da edificação</strong>
+            </div>
+            <button class="btn btn-secondary ufemg-refresh-btn" id="ufemgRefreshBtn" type="button">Atualizar valor oficial</button>
+          </div>
+          <div class="ufemg-calculator-grid">
+            <label class="ufemg-area-field">
+              <span>Área total (m²)</span>
+              <input id="ufemgAreaInput" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 2.157,78">
+            </label>
+            <label class="ufemg-special-field">
+              <input id="ufemgSpecialF67" type="checkbox">
+              <span><strong>Edificação F-6 ou F-7</strong><small>Aplica 2.400 UFEMGs independentemente da área.</small></span>
+            </label>
+          </div>
+          <div class="ufemg-result" id="ufemgCalculatorResult">Informe a área para identificar a faixa e o valor correspondente.</div>
+        </section>
+
+        <div class="ufemg-table-wrap">
+          <table class="ufemg-table">
+            <thead>
+              <tr><th>Faixa</th><th>Situação</th><th>UFEMGs</th><th>Valor da multa</th></tr>
+            </thead>
+            <tbody>
+              <tr data-ufemg-row="1" data-qty="150"><td><strong>I</strong></td><td>Área igual ou inferior a 200 m²</td><td>150</td><td class="ufemg-money">—</td></tr>
+              <tr data-ufemg-row="2" data-qty="400"><td><strong>II</strong></td><td>Área acima de 200 m² e igual ou inferior a 930 m²</td><td>400</td><td class="ufemg-money">—</td></tr>
+              <tr data-ufemg-row="3" data-qty="950"><td><strong>III</strong></td><td>Área acima de 930 m² e igual ou inferior a 1.500 m²</td><td>950</td><td class="ufemg-money">—</td></tr>
+              <tr data-ufemg-row="4" data-qty="1600"><td><strong>IV</strong></td><td>Área acima de 1.500 m² e igual ou inferior a 5.000 m²</td><td>1.600</td><td class="ufemg-money">—</td></tr>
+              <tr data-ufemg-row="5" data-qty="2400"><td><strong>V</strong></td><td>Área superior a 5.000 m² ou edificação classificada como F-6 ou F-7, independentemente da área</td><td>2.400</td><td class="ufemg-money">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ufemg-memory" id="ufemgMemoryText"></div>
+        <p class="ufemg-note">Os valores em reais são calculados automaticamente pela quantidade de UFEMGs de cada faixa. A classificação e as quantidades de UFEMGs seguem a tabela operacional fornecida ao aplicativo.</p>
+        <div class="ufemg-footer-actions">
+          <a class="btn btn-secondary" id="ufemgOfficialSourceLink" href="https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/resolucoes/ufemg.html" target="_blank" rel="noopener noreferrer">Abrir fonte oficial da UFEMG</a>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -2482,13 +2559,13 @@
     <picture class="gpv-splash-picture" aria-hidden="true">
       <source
         media="(min-width: 900px)"
-        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dr"
+        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ds"
         width="1672"
         height="941"
       >
       <img
         class="gpv-splash-art"
-        src="assets/splash-app-vistoriador.webp?v=23.9.99dr"
+        src="assets/splash-app-vistoriador.webp?v=23.9.99ds"
         alt=""
         width="941"
         height="1672"
@@ -2640,12 +2717,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99dr — mantém os scripts após todos os modais e controles
+  <!-- V23.9.99ds — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99dr"></script>
-  <script src="ocupacoes.js?v=23.9.99dr"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99dr"></script>
-  <script src="app.js?v=23.9.99dr"></script>
+  <script src="config.js?v=23.9.99ds"></script>
+  <script src="ocupacoes.js?v=23.9.99ds"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99ds"></script>
+  <script src="app.js?v=23.9.99ds"></script>
 
 </body>
 </html>

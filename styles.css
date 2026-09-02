@@ -14611,3 +14611,63 @@ body.location-picker-open{overflow:hidden}
 .location-map-card--address .location-map-offline strong{
   color:#744c00;
 }
+
+/* V23.9.99ds — Valores de Multa / UFEMG */
+.useful-link-button{width:100%;font:inherit;text-align:left;cursor:pointer}
+.ufemg-card{width:min(980px,100%);max-height:min(92vh,920px)}
+.ufemg-header h2 b{font-weight:900;color:#991b1b}
+.ufemg-body{padding:20px 24px 24px}
+.ufemg-summary{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;border:1px solid #dbeafe;border-radius:18px;background:linear-gradient(135deg,#eff6ff,#f8fafc)}
+.ufemg-kicker{display:block;margin-bottom:5px;color:#475569;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.055em}
+.ufemg-summary strong{display:block;color:#0f2f66;font-size:30px;line-height:1.05}
+.ufemg-summary small{display:block;margin-top:6px;color:#64748b;line-height:1.35}
+.ufemg-source-box{display:flex;min-width:190px;flex-direction:column;align-items:flex-end;gap:6px;text-align:right}
+.ufemg-status-badge{display:inline-flex;align-items:center;justify-content:center;min-height:29px;padding:5px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.045em}
+.ufemg-status-badge[data-state="official"]{background:#dcfce7;color:#166534}
+.ufemg-status-badge[data-state="cache"]{background:#e0f2fe;color:#075985}
+.ufemg-status-badge[data-state="fallback"]{background:#fef3c7;color:#92400e}
+.ufemg-status-badge[data-state="error"]{background:#fee2e2;color:#991b1b}
+.ufemg-calculator{margin-top:16px;padding:17px 18px;border:1px solid #e5e7eb;border-radius:18px;background:#fff}
+.ufemg-calculator-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.ufemg-calculator-head span{display:block;color:#991b1b;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.ufemg-calculator-head strong{display:block;margin-top:3px;color:#111827;font-size:17px}
+.ufemg-refresh-btn{white-space:nowrap}
+.ufemg-calculator-grid{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(280px,1.2fr);gap:14px;margin-top:14px}
+.ufemg-area-field,.ufemg-special-field{display:flex;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc}
+.ufemg-area-field{flex-direction:column;gap:7px;padding:12px 14px}
+.ufemg-area-field>span{color:#475569;font-size:12px;font-weight:800}
+.ufemg-area-field input{width:100%;height:40px;padding:0 11px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#111827;font:inherit;font-weight:800}
+.ufemg-area-field input:focus{outline:3px solid rgba(37,99,235,.15);border-color:#2563eb}
+.ufemg-special-field{align-items:center;gap:11px;padding:12px 14px;cursor:pointer}
+.ufemg-special-field input{width:20px;height:20px;flex:0 0 auto;accent-color:#991b1b}
+.ufemg-special-field strong{display:block;color:#111827;font-size:13.5px}
+.ufemg-special-field small{display:block;margin-top:3px;color:#64748b;font-size:11.5px;line-height:1.3}
+.ufemg-result{margin-top:14px;padding:13px 15px;border-radius:13px;background:#f8fafc;color:#475569;font-size:13px;line-height:1.4}
+.ufemg-result.is-selected{background:#eff6ff;color:#1e3a8a;border:1px solid #bfdbfe}
+.ufemg-result strong{color:#0f2f66}
+.ufemg-table-wrap{margin-top:18px;overflow-x:auto;border:1px solid #dbe3ef;border-radius:17px;background:#fff}
+.ufemg-table{width:100%;border-collapse:separate;border-spacing:0;min-width:720px;color:#111827}
+.ufemg-table th{padding:13px 14px;background:#dbeafe;color:#0f2f66;border-bottom:1px solid #b9cee9;font-size:12px;text-align:left;text-transform:uppercase;letter-spacing:.04em}
+.ufemg-table td{padding:14px;border-bottom:1px solid #e5e7eb;vertical-align:middle;font-size:13px;line-height:1.35}
+.ufemg-table tbody tr:last-child td{border-bottom:0}
+.ufemg-table th:first-child,.ufemg-table td:first-child{width:62px;text-align:center}
+.ufemg-table th:nth-child(3),.ufemg-table td:nth-child(3){width:130px;text-align:center;font-weight:800}
+.ufemg-table th:last-child,.ufemg-table td:last-child{width:170px;text-align:right}
+.ufemg-table td:first-child strong{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:10px;background:#0f2f66;color:#fff;font-size:16px}
+.ufemg-table .ufemg-money{color:#0f2f66;font-size:15px;font-weight:900;white-space:nowrap}
+.ufemg-table tr.is-highlighted td{background:#fff7ed}
+.ufemg-table tr.is-highlighted td:first-child strong{background:#991b1b}
+.ufemg-memory{margin-top:14px;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;color:#334155;font-size:12px;line-height:1.55;text-align:center}
+.ufemg-note{margin:12px 2px 0;color:#64748b;font-size:11.8px;line-height:1.45}
+.ufemg-footer-actions{display:flex;justify-content:flex-end;margin-top:14px}
+@media(max-width:700px){
+  .ufemg-body{padding:15px 16px 20px}
+  .ufemg-summary{align-items:flex-start;flex-direction:column;padding:15px 16px}
+  .ufemg-summary strong{font-size:26px}
+  .ufemg-source-box{min-width:0;align-items:flex-start;text-align:left}
+  .ufemg-calculator-head{align-items:flex-start;flex-direction:column}
+  .ufemg-refresh-btn{width:100%}
+  .ufemg-calculator-grid{grid-template-columns:1fr}
+  .ufemg-table{min-width:680px}
+  .ufemg-footer-actions .btn{width:100%;text-align:center}
+}

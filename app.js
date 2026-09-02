@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dr';
+      const APP_VERSION = '23.9.99ds';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1535,6 +1535,7 @@
         'retorno_liberacao_candidatos',
         'retorno_liberacao_documento',
         'geocodificar_localizacao',
+        'ufemg',
         'ddus'
       ]);
 
@@ -1993,6 +1994,7 @@
       const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
       const tutorialMenuBtn = document.getElementById('tutorialMenuBtn');
       const usefulLinksBtn = document.getElementById('usefulLinksBtn');
+      const ufemgMenuBtn = document.getElementById('ufemgMenuBtn');
       const updateAppBtn = document.getElementById('updateAppBtn');
       const aboutSystemBtn = document.getElementById('aboutSystemBtn');
       const deviceNameBtn = document.getElementById('deviceNameBtn');
@@ -2295,6 +2297,20 @@
       const usefulLinksModal = document.getElementById('usefulLinksModal');
       const usefulLinksCloseBtn = document.getElementById('usefulLinksCloseBtn');
       const redsMobileAppLink = document.getElementById('redsMobileAppLink');
+      const ufemgUsefulLinkBtn = document.getElementById('ufemgUsefulLinkBtn');
+      const ufemgModal = document.getElementById('ufemgModal');
+      const ufemgCloseBtn = document.getElementById('ufemgCloseBtn');
+      const ufemgYearTitle = document.getElementById('ufemgYearTitle');
+      const ufemgCurrentValue = document.getElementById('ufemgCurrentValue');
+      const ufemgResolutionText = document.getElementById('ufemgResolutionText');
+      const ufemgStatusBadge = document.getElementById('ufemgStatusBadge');
+      const ufemgUpdatedAt = document.getElementById('ufemgUpdatedAt');
+      const ufemgRefreshBtn = document.getElementById('ufemgRefreshBtn');
+      const ufemgAreaInput = document.getElementById('ufemgAreaInput');
+      const ufemgSpecialF67 = document.getElementById('ufemgSpecialF67');
+      const ufemgCalculatorResult = document.getElementById('ufemgCalculatorResult');
+      const ufemgMemoryText = document.getElementById('ufemgMemoryText');
+      const ufemgOfficialSourceLink = document.getElementById('ufemgOfficialSourceLink');
       const aboutSystemModal = document.getElementById('aboutSystemModal');
       const aboutSystemCloseBtn = document.getElementById('aboutSystemCloseBtn');
       const aboutSystemGrid = document.getElementById('aboutSystemGrid');
@@ -2353,7 +2369,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dr';
+      const APP_REVISION_UI_ = '23.9.99ds';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4386,7 +4402,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dr', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ds', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6272,6 +6288,7 @@
         if (elementoVisivelNavegacao_(appAlertsModal)) return { id: 'app-alerts', fechar: () => fecharAvisosApp_() };
         if (elementoVisivelNavegacao_(syncCenterModal)) return { id: 'sync-center', fechar: () => fecharCentralSincronizacao_() };
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
+        if (elementoVisivelNavegacao_(ufemgModal)) return { id: 'ufemg', fechar: () => fecharUfemg_() };
         if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
         if (elementoVisivelNavegacao_(tutorialModal)) return { id: 'tutorial', fechar: () => fecharTutorial_() };
         if (elementoVisivelNavegacao_(recordDetailScreen, 'show')) return { id: 'record-detail', fechar: () => fecharDetalheRegistro_() };
@@ -9497,7 +9514,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordGeneralPhotosStatus) recordGeneralPhotosStatus.textContent = '';
       }
 
-      // V23.9.99dr — quando uma vistoria antiga não possui GPS real, a Ficha pode
+      // V23.9.99ds — quando uma vistoria antiga não possui GPS real, a Ficha pode
       // obter somente uma referência cartográfica aproximada pelo endereço. Essa
       // coordenada NÃO é gravada como GPS da vistoria e serve apenas para mapa/satélite.
       const ADDRESS_GEOCODE_CACHE_STORAGE_ = 'gpvEnderecoGeocodificadoFichaV1';
@@ -18063,6 +18080,202 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      // V23.9.99ds — tabela dinâmica de valores de multa pela UFEMG.
+      const UFEMG_SOURCE_URL_ = 'https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/resolucoes/ufemg.html';
+      const UFEMG_CACHE_PREFIX_ = 'gpvUfemgOficialV1:';
+      const UFEMG_FALLBACK_LOCAL_ = {
+        2026: { valor: 5.7899, resolucao: 'Resolução nº 5.969/2025', origem: 'fallback', consultadoEm: '' }
+      };
+      const UFEMG_FAIXAS_ = [
+        { linha: 1, rotulo: 'Faixa I', quantidade: 150 },
+        { linha: 2, rotulo: 'Faixa II', quantidade: 400 },
+        { linha: 3, rotulo: 'Faixa III', quantidade: 950 },
+        { linha: 4, rotulo: 'Faixa IV', quantidade: 1600 },
+        { linha: 5, rotulo: 'Faixa V', quantidade: 2400 }
+      ];
+      let ufemgState_ = { ano: new Date().getFullYear(), valor: null, resolucao: '', origem: '', consultadoEm: '' };
+
+      function formatarUfemgValor_(valor) {
+        const n = Number(valor);
+        if (!Number.isFinite(n) || n <= 0) return 'Valor indisponível';
+        return `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+      }
+
+      function formatarMoedaUfemg_(valor) {
+        const n = Number(valor);
+        if (!Number.isFinite(n)) return '—';
+        return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      function lerAreaUfemg_(texto) {
+        let raw = String(texto || '').trim().replace(/\s+/g, '');
+        if (!raw) return null;
+        if (raw.includes(',')) raw = raw.replace(/\./g, '').replace(',', '.');
+        const n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      }
+
+      function faixaUfemgPorArea_(area, especialF67) {
+        if (especialF67) return UFEMG_FAIXAS_[4];
+        if (!Number.isFinite(area) || area <= 0) return null;
+        if (area <= 200) return UFEMG_FAIXAS_[0];
+        if (area <= 930) return UFEMG_FAIXAS_[1];
+        if (area <= 1500) return UFEMG_FAIXAS_[2];
+        if (area <= 5000) return UFEMG_FAIXAS_[3];
+        return UFEMG_FAIXAS_[4];
+      }
+
+      function salvarCacheUfemgLocal_(dados) {
+        try {
+          if (!dados || !Number.isFinite(Number(dados.valor)) || Number(dados.valor) <= 0) return;
+          localStorage.setItem(`${UFEMG_CACHE_PREFIX_}${dados.ano}`, JSON.stringify(dados));
+        } catch (_) {}
+      }
+
+      function lerCacheUfemgLocal_(ano) {
+        try {
+          const dados = JSON.parse(localStorage.getItem(`${UFEMG_CACHE_PREFIX_}${ano}`) || 'null');
+          if (dados && Number.isFinite(Number(dados.valor)) && Number(dados.valor) > 0) return dados;
+        } catch (_) {}
+        return null;
+      }
+
+      function aplicarUfemgState_(dados = {}) {
+        const ano = Number(dados.ano || new Date().getFullYear());
+        const valor = Number(dados.valor);
+        ufemgState_ = {
+          ano,
+          valor: Number.isFinite(valor) && valor > 0 ? valor : null,
+          resolucao: String(dados.resolucao || '').trim(),
+          origem: String(dados.origem || '').trim().toLowerCase(),
+          consultadoEm: String(dados.consultadoEm || '').trim()
+        };
+        renderizarUfemg_();
+      }
+
+      function renderizarUfemg_() {
+        const { ano, valor, resolucao, origem, consultadoEm } = ufemgState_;
+        if (ufemgYearTitle) ufemgYearTitle.textContent = String(ano || '');
+        if (ufemgCurrentValue) ufemgCurrentValue.textContent = formatarUfemgValor_(valor);
+        if (ufemgResolutionText) {
+          ufemgResolutionText.textContent = resolucao
+            ? `${resolucao} · Fonte: SEF/MG`
+            : 'Fonte oficial: Secretaria de Estado de Fazenda de Minas Gerais';
+        }
+        if (ufemgOfficialSourceLink) ufemgOfficialSourceLink.href = UFEMG_SOURCE_URL_;
+
+        let badge = 'Valor indisponível';
+        let badgeState = 'error';
+        if (origem === 'oficial') { badge = 'Oficial confirmado'; badgeState = 'official'; }
+        else if (origem === 'cache_oficial' || origem === 'cache_local') { badge = 'Último oficial salvo'; badgeState = 'cache'; }
+        else if (origem === 'fallback') { badge = 'Referência local'; badgeState = 'fallback'; }
+        if (ufemgStatusBadge) {
+          ufemgStatusBadge.textContent = badge;
+          ufemgStatusBadge.dataset.state = badgeState;
+        }
+        if (ufemgUpdatedAt) {
+          let texto = '';
+          if (consultadoEm) {
+            const d = new Date(consultadoEm);
+            if (!Number.isNaN(d.getTime())) texto = `Atualizado em ${d.toLocaleString('pt-BR')}`;
+          }
+          if (!texto && origem === 'fallback') texto = 'Aguardando confirmação online da fonte oficial.';
+          ufemgUpdatedAt.textContent = texto;
+        }
+
+        document.querySelectorAll('[data-ufemg-row]').forEach(row => {
+          const qtd = Number(row.dataset.qty || 0);
+          const celula = row.querySelector('.ufemg-money');
+          if (celula) celula.textContent = valor ? formatarMoedaUfemg_(qtd * valor) : '—';
+        });
+        if (ufemgMemoryText) {
+          ufemgMemoryText.textContent = valor
+            ? UFEMG_FAIXAS_.map(f => `${f.quantidade.toLocaleString('pt-BR')} × ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} = ${formatarMoedaUfemg_(f.quantidade * valor)}`).join('   |   ')
+            : 'Não foi possível calcular os valores em reais sem o valor da UFEMG do exercício.';
+        }
+        atualizarCalculadoraUfemg_();
+      }
+
+      function atualizarCalculadoraUfemg_() {
+        if (!ufemgCalculatorResult) return;
+        const area = lerAreaUfemg_(ufemgAreaInput?.value || '');
+        const especial = Boolean(ufemgSpecialF67?.checked);
+        const faixa = faixaUfemgPorArea_(area, especial);
+        document.querySelectorAll('[data-ufemg-row]').forEach(row => row.classList.toggle('is-highlighted', faixa && Number(row.dataset.ufemgRow) === faixa.linha));
+        if (!faixa) {
+          ufemgCalculatorResult.classList.remove('is-selected');
+          ufemgCalculatorResult.textContent = 'Informe a área para identificar a faixa e o valor correspondente.';
+          return;
+        }
+        const areaTexto = especial ? 'Classificação F-6/F-7' : `${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m²`;
+        const valorMulta = ufemgState_.valor ? formatarMoedaUfemg_(faixa.quantidade * ufemgState_.valor) : 'aguardando valor oficial da UFEMG';
+        ufemgCalculatorResult.classList.add('is-selected');
+        ufemgCalculatorResult.innerHTML = `<strong>${faixa.rotulo} — ${faixa.quantidade.toLocaleString('pt-BR')} UFEMGs</strong><br>${areaTexto} · Valor calculado: <strong>${escapeHtml(valorMulta)}</strong>`;
+      }
+
+      async function carregarUfemg_(forcar = false) {
+        const ano = new Date().getFullYear();
+        if (ufemgRefreshBtn) ufemgRefreshBtn.disabled = true;
+        if (ufemgStatusBadge) {
+          ufemgStatusBadge.textContent = 'Verificando';
+          ufemgStatusBadge.dataset.state = 'fallback';
+        }
+
+        const cache = lerCacheUfemgLocal_(ano);
+        const fallback = UFEMG_FALLBACK_LOCAL_[ano] || null;
+        if (!forcar && cache) aplicarUfemgState_({ ...cache, origem: cache.origem === 'oficial' ? 'cache_local' : (cache.origem || 'cache_local') });
+        else if (fallback) aplicarUfemgState_({ ano, ...fallback });
+        else aplicarUfemgState_({ ano, valor: null, origem: 'error' });
+
+        if (!navigator.onLine) {
+          if (ufemgRefreshBtn) ufemgRefreshBtn.disabled = false;
+          return;
+        }
+
+        try {
+          const resposta = await apiRequest('config', { consulta: 'ufemg', ano, forcar: Boolean(forcar) }, 35000);
+          const valor = Number(resposta?.valor);
+          if (!Number.isFinite(valor) || valor <= 0) throw new Error('Valor da UFEMG não retornado pela fonte oficial.');
+          const dados = {
+            ano: Number(resposta.ano || ano),
+            valor,
+            resolucao: String(resposta.resolucao || '').trim(),
+            origem: String(resposta.origem || 'oficial').trim().toLowerCase(),
+            consultadoEm: String(resposta.consultadoEm || new Date().toISOString()).trim()
+          };
+          salvarCacheUfemgLocal_(dados);
+          aplicarUfemgState_(dados);
+        } catch (erro) {
+          const salvo = lerCacheUfemgLocal_(ano);
+          if (salvo) aplicarUfemgState_({ ...salvo, origem: 'cache_local' });
+          else if (fallback) aplicarUfemgState_({ ano, ...fallback });
+          else aplicarUfemgState_({ ano, valor: null, origem: 'error' });
+        } finally {
+          if (ufemgRefreshBtn) ufemgRefreshBtn.disabled = false;
+        }
+      }
+
+      function abrirUfemg_() {
+        fecharMenuMais_();
+        fecharLinksUteis_();
+        if (!ufemgModal) return;
+        ufemgModal.hidden = false;
+        document.body.classList.add('useful-links-open');
+        const ano = new Date().getFullYear();
+        const salvo = lerCacheUfemgLocal_(ano);
+        const fallback = UFEMG_FALLBACK_LOCAL_[ano] || null;
+        if (salvo) aplicarUfemgState_({ ...salvo, origem: 'cache_local' });
+        else if (fallback) aplicarUfemgState_({ ano, ...fallback });
+        else aplicarUfemgState_({ ano, valor: null, origem: 'error' });
+        setTimeout(() => ufemgCloseBtn?.focus(), 0);
+        void carregarUfemg_(false);
+      }
+
+      function fecharUfemg_() {
+        if (ufemgModal) ufemgModal.hidden = true;
+        if (!usefulLinksModal || usefulLinksModal.hidden) document.body.classList.remove('useful-links-open');
+      }
+
       const REDS_MOBILE_SCHEME_ = 'com.sidsmobile://';
       const REDS_WEB_URL_ = 'https://web.sids.mg.gov.br/reds/';
 
@@ -21096,6 +21309,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       usefulLinksBtn?.addEventListener('click', abrirLinksUteis_);
       usefulLinksCloseBtn?.addEventListener('click', fecharLinksUteis_);
       usefulLinksModal?.addEventListener('click', event => { if (event.target === usefulLinksModal) fecharLinksUteis_(); });
+      ufemgMenuBtn?.addEventListener('click', abrirUfemg_);
+      ufemgUsefulLinkBtn?.addEventListener('click', abrirUfemg_);
+      ufemgCloseBtn?.addEventListener('click', fecharUfemg_);
+      ufemgModal?.addEventListener('click', event => { if (event.target === ufemgModal) fecharUfemg_(); });
+      ufemgRefreshBtn?.addEventListener('click', () => { void carregarUfemg_(true); });
+      ufemgAreaInput?.addEventListener('input', atualizarCalculadoraUfemg_);
+      ufemgSpecialF67?.addEventListener('change', atualizarCalculadoraUfemg_);
       redsMobileAppLink?.addEventListener('click', abrirRedsMobile_);
       atualizarVisibilidadeRedsMobile_();
       tutorialCloseBtn?.addEventListener('click', fecharTutorial_);
@@ -21307,7 +21527,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.addEventListener('click', fecharMenuMais_);
       document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharDiagnosticoApp_(); fecharCentralSincronizacao_(); fecharVisualizadorRetornoLiberacao_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharLinksUteis_(); }
+        if (event.key === 'Escape') { fecharAvisoAcessoGeral_(); fecharEscolhaMovel_(); fecharMenuMais_(); fecharTutorial_(); fecharDuvidas_(); fecharManualSistema_(); fecharDiagnosticoApp_(); fecharCentralSincronizacao_(); fecharVisualizadorRetornoLiberacao_(); fecharDetalheRegistro_(); fecharGerenciadorUsuarios_(); fecharSobreSistema_(); fecharUfemg_(); fecharLinksUteis_(); }
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => { void sincronizarTudoPendente_(false); });
@@ -21366,7 +21586,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dr', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ds', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
