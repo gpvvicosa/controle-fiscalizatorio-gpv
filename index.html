@@ -45,8 +45,8 @@
     })();
   </script>
   <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99cz">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99dn" media="(max-width: 899px)" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dn" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99do" media="(max-width: 899px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99do" media="(min-width: 900px)" fetchpriority="high">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <style id="gpv-critical-boot">
@@ -56,7 +56,7 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99dn") center 28%/cover no-repeat}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99do") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
     .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
     .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
@@ -70,7 +70,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99dn">
+  <link rel="stylesheet" href="styles.css?v=23.9.99do">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -447,9 +447,9 @@
 
         <section class="system-manual-section" id="manualSec4">
           <h3>4. Multas em aberto e regularização</h3>
-          <p>Uma edificação não é considerada Regularizada ou Liberada enquanto houver multa pendente.</p>
-          <p>O campo Situação de multa no INFOSCIP possui: Não conferido; Não possui multa em aberto; Possui multa em aberto.</p>
-          <p>Se houver multa ou a conferência ainda não tiver sido feita, a vistoria pode ser encerrada como pendente, sem liberar ou regularizar o processo.</p>
+          <p>A conferência de multa é exigida quando a edificação possui histórico anterior de Vistoria de Fiscalização registrado desde 02/07/2025.</p>
+          <p>Nesses casos, o campo Situação de multa no INFOSCIP possui: Não conferido; Não possui multa em aberto; Possui multa em aberto. Sem histórico fiscalizatório nesse período, o campo não é exigido.</p>
+          <p>Quando houver histórico fiscalizatório aplicável, se existir multa ou a conferência ainda não tiver sido feita, a vistoria pode ser encerrada como pendente, sem liberar ou regularizar o processo.</p>
           <p>Em nova vistoria de local anteriormente autuado, a conclusão como Regularizado, sem multa em aberto e com identificação segura do processo anterior, atualiza automaticamente o processo compatível.</p>
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
@@ -543,7 +543,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99dn.</div>
+        <div class="system-manual-revision">Última revisão: 02/09/2026 — V23.9.99do.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
       </div>
@@ -716,16 +716,16 @@
             <li><strong>Autuado:</strong> fiscalização inicial com irregularidade.</li>
             <li><strong>Advertência:</strong> evolução administrativa que o vistoriador registra no app após conferir a situação no INFOSCIP Fiscalização.</li>
             <li><strong>Vistoria Acessória:</strong> continua sendo Vistoria de Fiscalização, com <strong>Demanda = Vistoria Acessória</strong>, e exige vínculo com o PF anterior de local já autuado.</li>
-            <li><strong>Vistoria de Liberação:</strong> o resultado pretendido é <strong>Liberado</strong> ou <strong>Notificado</strong>. Se a liberação depender de conferência/quitação de multa, o app registra a pendência sem considerar o local Liberado.</li>
-            <li><strong>Regularizado:</strong> pendência de fiscalização encerrada, desde que não exista multa em aberto.</li>
+            <li><strong>Vistoria de Liberação:</strong> o resultado pretendido é <strong>Liberado</strong> ou <strong>Notificado</strong>. Se houver histórico de fiscalização desde 02/07/2025 e a liberação depender de conferência/quitação de multa, o app registra a pendência sem considerar o local Liberado.</li>
+            <li><strong>Regularizado:</strong> pendência de fiscalização encerrada. Quando houver histórico fiscalizatório anterior desde 02/07/2025, a conclusão depende também da conferência de multa no INFOSCIP.</li>
             <li><strong>Liberado:</strong> fluxo de liberação concluído.</li>
           </ul>
         </article>
         <article class="tutorial-step" data-tutorial-step="7">
           <div class="tutorial-step-icon">💳</div>
           <h3>7. Conferir multa no INFOSCIP</h3>
-          <p>O campo <strong>Situação de multa no INFOSCIP</strong> registra se a consulta foi feita. Para concluir como <strong>Regularizado</strong> ou <strong>Liberado</strong>, é necessário constar <strong>Não possui multa em aberto</strong>.</p>
-          <p class="tutorial-note">Se houver multa em aberto, a vistoria pode ser encerrada como <strong>Pendente — multa em aberto</strong>. Se a multa ainda não foi conferida, pode ser encerrada como <strong>Pendente — conferir multa no INFOSCIP</strong>.</p>
+          <p>O campo <strong>Situação de multa no INFOSCIP</strong> aparece quando a mesma edificação possui histórico anterior de <strong>Vistoria de Fiscalização desde 02/07/2025</strong>. Somente nesses casos, para concluir como <strong>Regularizado</strong> ou <strong>Liberado</strong>, é necessário constar <strong>Não possui multa em aberto</strong>.</p>
+          <p class="tutorial-note">Com histórico fiscalizatório aplicável, se houver multa em aberto, a vistoria pode ser encerrada como <strong>Pendente — multa em aberto</strong>. Se a multa ainda não foi conferida, pode ser encerrada como <strong>Pendente — conferir multa no INFOSCIP</strong>. Sem histórico desde 02/07/2025, essa pendência de conferência não é criada.</p>
         </article>
         <article class="tutorial-step" data-tutorial-step="8">
           <div class="tutorial-step-icon">⋯</div>
@@ -1076,7 +1076,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dn</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99do</div>
           </section>
         </div>
       </section>
@@ -1527,14 +1527,14 @@
               <div class="hint licensing-auto-note" id="sancaoAutomaticaHint" hidden>Autuado definido automaticamente porque foi informado que o local não possui AVCB ou CLCB.</div>
               <div class="hint">Autuado é a única sanção aplicada diretamente na vistoria. As demais evoluções administrativas são atualizadas na Ficha após conferência no INFOSCIP.</div>
             </div>
-            <div class="field" id="situacaoMultaInfoscipWrap">
+            <div class="field" id="situacaoMultaInfoscipWrap" hidden>
               <label class="required" for="situacaoMultaInfoscip">Situação de multa no INFOSCIP</label>
               <select id="situacaoMultaInfoscip" name="situacaoMultaInfoscip">
                 <option value="Não conferido">Não conferido</option>
                 <option value="Não possui multa em aberto">Não possui multa em aberto</option>
                 <option value="Possui multa em aberto">Possui multa em aberto</option>
               </select>
-              <div class="hint">Obrigatório para Liberação e para considerar o local Regularizado. Se houver pendência, a vistoria poderá ser encerrada sem liberar/regularizar.</div>
+              <div class="hint">Exibido somente quando houver histórico anterior de Vistoria de Fiscalização da mesma edificação desde 02/07/2025. Nesses casos, confira o INFOSCIP antes de concluir como Liberado ou Regularizado.</div>
             </div>
             <div class="field release-document-pending-field" id="pendenciaDocumentalWrap" hidden>
               <label class="required" for="pendenciaDocumental">Há pendência documental?</label>
@@ -2478,13 +2478,13 @@
     <picture class="gpv-splash-picture" aria-hidden="true">
       <source
         media="(min-width: 900px)"
-        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dn"
+        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99do"
         width="1672"
         height="941"
       >
       <img
         class="gpv-splash-art"
-        src="assets/splash-app-vistoriador.webp?v=23.9.99dn"
+        src="assets/splash-app-vistoriador.webp?v=23.9.99do"
         alt=""
         width="941"
         height="1672"
@@ -2636,12 +2636,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99dn — mantém os scripts após todos os modais e controles
+  <!-- V23.9.99do — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99dn"></script>
-  <script src="ocupacoes.js?v=23.9.99dn"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99dn"></script>
-  <script src="app.js?v=23.9.99dn"></script>
+  <script src="config.js?v=23.9.99do"></script>
+  <script src="ocupacoes.js?v=23.9.99do"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99do"></script>
+  <script src="app.js?v=23.9.99do"></script>
 
 </body>
 </html>

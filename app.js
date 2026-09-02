@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dn';
+      const APP_VERSION = '23.9.99do';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2344,7 +2344,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dn';
+      const APP_REVISION_UI_ = '23.9.99do';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4377,7 +4377,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dn', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99do', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4483,6 +4483,10 @@
       let processoPfLookupSequencia = 0;
       let processoPfCandidatos = [];
       let processoPfAutoAtual = '';
+      // V23.9.99do — a conferência de multa só se aplica quando o servidor
+      // confirma histórico anterior de Vistoria de Fiscalização desde 02/07/2025.
+      let processoTemHistoricoFiscalizacaoValido = false;
+      let processoHistoricoFiscalizacaoConsultado = false;
       let preparePfLookupTimer = null;
       let preparePfLookupSequencia = 0;
       let preparePfCandidatos = [];
@@ -8865,9 +8869,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
         if (historico || !usuarioPodeOperar_()) return [];
         const atual = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '');
-        // Se a linha já representa uma evolução administrativa (Advertência ou pendência
-        // de multa), não sobrescrevemos esse estado para “corrigir” o resultado antigo.
-        if (atual === normalize('Advertência') || atual.startsWith(normalize('Pendente'))) return [];
+        // V23.9.99do — uma antiga “Pendente — conferir multa no INFOSCIP” pode
+        // ter sido criada pela regra anterior mesmo sem histórico fiscalizatório. Nessa
+        // situação específica a correção volta a ficar disponível; o backend só aceita
+        // Liberado/Regularizado se comprovar que não havia fiscalização anterior válida.
+        const pendenteConferirSemRegraNova = atual === normalize('Pendente — conferir multa no INFOSCIP');
+        if (atual === normalize('Advertência') || (atual.startsWith(normalize('Pendente')) && !pendenteConferirSemRegraNova)) return [];
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const liberacao = tipo ? tipo.includes(normalize('Liberação')) : demanda.includes(normalize('Liberação'));
@@ -10388,7 +10395,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (enderecoCorrespondenciaWrap) enderecoCorrespondenciaWrap.hidden = evento;
         if (responsavelSecao) responsavelSecao.hidden = !fluxo;
         if (edificacaoSecao) edificacaoSecao.hidden = evento || !fluxo;
-        if (situacaoMultaInfoscipWrap) situacaoMultaInfoscipWrap.hidden = evento;
+        atualizarVisibilidadeConferenciaMulta_();
         if (categoriaMetaWrap) categoriaMetaWrap.hidden = evento;
 
         if (estabelecimentoTitulo) estabelecimentoTitulo.textContent = evento ? '3. Local do evento' : '2. Identificação e dados do estabelecimento';
@@ -12481,10 +12488,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return 'Não conferido';
       }
 
+      function exigeConferenciaMultaPorHistorico_() {
+        return Boolean(processoHistoricoFiscalizacaoConsultado && processoTemHistoricoFiscalizacaoValido);
+      }
+
+      function atualizarVisibilidadeConferenciaMulta_() {
+        if (!situacaoMultaInfoscipWrap) return;
+        const evento = ehEventoDeclaratorio_();
+        const exige = !evento && exigeConferenciaMultaPorHistorico_();
+        situacaoMultaInfoscipWrap.hidden = !exige;
+        if (!exige && situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
+      }
+
       function situacaoFinalPorMulta_(sancaoPretendida, situacaoMulta) {
         const pretendida = String(sancaoPretendida || '').trim();
         const n = normalize(pretendida);
         if (n !== normalize('Regularizado') && n !== normalize('Liberado')) return pretendida;
+        // V23.9.99do — sem histórico fiscalizatório anterior válido não há motivo
+        // para criar a situação “Pendente — conferir multa no INFOSCIP”. O backend
+        // repete esta validação antes da gravação e permanece como fonte de verdade.
+        if (!exigeConferenciaMultaPorHistorico_()) return pretendida;
         const multa = normalizarSituacaoMultaInfoscip_(situacaoMulta);
         if (multa === 'Não possui multa em aberto') return pretendida;
         if (multa === 'Possui multa em aberto') return 'Pendente — multa em aberto';
@@ -12516,6 +12539,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           _appAcessoriaPfVinculado: acessoria ? String(processoAcessoriaVinculado?.pf || '') : '',
           _appAcessoriaSituacaoAnterior: acessoria ? String(processoAcessoriaVinculado?.sancao || '') : '',
           _appVersao: APP_VERSION,
+          _appRegraMultaHistorico: 'sim',
           vistoriadorResponsavel: value('vistoriadorResponsavel'),
           cidade: cityValue() || 'Viçosa',
           nomeFantasia: eventoDeclaratorio ? value('eventoNome') : value('nomeFantasia'),
@@ -15786,6 +15810,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (prepare) preparePfCandidatos = [];
         else {
           processoPfCandidatos = [];
+          processoTemHistoricoFiscalizacaoValido = false;
+          processoHistoricoFiscalizacaoConsultado = false;
+          atualizarVisibilidadeConferenciaMulta_();
           renderizarAlertaProcessoAnterior_([]);
         }
       }
@@ -15944,9 +15971,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if ((prepare ? preparePfLookupSequencia : processoPfLookupSequencia) !== seq) return;
           if (chaveFiltrosProcessoPf_(filtrosProcessoPf_(origem)) !== chave) return;
           const candidatos = Array.isArray(resposta?.candidatos) ? resposta.candidatos : [];
+          if (!prepare) {
+            processoTemHistoricoFiscalizacaoValido = Boolean(resposta?.temHistoricoFiscalizacao);
+            processoHistoricoFiscalizacaoConsultado = true;
+            atualizarVisibilidadeConferenciaMulta_();
+          }
           renderizarCandidatosProcessoPf_(origem, candidatos);
         } catch (erro) {
           if ((prepare ? preparePfLookupSequencia : processoPfLookupSequencia) !== seq) return;
+          if (!prepare) {
+            processoTemHistoricoFiscalizacaoValido = false;
+            processoHistoricoFiscalizacaoConsultado = false;
+            atualizarVisibilidadeConferenciaMulta_();
+          }
           if (status) { status.textContent = erro?.message || 'Não foi possível pesquisar o Nº do PF agora.'; status.className = 'lookup-status show error'; }
         }
       }
@@ -15960,6 +15997,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } else {
           clearTimeout(processoPfLookupTimer);
           processoPfLookupSequencia += 1;
+          // Evita reutilizar a regra de multa do estabelecimento anterior enquanto
+          // CNPJ/PSCIP/endereço da nova consulta ainda estão sendo digitados.
+          processoTemHistoricoFiscalizacaoValido = false;
+          processoHistoricoFiscalizacaoConsultado = false;
+          atualizarVisibilidadeConferenciaMulta_();
           processoPfLookupTimer = setTimeout(() => consultarProcessoPf_('form'), atraso);
         }
       }
@@ -21023,7 +21065,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dn', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99do', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
