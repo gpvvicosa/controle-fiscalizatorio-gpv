@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dj';
+      const APP_VERSION = '23.9.99dk';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2344,7 +2344,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dj';
+      const APP_REVISION_UI_ = '23.9.99dk';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3258,10 +3258,11 @@
         const consulta = !usuarioPodeOperar_();
         document.body.classList.toggle('access-geral', consulta);
 
+        // V23.9.99dk — o perfil GERAL mantém o menu de consulta e apoio
+        // visível. Permanecem ocultas apenas ações administrativas ou que
+        // dependem de gravação operacional real.
         const ocultarOperacional = [
           registerDduBtn,
-          usefulLinksBtn,
-          aboutSystemBtn,
           manageUsersBtn,
           redsTemplatesMenuBtn,
           loggedUserBadge,
@@ -3285,6 +3286,9 @@
         if (dashboardNewInspectionBtn) dashboardNewInspectionBtn.hidden = false;
         if (prepareInspectionBtn) prepareInspectionBtn.hidden = false;
         if (desktopPrepareInspectionBtn) desktopPrepareInspectionBtn.hidden = false;
+        // Recursos de consulta/apoio também devem ficar disponíveis ao GERAL.
+        if (usefulLinksBtn) usefulLinksBtn.hidden = false;
+        if (aboutSystemBtn) aboutSystemBtn.hidden = false;
         if (!consulta) {
           // Elementos condicionais são reexibidos pelas rotinas próprias quando aplicável.
           if (registerDduBtn) registerDduBtn.hidden = false;
@@ -4373,7 +4377,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dj', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dk', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21019,7 +21023,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dj', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dk', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
