@@ -13498,6 +13498,16 @@ body.app-alerts-open{overflow:hidden}
 .location-map-meta strong{display:block;color:#2c3e55;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
 .location-map-frame-shell{position:relative;width:100%;height:240px;background:#eef2f5}
 .location-map-frame{display:block;width:100%;height:100%;border:0;background:#eef2f5}
+/* V23.9.99dq — mapa de ruas + visualização de satélite */
+.location-map-layer-switch{display:flex;gap:6px;padding:8px 10px;border-top:1px solid #e4e9ef;background:#f7f9fb}
+.location-map-layer-btn{appearance:none;border:1px solid #ccd6e2;border-radius:9px;background:#fff;color:#44556b;padding:7px 13px;font:800 10px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+.location-map-layer-btn.is-active{border-color:#7d151b;background:#7d151b;color:#fff;box-shadow:0 2px 8px rgba(125,21,27,.16)}
+.location-map-layer-btn:focus-visible{outline:3px solid rgba(125,21,27,.18);outline-offset:2px}
+.location-map-view{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:#eef2f5}
+.location-map-view[hidden]{display:none!important}
+.location-map-satellite{display:block;width:100%;height:100%;object-fit:cover;background:#d9e1e7}
+.location-map-center-marker{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-100%);border-radius:50% 50% 50% 0;background:#8fcf2c;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);rotate:-45deg}
+.location-map-center-marker::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
 .location-map-offline{
   display:flex;
   flex-direction:column;

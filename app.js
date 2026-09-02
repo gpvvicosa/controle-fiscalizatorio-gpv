@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dp';
+      const APP_VERSION = '23.9.99dq';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1068,7 +1068,7 @@
         const p = item?.payload || {};
         const evento = normalize(p.demandaPrincipal) === normalize('Eventos declaratórios') || Boolean(String(p.eventoDeclaracaoNumero || '').trim());
         const liberacao = normalize(p.tipoVistoria).includes('liberacao');
-        const temGps = Boolean(String(p.localizacaoCoordenadas || '').trim() || (String(p.localizacaoLatitude || '').trim() && String(p.localizacaoLongitude || '').trim()));
+        const temGps = Boolean(extrairCoordenadasMapa_(p.localizacaoLatitude, p.localizacaoLongitude, p.localizacaoCoordenadas));
         const temEndereco = Boolean(String(p.endereco || '').trim() && (String(p.numero || '').trim() || temGps));
         const identificacao = evento
           ? Boolean(String(p.eventoNome || p.nomeFantasia || '').trim() && String(p.eventoDeclaracaoNumero || '').trim())
@@ -2351,7 +2351,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dp';
+      const APP_REVISION_UI_ = '23.9.99dq';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4384,7 +4384,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dp', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dq', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4490,7 +4490,7 @@
       let processoPfLookupSequencia = 0;
       let processoPfCandidatos = [];
       let processoPfAutoAtual = '';
-      // V23.9.99dp — a conferência de multa só se aplica quando o servidor
+      // V23.9.99dq — a conferência de multa só se aplica quando o servidor
       // confirma histórico anterior de Vistoria de Fiscalização desde 02/07/2025.
       let processoTemHistoricoFiscalizacaoValido = false;
       let processoHistoricoFiscalizacaoConsultado = false;
@@ -4769,7 +4769,9 @@
       }
 
 
-      // V23.9.99cm — mapa de conferência geográfica sem chave de API.
+      // V23.9.99dq — coordenadas vazias nunca podem virar 0,0.
+      // O par 0,0 é tratado como ausência de captura porque foi gerado por versões
+      // anteriores ao converter campos vazios com Number('').
       function extrairCoordenadasMapa_(latitude, longitude, coordenadas) {
         const converter = valor => {
           const texto = String(valor == null ? '' : valor).trim().replace(',', '.');
@@ -4791,6 +4793,7 @@
 
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
         if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+        if (Math.abs(lat) < 1e-12 && Math.abs(lon) < 1e-12) return null;
         return { lat, lon };
       }
 
@@ -4804,7 +4807,7 @@
         if (!texto) return '';
         if (/m(?:etros?)?\b/i.test(texto)) return texto;
         const numero = Number(texto.replace(',', '.'));
-        return Number.isFinite(numero) ? `${Math.round(numero)} m` : texto;
+        return Number.isFinite(numero) && numero > 0 ? `${Math.round(numero)} m` : '';
       }
 
       function montarMapaLocalizacao_(opcoes = {}) {
@@ -4819,8 +4822,12 @@
         const maxLat = (coordenadas.lat + deltaLat).toFixed(6);
         const lat = coordenadas.lat.toFixed(6);
         const lon = coordenadas.lon.toFixed(6);
-        const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${minLon},${minLat},${maxLon},${maxLat}`)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lon}`)}`;
+        const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+        const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lon}`)}`;
         const abrirUrl = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}#map=18/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
+        // Esri World Imagery: imagem de satélite sem necessidade de chave no PWA.
+        // O marcador permanece no centro porque o bbox é construído ao redor da coordenada registrada.
+        const sateliteUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=1200%2C600&format=png32&transparent=false&f=image`;
         const precisao = formatarPrecisaoGpsMapa_(opcoes.precisao);
         const endereco = String(opcoes.endereco || '').trim();
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
@@ -4843,13 +4850,49 @@
           </div>
           ${offline
             ? `<div class="location-map-offline"><strong>Mapa indisponível offline.</strong><span>As coordenadas permanecem preservadas no registro.</span></div>`
-            : `<div class="location-map-frame-shell"><iframe class="location-map-frame" src="${escapeAttr(embedUrl)}" title="Mapa da localização da vistoria" loading="lazy" referrerpolicy="no-referrer"></iframe></div>`}
+            : `<div class="location-map-layer-switch" role="group" aria-label="Tipo de visualização do mapa">
+                <button type="button" class="location-map-layer-btn is-active" data-location-map-layer="street" aria-pressed="true">Mapa</button>
+                <button type="button" class="location-map-layer-btn" data-location-map-layer="satellite" aria-pressed="false">Satélite</button>
+              </div>
+              <div class="location-map-frame-shell">
+                <div class="location-map-view is-active" data-location-map-view="street">
+                  <iframe class="location-map-frame" src="${escapeAttr(embedUrl)}" title="Mapa da localização da vistoria" loading="lazy" referrerpolicy="no-referrer"></iframe>
+                </div>
+                <div class="location-map-view" data-location-map-view="satellite" hidden>
+                  <img class="location-map-satellite" data-location-map-satellite-src="${escapeAttr(sateliteUrl)}" alt="Imagem de satélite da localização registrada" loading="lazy" referrerpolicy="no-referrer">
+                  <span class="location-map-center-marker" aria-hidden="true"></span>
+                </div>
+              </div>`}
           <div class="location-map-actions">
-            <small>${offline ? 'O mapa poderá ser consultado quando houver internet.' : 'Mapa fornecido pelo OpenStreetMap. Requer conexão com a internet.'}</small>
+            <small>${offline ? 'O mapa poderá ser consultado quando houver internet.' : 'Mapa: OpenStreetMap · Satélite: Esri World Imagery. Requer conexão com a internet.'}</small>
             <a href="${escapeAttr(abrirUrl)}" target="_blank" rel="noopener noreferrer">Abrir localização no mapa ↗</a>
           </div>
         </section>`;
       }
+
+      // V23.9.99dq — alternância leve entre mapa de ruas e imagem de satélite.
+      // A imagem de satélite só é carregada quando o usuário realmente a solicita.
+      document.addEventListener('click', event => {
+        const botao = event.target.closest?.('[data-location-map-layer]');
+        if (!botao) return;
+        const card = botao.closest('.location-map-card');
+        if (!card) return;
+        const camada = String(botao.dataset.locationMapLayer || 'street');
+        card.querySelectorAll('[data-location-map-layer]').forEach(item => {
+          const ativo = item === botao;
+          item.classList.toggle('is-active', ativo);
+          item.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        });
+        card.querySelectorAll('[data-location-map-view]').forEach(view => {
+          const ativo = String(view.dataset.locationMapView || '') === camada;
+          view.classList.toggle('is-active', ativo);
+          view.hidden = !ativo;
+          if (ativo && camada === 'satellite') {
+            const imagem = view.querySelector('[data-location-map-satellite-src]');
+            if (imagem && !imagem.getAttribute('src')) imagem.setAttribute('src', imagem.dataset.locationMapSatelliteSrc || '');
+          }
+        });
+      });
 
       /* V23.9.53 — seletor móvel padronizado com gesto seguro.
          Em telas pequenas, selects e campos com datalist abrem em uma folha inferior
@@ -8961,7 +9004,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
         if (historico || !usuarioPodeOperar_()) return [];
         const atual = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '');
-        // Compatibilidade com registros ainda não migrados pela V23.9.99dp.
+        // Compatibilidade com registros ainda não migrados pela V23.9.99dq.
         const pendenteMultaLegado = [normalize('Pendente — conferir multa no INFOSCIP'), normalize('Pendente — multa em aberto')].includes(atual);
         if (atual === normalize('Advertência') || (atual.startsWith(normalize('Pendente')) && !pendenteMultaLegado)) return [];
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
@@ -9508,7 +9551,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ...(origemFichaRotulo ? [['Origem', origemFichaRotulo]] : []),
               ...(capturadaEmFicha ? [['Capturada em', capturadaEmFicha]] : [])
             ]
-          : (localizacaoBruta ? [['Coordenadas', localizacaoBruta]] : []);
+          : [['Situação', 'Localização não capturada nesta vistoria']];
         const mapaLocalizacaoFicha = coordenadasFicha
           ? montarMapaLocalizacao_({
               latitude: coordenadasFicha.lat,
@@ -9592,7 +9635,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           montarGrupoFicha_('Processo', processo) +
           montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
           montarGrupoFicha_('Edificação', local) +
-          montarGrupoFicha_('Localização capturada', localizacao, 'record-location-captured') +
+          montarGrupoFicha_('Localização', localizacao, 'record-location-captured') +
           mapaLocalizacaoFicha +
           montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel);
 
@@ -12579,7 +12622,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function exigeConferenciaMultaPorHistorico_() {
-        // V23.9.99dp — a nova vistoria não bloqueia o resultado para pedir consulta.
+        // V23.9.99dq — a nova vistoria não bloqueia o resultado para pedir consulta.
         // A conferência ocorre na Ficha da fiscalização anterior somente quando o
         // histórico/prazo indicar possível multa.
         return false;
@@ -13716,16 +13759,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function coordenadaDecimalTexto_(valor) {
-        const numero = Number(valor);
+        const texto = String(valor == null ? '' : valor).trim().replace(',', '.');
+        if (!texto) return '';
+        const numero = Number(texto);
         if (!Number.isFinite(numero)) return '';
         return String(numero);
       }
 
       function localizacaoValidaFormulario_() {
-        const lat = Number(localizacaoLatitudeInput?.value);
-        const lon = Number(localizacaoLongitudeInput?.value);
-        return Number.isFinite(lat) && Number.isFinite(lon) &&
-          lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+        return Boolean(extrairCoordenadasMapa_(
+          localizacaoLatitudeInput?.value,
+          localizacaoLongitudeInput?.value,
+          localizacaoCoordenadasInput?.value
+        ));
       }
 
       function limparStatusLocalizacao_() {
@@ -14337,14 +14383,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
             const lat = coordenadaDecimalTexto_(posicao?.coords?.latitude);
             const lon = coordenadaDecimalTexto_(posicao?.coords?.longitude);
-            if (!lat || !lon) {
+            if (!extrairCoordenadasMapa_(lat, lon, '')) {
               resolve(false);
               return;
             }
             if (localizacaoLatitudeInput) localizacaoLatitudeInput.value = lat;
             if (localizacaoLongitudeInput) localizacaoLongitudeInput.value = lon;
             if (localizacaoCoordenadasInput) localizacaoCoordenadasInput.value = `${lat}, ${lon}`;
-            if (localizacaoPrecisaoInput) localizacaoPrecisaoInput.value = Number.isFinite(Number(posicao?.coords?.accuracy))
+            if (localizacaoPrecisaoInput) localizacaoPrecisaoInput.value = Number.isFinite(Number(posicao?.coords?.accuracy)) && Number(posicao.coords.accuracy) > 0
               ? String(Math.round(Number(posicao.coords.accuracy)))
               : '';
             if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
@@ -14388,7 +14434,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const lat = coordenadaDecimalTexto_(posicao?.coords?.latitude);
           const lon = coordenadaDecimalTexto_(posicao?.coords?.longitude);
 
-          if (!lat || !lon) {
+          if (!extrairCoordenadasMapa_(lat, lon, '')) {
             mostrarStatusLocalizacao_(
               '<strong>Não foi possível obter a localização.</strong><div>Tente novamente em um local com melhor recepção do GPS.</div>',
               'error'
@@ -14397,7 +14443,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (localizacaoLatitudeInput) localizacaoLatitudeInput.value = lat;
             if (localizacaoLongitudeInput) localizacaoLongitudeInput.value = lon;
             if (localizacaoCoordenadasInput) localizacaoCoordenadasInput.value = `${lat}, ${lon}`;
-            if (localizacaoPrecisaoInput) localizacaoPrecisaoInput.value = Number.isFinite(Number(posicao?.coords?.accuracy))
+            if (localizacaoPrecisaoInput) localizacaoPrecisaoInput.value = Number.isFinite(Number(posicao?.coords?.accuracy)) && Number(posicao.coords.accuracy) > 0
               ? String(Math.round(Number(posicao.coords.accuracy)))
               : '';
             if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
@@ -16565,13 +16611,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const situacaoPretendida = String(payload?._appSancaoPretendida || payload?.sancao || '—').trim() || '—';
         const estabelecimento = String(payload?.nomeFantasia || payload?.razaoSocial || payload?.eventoNome || '—').trim() || '—';
         const enderecoCompleto = [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ')
-          || (String(payload?.localizacaoCoordenadas || '').trim() ? 'Localização capturada — endereço ainda não identificado' : '—');
+          || (extrairCoordenadasMapa_(payload?.localizacaoLatitude, payload?.localizacaoLongitude, payload?.localizacaoCoordenadas)
+            ? 'Localização capturada — endereço ainda não identificado' : '—');
         const coordenadasMapaRevisao = extrairCoordenadasMapa_(
           payload?.localizacaoLatitude,
           payload?.localizacaoLongitude,
           payload?.localizacaoCoordenadas
         );
-        const gpsCapturado = Boolean(String(payload?.localizacaoCoordenadas || '').trim() || coordenadasMapaRevisao);
+        const gpsCapturado = Boolean(coordenadasMapaRevisao);
         const precisaoGps = String(payload?.localizacaoPrecisao || '').trim();
         const origemLocalizacaoBrutaRevisao = normalize(payload?.localizacaoOrigem || '');
         const origemLocalizacaoRevisao = origemLocalizacaoBrutaRevisao === normalize('mapa')
@@ -21158,7 +21205,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dp', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
