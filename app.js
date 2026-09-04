@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dz';
+      const APP_VERSION = '23.9.99ea';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2127,6 +2127,7 @@
       const possuiPscipFieldWrap = document.getElementById('possuiPscipFieldWrap');
       const fluxoFiscalizacaoBtn = document.getElementById('fluxoFiscalizacaoBtn');
       const fluxoLiberacaoBtn = document.getElementById('fluxoLiberacaoBtn');
+      const fluxoPetBtn = document.getElementById('fluxoPetBtn');
       const fluxoVistoriaAtualTexto = document.getElementById('fluxoVistoriaAtualTexto');
       const vistoriaFlowSections = Array.from(document.querySelectorAll('.vistoria-flow-section'));
       const vistoriaBottomBar = document.getElementById('vistoriaBottomBar');
@@ -2361,6 +2362,7 @@
       let metasCarregando = false;
       let preparacaoEditandoId = '';
       let preparacaoCadastroIdPendente = '';
+      let prepareNomeFantasiaCnpjSugerido_ = '';
       let preparacaoRetornarProgramadas = false;
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
@@ -2389,7 +2391,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dz';
+      const APP_REVISION_UI_ = '23.9.99ea';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4422,7 +4424,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dz', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ea', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4806,7 +4808,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99dy — padronização visual/cadastral sem inventar acentos.
+      // V23.9.99ea — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4835,6 +4837,13 @@
         const rodovia = nucleo.match(/^([A-Za-zÀ-ÖØ-öø-ÿ]{1,5})-(\d[0-9A-Za-z.-]*)$/u);
         if (rodovia && ['br','mg'].includes(normalize(rodovia[1]))) {
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
+        }
+
+        // V23.9.99ea — números romanos válidos permanecem sempre em maiúsculas.
+        // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
+        const romano = nucleo.toLocaleUpperCase('pt-BR');
+        if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
+          return prefixo + romano + sufixo;
         }
 
         const chavePalavra = normalize(nucleo).replace(/[^a-z]/g, '');
@@ -8016,6 +8025,18 @@ ORIENTAMOS O RESPONSÁVEL QUE QUALQUER ALTERAÇÃO NO LAYOUT DA EDIFICAÇÃO OU 
 
 O RESPONSÁVEL FOI AINDA ORIENTADO A MANTER, EM CONDIÇÕES PERMANENTES DE USO, O SISTEMA PREVENTIVO DE COMBATE A INCÊNDIO NA EDIFICAÇÃO E, CASO DEIXE DE FAZÊ-LO, INCORRERÁ NAS SANÇÕES PREVISTAS NA LEI ESTADUAL Nº 14.130/2001.`
         },
+        pet: {
+          titulo: 'PET — liberação e emissão de AVCB',
+          texto: `COMPARECEMOS AO ENDEREÇO CITADO NESTE REDS PARA FINS DE LIBERAÇÃO E EMISSÃO DE AVCB. NO LOCAL, CONSTATOU-SE CONSTRUÇÃO PROVISÓRIA DESTINADA AO EVENTO “{{EVENTO_NOME}}”, OCUPAÇÃO {{OCUPACAO}}, SOB RESPONSABILIDADE DE {{EVENTO_RESPONSAVEL}}. (CNPJ Nº {{EVENTO_DOCUMENTO}}), VINCULADA AO PSCIP Nº {{PSCIP}}.
+
+EM VISTORIA, VERIFICOU-SE QUE OS SISTEMAS PREVENTIVOS — PROTEÇÃO POR EXTINTORES, SINALIZAÇÃO E ILUMINAÇÃO DE EMERGÊNCIA, ROTAS DE FUGA E DEMAIS EXIGÊNCIAS — ESTÃO EM CONFORMIDADE COM O PSCIP E COM AS NORMAS VIGENTES.
+
+DIANTE DISSO, COM BASE NO ART. 2º DA LEI ESTADUAL Nº 14.130/2001, O EVENTO ESTÁ LIBERADO PARA FUNCIONAMENTO, CONFORME PROJETO APROVADO, COM PÚBLICO MÁXIMO DE {{PUBLICO_MAXIMO}} PESSOAS.
+
+OS RESPONSÁVEIS DEVEM MANTER TODAS AS MEDIDAS DE SEGURANÇA EM CONDIÇÕES DE USO, GARANTINDO SAÍDAS DESOBSTRUÍDAS E PRESERVAÇÃO DO LAYOUT APROVADO, SOB PENA DE SANÇÕES LEGAIS.
+
+OBSERVAÇÃO: AVCB VÁLIDO ATÉ {{VALIDADE_AVCB_PET}}.`
+        },
         notificado: {
           titulo: 'Notificado em vistoria de liberação',
           texto: `EM ATENDIMENTO À SOLICITAÇÃO DE VISTORIA FINAL PARA EMISSÃO DO AUTO DE VISTORIA DO CORPO DE BOMBEIROS (AVCB), DESLOCAMOS ATÉ O ENDEREÇO INFORMADO NESTE REDS. NO LOCAL TRATA-SE DE EDIFICAÇÃO VINCULADA AO PSCIP Nº {{PSCIP}}.
@@ -8202,6 +8223,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         { id: 'liberacao.liberado', grupo: 'Liberação', grupoId: 'liberacao', chave: 'liberado', titulo: RELATORIOS_REDS_LIBERACAO.liberado.titulo },
         { id: 'liberacao.liberadoPendencia', grupo: 'Liberação', grupoId: 'liberacao', chave: 'liberadoPendencia', titulo: RELATORIOS_REDS_LIBERACAO.liberadoPendencia.titulo },
         { id: 'liberacao.parcial', grupo: 'Liberação', grupoId: 'liberacao', chave: 'parcial', titulo: RELATORIOS_REDS_LIBERACAO.parcial.titulo },
+        { id: 'liberacao.pet', grupo: 'Liberação', grupoId: 'liberacao', chave: 'pet', titulo: RELATORIOS_REDS_LIBERACAO.pet.titulo },
         { id: 'liberacao.notificado', grupo: 'Liberação', grupoId: 'liberacao', chave: 'notificado', titulo: RELATORIOS_REDS_LIBERACAO.notificado.titulo },
 
         { id: 'fiscalizacao.ddu', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'ddu', titulo: RELATORIOS_REDS_FISCALIZACAO.ddu.titulo },
@@ -8236,6 +8258,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         '{{EVENTO_NOME}}': 'EVENTO DE EXEMPLO',
         '{{EVENTO_ORGANIZADOR}}': 'ORGANIZADOR DE EXEMPLO',
         '{{EVENTO_DOCUMENTO}}': '00.000.000/0001-00',
+        '{{EVENTO_RESPONSAVEL}}': 'Prefeitura Municipal de São Geraldo',
+        '{{PUBLICO_MAXIMO}}': '5799',
+        '{{VALIDADE_AVCB_PET}}': '19/07/2026',
         '{{AREA_PARCIAL_DESC}}': 'O PAVIMENTO TÉRREO',
         '{{AREA_PARCIAL}}': '420'
       });
@@ -8597,8 +8622,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const n = normalize(situacao);
         const tipoLiberacao = normalize(valorCampoFicha_(registro, 'Tipo da liberação'));
         const parcial = tipoLiberacao === normalize('Parcial');
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const pet = demanda.includes(normalize('PET'));
         if (n === normalize('Notificado')) return parcial ? null : modeloRedsEfetivo_('liberacao', 'notificado');
         if (n !== normalize('Liberado')) return null;
+        if (pet) return modeloRedsEfetivo_('liberacao', 'pet');
         if (parcial) return modeloRedsEfetivo_('liberacao', 'parcial');
         const pendencia = normalize(valorCampoFicha_(registro, 'Pendência documental'));
         return pendencia === normalize('Sim')
@@ -8843,11 +8871,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           preencherSelectModelosReds_(true, registro, situacao);
           const areaDesc = String(valorCampoFicha_(registro, 'Área/trecho liberado') || 'A ÁREA INFORMADA').toUpperCase();
           const areaParcial = valorCampoFicha_(registro, 'Área liberada parcialmente (m²)') || 'NÃO INFORMADA';
+          const eventoNomePet = padronizarTextoCadastroCliente_(valorCampoFicha_(registro, 'Nome do evento') || valorCampoFicha_(registro, 'Nome Fantasia') || 'NÃO INFORMADO');
+          const eventoResponsavelPet = padronizarTextoCadastroCliente_(valorCampoFicha_(registro, 'Razão Social') || valorCampoFicha_(registro, 'Organizador do evento') || 'NÃO INFORMADO');
+          const eventoDocumentoPet = valorCampoFicha_(registro, 'CNPJ') || valorCampoFicha_(registro, 'CPF/CNPJ do organizador') || 'NÃO INFORMADO';
+          const publicoMaximoPet = valorCampoFicha_(registro, 'Público máximo do PET') || valorCampoFicha_(registro, 'Público estimado') || 'NÃO INFORMADO';
+          const validadePetBruta = valorCampoFicha_(registro, 'Validade do AVCB do PET') || '';
+          const validadeAvcbPet = validadePetBruta ? formatarDataPainel_(validadePetBruta) : 'NÃO INFORMADA';
+          const ocupacaoPet = codigosOcupacaoRelatorio_(valorCampoFicha_(registro, 'Ocupação')) || 'NÃO INFORMADO';
           recordRedsReportModel.textContent = modelo.titulo;
           recordRedsReportText.value = modelo.texto
             .replaceAll('{{PSCIP}}', pscip || 'NÃO INFORMADO')
             .replaceAll('{{AREA_PARCIAL_DESC}}', areaDesc)
-            .replaceAll('{{AREA_PARCIAL}}', areaParcial);
+            .replaceAll('{{AREA_PARCIAL}}', areaParcial)
+            .replaceAll('{{EVENTO_NOME}}', eventoNomePet || 'NÃO INFORMADO')
+            .replaceAll('{{EVENTO_RESPONSAVEL}}', eventoResponsavelPet || 'NÃO INFORMADO')
+            .replaceAll('{{EVENTO_DOCUMENTO}}', eventoDocumentoPet)
+            .replaceAll('{{OCUPACAO}}', ocupacaoPet)
+            .replaceAll('{{PUBLICO_MAXIMO}}', publicoMaximoPet)
+            .replaceAll('{{VALIDADE_AVCB_PET}}', validadeAvcbPet);
         } else {
           const escolhido = preencherSelectModelosReds_(false, registro, situacao);
           if (!escolhido) {
@@ -10998,14 +11039,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!consultaTecnicaSecao || !consultaTecnicaRelacionadas) return;
         const fluxo = fluxoVistoriaAtual_();
         const evento = fluxo === 'fiscalizacao' && ehEventoDeclaratorio_();
+        const pet = ehPet_();
         consultaTecnicaSecao.hidden = !fluxo;
         if (!fluxo) return;
 
         const itens = [];
-        if (evento) {
+        if (evento || pet) {
           itens.push([33, 'Eventos Temporários', 'Requisitos próprios dos eventos temporários']);
-          itens.push([45, 'Fiscalização', 'Fiscalização em eventos temporários']);
-          if (consultaTecnicaDescricao) consultaTecnicaDescricao.textContent = 'Atalhos relacionados ao evento declaratório atual. A consulta não altera o preenchimento da vistoria.';
+          if (evento || fluxo === 'fiscalizacao') itens.push([45, 'Fiscalização', 'Fiscalização em eventos temporários']);
+          if (consultaTecnicaDescricao) consultaTecnicaDescricao.textContent = pet
+            ? 'Atalhos relacionados ao PET atual. A consulta não altera o preenchimento da vistoria.'
+            : 'Atalhos relacionados ao evento declaratório atual. A consulta não altera o preenchimento da vistoria.';
         } else if (fluxo === 'fiscalizacao') {
           itens.push([45, 'Fiscalização', 'Procedimentos de fiscalização']);
           if (consultaTecnicaDescricao) consultaTecnicaDescricao.textContent = 'Acesso rápido à norma de fiscalização e às medidas de segurança mais consultadas em campo.';
@@ -11024,29 +11068,81 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function aplicarModoEventoDeclaratorio_(opcoes = {}) {
         const fluxo = fluxoVistoriaAtual_();
         const evento = fluxo === 'fiscalizacao' && normalize(value('demandaPrincipal')) === normalize('Eventos declaratórios');
-        if (eventosDeclaratoriosSecao) eventosDeclaratoriosSecao.hidden = !evento;
+        const pet = normalize(value('demandaPrincipal')) === normalize('PET');
+        const eventoTemporario = evento || pet;
+
+        if (eventosDeclaratoriosSecao) eventosDeclaratoriosSecao.hidden = !eventoTemporario;
+        if (fluxoPetBtn) {
+          fluxoPetBtn.classList.toggle('is-active', pet && fluxo === 'liberacao');
+          fluxoPetBtn.setAttribute('aria-pressed', pet && fluxo === 'liberacao' ? 'true' : 'false');
+        }
+        if (fluxo === 'liberacao') {
+          fluxoLiberacaoBtn?.classList.toggle('is-active', !pet);
+          fluxoLiberacaoBtn?.setAttribute('aria-pressed', pet ? 'false' : 'true');
+        }
         if (demandaFiscalizacaoWrap) demandaFiscalizacaoWrap.hidden = !fluxo;
         if (licenciamentoFieldWrap) licenciamentoFieldWrap.hidden = fluxo === 'liberacao' || evento;
         if (possuiPscipFieldWrap) possuiPscipFieldWrap.hidden = fluxo === 'liberacao' || evento;
 
         if (estabelecimentoDocumentoWrap) estabelecimentoDocumentoWrap.hidden = evento;
-        if (nomeFantasiaWrap) nomeFantasiaWrap.hidden = evento;
+        if (nomeFantasiaWrap) nomeFantasiaWrap.hidden = eventoTemporario;
         if (razaoSocialWrap) razaoSocialWrap.hidden = evento;
         if (enderecoCorrespondenciaWrap) enderecoCorrespondenciaWrap.hidden = evento;
         if (responsavelSecao) responsavelSecao.hidden = !fluxo;
         if (edificacaoSecao) edificacaoSecao.hidden = evento || !fluxo;
         atualizarVisibilidadeConferenciaMulta_();
-        if (categoriaMetaWrap) categoriaMetaWrap.hidden = evento;
+        if (categoriaMetaWrap) categoriaMetaWrap.hidden = eventoTemporario;
 
-        if (estabelecimentoTitulo) estabelecimentoTitulo.textContent = evento ? '3. Local do evento' : '2. Identificação e dados do estabelecimento';
+        const eventoTitulo = document.getElementById('eventoTemporarioTitulo');
+        const eventoDescricao = document.getElementById('eventoTemporarioDescricao');
+        const eventoDeclaracaoWrap = document.getElementById('eventoDeclaracaoFieldWrap');
+        const eventoClassificacaoWrap = document.getElementById('eventoClassificacaoFieldWrap');
+        const eventoNomeLabel = document.getElementById('eventoNomeLabel');
+        const eventoPublicoLabel = document.getElementById('eventoPublicoLabel');
+        const eventoOrganizadorWrap = document.getElementById('eventoOrganizadorWrap');
+        const eventoOrganizadorDocumentoWrap = document.getElementById('eventoOrganizadorDocumentoWrap');
+        const eventoTelefoneOrganizadorWrap = document.getElementById('eventoTelefoneOrganizadorWrap');
+        const eventoResponsavelOrganizadorWrap = document.getElementById('eventoResponsavelOrganizadorWrap');
+        const petAvcbNumeroWrap = document.getElementById('petAvcbNumeroWrap');
+        const petAvcbEmissaoWrap = document.getElementById('petAvcbEmissaoWrap');
+        const petAvcbValidadeWrap = document.getElementById('petAvcbValidadeWrap');
+        const petAvcbValidadeLabel = document.getElementById('petAvcbValidadeLabel');
+
+        if (eventoTitulo) eventoTitulo.textContent = pet ? '2. PET — Projeto de Evento Temporário' : '2. Evento declaratório';
+        if (eventoDescricao) eventoDescricao.textContent = pet
+          ? 'Informe os dados próprios deste evento. O CNPJ identifica o organizador; o endereço deve representar o local real onde o PET será realizado.'
+          : 'Dados da declaração emitida no INFOSCIP para evento temporário de risco mínimo, baixo ou médio.';
+        if (eventoDeclaracaoWrap) eventoDeclaracaoWrap.hidden = !evento;
+        if (eventoClassificacaoWrap) eventoClassificacaoWrap.hidden = !evento;
+        if (eventoNomeLabel) {
+          eventoNomeLabel.textContent = 'Nome do evento';
+          eventoNomeLabel.classList.toggle('required', pet);
+        }
+        if (eventoPublicoLabel) {
+          eventoPublicoLabel.textContent = pet ? 'Público máximo aprovado' : 'Público estimado';
+          eventoPublicoLabel.classList.toggle('required', pet && normalize(value('sancao')) === normalize('Liberado'));
+        }
+        [eventoOrganizadorWrap, eventoOrganizadorDocumentoWrap, eventoTelefoneOrganizadorWrap, eventoResponsavelOrganizadorWrap]
+          .forEach(el => { if (el) el.hidden = pet; });
+        [petAvcbNumeroWrap, petAvcbEmissaoWrap, petAvcbValidadeWrap]
+          .forEach(el => { if (el) el.hidden = !pet; });
+        if (petAvcbValidadeLabel) petAvcbValidadeLabel.classList.toggle('required', pet && normalize(value('sancao')) === normalize('Liberado'));
+
+        if (estabelecimentoTitulo) estabelecimentoTitulo.textContent = evento
+          ? '3. Local do evento'
+          : (pet ? '3. Organizador e local do PET' : '2. Identificação e dados do estabelecimento');
         if (estabelecimentoDescricao) estabelecimentoDescricao.textContent = evento
           ? 'Informe o endereço real onde o evento será realizado. Este endereço é a principal referência para localizar o histórico do local.'
-          : 'Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente.';
-        if (responsavelTitulo) responsavelTitulo.textContent = evento ? '4. Responsável que acompanhou a vistoria' : '3. Responsável';
+          : (pet
+              ? 'O CNPJ e a Razão Social identificam o organizador. O endereço retornado pelo CNPJ é apenas uma sugestão: confirme ou altere para o local real do evento.'
+              : 'Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente. O endereço cadastral é apenas sugerido e pode ser alterado.');
+        if (responsavelTitulo) responsavelTitulo.textContent = eventoTemporario ? '4. Responsável que acompanhou a vistoria' : '3. Responsável';
         if (responsavelDescricao) responsavelDescricao.textContent = evento
           ? 'Informe a pessoa que acompanhou a guarnição durante a fiscalização. Ela pode ser diferente do organizador do evento.'
-          : 'Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.';
-        if (processoTitulo) processoTitulo.textContent = evento ? '5. Processo e vistoria' : '4. Processo e vistoria';
+          : (pet
+              ? 'Informe a pessoa que acompanhou a guarnição durante a vistoria do PET.'
+              : 'Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.');
+        if (processoTitulo) processoTitulo.textContent = eventoTemporario ? '5. Processo e vistoria' : '4. Processo e vistoria';
         if (responsavelCpfWrap) {
           responsavelCpfWrap.style.order = evento ? '-20' : '';
           responsavelCpfWrap.classList.toggle('wide', evento);
@@ -11064,8 +11160,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarDisponibilidadeResponsavelOrganizadorEvento_();
 
         if (categoriaMetaSelect) {
-          categoriaMetaSelect.disabled = evento;
+          categoriaMetaSelect.disabled = eventoTemporario;
           if (evento) categoriaMetaSelect.value = 'Eventos declaratórios';
+          else if (pet) categoriaMetaSelect.value = '';
           else if (normalize(categoriaMetaSelect.value) === normalize('Eventos declaratórios') && normalize(value('demandaPrincipal')) !== normalize('Eventos declaratórios')) categoriaMetaSelect.value = '';
         }
         if (evento && situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
@@ -11084,6 +11181,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarCampoRenovacaoAvcb_();
         if (!opcoes.silencioso) scheduleDraftSave();
       }
+
 
       function numeroAreaM2_(valor) {
         let texto = String(valor == null ? '' : valor).trim().replace(/\s+/g, '');
@@ -11216,10 +11314,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (tipoVistoriaInput) tipoVistoriaInput.value = f === 'liberacao' ? 'Vistoria de Liberação' : (f === 'fiscalizacao' ? 'Vistoria de Fiscalização' : '');
         fluxoFiscalizacaoBtn?.classList.toggle('is-active', f === 'fiscalizacao');
         fluxoLiberacaoBtn?.classList.toggle('is-active', f === 'liberacao');
+        fluxoPetBtn?.classList.remove('is-active');
         document.body.classList.toggle('release-flow-active', f === 'liberacao');
         document.body.classList.toggle('inspection-flow-active', f === 'fiscalizacao');
         fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', f === 'fiscalizacao' ? 'true' : 'false');
         fluxoLiberacaoBtn?.setAttribute('aria-pressed', f === 'liberacao' ? 'true' : 'false');
+        fluxoPetBtn?.setAttribute('aria-pressed', 'false');
         vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
         if (tipoVistoriaSecao) {
           tipoVistoriaSecao.hidden = false;
@@ -13178,6 +13278,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function buildPayload() {
         const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const pet = ehPet_();
+        const eventoTemporario = eventoDeclaratorio || pet;
         const acessoria = ehVistoriaAcessoria_();
         let sancaoPretendida = value('sancao');
         // V23.9.75 — defesa adicional para rascunhos/estados antigos do navegador:
@@ -13204,7 +13306,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           _appRegraMultaHistorico: 'sim',
           vistoriadorResponsavel: value('vistoriadorResponsavel'),
           cidade: padronizarCidadeCadastroCliente_(cityValue() || 'Viçosa'),
-          nomeFantasia: padronizarTextoCadastroCliente_(eventoDeclaratorio ? value('eventoNome') : value('nomeFantasia')),
+          nomeFantasia: padronizarTextoCadastroCliente_(eventoTemporario ? value('eventoNome') : value('nomeFantasia')),
           razaoSocial: eventoDeclaratorio ? '' : padronizarTextoCadastroCliente_(value('razaoSocial')),
           cnpj: eventoDeclaratorio ? '' : value('cnpj'),
           _appIdentificadorTipo: eventoDeclaratorio ? '' : tipoIdentificador_(value('cnpj')) ,
@@ -13263,13 +13365,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           enderecoResponsavel: padronizarTextoCadastroCliente_(value('enderecoResponsavel')),
           eventoDeclaracaoNumero: eventoDeclaratorio ? value('eventoDeclaracaoNumero').toUpperCase() : '',
           eventoClassificacao: eventoDeclaratorio ? value('eventoClassificacao') : '',
-          eventoNome: eventoDeclaratorio ? padronizarTextoCadastroCliente_(value('eventoNome')) : '',
-          eventoInicio: eventoDeclaratorio ? value('eventoInicio') : '',
-          eventoTermino: eventoDeclaratorio ? value('eventoTermino') : '',
-          eventoPublicoEstimado: eventoDeclaratorio ? value('eventoPublicoEstimado') : '',
-          eventoOrganizador: eventoDeclaratorio ? padronizarTextoCadastroCliente_(value('eventoOrganizador')) : '',
-          eventoOrganizadorDocumento: eventoDeclaratorio ? value('eventoOrganizadorDocumento') : '',
+          eventoNome: eventoTemporario ? padronizarTextoCadastroCliente_(value('eventoNome')) : '',
+          eventoInicio: eventoTemporario ? value('eventoInicio') : '',
+          eventoTermino: eventoTemporario ? value('eventoTermino') : '',
+          eventoPublicoEstimado: eventoDeclaratorio ? value('eventoPublicoEstimado').replace(/\D/g, '').slice(0, 9) : '',
+          petPublicoMaximo: pet ? value('eventoPublicoEstimado').replace(/\D/g, '').slice(0, 9) : '',
+          eventoOrganizador: eventoDeclaratorio
+            ? padronizarTextoCadastroCliente_(value('eventoOrganizador'))
+            : (pet ? padronizarTextoCadastroCliente_(value('razaoSocial')) : ''),
+          eventoOrganizadorDocumento: eventoDeclaratorio ? value('eventoOrganizadorDocumento') : (pet ? value('cnpj') : ''),
           eventoTelefoneOrganizador: eventoDeclaratorio ? value('eventoTelefoneOrganizador') : '',
+          petAvcbNumero: pet ? String(value('petAvcbNumero') || '').replace(/\s+/g, ' ').trim() : '',
+          petAvcbEmissao: pet ? value('petAvcbEmissao') : '',
+          petAvcbValidade: pet ? value('petAvcbValidade') : '',
           retornoLiberacao: ehFluxoLiberacao_() ? value('retornoLiberacao') : '',
           retornoLiberacaoChaveAnterior: ehFluxoLiberacao_() ? value('retornoLiberacaoChaveAnterior') : '',
           retornoLiberacaoLinhaAnterior: ehFluxoLiberacao_() ? value('retornoLiberacaoLinhaAnterior') : '',
@@ -13372,6 +13480,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         limparOrientacaoCampoObrigatorio_();
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const pet = ehPet_();
         const localizacaoCapturada = localizacaoValidaFormulario_();
         const checks = [
           ['tipoVistoria', 'Tipo de vistoria'],
@@ -13428,6 +13537,35 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             dataRenovacaoInput?.classList.add('invalid');
             missing.push('Data de renovação do AVCB');
             first = first || dataRenovacaoInput;
+          }
+        }
+        if (pet) {
+          const eventoNomeEl = document.getElementById('eventoNome');
+          if (!String(value('eventoNome') || '').trim()) {
+            eventoNomeEl?.classList.add('invalid');
+            missing.push('Nome do evento');
+            first = first || eventoNomeEl;
+          }
+          if (normalize(value('sancao')) === normalize('Liberado')) {
+            const publicoEl = document.getElementById('eventoPublicoEstimado');
+            const publico = digits(value('eventoPublicoEstimado'));
+            if (!publico || Number(publico) <= 0) {
+              publicoEl?.classList.add('invalid');
+              missing.push('Público máximo aprovado');
+              first = first || publicoEl;
+            }
+            const validadeEl = document.getElementById('petAvcbValidade');
+            if (!String(value('petAvcbValidade') || '').trim()) {
+              validadeEl?.classList.add('invalid');
+              missing.push('Validade do AVCB do PET');
+              first = first || validadeEl;
+            }
+            if (!String(ocupacaoTextoFinal() || '').trim()) {
+              const ocupacaoEl = document.getElementById('ocupacaoSearch') || document.getElementById('ocupacao');
+              ocupacaoEl?.classList.add('invalid');
+              missing.push('Ocupação do PET');
+              first = first || ocupacaoEl;
+            }
           }
         }
         if (ehFluxoLiberacao_() && normalize(value('tipoLiberacao')) === normalize('parcial')) {
@@ -15149,23 +15287,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        const campos = ['nomeFantasia', 'razaoSocial', 'endereco', 'numero', 'complemento', 'bairro'];
+        // V23.9.99ea — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
+        // pelo vistoriador não é apagado nem substituído silenciosamente.
+        const campos = ['nomeFantasia', 'razaoSocial'];
         campos.forEach(id => {
           const el = document.getElementById(id);
           if (!el || !String(el.value || '').trim()) return;
           el.value = '';
           el.dispatchEvent(new Event('input', { bubbles: true }));
         });
-
-        const correspondencia = document.getElementById('enderecoCorrespondencia');
-        if (correspondencia) {
-          correspondencia.value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
-          correspondencia.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-
-        if (document.getElementById('mesmoEnderecoResponsavel')?.checked) {
-          syncResponsibleAddress();
-        }
 
         ultimoCnpjConsultado = '';
         cnpjAssociadoDadosEmpresa = String(novoCnpj || '');
@@ -15188,9 +15319,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function fillFromCnpj(result) {
         let count = 0;
 
-        // Nome Fantasia e Razão Social identificam a empresa e, por isso,
-        // o retorno do CNPJ prevalece sobre resíduos de rascunho/autopreenchimento.
-        if (setFieldFromCnpj_('nomeFantasia', padronizarTextoCadastroCliente_(result.nomeFantasia), true)) count += 1;
+        // Nome Fantasia e Razão Social identificam a empresa. No PET, entretanto,
+        // o nome principal é o Nome do Evento e nunca deve ser substituído pelo
+        // Nome Fantasia cadastral do CNPJ.
+        if (!ehPet_() && setFieldFromCnpj_('nomeFantasia', padronizarTextoCadastroCliente_(result.nomeFantasia), true)) count += 1;
         if (setFieldFromCnpj_('razaoSocial', padronizarTextoCadastroCliente_(result.razaoSocial), true)) count += 1;
 
         // Endereço pode corresponder ao local efetivamente vistoriado e não
@@ -15251,8 +15383,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
           showCnpjStatus(
             alterados
-              ? `Consulta concluída. ${alterados} campo(s) cadastral(is) foram atualizados para este CNPJ.${complementoCidade} Confira os dados antes de registrar.`
-              : `Consulta concluída. Os dados cadastrais já correspondem a este CNPJ.${complementoCidade}`,
+              ? `Consulta concluída. ${alterados} campo(s) cadastral(is) foram preenchidos para este CNPJ.${complementoCidade} O endereço é apenas sugerido: confirme ou altere para o local real da vistoria.`
+              : `Consulta concluída.${complementoCidade} O endereço cadastral do CNPJ é apenas uma sugestão e pode ser alterado.`,
             'success'
           );
           consultarHistoricoEstabelecimento_({ silencioso: true }).catch(() => {});
@@ -16523,14 +16655,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         let pscipAplicado = false;
 
         if (pscipHistorico && pscipProjetoValido_(pscipHistorico)) {
-          if (prepare && !ehEventoDeclaratorioPreparacao_()) {
+          const petPreparacao = prepare && String(prepareTipo?.value || '') === 'pet';
+          const petFormulario = !prepare && ehPet_();
+          // PET é uma solicitação própria. Um PSCIP de evento/PET anterior pode ser
+          // consultado no histórico, mas nunca é reaproveitado automaticamente.
+          if (prepare && !petPreparacao && !ehEventoDeclaratorioPreparacao_()) {
             const inputPscip = document.getElementById('preparePscip');
             if (inputPscip && !pscipProjetoValido_(inputPscip.value)) {
               inputPscip.value = pscipHistorico;
               inputPscip.dispatchEvent(new Event('input', { bubbles: true }));
               pscipAplicado = true;
             }
-          } else if (!prepare && !ehEventoDeclaratorio_()) {
+          } else if (!prepare && !petFormulario && !ehEventoDeclaratorio_()) {
             if (pscipInput && !pscipProjetoValido_(pscipInput.value)) {
               if (possuiPscipSelect) possuiPscipSelect.value = 'sim';
               syncPscip_();
@@ -18981,13 +19117,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function atualizarCamposPreparacaoPorTipo_() {
         const tipoSelecionado = String(prepareTipo?.value || '');
-        const liberacao = tipoSelecionado === 'liberacao';
+        const pet = tipoSelecionado === 'pet';
+        const liberacao = tipoSelecionado === 'liberacao' || pet;
         const evento = ehEventoDeclaratorioPreparacao_();
         const pscipWrap = document.getElementById('preparePscipWrap');
         const eventoWrap = document.getElementById('prepareEventoDeclaracaoWrap');
         const demanda = document.getElementById('prepareDemanda');
         const pscip = document.getElementById('preparePscip');
         const declaracao = document.getElementById('prepareEventoDeclaracaoNumero');
+        const nomeLabel = document.getElementById('prepareNomeFantasiaLabel');
 
         if (pscipWrap) {
           pscipWrap.hidden = evento;
@@ -18998,9 +19136,34 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const dataLabel = document.getElementById('prepareDataLabel');
         if (dataLabel) dataLabel.classList.toggle('required', liberacao);
         const dataHint = document.getElementById('prepareDataHint');
-        if (dataHint) dataHint.hidden = !liberacao;
+        if (dataHint) {
+          dataHint.hidden = !liberacao;
+          dataHint.textContent = pet ? 'Obrigatória para o PET.' : 'Obrigatória para vistoria de liberação.';
+        }
 
-        if (liberacao && demanda && !String(demanda.value || '').trim()) demanda.value = 'Liberação';
+        if (nomeLabel) {
+          nomeLabel.textContent = pet ? 'Nome do evento' : 'Nome Fantasia';
+          nomeLabel.classList.toggle('required', pet);
+        }
+        const nomePrincipal = document.getElementById('prepareNomeFantasia');
+        if (nomePrincipal) {
+          const atualNome = String(nomePrincipal.value || '').trim();
+          if (pet && prepareNomeFantasiaCnpjSugerido_ && normalize(atualNome) === normalize(prepareNomeFantasiaCnpjSugerido_)) {
+            nomePrincipal.value = '';
+          } else if (!pet && !atualNome && prepareNomeFantasiaCnpjSugerido_) {
+            nomePrincipal.value = prepareNomeFantasiaCnpjSugerido_;
+          }
+          nomePrincipal.placeholder = pet ? 'Informe o nome do evento' : '';
+        }
+        if (pet && demanda) {
+          demanda.value = 'PET';
+          demanda.readOnly = true;
+        } else if (demanda) {
+          demanda.readOnly = false;
+          if (tipoSelecionado === 'liberacao' && !String(demanda.value || '').trim()) demanda.value = 'Liberação';
+          if (normalize(demanda.value || '') === normalize('PET')) demanda.value = tipoSelecionado === 'liberacao' ? 'Liberação' : '';
+        }
+
         if (evento) {
           if (pscip) pscip.value = '';
         } else {
@@ -19009,6 +19172,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (prepareDwgWrap) prepareDwgWrap.hidden = !liberacao;
       }
+
 
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
@@ -19025,6 +19189,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Cadastrar vistoria';
         if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = usuarioPodeOperar_() ? 'Cadastrar vistoria' : 'Finalizar treinamento';
         ultimoCnpjPreparacaoConsultado = '';
+        prepareNomeFantasiaCnpjSugerido_ = '';
         clearPrepareCnpjStatus_();
         limparResultadoProcessoPf_('prepare');
         atualizarCamposPreparacaoPorTipo_();
@@ -19173,7 +19338,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         preparacaoEditandoId = String(item.id);
         const set = (id, valor) => { const el = document.getElementById(id); if (el) el.value = String(valor ?? ''); };
         set('prepareCnpj', item.cnpj || item.cpf || '');
-        set('prepareTipo', item.tipoPreparacao || '');
+        set('prepareTipo', normalize(item.demandaPrincipal || '') === normalize('PET') ? 'pet' : (item.tipoPreparacao || ''));
         set('prepareData', item.dataPrevista || '');
         set('prepareVistoriador', item.vistoriadorResponsavel || '');
         set('prepareCidade', item.cidade || 'Viçosa');
@@ -19223,7 +19388,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function dadosPreparacaoFormulario_() {
         const g = id => String(document.getElementById(id)?.value || '').trim();
-        const tipo = g('prepareTipo');
+        const tipoSelecionado = g('prepareTipo');
+        const pet = tipoSelecionado === 'pet';
+        const tipo = pet ? 'liberacao' : tipoSelecionado;
         const eventoDeclaratorio = tipo === 'fiscalizacao' && normalize(g('prepareDemanda')) === normalize('Eventos declaratórios');
         const pscipInformado = eventoDeclaratorio ? '' : projetoPscipOperacional_(g('preparePscip'));
         return {
@@ -19235,7 +19402,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           dataPrevista: g('prepareData'),
           vistoriadorResponsavel: g('prepareVistoriador'),
           cidade: g('prepareCidade') || 'Viçosa',
-          demandaPrincipal: eventoDeclaratorio ? 'Eventos declaratórios' : g('prepareDemanda'),
+          demandaPrincipal: pet ? 'PET' : (eventoDeclaratorio ? 'Eventos declaratórios' : g('prepareDemanda')),
           categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : '',
           eventoDeclaracaoNumero: eventoDeclaratorio ? formatarDeclaracaoEvento_(g('prepareEventoDeclaracaoNumero')) : '',
           dataRenovacaoAvcb: ehRenovacaoAvcbPreparacao_() ? formatarDataRenovacaoAvcbDigitacao_(g('prepareDataRenovacaoAvcb')) : '',
@@ -19243,12 +19410,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           pscip: eventoDeclaratorio ? '' : pscipInformado,
           pf: g('preparePf'),
           cnpj: g('prepareCnpj'),
-          nomeFantasia: g('prepareNomeFantasia'),
-          razaoSocial: g('prepareRazaoSocial'),
+          // No PET este campo representa o Nome do Evento para manter compatibilidade
+          // com a listagem de Vistorias Programadas sem criar um segundo título.
+          nomeFantasia: padronizarTextoCadastroCliente_(g('prepareNomeFantasia')),
+          razaoSocial: padronizarTextoCadastroCliente_(g('prepareRazaoSocial')),
           area: g('prepareArea'),
-          endereco: g('prepareEndereco'),
+          endereco: padronizarTextoCadastroCliente_(g('prepareEndereco')),
           numero: g('prepareNumero'),
-          bairro: g('prepareBairro'),
+          bairro: padronizarTextoCadastroCliente_(g('prepareBairro')),
           observacaoPrevia: g('prepareObservacao'),
           _appUsuarioNome: String(authState.usuario?.nome || ''),
           _appDispositivo: nomeDispositivo_()
@@ -19275,7 +19444,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           };
 
           let alterados = 0;
-          alterados += setSeVazio('prepareNomeFantasia', item.nomeFantasia) ? 1 : 0;
+          const petPreparacao = String(prepareTipo?.value || '') === 'pet';
+          if (!petPreparacao && setSeVazio('prepareNomeFantasia', item.nomeFantasia)) {
+            prepareNomeFantasiaCnpjSugerido_ = String(item.nomeFantasia || '').trim();
+            alterados += 1;
+          }
           alterados += setSeVazio('prepareRazaoSocial', item.razaoSocial) ? 1 : 0;
           alterados += setSeVazio('prepareCidade', item.cidade) ? 1 : 0;
           alterados += setSeVazio('prepareEndereco', item.endereco) ? 1 : 0;
@@ -19285,7 +19458,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
           const pscip = projetoPscipOperacional_(item.pscip || '');
           const pscipAtual = String(document.getElementById('preparePscip')?.value || '').trim();
-          if (pscip && (!pscipAtual || pscipAtual === 'PRJ')) {
+          // Cada PET é uma nova solicitação. O PSCIP de PET anterior não é
+          // reaproveitado automaticamente por CNPJ/endereço.
+          if (!petPreparacao && pscip && (!pscipAtual || pscipAtual === 'PRJ')) {
             document.getElementById('preparePscip').value = pscip;
             alterados += 1;
           }
@@ -19329,28 +19504,40 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           return '';
         };
+        const pet = String(prepareTipo?.value || '') === 'pet';
         const mapa = {
           prepareRazaoSocial: primeiro(dados.razaoSocial, dados.razao_social, dados.nome, dados.nomeEmpresarial),
-          prepareNomeFantasia: primeiro(dados.nomeFantasia, dados.nome_fantasia, dados.fantasia, dados.nome_fantasia_estabelecimento),
+          ...(pet ? {} : { prepareNomeFantasia: primeiro(dados.nomeFantasia, dados.nome_fantasia, dados.fantasia, dados.nome_fantasia_estabelecimento) }),
           prepareEndereco: primeiro(dados.endereco, dados.logradouro, dados.descricao_tipo_de_logradouro && dados.logradouro ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}` : ''),
           prepareNumero: primeiro(dados.numero, dados.numeroEndereco),
           prepareBairro: primeiro(dados.bairro, dados.nome_bairro),
           prepareCidade: primeiro(dados.cidade, dados.municipio, dados.nome_municipio)
         };
+        const camposEmpresa = new Set(['prepareRazaoSocial', 'prepareNomeFantasia']);
         let alterados = 0;
         Object.entries(mapa).forEach(([id, valor]) => {
           const el = document.getElementById(id);
           if (!el || !valor) return;
-          // Na preparação, os dados oficiais do CNPJ devem prevalecer sobre
-          // valores residuais/autopreenchimento do navegador.
-          if (String(el.value || '').trim() !== valor) {
-            el.value = valor;
+          const atual = String(el.value || '').trim();
+          // Razão Social/Nome Fantasia pertencem ao CNPJ e podem ser atualizados.
+          // Endereço, número, bairro e cidade são apenas sugestões e nunca
+          // substituem um local já informado pelo vistoriador.
+          if (!camposEmpresa.has(id) && atual) return;
+          const padronizado = ['prepareRazaoSocial','prepareNomeFantasia','prepareEndereco','prepareBairro'].includes(id)
+            ? padronizarTextoCadastroCliente_(valor)
+            : String(valor);
+          if (atual !== padronizado) {
+            el.value = padronizado;
+            if (id === 'prepareNomeFantasia') prepareNomeFantasiaCnpjSugerido_ = padronizado;
             el.dispatchEvent(new Event('change', { bubbles: true }));
             alterados += 1;
+          } else if (id === 'prepareNomeFantasia' && padronizado) {
+            prepareNomeFantasiaCnpjSugerido_ = padronizado;
           }
         });
         return alterados;
       }
+
 
       async function consultarCnpjPreparacao_() {
         const input = document.getElementById('prepareCnpj');
@@ -19385,8 +19572,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
             showPrepareCnpjStatus_(
               alterados > 0
-                ? `CNPJ localizado. ${alterados} dado(s) cadastral(is) preenchido(s) automaticamente.`
-                : 'CNPJ localizado. Confira os dados cadastrais antes de salvar.',
+                ? `CNPJ localizado. ${alterados} dado(s) cadastral(is) preenchido(s). O endereço é apenas uma sugestão e permanece editável.`
+                : 'CNPJ localizado. O endereço cadastral é apenas uma sugestão; informe o local real da vistoria ou do PET.',
               'success'
             );
             await preencherPreparacaoComHistorico_(cnpj);
@@ -19473,6 +19660,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const eventoDeclaratorio = p.tipoPreparacao === 'fiscalizacao' && normalize(p.demandaPrincipal) === normalize('Eventos declaratórios');
         if (!['fiscalizacao','liberacao'].includes(p.tipoPreparacao)) faltantes.push('Tipo de vistoria');
         if (p.tipoPreparacao === 'liberacao' && !p.dataPrevista) faltantes.push('Data prevista');
+        if (normalize(p.demandaPrincipal) === normalize('PET') && !String(p.nomeFantasia || '').trim()) faltantes.push('Nome do evento');
         if (!p.vistoriadorResponsavel) faltantes.push('Vistoriador responsável');
         if (p.tipoPreparacao === 'liberacao' && !pscipAtualValido_(p.pscip)) {
           faltantes.push('Nº do PSCIP atual (PRJ + 10 números)');
@@ -20276,6 +20464,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         const card = item => {
           const liberacao = item.tipoPreparacao === 'liberacao';
+          const pet = normalize(item.demandaPrincipal || '') === normalize('PET');
           const eventoDeclaratorio = normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero);
           const pscipCard = item.pscip ? projetoPscipOperacional_(item.pscip) : '';
           const identificadorPrincipal = eventoDeclaratorio
@@ -20286,7 +20475,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const prazo = classificarPrazoProgramacao_(item);
           return `<article class="prepared-card programmed-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-preparacao-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="Abrir vistoria programada: ${escapeAttr(titulo)}">
             <div class="prepared-card-main">
-              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização')}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
+              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${pet ? 'PET' : (liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização'))}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
               ${liberacao && item.retornoLiberacao ? '<div><span class="prepared-kind release">Retorno de vistoria de liberação</span></div>' : ''}
               <h3>${escapeHtml(titulo)}</h3>
               <p class="prepared-identifiers">${escapeHtml(identificadorPrincipal)}${item.pf ? ` <span aria-hidden="true">•</span> PF ${escapeHtml(item.pf)}` : ''}${item.area && !eventoDeclaratorio ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
@@ -20873,6 +21062,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('pf', item.pf);
         set('area', item.area);
         const preparacaoEventoDeclaratorio = normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero);
+        const preparacaoPet = normalize(item.demandaPrincipal || '') === normalize('PET');
         if (!preparacaoEventoDeclaratorio && item.demandaPrincipal) {
           set('demandaPrincipal', item.demandaPrincipal);
         }
@@ -20882,6 +21072,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           set('eventoDeclaracaoNumero', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero || ''));
           if (possuiPscipSelect) possuiPscipSelect.value = '';
           if (pscipInput) pscipInput.value = '';
+          syncPscip_();
+        } else if (preparacaoPet) {
+          set('demandaPrincipal', 'PET');
+          set('eventoNome', padronizarTextoCadastroCliente_(item.nomeFantasia || ''));
+          aplicarModoEventoDeclaratorio_({ silencioso: true });
+          if (possuiPscipSelect) possuiPscipSelect.value = 'sim';
+          if (item.pscip) set('pscip', projetoPscipOperacional_(item.pscip));
           syncPscip_();
         } else if (item.pscip) {
           if (possuiPscipSelect) possuiPscipSelect.value='sim';
@@ -21047,12 +21244,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       let ultimoAcionamentoFluxoVistoria_ = { fluxo: '', em: 0 };
       function acionarFluxoVistoriaSeguro_(fluxo, event) {
-        const f = fluxo === 'liberacao' ? 'liberacao' : 'fiscalizacao';
+        const pet = fluxo === 'pet';
+        const f = pet ? 'liberacao' : (fluxo === 'liberacao' ? 'liberacao' : 'fiscalizacao');
         const agora = Date.now();
+        const chaveAcionamento = pet ? 'pet' : f;
         // pointerup normalmente é seguido de click. Evita execução dupla sem perder
         // o fallback necessário em alguns PWAs Android.
-        if (ultimoAcionamentoFluxoVistoria_.fluxo === f && agora - ultimoAcionamentoFluxoVistoria_.em < 350) return;
-        ultimoAcionamentoFluxoVistoria_ = { fluxo: f, em: agora };
+        if (ultimoAcionamentoFluxoVistoria_.fluxo === chaveAcionamento && agora - ultimoAcionamentoFluxoVistoria_.em < 350) return;
+        ultimoAcionamentoFluxoVistoria_ = { fluxo: chaveAcionamento, em: agora };
         event?.preventDefault?.();
         try {
           normalizarEstadoVisualEntradaVistoria_();
@@ -21060,14 +21259,34 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           aplicarFluxoVistoria_(f);
           const esperado = f === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização';
           if (String(tipoVistoriaInput?.value || '') !== esperado) throw new Error('Tipo de vistoria não foi confirmado no formulário.');
-          if (appStatus) appStatus.textContent = `${esperado} selecionada.`;
+          if (pet) {
+            const demanda = document.getElementById('demandaPrincipal');
+            if (demanda) {
+              demanda.value = 'PET';
+              demanda.dispatchEvent(new Event('input', { bubbles: true }));
+              demanda.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            aplicarModoEventoDeclaratorio_({ silencioso: true });
+            atualizarOpcoesSancaoPorFluxo_();
+            fluxoLiberacaoBtn?.classList.remove('is-active');
+            fluxoLiberacaoBtn?.setAttribute('aria-pressed', 'false');
+            fluxoPetBtn?.classList.add('is-active');
+            fluxoPetBtn?.setAttribute('aria-pressed', 'true');
+            if (fluxoVistoriaAtualTexto) {
+              fluxoVistoriaAtualTexto.hidden = false;
+              fluxoVistoriaAtualTexto.textContent = 'Fluxo selecionado: PET — Projeto de Evento Temporário. Internamente utiliza Vistoria de Liberação e mantém dados próprios do evento.';
+            }
+            if (appStatus) appStatus.textContent = 'PET — Projeto de Evento Temporário selecionado.';
+          } else if (appStatus) {
+            appStatus.textContent = `${esperado} selecionada.`;
+          }
         } catch (erro) {
           registrarFalhaInterface_('Seleção do tipo de vistoria', erro?.message || erro);
           console.error('[GPV] Falha ao selecionar tipo de vistoria:', erro);
           if (appStatus) appStatus.textContent = 'Não foi possível concluir a seleção do tipo de vistoria. Use Diagnóstico do aplicativo para consultar o erro registrado.';
         }
       }
-      [['fiscalizacao', fluxoFiscalizacaoBtn], ['liberacao', fluxoLiberacaoBtn]].forEach(([fluxo, botao]) => {
+      [['fiscalizacao', fluxoFiscalizacaoBtn], ['liberacao', fluxoLiberacaoBtn], ['pet', fluxoPetBtn]].forEach(([fluxo, botao]) => {
         botao?.addEventListener('pointerup', event => acionarFluxoVistoriaSeguro_(fluxo, event));
         botao?.addEventListener('click', event => acionarFluxoVistoriaSeguro_(fluxo, event));
       });
@@ -22304,7 +22523,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dz', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ea', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
