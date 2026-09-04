@@ -14885,3 +14885,432 @@ body.records-mode .record-fine-estimate-card{margin-bottom:10px}
 @media (max-width:640px){
   .record-sync-banner{margin-bottom:10px;padding:10px 12px}
 }
+
+/* =============================================================================
+   V23.9.99dx — Repaginação visual da Ficha do Processo
+   Hierarquia operacional, leitura rápida e responsividade sem alterar regras.
+   ============================================================================= */
+.record-detail-top-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  min-width:0;
+}
+.record-detail-summary-copy,
+.record-detail-infoscip-link{
+  min-height:40px;
+  padding:0 12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:11px;
+  font:inherit;
+  font-size:10px;
+  line-height:1;
+  font-weight:850;
+  text-decoration:none;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.record-detail-summary-copy{
+  border:1px solid #d6dbe3;
+  background:#fff;
+  color:#344054;
+}
+.record-detail-summary-copy.is-copied{
+  border-color:#a6dfb7;
+  background:#edf9f1;
+  color:#176b3a;
+}
+.record-detail-infoscip-link{
+  border:1px solid #f0c7c9;
+  background:#fff7f7;
+  color:#9c0c12;
+}
+.record-detail-heading-copy{min-width:0;flex:1 1 auto}
+.record-current-status-label{
+  display:block;
+  color:#98a2b3;
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+  white-space:nowrap;
+}
+
+body.records-mode .record-detail-topbar{
+  gap:14px!important;
+  justify-content:space-between!important;
+  padding:11px 22px!important;
+}
+body.records-mode .record-detail-panel-title{flex:1 1 auto!important}
+body.records-mode .record-detail-panel-title strong{
+  font-size:16px!important;
+  letter-spacing:-.015em!important;
+}
+body.records-mode .record-detail-top-actions{flex:0 0 auto}
+body.records-mode .record-detail-summary-copy:hover,
+body.records-mode .record-detail-infoscip-link:hover,
+body.records-mode .record-detail-sheet-link:hover{
+  transform:translateY(-1px);
+  box-shadow:0 5px 16px rgba(15,23,42,.08);
+}
+body.records-mode .record-detail-sheet-link{
+  min-height:40px!important;
+  padding:0 12px!important;
+  border-radius:11px!important;
+  font-size:10px!important;
+  font-weight:850!important;
+}
+body.records-mode .record-detail-back{
+  margin-left:0!important;
+}
+
+body.records-mode .record-detail-heading{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:22px!important;
+  padding:20px 28px 18px!important;
+  border-bottom:1px solid #eadfe0!important;
+  background:linear-gradient(135deg,#fff 0%,#fffafa 66%,#fff4f4 100%)!important;
+}
+body.records-mode .record-detail-section-label{
+  display:block!important;
+  margin:0 0 5px!important;
+  color:#9c0c12!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+}
+body.records-mode .record-detail-line{
+  display:block!important;
+  margin:0!important;
+  color:#172033!important;
+  font-size:clamp(20px,2.1vw,28px)!important;
+  line-height:1.08!important;
+  font-weight:900!important;
+  letter-spacing:-.035em!important;
+  overflow-wrap:anywhere!important;
+}
+body.records-mode .record-detail-heading p{
+  margin:7px 0 0!important;
+  color:#667085!important;
+  font-size:10.5px!important;
+  line-height:1.45!important;
+  font-weight:650!important;
+}
+body.records-mode .record-current-status{
+  flex:0 0 auto!important;
+  min-width:150px!important;
+  margin:0!important;
+  padding:11px 14px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:5px!important;
+  border:1px solid #eadfe0!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.88)!important;
+  box-shadow:0 8px 24px rgba(83,20,24,.06)!important;
+}
+body.records-mode .record-current-status .status-badge{
+  display:inline-flex!important;
+  min-height:28px!important;
+  padding:5px 10px!important;
+  border-radius:999px!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  line-height:1!important;
+}
+body.records-mode .record-current-status.status-autuado .status-badge{background:#fde7e7!important;color:#b42318!important}
+body.records-mode .record-current-status.status-advertencia .status-badge{background:#fff3d6!important;color:#9a6700!important}
+body.records-mode .record-current-status.status-notificado .status-badge{background:#ffead8!important;color:#b54708!important}
+body.records-mode .record-current-status.status-regularizado .status-badge,
+body.records-mode .record-current-status.status-liberado .status-badge{background:#def3e3!important;color:#176b3a!important}
+
+body.records-mode .record-detail-content{
+  background:#f7f8fa!important;
+  padding:18px 24px 34px!important;
+}
+body.records-mode .record-detail-groups{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:14px!important;
+  align-items:start!important;
+}
+body.records-mode .record-detail-group{
+  border:1px solid #e4e8ee!important;
+  border-radius:17px!important;
+  background:#fff!important;
+  box-shadow:0 5px 18px rgba(15,23,42,.035)!important;
+}
+body.records-mode .record-detail-group--wide{grid-column:1/-1!important}
+body.records-mode .record-detail-group h3{
+  min-height:43px!important;
+  padding:12px 15px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  border-bottom:1px solid #e8ebef!important;
+  background:linear-gradient(180deg,#fbfcfd,#f7f9fb)!important;
+  color:#202939!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  font-weight:900!important;
+  letter-spacing:.01em!important;
+}
+body.records-mode .record-process-group>h3::before,
+body.records-mode .record-building-group>h3::before,
+body.records-mode .record-responsible-group>h3::before,
+body.records-mode .record-location-group>h3::before,
+body.records-mode .record-event-group>h3::before{
+  width:22px;
+  height:22px;
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 auto;
+  border-radius:7px;
+  background:#fbe9ea;
+  color:#9c0c12;
+  font-size:11px;
+  font-weight:900;
+}
+body.records-mode .record-process-group>h3::before{content:'PF'}
+body.records-mode .record-building-group>h3::before{content:'⌂';font-size:14px}
+body.records-mode .record-responsible-group>h3::before{content:'R'}
+body.records-mode .record-location-group>h3::before{content:'⌖';font-size:14px}
+body.records-mode .record-event-group>h3::before{content:'E'}
+
+body.records-mode .record-detail-fields{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0!important;
+}
+body.records-mode .record-detail-field,
+body.records-mode .record-detail-field:nth-child(odd){
+  min-width:0!important;
+  padding:12px 14px!important;
+  border-right:0!important;
+  border-bottom:1px solid #eef0f3!important;
+  background:#fff!important;
+}
+body.records-mode .record-detail-field:nth-child(odd){border-right:1px solid #eef0f3!important}
+body.records-mode .record-detail-field.is-wide{
+  grid-column:1/-1!important;
+  border-right:0!important;
+}
+body.records-mode .record-detail-field label{
+  color:#8b95a7!important;
+  font-size:8px!important;
+  line-height:1.2!important;
+  font-weight:900!important;
+  text-transform:uppercase!important;
+  letter-spacing:.065em!important;
+}
+body.records-mode .record-detail-field .record-detail-copy-row{
+  margin-top:5px!important;
+  gap:8px!important;
+  align-items:center!important;
+}
+body.records-mode .record-detail-field .record-detail-copy-value{
+  color:#172033!important;
+  font-size:11.5px!important;
+  line-height:1.42!important;
+  font-weight:720!important;
+}
+body.records-mode .record-detail-field.is-empty .record-detail-copy-value{
+  color:#98a2b3!important;
+  font-weight:600!important;
+  font-style:italic!important;
+}
+body.records-mode .record-detail-field .record-copy-value-btn{
+  min-width:31px!important;
+  width:31px!important;
+  min-height:31px!important;
+  height:31px!important;
+  padding:0!important;
+  border-color:#e0e5eb!important;
+  border-radius:9px!important;
+  background:#fbfcfd!important;
+}
+body.records-mode .record-detail-field .record-copy-value-label{display:none!important}
+body.records-mode .record-detail-field .record-copy-value-btn svg{width:13px!important;height:13px!important}
+
+body.records-mode .record-operational-summary{
+  border-color:#dce7df!important;
+  box-shadow:0 7px 22px rgba(22,107,58,.055)!important;
+}
+body.records-mode .record-operational-summary>h3{
+  min-height:42px!important;
+  background:linear-gradient(180deg,#eff8f2,#eaf6ee)!important;
+  color:#176b3a!important;
+  border-bottom-color:#dce8e0!important;
+}
+body.records-mode .record-operational-summary>h3::before{
+  content:'✓';
+  width:22px;
+  height:22px;
+  display:inline-grid;
+  place-items:center;
+  border-radius:7px;
+  background:#d9f0df;
+  color:#176b3a;
+  font-size:12px;
+  font-weight:950;
+}
+body.records-mode .record-operational-summary .record-detail-fields{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  padding:10px!important;
+  background:#fbfefc!important;
+}
+body.records-mode .record-operational-summary .record-detail-field,
+body.records-mode .record-operational-summary .record-detail-field:nth-child(odd){
+  min-height:88px!important;
+  padding:11px 12px!important;
+  border:1px solid #e2e8e4!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+body.records-mode .record-operational-summary .record-detail-field:nth-child(1){border-top:3px solid #b42318!important}
+body.records-mode .record-operational-summary .record-detail-field:nth-child(2){border-top:3px solid #9c0c12!important}
+body.records-mode .record-operational-summary .record-detail-field:nth-child(3){border-top:3px solid #d9a300!important}
+body.records-mode .record-operational-summary .record-detail-field:nth-child(4){border-top:3px solid #176b3a!important}
+body.records-mode .record-operational-summary .record-detail-copy-value{font-size:11px!important;font-weight:800!important}
+body.records-mode .record-operational-summary .record-copy-value-btn{display:none!important}
+
+body.records-mode .record-responsible-group{
+  border-color:#dfe5ef!important;
+}
+body.records-mode .record-responsible-group>h3{
+  background:linear-gradient(180deg,#f8faff,#f5f7fb)!important;
+}
+body.records-mode .record-responsible-group .record-detail-field:nth-child(2){
+  background:#fcfdff!important;
+}
+body.records-mode .record-location-group{align-self:start!important}
+body.records-mode .record-detail-groups>.location-map-card--record{
+  grid-column:1/-1!important;
+  margin:0!important;
+  border-radius:17px!important;
+  box-shadow:0 5px 18px rgba(15,23,42,.035)!important;
+}
+
+/* Unifica os blocos operacionais abaixo dos dados principais. */
+body.records-mode .record-correction-panel,
+body.records-mode .record-infoscip-update-panel,
+body.records-mode .record-notifications-panel,
+body.records-mode .record-general-photos-panel,
+body.records-mode .record-infoscip-history,
+body.records-mode .record-reds-report,
+body.records-mode .record-whatsapp-panel,
+body.records-mode .record-history-panel,
+body.records-mode .record-audit-panel{
+  border-radius:17px!important;
+  box-shadow:0 5px 18px rgba(15,23,42,.035)!important;
+}
+
+@media(max-width:900px){
+  body.records-mode .record-detail-topbar{
+    align-items:flex-start!important;
+    flex-wrap:wrap!important;
+    padding:10px 12px!important;
+  }
+  body.records-mode .record-detail-panel-title{min-height:40px!important;display:flex!important;align-items:center!important}
+  body.records-mode .record-detail-top-actions{
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:auto 1fr 1fr 1fr auto!important;
+    gap:6px!important;
+  }
+  body.records-mode .record-detail-access{
+    min-height:36px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:0 8px!important;
+  }
+  body.records-mode .record-detail-summary-copy,
+  body.records-mode .record-detail-infoscip-link,
+  body.records-mode .record-detail-sheet-link{
+    min-height:36px!important;
+    padding:0 8px!important;
+    font-size:9px!important;
+  }
+  body.records-mode .record-detail-back{
+    width:36px!important;
+    height:36px!important;
+  }
+  body.records-mode .record-detail-heading{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+    gap:12px!important;
+    padding:16px 14px!important;
+  }
+  body.records-mode .record-detail-line{font-size:21px!important}
+  body.records-mode .record-detail-heading p{font-size:10px!important}
+  body.records-mode .record-current-status{
+    width:auto!important;
+    min-width:0!important;
+    padding:9px 11px!important;
+  }
+  body.records-mode .record-detail-content{padding:12px 10px 26px!important}
+  body.records-mode .record-detail-groups{grid-template-columns:1fr!important;gap:10px!important}
+  body.records-mode .record-detail-group--wide{grid-column:auto!important}
+  body.records-mode .record-operational-summary .record-detail-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    padding:8px!important;
+  }
+}
+
+@media(max-width:620px){
+  body.records-mode .record-detail-access{display:none!important}
+  body.records-mode .record-detail-top-actions{
+    grid-template-columns:1fr 1fr 1fr auto!important;
+  }
+  body.records-mode .record-detail-summary-copy{font-size:0!important}
+  body.records-mode .record-detail-summary-copy::after{content:'Resumo';font-size:9px!important}
+  body.records-mode .record-detail-infoscip-link{font-size:0!important}
+  body.records-mode .record-detail-infoscip-link::after{content:'INFOSCIP';font-size:9px!important}
+  body.records-mode .record-detail-sheet-link{font-size:0!important}
+  body.records-mode .record-detail-sheet-link::after{content:'Sheets';font-size:9px!important}
+  body.records-mode .record-detail-fields{grid-template-columns:1fr!important}
+  body.records-mode .record-detail-field,
+  body.records-mode .record-detail-field:nth-child(odd),
+  body.records-mode .record-detail-field.is-wide{
+    grid-column:auto!important;
+    border-right:0!important;
+    padding:11px 12px!important;
+  }
+  body.records-mode .record-operational-summary .record-detail-fields{grid-template-columns:1fr!important}
+  body.records-mode .record-operational-summary .record-detail-field{min-height:0!important}
+  body.records-mode .record-detail-field .record-copy-value-btn{
+    min-width:36px!important;width:36px!important;min-height:36px!important;height:36px!important
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  body.records-mode .record-detail-summary-copy,
+  body.records-mode .record-detail-infoscip-link,
+  body.records-mode .record-detail-sheet-link{transition:none!important;transform:none!important}
+}
+
+/* Ajustes finais de precedência da V23.9.99dx */
+body.records-mode .record-operational-summary .record-detail-field:last-child{
+  grid-column:auto!important;
+  background:#fff!important;
+}
+body.records-mode .record-operational-summary .record-detail-field:last-child .record-detail-copy-value{
+  color:#172033!important;
+  font-weight:800!important;
+}
+body.records-mode .record-responsible-group .record-detail-fields{
+  grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;
+}
+@media(max-width:620px){
+  body.records-mode .record-responsible-group .record-detail-fields{grid-template-columns:1fr!important}
+}

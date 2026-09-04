@@ -45,8 +45,8 @@
     })();
   </script>
   <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99cz">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99dw" media="(max-width: 899px)" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dw" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99dx" media="(max-width: 899px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dx" media="(min-width: 900px)" fetchpriority="high">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99cz">
   <style id="gpv-critical-boot">
@@ -56,7 +56,7 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99dw") center 28%/cover no-repeat}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99dx") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
     .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
     .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
@@ -70,7 +70,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99dw">
+  <link rel="stylesheet" href="styles.css?v=23.9.99dx">
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -547,7 +547,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 04/09/2026 — V23.9.99dw.</div>
+        <div class="system-manual-revision">Última revisão: 04/09/2026 — V23.9.99dx.</div>
         <div class="system-manual-update-note"><strong>Estimativa orientativa de multa:</strong> nas Vistorias de Fiscalização e nas Fichas já registradas, o app pode apresentar a 1ª multa estimada, a 2ª multa em dobro e o total acumulado. Para F-6/F-7, aplica 2.400 UFEMGs independentemente da área. A estimativa não representa aplicação de sanção.</div>
         <div class="system-manual-update-note"><strong>Sincronização objetiva:</strong> a Central de Sincronização mostra somente itens pendentes; o envio automático continua em segundo plano e não acrescenta etapas obrigatórias à vistoria.</div>
         <div class="system-manual-update-note"><strong>Fotos gerais:</strong> recurso opcional para fachada, acesso, equipamentos e visão geral. Não cria nova obrigatoriedade e utiliza o mesmo fluxo offline seguro das evidências fotográficas.</div>
@@ -1081,7 +1081,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dw</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99dx</div>
           </section>
         </div>
       </section>
@@ -1539,7 +1539,7 @@
                 <option value="Não possui multa em aberto">Não possui multa em aberto</option>
                 <option value="Possui multa em aberto">Possui multa em aberto</option>
               </select>
-              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99dw, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
+              <div class="hint">Campo mantido apenas para compatibilidade. Na V23.9.99dx, a conferência é feita diretamente na Ficha da fiscalização quando houver indicação de possível multa.</div>
             </div>
             <div class="field release-document-pending-field" id="pendenciaDocumentalWrap" hidden>
               <label class="required" for="pendenciaDocumental">Há pendência documental?</label>
@@ -1817,21 +1817,25 @@
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l3 3v12H7z"/><path d="M14 4.5v3h3M9.5 11h5M9.5 14h5M9.5 17h3"/></svg>
           <strong id="recordDetailTitle">Ficha do Processo</strong>
         </div>
-        <span class="record-detail-access">USO INTERNO</span>
-        <button class="record-detail-back" id="recordDetailCloseBtn" type="button" aria-label="Fechar ficha">×</button>
-        <a class="record-detail-sheet-link" id="recordDetailSheetLink" href="#" target="_blank" rel="noopener" hidden>Abrir no Sheets</a>
+        <div class="record-detail-top-actions">
+          <span class="record-detail-access">USO INTERNO</span>
+          <button class="record-detail-summary-copy" id="recordDetailSummaryCopyBtn" type="button" title="Copiar resumo operacional">Copiar resumo</button>
+          <a class="record-detail-infoscip-link" href="https://www.fiscalizacaobombeiros.mg.gov.br" target="_blank" rel="noopener noreferrer">INFOSCIP</a>
+          <a class="record-detail-sheet-link" id="recordDetailSheetLink" href="#" target="_blank" rel="noopener" hidden>Abrir no Sheets</a>
+          <button class="record-detail-back" id="recordDetailCloseBtn" type="button" aria-label="Fechar ficha">×</button>
+        </div>
       </div>
 
       <div class="record-detail-heading">
-        <span class="record-detail-section-label">Situação atual</span>
-        <div class="record-current-status">
-          <span class="record-current-status-icon" aria-hidden="true">✓</span>
-          <div>
-            <span class="status-badge status-neutral" id="recordDetailStatusBadge">Situação</span>
-            <p id="recordDetailSubtitle">Selecione um processo para consultar.</p>
-          </div>
+        <div class="record-detail-heading-copy">
+          <span class="record-detail-section-label">Visão geral do processo</span>
+          <div class="record-detail-line" id="recordDetailLine">Selecione um processo para consultar.</div>
+          <p id="recordDetailSubtitle"></p>
         </div>
-        <div class="record-detail-line" id="recordDetailLine"></div>
+        <div class="record-current-status">
+          <span class="record-current-status-label">Situação atual</span>
+          <span class="status-badge status-neutral" id="recordDetailStatusBadge">Situação</span>
+        </div>
       </div>
 
       <div class="record-detail-loading" id="recordDetailLoading">Selecione um processo na tabela para abrir a ficha.</div>
@@ -2592,13 +2596,13 @@
     <picture class="gpv-splash-picture" aria-hidden="true">
       <source
         media="(min-width: 900px)"
-        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dw"
+        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99dx"
         width="1672"
         height="941"
       >
       <img
         class="gpv-splash-art"
-        src="assets/splash-app-vistoriador.webp?v=23.9.99dw"
+        src="assets/splash-app-vistoriador.webp?v=23.9.99dx"
         alt=""
         width="941"
         height="1672"
@@ -2750,12 +2754,12 @@
     </section>
   </div>
 
-  <!-- V23.9.99dw — mantém os scripts após todos os modais e controles
+  <!-- V23.9.99dx — mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99dw"></script>
-  <script src="ocupacoes.js?v=23.9.99dw"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99dw"></script>
-  <script src="app.js?v=23.9.99dw"></script>
+  <script src="config.js?v=23.9.99dx"></script>
+  <script src="ocupacoes.js?v=23.9.99dx"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99dx"></script>
+  <script src="app.js?v=23.9.99dx"></script>
 
 </body>
 </html>

@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dw';
+      const APP_VERSION = '23.9.99dx';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1878,6 +1878,7 @@
       const recordsOpenSheetLink = document.getElementById('recordsOpenSheetLink');
       const recordDetailScreen = document.getElementById('recordDetailScreen');
       const recordDetailCloseBtn = document.getElementById('recordDetailCloseBtn');
+      const recordDetailSummaryCopyBtn = document.getElementById('recordDetailSummaryCopyBtn');
       const recordDetailTitle = document.getElementById('recordDetailTitle');
       const recordDetailSubtitle = document.getElementById('recordDetailSubtitle');
       const recordDetailLine = document.getElementById('recordDetailLine');
@@ -2368,6 +2369,7 @@
       let recordStatusRegistroAtual = null;
       let recordFineCheckRegistroAtual = null;
       let recordFineEstimateRegistroAtual = null;
+      let recordDetailRegistroAtual = null;
       let recordCorrectionRegistroAtual = null;
       let recordResultRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
@@ -2386,7 +2388,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dw';
+      const APP_REVISION_UI_ = '23.9.99dx';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4419,7 +4421,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dw', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dx', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4803,7 +4805,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99dw — padronização visual/cadastral sem inventar acentos.
+      // V23.9.99dx — padronização visual/cadastral sem inventar acentos.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -7711,10 +7713,27 @@
         void copiarValorFicha_(botao);
       });
 
+      function classeCampoFicha_(rotulo, valor) {
+        const chave = normalize(rotulo || '');
+        const classes = [];
+        const camposLargos = [
+          'endereco da edificacao', 'endereco para correspondencia', 'endereco do responsavel',
+          'ocupacao / divisao', 'area/trecho liberado', 'documento de licenciamento',
+          'prazo / proxima acao', 'proxima acao'
+        ];
+        if (camposLargos.includes(chave)) classes.push('is-wide');
+        if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
+        return classes.join(' ');
+      }
+
       function montarGrupoFicha_(titulo, campos, classeExtra = '') {
         const validos = (campos || []).filter(item => item && item[1]);
         if (!validos.length) return '';
-        return `<section class="record-detail-group${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => `<div class="record-detail-field"><label>${escapeHtml(rotulo)}</label><div class="record-detail-copy-row"><span class="record-detail-copy-value">${escapeHtml(valor)}</span>${botaoCopiarValorFichaHtml_(rotulo, valor)}</div></div>`).join('')}</div></section>`;
+        return `<section class="record-detail-group${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => {
+          const classeCampo = classeCampoFicha_(rotulo, valor);
+          const podeCopiar = normalize(valor || '') !== normalize('Não informado');
+          return `<div class="record-detail-field${classeCampo ? ` ${escapeAttr(classeCampo)}` : ''}"><label>${escapeHtml(rotulo)}</label><div class="record-detail-copy-row"><span class="record-detail-copy-value">${escapeHtml(valor)}</span>${podeCopiar ? botaoCopiarValorFichaHtml_(rotulo, valor) : ''}</div></div>`;
+        }).join('')}</div></section>`;
       }
 
       function resumoOperacionalFicha_(registro, situacao) {
@@ -7727,17 +7746,13 @@
           diasAutuacao: valorCampoFicha_(registro, 'Dias desde a Autuação')
         };
         const acao = proximaAcaoPainel_(itemAcao);
+        const multa = textoSituacaoMultaFicha_(registro) || 'Sem indicação atual de multa';
+        const pendencia = valorCampoFicha_(registro, 'Pendência documental') || 'Não';
         return [
           ['Situação atual', situacao || 'Sem situação'],
-          ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
-          ['Nº do PSCIP', valorPscipOperacionalFicha_(registro)],
-          ['REDS', valorCampoFicha_(registro, 'REDS')],
-          ['Nº do Auto', valorCampoFicha_(registro, 'Nº do Auto')],
-          ['Data da vistoria', valorCampoFicha_(registro, 'Data e hora')],
-          ['Situação de multa', textoSituacaoMultaFicha_(registro)],
-          ['Multa conferida em', textoSituacaoMultaFicha_(registro) ? valorCampoFicha_(registro, 'Multa conferida em') : ''],
-          ['Multa conferida por', textoSituacaoMultaFicha_(registro) ? valorCampoFicha_(registro, 'Multa conferida por') : ''],
-          ['Prazo / Próxima ação', [acao.principal, acao.detalhe].filter(Boolean).join(' — ')]
+          ['Próxima ação', [acao.principal, acao.detalhe].filter(Boolean).join(' — ') || 'Sem ação pendente'],
+          ['Situação de multa', multa],
+          ['Pendência documental', pendencia]
         ];
       }
 
@@ -9856,6 +9871,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function renderizarFichaRegistro_(registro) {
+        recordDetailRegistroAtual = registro || null;
         recordFineEstimateRegistroAtual = registro || null;
         const addressMapRequestToken = ++recordAddressMapRequestSeq_;
         const situacao = registro?.situacaoAtual || 'Sem situação';
@@ -9872,6 +9888,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['PSCIP atual', idsProjetoFicha.atual],
           ['Processo antigo', idsProjetoFicha.antigo],
           ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
+          ['Nº do Auto', valorCampoFicha_(registro, 'Nº do Auto')],
           ['Demanda', valorCampoFicha_(registro, 'Demanda')],
           ['Data de renovação do AVCB', valorCampoFicha_(registro, 'Data de renovação do AVCB')],
           ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
@@ -9901,9 +9918,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Área (m²)', valorCampoFicha_(registro, 'Área m²', 'Área')],
           ['Pavimentos', valorCampoFicha_(registro, 'Pavimentos')],
           ['Altura (m)', valorCampoFicha_(registro, 'Altura')],
-          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação', 'Ocupação / Divisão', 'Divisão')],
-          ['Situação do licenciamento', valorCampoFicha_(registro, 'Situação do licenciamento')],
-          ['Situação atual do PSCIP', valorCampoFicha_(registro, 'Situação atual do PSCIP')]
+          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação', 'Ocupação / Divisão', 'Divisão')]
         ];
         const localizacaoBruta = String(registro?.localizacao?.coordenadas || '').trim();
         const coordenadasFicha = extrairCoordenadasMapa_(
@@ -10010,18 +10025,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           avisoSugestao +
           blocoObservacoesSugestao +
           montarBlocoRetornoLiberacaoFicha_(registro) +
-          montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary') +
+          montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary record-detail-group--wide') +
           montarEstimativaMultaFicha_(registro) +
-          montarGrupoFicha_('Processo', processo) +
-          montarGrupoFicha_('Evento declaratório', eventoDeclaratorio) +
-          montarGrupoFicha_('Edificação', local) +
-          montarGrupoFicha_('Localização', localizacao, 'record-location-captured') +
-          mapaLocalizacaoFicha +
-          montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel);
+          montarGrupoFicha_('Processo', processo, 'record-process-group') +
+          montarGrupoFicha_('Evento declaratório', eventoDeclaratorio, 'record-event-group record-detail-group--wide') +
+          montarGrupoFicha_('Edificação', local, 'record-building-group') +
+          montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide') +
+          montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group') +
+          mapaLocalizacaoFicha;
 
+        const cidadeFichaCabecalho = valorCampoFicha_(registro, 'Cidade');
+        const tipoFichaCabecalho = valorCampoFicha_(registro, 'Tipo de vistoria');
+        const dataFichaCabecalho = valorCampoFicha_(registro, 'Data e hora');
+        const identificadorCabecalho = eventoFicha && eventoDeclaracaoFicha ? `Declaração ${eventoDeclaracaoFicha}` : identificadorRegistro;
         recordDetailTitle.textContent = 'Ficha do Processo';
-        recordDetailSubtitle.textContent = descricaoSituacaoPainel_(situacao);
-        recordDetailLine.textContent = [estabelecimento, eventoFicha && eventoDeclaracaoFicha ? `Declaração ${eventoDeclaracaoFicha}` : identificadorRegistro].filter(Boolean).join(' • ');
+        recordDetailLine.textContent = estabelecimento;
+        recordDetailSubtitle.textContent = [identificadorCabecalho, tipoFichaCabecalho, cidadeFichaCabecalho, dataFichaCabecalho].filter(Boolean).join(' • ');
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
@@ -10039,6 +10058,48 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
         aplicarPermissoesInterface_();
         if (!coordenadasFicha && !registro?.parcial) void hidratarMapaPorEnderecoFicha_(registro, addressMapRequestToken);
+      }
+
+      async function copiarResumoOperacionalFicha_() {
+        const registro = recordDetailRegistroAtual;
+        if (!registro) return;
+        const situacao = registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || 'Sem situação';
+        const estabelecimento = padronizarTextoCadastroCliente_(registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social')) || 'Não informado';
+        const cnpj = valorCampoFicha_(registro, 'CNPJ');
+        const cpf = valorCampoFicha_(registro, 'CPF');
+        const identificador = cnpj || (cpf ? formatarCpfTela_(cpf) : '');
+        const itemAcao = {
+          sancao: situacao,
+          tipoVistoria: valorCampoFicha_(registro, 'Tipo de vistoria'),
+          acaoSugerida: valorCampoFicha_(registro, 'Ação sugerida'),
+          alertaPrazo: valorCampoFicha_(registro, 'Alerta de Prazo'),
+          pendenciaDocumental: valorCampoFicha_(registro, 'Pendência documental'),
+          diasAutuacao: valorCampoFicha_(registro, 'Dias desde a Autuação')
+        };
+        const acao = proximaAcaoPainel_(itemAcao);
+        const linhas = [
+          `FICHA DO PROCESSO — ${estabelecimento}`,
+          `Situação: ${situacao}`,
+          valorCampoFicha_(registro, 'Tipo de vistoria') ? `Tipo de vistoria: ${valorCampoFicha_(registro, 'Tipo de vistoria')}` : '',
+          valorCampoFicha_(registro, 'Data e hora') ? `Data da vistoria: ${valorCampoFicha_(registro, 'Data e hora')}` : '',
+          valorCampoFicha_(registro, 'Cidade') ? `Cidade: ${valorCampoFicha_(registro, 'Cidade')}` : '',
+          identificador ? `${cnpj ? 'CNPJ' : 'CPF'}: ${identificador}` : '',
+          valorPscipOperacionalFicha_(registro) ? `PSCIP: ${valorPscipOperacionalFicha_(registro)}` : '',
+          valorCampoFicha_(registro, 'Nº do PF') ? `PF: ${valorCampoFicha_(registro, 'Nº do PF')}` : '',
+          valorCampoFicha_(registro, 'REDS') ? `REDS: ${valorCampoFicha_(registro, 'REDS')}` : '',
+          textoSituacaoMultaFicha_(registro) ? `Situação de multa: ${textoSituacaoMultaFicha_(registro)}` : '',
+          [acao.principal, acao.detalhe].filter(Boolean).length ? `Próxima ação: ${[acao.principal, acao.detalhe].filter(Boolean).join(' — ')}` : ''
+        ].filter(Boolean);
+        const ok = await copiarTextoClipboard_(linhas.join('\n'));
+        if (!recordDetailSummaryCopyBtn) return;
+        const original = 'Copiar resumo';
+        recordDetailSummaryCopyBtn.textContent = ok ? 'Resumo copiado ✓' : 'Não foi possível copiar';
+        recordDetailSummaryCopyBtn.classList.toggle('is-copied', Boolean(ok));
+        clearTimeout(recordDetailSummaryCopyBtn._feedbackTimer);
+        recordDetailSummaryCopyBtn._feedbackTimer = setTimeout(() => {
+          recordDetailSummaryCopyBtn.textContent = original;
+          recordDetailSummaryCopyBtn.classList.remove('is-copied');
+        }, 1800);
       }
 
       function estadoCarregandoFicha_(mensagem = 'Carregando ficha do processo...') {
@@ -21572,6 +21633,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         abrirDetalheRegistro_(linha.dataset.recordKey || '', Number(linha.dataset.recordLine || 0));
       });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
+      recordDetailSummaryCopyBtn?.addEventListener('click', copiarResumoOperacionalFicha_);
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
       recordCorrectionBtn?.addEventListener('click', abrirCorrecaoRegistro_);
       recordResultCorrectionBtn?.addEventListener('click', abrirCorrecaoResultadoVistoria_);
@@ -22054,7 +22116,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dw', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dx', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
