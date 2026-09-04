@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ef';
+      const APP_VERSION = '23.9.99eg';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2395,7 +2395,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ef';
+      const APP_REVISION_UI_ = '23.9.99eg';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4428,7 +4428,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ef', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99eg', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4812,7 +4812,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99ef — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99eg — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4843,7 +4843,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99ef — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99eg — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -7767,7 +7767,7 @@
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99ef — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99eg — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -7783,7 +7783,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99ef — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99eg — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9511,7 +9511,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99ef — Centro de correção completa da vistoria.
+      // V23.9.99eg — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -9625,7 +9625,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campo('telefone', 'responsavel', 'Telefone', ['Telefone'], { inputmode: 'tel' }),
           campo('email', 'responsavel', 'E-mail', ['E-mail'], { tipoInput: 'email' }),
           campo('cepResponsavel', 'responsavel', 'CEP do responsável', ['CEP do responsável'], { inputmode: 'numeric', placeholder: '00000-000', cepLookupContext: 'correcao-responsavel' }),
-          campo('enderecoResponsavel', 'responsavel', 'Endereço do responsável', ['Endereço do responsável', 'Endereço do envolvido'], { wide: true }),
+          campo('enderecoResponsavel', 'responsavel', 'Endereço completo do responsável', ['Endereço do responsável', 'Endereço do envolvido'], { wide: true }),
 
           campo('eventoNome', 'pet', 'Nome do evento', ['Nome do evento'], { mostrar: pet, wide: true }),
           campo('eventoInicio', 'pet', 'Início do evento', ['Início do evento'], { mostrar: pet }),
@@ -10304,7 +10304,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99ef — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99eg — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'resumo';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10454,6 +10454,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const texto = String(valor == null ? '' : valor).trim();
           return texto || 'Não informado';
         };
+        const cepResponsavelFicha = formatarCepCliente_(valorCampoFicha_(registro, 'CEP do responsável'));
+        const enderecoResponsavelBrutoFicha = String(valorCampoFicha_(registro, 'Endereço do responsável', 'Endereço do envolvido') || '').trim();
+        const enderecoResponsavelCompletoFicha = (() => {
+          if (!enderecoResponsavelBrutoFicha) return '';
+          if (!cepResponsavelFicha) return enderecoResponsavelBrutoFicha;
+          const jaTemCep = String(enderecoResponsavelBrutoFicha || '').replace(/\D/g, '').endsWith(normalizarCepCliente_(cepResponsavelFicha));
+          return jaTemCep ? enderecoResponsavelBrutoFicha : `${enderecoResponsavelBrutoFicha}, CEP ${cepResponsavelFicha}`;
+        })();
         const responsavel = [
           ['Responsável / vínculo', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Responsável'))],
           ['Nome', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Nome'))],
@@ -10466,8 +10474,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Escolaridade', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Escolaridade'))],
           ['Telefone', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Telefone'))],
           ['E-mail', naoInformadoResponsavel_(valorCampoFicha_(registro, 'E-mail'))],
-          ['CEP do responsável', naoInformadoResponsavel_(valorCampoFicha_(registro, 'CEP do responsável'))],
-          ['Endereço do responsável', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Endereço do responsável', 'Endereço do envolvido'))]
+          ['CEP do responsável', naoInformadoResponsavel_(cepResponsavelFicha)],
+          ['Endereço completo do responsável', naoInformadoResponsavel_(enderecoResponsavelCompletoFicha)]
         ];
         const eventoDeclaratorio = [
           ['Nº da declaração INFOSCIP', valorCampoFicha_(registro, 'Nº da declaração INFOSCIP')],
@@ -10481,7 +10489,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99ef — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99eg — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -14310,12 +14318,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (checked) {
           preenchendoResponsavelLookup = true;
           try {
-            setResponsibleField_(
-              'enderecoResponsavel',
-              [value('endereco'), value('numero'), value('complemento'), value('bairro')].filter(Boolean).join(', ')
-            );
+            const cepResponsavel = formatarCepCliente_(value('cep'));
+            const cidadeResponsavel = String(cityValue() || '').trim();
+            const enderecoCompletoResponsavel = [
+              [value('endereco'), value('numero')].filter(Boolean).join(', '),
+              value('complemento'),
+              value('bairro'),
+              cidadeResponsavel ? `${cidadeResponsavel} / MG` : '',
+              cepResponsavel ? `CEP ${cepResponsavel}` : ''
+            ].filter(Boolean).join(', ');
+            setResponsibleField_('enderecoResponsavel', enderecoCompletoResponsavel);
             const cepResponsavelEl = document.getElementById('cepResponsavel');
-            if (cepResponsavelEl) cepResponsavelEl.value = formatarCepCliente_(value('cep'));
+            if (cepResponsavelEl) cepResponsavelEl.value = cepResponsavel;
           } finally {
             preenchendoResponsavelLookup = false;
           }
@@ -14989,7 +15003,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99ef — CEP opcional como preenchimento assistido.
+      // V23.9.99eg — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -15007,7 +15021,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const bairro = String(resultado?.bairro || '').trim();
         const cidade = String(resultado?.cidade || '').trim();
         const uf = String(resultado?.uf || '').trim().toUpperCase();
-        return [logradouro, bairro, [cidade, uf].filter(Boolean).join(' / ')].filter(Boolean).join(', ');
+        const cep = formatarCepCliente_(resultado?.cep || '');
+        return [
+          logradouro,
+          bairro,
+          [cidade, uf].filter(Boolean).join(' / '),
+          cep ? `CEP ${cep}` : ''
+        ].filter(Boolean).join(', ');
       }
 
       function statusCepContexto_(contexto, mensagem = '', tipo = 'info') {
@@ -15932,7 +15952,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99ef — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99eg — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -23219,7 +23239,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ef', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99eg', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
