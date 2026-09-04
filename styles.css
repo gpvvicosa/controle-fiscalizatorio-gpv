@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99ei — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99ej — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99ei — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99ej — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16677,4 +16677,379 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
   body.records-mode .record-detail-section-nav{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
   }
+}
+
+/* =============================================================================
+   V23.9.99ej — Painel inicial premium
+   Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
+   ============================================================================= */
+body.records-mode .records-status{
+  display:inline-flex!important;
+  width:auto!important;
+  max-width:100%!important;
+  margin:10px 0 12px!important;
+  padding:8px 12px!important;
+  border:1px solid #dfe5ec!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,#fff,#f7fafc)!important;
+  color:#46515f!important;
+  box-shadow:0 5px 14px rgba(15,23,42,.035)!important;
+}
+
+body.records-mode .records-list{
+  gap:16px!important;
+}
+body.records-mode .records-card{
+  position:relative!important;
+  overflow:hidden!important;
+  padding:18px!important;
+  border:1px solid #dce3ec!important;
+  border-radius:22px!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(148,163,184,.08),transparent 30%),
+    linear-gradient(180deg,#fff 0%,#fdfefe 100%)!important;
+  box-shadow:0 12px 30px rgba(15,23,42,.065)!important;
+  text-align:left!important;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;
+}
+body.records-mode .records-card:hover,
+body.records-mode .records-card:focus-visible{
+  transform:translateY(-2px)!important;
+  border-color:#c5d1df!important;
+  box-shadow:0 18px 38px rgba(15,23,42,.095)!important;
+}
+body.records-mode .records-card-accent{
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  bottom:0!important;
+  width:5px!important;
+  background:linear-gradient(180deg,#9c0c12,#d7585e)!important;
+}
+body.records-mode .records-card.status-liberado .records-card-accent,
+body.records-mode .records-card.status-regularizado .records-card-accent{
+  background:linear-gradient(180deg,#168a50,#57c88b)!important;
+}
+body.records-mode .records-card.status-autuado .records-card-accent{
+  background:linear-gradient(180deg,#b42318,#ef665c)!important;
+}
+body.records-mode .records-card.status-advertencia .records-card-accent,
+body.records-mode .records-card.status-notificado .records-card-accent,
+body.records-mode .records-card.status-pendente .records-card-accent{
+  background:linear-gradient(180deg,#d58408,#f1bb4d)!important;
+}
+body.records-mode .records-card--pet{
+  border-color:#eed9af!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(245,158,11,.11),transparent 30%),
+    linear-gradient(180deg,#fff 0%,#fffdfa 100%)!important;
+}
+body.records-mode .records-card--pet .records-card-accent{
+  background:linear-gradient(180deg,#d9820b,#f5b942)!important;
+}
+body.records-mode .records-card--evento{
+  border-color:#d7e7f3!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(14,116,144,.09),transparent 30%),
+    linear-gradient(180deg,#fff 0%,#fbfeff 100%)!important;
+}
+body.records-mode .records-card--evento .records-card-accent{
+  background:linear-gradient(180deg,#0e7490,#4eb6cf)!important;
+}
+body.records-mode .records-card--fiscalizacao .records-card-accent{
+  background:linear-gradient(180deg,#9c0c12,#db5a61)!important;
+}
+body.records-mode .records-card--liberacao:not(.records-card--pet) .records-card-accent{
+  background:linear-gradient(180deg,#2769b4,#6aa4e8)!important;
+}
+
+body.records-mode .records-card-top{
+  align-items:flex-start!important;
+  gap:12px!important;
+}
+body.records-mode .records-card-title{
+  color:#152033!important;
+  font-size:20px!important;
+  line-height:1.18!important;
+  font-weight:900!important;
+  letter-spacing:-.025em!important;
+}
+body.records-mode .records-card-date{
+  flex:0 0 auto!important;
+  padding:5px 8px!important;
+  border:1px solid #e3e8ef!important;
+  border-radius:999px!important;
+  background:#f8fafc!important;
+  color:#667085!important;
+  font-size:10px!important;
+  font-weight:800!important;
+}
+body.records-mode .records-card-subtitle{
+  margin-top:7px!important;
+  color:#697586!important;
+  font-size:13px!important;
+  line-height:1.38!important;
+  font-weight:580!important;
+}
+body.records-mode .records-card-status-row{
+  margin-top:12px!important;
+  gap:8px!important;
+}
+body.records-mode .records-card-status-row .status-badge{
+  min-height:30px!important;
+  padding:6px 11px!important;
+  border-radius:999px!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)!important;
+}
+body.records-mode .records-card-demand-chip{
+  display:inline-flex!important;
+  min-height:30px!important;
+  align-items:center!important;
+  padding:6px 10px!important;
+  border:1px solid #dde4ed!important;
+  border-radius:999px!important;
+  background:#f7f9fc!important;
+  color:#526072!important;
+  font-size:10.5px!important;
+  font-weight:780!important;
+}
+body.records-mode .records-card--pet .records-card-demand-chip{
+  border-color:#efd397!important;
+  background:#fff3d6!important;
+  color:#9b5d00!important;
+}
+body.records-mode .records-card--evento .records-card-demand-chip{
+  border-color:#b9dce8!important;
+  background:#e9f8fc!important;
+  color:#0c657d!important;
+}
+
+body.records-mode .records-card-meta{
+  gap:10px!important;
+  margin-top:14px!important;
+}
+body.records-mode .records-meta-item{
+  position:relative!important;
+  overflow:hidden!important;
+  min-height:78px!important;
+  padding:12px!important;
+  border:1px solid #e6eaf0!important;
+  border-radius:14px!important;
+  background:linear-gradient(180deg,#fafbfd,#f6f8fb)!important;
+  box-shadow:0 5px 13px rgba(15,23,42,.025)!important;
+}
+body.records-mode .records-meta-item::before{
+  content:'';
+  position:absolute;
+  left:0!important;
+  top:0!important;
+  bottom:0!important;
+  width:3px!important;
+  background:#cbd5e1!important;
+}
+body.records-mode .records-meta-item--city::before{background:#168a50!important}
+body.records-mode .records-meta-item--doc::before{background:#356ac3!important}
+body.records-mode .records-meta-item--pscip::before{background:#7c4dc2!important}
+body.records-mode .records-meta-item--pf::before{background:#d58408!important}
+body.records-mode .records-meta-item span{
+  color:#788497!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  letter-spacing:.055em!important;
+}
+body.records-mode .records-meta-item strong{
+  margin-top:6px!important;
+  color:#263246!important;
+  font-size:13px!important;
+  font-weight:850!important;
+  line-height:1.3!important;
+}
+body.records-mode .records-meta-item--doc strong,
+body.records-mode .records-meta-item--pscip strong,
+body.records-mode .records-meta-item--pf strong{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace!important;
+  letter-spacing:-.025em!important;
+}
+
+body.records-mode .records-card-address{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:8px!important;
+  margin-top:12px!important;
+  padding:10px 11px!important;
+  border:1px solid #e9edf2!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#566171!important;
+  font-size:12.5px!important;
+  font-weight:620!important;
+  line-height:1.4!important;
+}
+body.records-mode .records-card-address-icon{
+  flex:0 0 auto!important;
+  color:#8f171d!important;
+  font-size:14px!important;
+  line-height:1.15!important;
+}
+body.records-mode .records-card--pet .records-card-address-icon{color:#c97608!important}
+body.records-mode .records-card--evento .records-card-address-icon{color:#0e7490!important}
+
+body.records-mode .records-card-action{
+  position:relative!important;
+  margin-top:12px!important;
+  padding:13px 14px 13px 44px!important;
+  border:1px solid #e2e7ee!important;
+  border-radius:14px!important;
+  background:linear-gradient(135deg,#f9fafc,#f4f7fa)!important;
+}
+body.records-mode .records-card-action::before{
+  content:'→'!important;
+  position:absolute!important;
+  left:13px!important;
+  top:14px!important;
+  width:23px!important;
+  height:23px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#8f171d!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  box-shadow:0 3px 9px rgba(15,23,42,.05)!important;
+}
+body.records-mode .records-card-action span{
+  color:#778396!important;
+  font-size:8.8px!important;
+  letter-spacing:.06em!important;
+}
+body.records-mode .records-card-action strong{
+  margin-top:4px!important;
+  color:#202b3c!important;
+  font-size:13px!important;
+  font-weight:850!important;
+}
+body.records-mode .records-card-action small{
+  margin-top:3px!important;
+  color:#687487!important;
+  font-size:11px!important;
+}
+body.records-mode .records-card.status-liberado .records-card-action,
+body.records-mode .records-card.status-regularizado .records-card-action{
+  border-color:#d6eadf!important;
+  background:linear-gradient(135deg,#f6fcf8,#edf9f2)!important;
+}
+body.records-mode .records-card.status-liberado .records-card-action::before,
+body.records-mode .records-card.status-regularizado .records-card-action::before{
+  color:#168a50!important;
+}
+body.records-mode .records-card.status-autuado .records-card-action{
+  border-color:#f0d5d3!important;
+  background:linear-gradient(135deg,#fffafa,#fff2f1)!important;
+}
+body.records-mode .records-card.status-autuado .records-card-action::before{color:#b42318!important}
+body.records-mode .records-card.status-advertencia .records-card-action,
+body.records-mode .records-card.status-notificado .records-card-action,
+body.records-mode .records-card.status-pendente .records-card-action{
+  border-color:#f2dfb7!important;
+  background:linear-gradient(135deg,#fffdf7,#fff7e5)!important;
+}
+body.records-mode .records-card.status-advertencia .records-card-action::before,
+body.records-mode .records-card.status-notificado .records-card-action::before,
+body.records-mode .records-card.status-pendente .records-card-action::before{color:#c27a08!important}
+
+body.records-mode .records-card-cta{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  min-height:48px!important;
+  margin-top:14px!important;
+  padding:10px 11px 10px 15px!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:linear-gradient(135deg,#760a0f,#a9131b)!important;
+  color:#fff!important;
+  font-size:12.5px!important;
+  font-weight:900!important;
+  letter-spacing:.005em!important;
+  box-shadow:0 9px 20px rgba(118,10,15,.2)!important;
+}
+body.records-mode .records-card-cta-icon{
+  width:30px!important;
+  height:30px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:10px!important;
+  background:rgba(255,255,255,.14)!important;
+  color:#fff!important;
+  font-size:16px!important;
+  font-weight:900!important;
+}
+body.records-mode .records-card:hover .records-card-cta,
+body.records-mode .records-card:focus-visible .records-card-cta{
+  background:linear-gradient(135deg,#6c080d,#b51620)!important;
+  box-shadow:0 12px 25px rgba(118,10,15,.27)!important;
+}
+
+@media(max-width:760px){
+  body.records-mode .records-list{gap:14px!important}
+  body.records-mode .records-card{
+    padding:16px 15px 15px 18px!important;
+    border-radius:20px!important;
+  }
+  body.records-mode .records-card-title{
+    font-size:19px!important;
+    line-height:1.18!important;
+  }
+  body.records-mode .records-card-date{
+    padding:4px 7px!important;
+    font-size:9.5px!important;
+  }
+  body.records-mode .records-card-subtitle{font-size:12px!important}
+  body.records-mode .records-card-status-row{margin-top:11px!important}
+  body.records-mode .records-card-status-row .status-badge,
+  body.records-mode .records-card-demand-chip{
+    min-height:28px!important;
+    padding:5px 9px!important;
+  }
+  body.records-mode .records-card-meta{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    margin-top:12px!important;
+  }
+  body.records-mode .records-meta-item{
+    min-height:72px!important;
+    padding:10px!important;
+    border-radius:13px!important;
+  }
+  body.records-mode .records-meta-item strong{font-size:12.2px!important}
+  body.records-mode .records-card-address{
+    margin-top:10px!important;
+    padding:9px 10px!important;
+    font-size:12px!important;
+  }
+  body.records-mode .records-card-action{
+    margin-top:10px!important;
+    padding:12px 12px 12px 41px!important;
+  }
+  body.records-mode .records-card-action::before{
+    left:12px!important;
+    top:13px!important;
+  }
+  body.records-mode .records-card-cta{
+    min-height:46px!important;
+    margin-top:11px!important;
+    padding:9px 9px 9px 14px!important;
+    font-size:12px!important;
+  }
+}
+
+@media(max-width:380px){
+  body.records-mode .records-card-title{font-size:17.5px!important}
+  body.records-mode .records-card-date{font-size:9px!important}
+  body.records-mode .records-meta-item strong{font-size:11.5px!important}
 }

@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ei';
+      const APP_VERSION = '23.9.99ej';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2395,7 +2395,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ei';
+      const APP_REVISION_UI_ = '23.9.99ej';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4428,7 +4428,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ei', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ej', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4812,7 +4812,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99ei — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99ej — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4843,7 +4843,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99ei — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99ej — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -6723,6 +6723,8 @@
         const acaoSugerida = String(item?.acaoSugerida || '').trim();
         const alertaPrazo = String(item?.alertaPrazo || '').trim();
         const pendenciaDocumental = String(item?.pendenciaDocumental || '').trim();
+        const pendenciaDocumentalNorm = normalize(pendenciaDocumental);
+        const pendenciaDocumentalAtiva = Boolean(pendenciaDocumental) && !['nao', 'não', 'nenhuma', 'sem pendencia', 'sem pendência'].includes(pendenciaDocumentalNorm);
         const diasAutuacao = String(item?.diasAutuacao || '').trim();
         const sancao = normalize(item?.sancao || '');
         const tipo = normalize(item?.tipoVistoria || '');
@@ -6735,7 +6737,7 @@
           if (alertaPrazo && !normalize(acaoSugerida).includes(normalize(alertaPrazo))) detalhe = alertaPrazo;
         } else if (alertaPrazo) {
           principal = alertaPrazo;
-        } else if (pendenciaDocumental) {
+        } else if (pendenciaDocumentalAtiva) {
           principal = 'Pendência documental';
           detalhe = pendenciaDocumental;
         } else if (sancao === 'advertencia') {
@@ -6765,6 +6767,18 @@
             : diasAutuacao;
         }
         return { principal, detalhe };
+      }
+
+      // V23.9.99ej — identidade visual dos cards do Painel sem alterar a lógica do processo.
+      function classesCardPainel_(item) {
+        const classes = ['records-card', classeStatus_(item?.sancao || '')];
+        const demanda = normalize(item?.demanda || '');
+        const tipo = normalize(item?.tipoVistoria || '');
+        if (demanda === 'pet' || demanda.includes('projeto de evento temporario') || tipo.includes('pet')) classes.push('records-card--pet');
+        else if (demanda.includes('eventos declaratorios') || demanda.includes('evento declaratorio')) classes.push('records-card--evento');
+        else if (tipo.includes('fiscalizacao')) classes.push('records-card--fiscalizacao');
+        else if (tipo.includes('liberacao')) classes.push('records-card--liberacao');
+        return classes.join(' ');
       }
 
       function marcarLinhaSelecionada_() {
@@ -6810,19 +6824,21 @@
           const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? padronizarTextoCadastroCliente_(item.razaoSocial) : '';
           const endereco = formatarEnderecoPainel_(item);
           const proximaAcao = proximaAcaoPainel_(item);
-          return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+          const classesCard = classesCardPainel_(item);
+          return `<button class="${escapeAttr(classesCard)}" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+            <div class="records-card-accent" aria-hidden="true"></div>
             <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
-            <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span>${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
+            <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span class="records-card-demand-chip">${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
             <div class="records-card-meta">
-              <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
-              <div class="records-meta-item"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${escapeHtml(identificadorPainel_(item).valor)}</strong></div>
-              <div class="records-meta-item"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</strong></div>
-              <div class="records-meta-item"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
+              <div class="records-meta-item records-meta-item--city"><span>Cidade</span><strong>${escapeHtml(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
+              <div class="records-meta-item records-meta-item--doc"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${escapeHtml(identificadorPainel_(item).valor)}</strong></div>
+              <div class="records-meta-item records-meta-item--pscip"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</strong></div>
+              <div class="records-meta-item records-meta-item--pf"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
             </div>
-            ${endereco && endereco !== '—' ? `<div class="records-card-address">${escapeHtml(endereco)}</div>` : ''}
-            <div class="records-card-action"><span>Prazo / Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
-            <div class="records-card-cta">Ver ficha completa <span aria-hidden="true">→</span></div>
+            ${endereco && endereco !== '—' ? `<div class="records-card-address"><span class="records-card-address-icon" aria-hidden="true">⌖</span><span>${escapeHtml(endereco)}</span></div>` : ''}
+            <div class="records-card-action"><span>Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
+            <div class="records-card-cta"><span>Ver ficha completa</span><span class="records-card-cta-icon" aria-hidden="true">→</span></div>
           </button>`;
         }).join('');
       }
@@ -7767,7 +7783,7 @@
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99ei — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99ej — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -7783,7 +7799,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99ei — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99ej — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9511,7 +9527,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99ei — Centro de correção completa da vistoria.
+      // V23.9.99ej — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -10304,7 +10320,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99ei — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99ej — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'local';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10489,7 +10505,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99ei — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99ej — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -15003,7 +15019,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99ei — CEP opcional como preenchimento assistido.
+      // V23.9.99ej — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -15952,7 +15968,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99ei — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99ej — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -23239,7 +23255,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ei', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ej', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
