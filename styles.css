@@ -16478,3 +16478,76 @@ body.records-mode .record-infoscip-update-panel{
     font-size:10px;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99eh — Navegação mobile da Ficha sem rolagem horizontal
+   As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
+   ============================================================================= */
+@media(max-width:899px){
+  body.records-mode .record-detail-section-nav{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:7px!important;
+    align-items:stretch!important;
+    overflow:visible!important;
+    overflow-x:visible!important;
+    overscroll-behavior-inline:auto!important;
+    scrollbar-width:none!important;
+    margin:0 -10px 9px!important;
+    padding:9px 10px 10px!important;
+  }
+  body.records-mode .record-detail-section-nav::-webkit-scrollbar{display:none!important}
+  body.records-mode .record-detail-section-btn{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    min-height:48px!important;
+    height:auto!important;
+    padding:6px 5px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:5px!important;
+    white-space:normal!important;
+    text-align:center!important;
+    line-height:1.12!important;
+    font-size:8.3px!important;
+    border-radius:13px!important;
+  }
+  body.records-mode .record-detail-section-icon{
+    flex:0 0 auto!important;
+    width:25px!important;
+    height:25px!important;
+    border-radius:8px!important;
+  }
+}
+
+@media(max-width:420px){
+  body.records-mode .record-detail-section-nav{
+    gap:6px!important;
+    padding-left:8px!important;
+    padding-right:8px!important;
+  }
+  body.records-mode .record-detail-section-btn{
+    min-height:50px!important;
+    padding:5px 3px!important;
+    gap:4px!important;
+    font-size:7.7px!important;
+    letter-spacing:-.01em!important;
+  }
+  body.records-mode .record-detail-section-icon{
+    width:23px!important;
+    height:23px!important;
+  }
+}
+
+@media(max-width:350px){
+  body.records-mode .record-detail-section-nav{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  body.records-mode .record-detail-section-btn{
+    min-height:43px!important;
+    font-size:8.5px!important;
+  }
+}
