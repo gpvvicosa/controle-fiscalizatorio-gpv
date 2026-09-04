@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dy';
+      const APP_VERSION = '23.9.99dz';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2360,6 +2360,7 @@
       let metasMensaisAtual = null;
       let metasCarregando = false;
       let preparacaoEditandoId = '';
+      let preparacaoCadastroIdPendente = '';
       let preparacaoRetornarProgramadas = false;
       let submitting = false;
       let ultimoRegistroParaOrientacoes = null;
@@ -2388,7 +2389,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dy';
+      const APP_REVISION_UI_ = '23.9.99dz';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4421,7 +4422,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dy', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dz', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -14126,7 +14127,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             edificacao: value('nomeFantasia') || value('razaoSocial') || value('endereco') || 'Edificação',
             pscip: value('pscip'),
             substituirFileId: value('retornoLiberacaoDocumentoFileId')
-          }, 45000);
+          }, 120000);
 
           if (!resposta?.ok || !resposta.fileId) throw new Error(resposta?.error || 'O servidor não confirmou o PDF.');
 
@@ -19011,6 +19012,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
+        preparacaoCadastroIdPendente = '';
         ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
@@ -19211,6 +19213,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (opcoes.restaurarContexto !== false && retornar) abrirListaProgramadas_(true);
       }
 
+      function obterIdCadastroPreparacao_() {
+        if (preparacaoEditandoId) return String(preparacaoEditandoId);
+        if (!preparacaoCadastroIdPendente) {
+          preparacaoCadastroIdPendente = `prep_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+        }
+        return preparacaoCadastroIdPendente;
+      }
+
       function dadosPreparacaoFormulario_() {
         const g = id => String(document.getElementById(id)?.value || '').trim();
         const tipo = g('prepareTipo');
@@ -19219,7 +19229,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return {
           _appPreparacao: 'sim',
           _appPreparacaoEdicao: preparacaoEditandoId ? 'sim' : 'nao',
-          _appPreparacaoId: preparacaoEditandoId || `prep_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+          _appPreparacaoId: obterIdCadastroPreparacao_(),
           tipoPreparacao: tipo,
           tipoVistoria: tipo === 'liberacao' ? 'Vistoria de Liberação' : (tipo === 'fiscalizacao' ? 'Vistoria de Fiscalização' : ''),
           dataPrevista: g('prepareData'),
@@ -19400,6 +19410,63 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return requisicao;
       }
 
+      function normalizarComparacaoPreparacao_(valor) {
+        return normalize(String(valor == null ? '' : valor)).replace(/\s+/g, ' ').trim();
+      }
+
+      function preparacaoServidorConferePayload_(item, payload, arquivoNomeEsperado = '') {
+        if (!item || !payload) return false;
+        const iguais = (a, b) => normalizarComparacaoPreparacao_(a) === normalizarComparacaoPreparacao_(b);
+        const campos = [
+          ['tipoPreparacao', 'tipoPreparacao'],
+          ['dataPrevista', 'dataPrevista'],
+          ['vistoriadorResponsavel', 'vistoriadorResponsavel'],
+          ['cidade', 'cidade'],
+          ['pscip', 'pscip'],
+          ['pf', 'pf'],
+          ['cnpj', 'cnpj'],
+          ['nomeFantasia', 'nomeFantasia'],
+          ['razaoSocial', 'razaoSocial'],
+          ['area', 'area'],
+          ['endereco', 'endereco'],
+          ['numero', 'numero'],
+          ['bairro', 'bairro'],
+          ['demandaPrincipal', 'demandaPrincipal'],
+          ['eventoDeclaracaoNumero', 'eventoDeclaracaoNumero'],
+          ['dataRenovacaoAvcb', 'dataRenovacaoAvcb']
+        ];
+        for (const [campoItem, campoPayload] of campos) {
+          const esperado = payload[campoPayload];
+          if (esperado == null || String(esperado).trim() === '') continue;
+          if (!iguais(item[campoItem], esperado)) return false;
+        }
+        if (arquivoNomeEsperado && !iguais(item.arquivoDwgNome, arquivoNomeEsperado)) return false;
+        return true;
+      }
+
+      async function confirmarPreparacaoNoServidor_(id, payload, opcoes = {}) {
+        const chave = String(id || '').trim();
+        if (!chave || !navigator.onLine) return null;
+        const edicao = Boolean(opcoes.edicao);
+        const arquivoNome = String(opcoes.arquivoNome || '').trim();
+        const esperas = [0, 2500, 5000, 8000, 12000];
+        for (let tentativa = 0; tentativa < esperas.length; tentativa += 1) {
+          if (esperas[tentativa]) await new Promise(resolve => setTimeout(resolve, esperas[tentativa]));
+          try {
+            const resposta = await apiRequest('config', { consulta: 'programadas' }, 8000);
+            const itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
+            const encontrado = itens.find(item => String(item?.id || '').trim() === chave) || null;
+            if (encontrado && (!edicao || preparacaoServidorConferePayload_(encontrado, payload, arquivoNome))) {
+              preparacoesVistoria = itens;
+              return encontrado;
+            }
+          } catch (erro) {
+            if (!navigator.onLine) return null;
+          }
+        }
+        return null;
+      }
+
       async function salvarPreparacaoVistoria_() {
         const p = dadosPreparacaoFormulario_();
         const faltantes = [];
@@ -19439,30 +19506,70 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           return;
         }
+
+        const eraEdicao = Boolean(preparacaoEditandoId);
+        const rotuloBotao = eraEdicao ? 'Salvar alterações' : 'Cadastrar vistoria';
+        const arquivoSelecionado = p.tipoPreparacao === 'liberacao' ? (prepareDwgFile?.files?.[0] || null) : null;
         prepareInspectionSaveBtn.disabled = true;
+        if (prepareInspectionError) {
+          prepareInspectionError.hidden = true;
+          prepareInspectionError.textContent = '';
+        }
         try {
-          if (p.tipoPreparacao === 'liberacao' && prepareDwgFile?.files?.[0]) {
-            p._appArquivoDwg = await lerArquivoBase64_(prepareDwgFile.files[0], 8 * 1024 * 1024, ['.dwg', '.pdf']);
+          if (arquivoSelecionado) {
+            prepareInspectionSaveBtn.textContent = 'Preparando arquivo...';
+            p._appArquivoDwg = await lerArquivoBase64_(arquivoSelecionado, 8 * 1024 * 1024, ['.dwg', '.pdf']);
           }
-          const eraEdicao = Boolean(preparacaoEditandoId);
+
+          const timeoutMs = arquivoSelecionado ? 120000 : 60000;
+          prepareInspectionSaveBtn.textContent = arquivoSelecionado ? 'Enviando e cadastrando...' : (eraEdicao ? 'Salvando alterações...' : 'Cadastrando...');
+          let resposta;
           if (eraEdicao) {
-            // V23.9.7: edição usa a rota de config já liberada no gateway,
-            // evitando o caminho de gravação de vistoria normal e garantindo JSON previsível.
-            await apiRequest('config', { consulta: 'programada_editar', payload: p }, 30000);
+            resposta = await apiRequest('config', { consulta: 'programada_editar', payload: p }, timeoutMs);
           } else {
-            await apiRequest('save', { payload: p }, 30000);
+            resposta = await apiRequest('save', { payload: p }, timeoutMs);
           }
+
           fecharModalPreparacao_({ restaurarContexto: false });
           limparFormularioPreparacao_();
           carregarPreparacoesVistoria_().catch(() => {});
-          appStatus.textContent = eraEdicao ? 'Programação atualizada com sucesso.' : 'Vistoria cadastrada e compartilhada com a equipe.';
+          appStatus.textContent = eraEdicao
+            ? 'Programação atualizada com sucesso.'
+            : (resposta?.duplicado ? 'Vistoria já estava cadastrada. Lista atualizada sem duplicar o registro.' : 'Vistoria cadastrada e compartilhada com a equipe.');
         } catch (erro) {
-          if (prepareInspectionError) {
+          const statusFalha = Number(erro?.upstreamStatus || erro?.status || 0);
+          const podeTerConcluido = ['REQUEST_TIMEOUT', 'NETWORK_ERROR'].includes(String(erro?.code || ''))
+            || [408, 502, 503, 504, 520, 522, 524].includes(statusFalha);
+          if (podeTerConcluido && navigator.onLine) {
+            if (prepareInspectionError) {
+              prepareInspectionError.hidden = false;
+              prepareInspectionError.textContent = 'O servidor está demorando para responder. Verificando se o cadastro foi concluído...';
+            }
+            prepareInspectionSaveBtn.textContent = 'Verificando cadastro...';
+            const confirmado = await confirmarPreparacaoNoServidor_(p._appPreparacaoId, p, {
+              edicao: eraEdicao,
+              arquivoNome: arquivoSelecionado?.name || ''
+            });
+            if (confirmado) {
+              fecharModalPreparacao_({ restaurarContexto: false });
+              limparFormularioPreparacao_();
+              carregarPreparacoesVistoria_().catch(() => {});
+              appStatus.textContent = eraEdicao
+                ? 'Programação atualizada e confirmada no servidor.'
+                : 'Vistoria cadastrada e confirmada no servidor.';
+              return;
+            }
+            if (prepareInspectionError) {
+              prepareInspectionError.hidden = false;
+              prepareInspectionError.textContent = 'O servidor ainda não confirmou o cadastro. Os dados permanecem preenchidos. Aguarde alguns segundos e tente novamente; a nova tentativa usará o mesmo identificador para evitar duplicidade.';
+            }
+          } else if (prepareInspectionError) {
             prepareInspectionError.hidden = false;
             prepareInspectionError.textContent = erro?.message || 'Não foi possível salvar a preparação.';
           }
         } finally {
           prepareInspectionSaveBtn.disabled = false;
+          prepareInspectionSaveBtn.textContent = rotuloBotao;
         }
       }
 
@@ -22197,7 +22304,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dy', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
