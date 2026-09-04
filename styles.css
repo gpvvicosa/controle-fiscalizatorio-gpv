@@ -15339,7 +15339,7 @@ body:not(.records-mode) #fluxoLiberacaoBtn{
 
 
 /* =============================================================================
-   V23.9.99ee — Ficha do Processo modular e moderna
+   V23.9.99ef — Ficha do Processo modular e moderna
    O cabeçalho permanece sempre visível; os detalhes são apresentados por seção.
    ============================================================================= */
 body.records-mode .record-detail-heading{
@@ -15478,7 +15478,7 @@ body.records-mode .record-detail-section-nav + .record-detail-section-hint + .re
 }
 
 /* =============================================================================
-   V23.9.99ee — Ficha Premium Colorida
+   V23.9.99ef — Ficha Premium Colorida
    Evolução estritamente visual da Ficha do Processo: hierarquia, cor e leitura.
    ============================================================================= */
 body.records-mode .record-detail-shell{
@@ -15864,7 +15864,7 @@ body.records-mode .location-map-card--record{border-top:3px solid #087878!import
   body.records-mode .record-detail-module-panel .record-copy-value-btn{transition:none!important;transform:none!important}
 }
 
-/* Refinos finais V23.9.99ee — carregamento progressivo e linha do tempo. */
+/* Refinos finais V23.9.99ef — carregamento progressivo e linha do tempo. */
 body.records-mode .record-sync-banner--loading{
   position:relative!important;margin-bottom:12px!important;padding:11px 14px 11px 42px!important;
   border:1px solid #d7e3f4!important;border-radius:14px!important;
@@ -15920,7 +15920,7 @@ body.records-mode .history-body p{
 
 
 /* ==========================================================================
-   V23.9.99ee — Ficha colorida + Centro de correção completa
+   V23.9.99ef — Ficha colorida + Centro de correção completa
    ========================================================================== */
 
 /* Barra de navegação: cada seção possui identidade cromática mesmo inativa. */
@@ -16142,7 +16142,7 @@ body.records-mode .record-correction-panel--complete .record-correction-btn:hove
 }
 
 /* =========================================================
-   V23.9.99ee — Interior Premium da Ficha
+   V23.9.99ef — Interior Premium da Ficha
    Refina os cards internos das seções com visual mais moderno,
    colorido e organizado, sem alterar a lógica do sistema.
    ========================================================= */
@@ -16382,5 +16382,99 @@ body.records-mode .record-infoscip-update-panel{
   }
   body.records-mode .record-detail-module-panel .record-detail-field .record-detail-copy-value{
     font-size:13px!important;
+  }
+}
+
+/* =========================================================
+   V23.9.99ef — Busca por CEP opcional
+   O CEP é apenas preenchimento assistido; os campos permanecem editáveis.
+   ========================================================= */
+.field-optional{
+  display:inline-flex;
+  align-items:center;
+  margin-left:5px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:#eef2f6;
+  color:#667085;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  vertical-align:middle;
+}
+.cep-lookup-field{
+  position:relative;
+}
+.cep-lookup-control,
+.record-correction-cep-control{
+  display:flex;
+  align-items:stretch;
+  gap:8px;
+  width:100%;
+}
+.cep-lookup-control input,
+.record-correction-cep-control input{
+  min-width:0;
+  flex:1 1 auto;
+}
+.cep-lookup-btn{
+  flex:0 0 auto;
+  min-height:42px;
+  padding:0 14px;
+  border:1px solid #cfd8e6;
+  border-radius:11px;
+  background:linear-gradient(180deg,#ffffff,#f4f7fb);
+  color:#344054;
+  font-size:11px;
+  font-weight:850;
+  white-space:nowrap;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(15,23,42,.035);
+  transition:border-color .16s ease,background .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+.cep-lookup-btn:hover{
+  border-color:#9fb2ca;
+  background:linear-gradient(180deg,#ffffff,#edf3f9);
+  transform:translateY(-1px);
+  box-shadow:0 7px 16px rgba(15,23,42,.06);
+}
+.cep-lookup-btn:active{transform:translateY(0)}
+.cep-lookup-status{
+  margin-top:6px;
+  min-height:0;
+  line-height:1.35;
+}
+.cep-lookup-status.show.success{color:#176b3a}
+.cep-lookup-status.show.error{color:#b42318}
+.cep-lookup-status.show.info{color:#526176}
+.record-correction-cep-field>span em{
+  margin-left:5px;
+  color:#7b8799;
+  font-size:9px;
+  font-style:normal;
+  font-weight:750;
+}
+.record-correction-cep-control .cep-lookup-btn{
+  min-height:40px;
+  padding:0 12px;
+  border-radius:10px;
+}
+.record-correction-cep-field .cep-lookup-status{
+  display:block;
+  margin-top:6px;
+  font-size:10px;
+  font-weight:650;
+}
+
+@media(max-width:640px){
+  .cep-lookup-control,
+  .record-correction-cep-control{
+    gap:6px;
+  }
+  .cep-lookup-btn{
+    min-height:42px;
+    padding:0 11px;
+    font-size:10px;
   }
 }

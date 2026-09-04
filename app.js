@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ee';
+      const APP_VERSION = '23.9.99ef';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2395,7 +2395,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ee';
+      const APP_REVISION_UI_ = '23.9.99ef';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4428,7 +4428,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ee', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ef', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4475,7 +4475,7 @@
       let telefoneResponsavelAssociado = '';
       const RESPONSAVEL_EDITABLE_FIELDS_ = new Set([
         'telefone','responsavel','nomeResponsavel','rg','cpf','mae','nascimento',
-        'profissao','estadoCivil','escolaridade','email','enderecoResponsavel'
+        'profissao','estadoCivil','escolaridade','email','cepResponsavel','enderecoResponsavel'
       ]);
       const responsavelCamposEditadosManual_ = new Set();
       let responsavelEdicaoManualAtiva_ = false;
@@ -4812,7 +4812,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99ee — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99ef — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4843,7 +4843,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99ee — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99ef — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -7767,7 +7767,7 @@
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99ee — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99ef — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -7776,13 +7776,14 @@
         if (camposIdentidade.includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-identity');
         if (chave.includes('telefone') || chave.includes('e-mail') || chave === 'origem') classes.push('field-contact');
         if (chave.includes('data') || chave.includes('validade') || chave.includes('inicio') || chave.includes('termino') || chave === 'capturada em') classes.push('field-date');
-        if (chave.includes('endereco') || ['cidade', 'bairro', 'numero', 'complemento', 'coordenadas'].includes(chave) || chave.includes('local do evento')) classes.push('field-address');
+        if (chave.includes('endereco') || chave.includes('cep') || ['cidade', 'bairro', 'numero', 'complemento', 'coordenadas'].includes(chave) || chave.includes('local do evento')) classes.push('field-address');
+        if (chave.includes('cep')) classes.push('field-mono');
         if (chave.includes('area') || chave.includes('altura') || chave.includes('pavimentos') || chave.includes('publico') || chave === 'precisao gps') classes.push('field-metric');
         if (chave.includes('situacao') || chave.includes('demanda') || chave.includes('ocupacao') || chave.includes('divisao') || chave.includes('pendencia') || chave.includes('multa') || chave === 'tipo de vistoria' || chave === 'proxima acao') classes.push('field-status');
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99ee — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99ef — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9510,7 +9511,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99ee — Centro de correção completa da vistoria.
+      // V23.9.99ef — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -9600,10 +9601,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campo('acessoriaTipoLicenca', 'processo', 'Documento de licenciamento da acessória', ['Documento de licenciamento da acessória'], { mostrar: acessoria }),
           campo('acessoriaSituacaoAnterior', 'processo', 'Situação anterior do PF', ['Situação anterior do PF'], { mostrar: acessoria }),
 
+          campo('cep', 'local', 'CEP', ['CEP'], { inputmode: 'numeric', placeholder: '00000-000', cepLookupContext: 'correcao-local' }),
           campo('enderecoEdificacao', 'local', pet ? 'Endereço do evento' : (evento ? 'Endereço do evento' : 'Endereço da edificação'), ['Endereço do estabelecimento']),
           campo('numero', 'local', 'Número', ['Nº']),
           campo('complemento', 'local', 'Complemento', ['Complemento']),
           campo('bairro', 'local', 'Bairro', ['Bairro']),
+          campo('cepCorrespondencia', 'local', 'CEP para correspondência', ['CEP para correspondência'], { mostrar: !evento && !pet, inputmode: 'numeric', placeholder: '00000-000', cepLookupContext: 'correcao-correspondencia' }),
           campo('enderecoCorrespondencia', 'local', 'Endereço para correspondência', ['Endereço para correspondência'], { mostrar: !evento && !pet, wide: true }),
           campo('area', 'local', 'Área (m²)', ['Área (m²)', 'Área m²', 'Área'], { mostrar: !evento, inputmode: 'decimal' }),
           campo('pavimentos', 'local', 'Pavimentos', ['Pavimentos'], { mostrar: !evento, inputmode: 'numeric' }),
@@ -9621,6 +9624,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campo('escolaridade', 'responsavel', 'Escolaridade', ['Escolaridade']),
           campo('telefone', 'responsavel', 'Telefone', ['Telefone'], { inputmode: 'tel' }),
           campo('email', 'responsavel', 'E-mail', ['E-mail'], { tipoInput: 'email' }),
+          campo('cepResponsavel', 'responsavel', 'CEP do responsável', ['CEP do responsável'], { inputmode: 'numeric', placeholder: '00000-000', cepLookupContext: 'correcao-responsavel' }),
           campo('enderecoResponsavel', 'responsavel', 'Endereço do responsável', ['Endereço do responsável', 'Endereço do envolvido'], { wide: true }),
 
           campo('eventoNome', 'pet', 'Nome do evento', ['Nome do evento'], { mostrar: pet, wide: true }),
@@ -9697,6 +9701,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return `<label class="${classe}"><span>${escapeHtml(campo.rotulo)}</span><textarea id="${escapeAttr(id)}" ${comum} rows="3"${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}>${escapeHtml(valorAtual)}</textarea></label>`;
         }
         const tipo = campo.tipoInput || 'text';
+        if (campo.cepLookupContext) {
+          return `<label class="${classe} record-correction-cep-field"><span>${escapeHtml(campo.rotulo)} <em>opcional</em></span><div class="record-correction-cep-control"><input id="${escapeAttr(id)}" type="text" ${comum} data-cep-input value="${escapeAttr(formatarCepCliente_(valorAtual))}" inputmode="numeric" maxlength="9" placeholder="00000-000"><button type="button" class="cep-lookup-btn" data-cep-lookup-context="${escapeAttr(campo.cepLookupContext)}">Buscar CEP</button></div><small class="lookup-status cep-lookup-status" data-cep-status-context="${escapeAttr(campo.cepLookupContext)}" role="status" aria-live="polite"></small></label>`;
+        }
         return `<label class="${classe}"><span>${escapeHtml(campo.rotulo)}</span><input id="${escapeAttr(id)}" type="${escapeAttr(tipo)}" ${comum} value="${escapeAttr(valorAtual)}"${campo.inputmode ? ` inputmode="${escapeAttr(campo.inputmode)}"` : ''}${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}></label>`;
       }
 
@@ -9967,7 +9974,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function normalizarComparacaoCorrecao_(id, valor) {
         const texto = String(valor == null ? '' : valor).trim();
-        if (['documentoEstabelecimento', 'cpfResponsavel', 'eventoOrganizadorDocumento', 'telefone', 'eventoTelefoneOrganizador'].includes(id)) {
+        if (['documentoEstabelecimento', 'cpfResponsavel', 'eventoOrganizadorDocumento', 'telefone', 'eventoTelefoneOrganizador', 'cep', 'cepCorrespondencia', 'cepResponsavel'].includes(id)) {
           return texto.replace(/\D/g, '');
         }
         if (id === 'pscip') return texto.toUpperCase().replace(/\s+/g, '');
@@ -10010,6 +10017,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           if (item.id === 'eventoOrganizadorDocumento' && valor && ![11,14].includes(digits(valor).length)) {
             return 'O CPF/CNPJ do organizador deve conter 11 ou 14 dígitos.';
+          }
+          if (['cep','cepCorrespondencia','cepResponsavel'].includes(item.id) && valor && normalizarCepCliente_(valor).length !== 8) {
+            return 'O CEP deve conter 8 dígitos ou permanecer em branco.';
           }
           if (item.id === 'pscip' && valor && !pscipProjetoValido_(valor)) {
             return 'O Nº do PSCIP / Projeto deve usar PRJ + 10 números ou processo antigo, como 44/2016.';
@@ -10294,7 +10304,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99ee — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99ef — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'resumo';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10399,7 +10409,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Estabelecimento', estabelecimento],
           ['Razão Social', razaoSocial && normalize(razaoSocial) !== normalize(estabelecimento) ? razaoSocial : ''],
           [rotuloIdentificador, identificadorRegistro],
+          ['CEP', valorCampoFicha_(registro, 'CEP')],
           ['Endereço da edificação', enderecoFicha_(registro)],
+          ['CEP para correspondência', valorCampoFicha_(registro, 'CEP para correspondência')],
           ['Endereço para correspondência', valorCampoFicha_(registro, 'Endereço para correspondência')],
           ['Área (m²)', valorCampoFicha_(registro, 'Área m²', 'Área')],
           ['Pavimentos', valorCampoFicha_(registro, 'Pavimentos')],
@@ -10454,6 +10466,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Escolaridade', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Escolaridade'))],
           ['Telefone', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Telefone'))],
           ['E-mail', naoInformadoResponsavel_(valorCampoFicha_(registro, 'E-mail'))],
+          ['CEP do responsável', naoInformadoResponsavel_(valorCampoFicha_(registro, 'CEP do responsável'))],
           ['Endereço do responsável', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Endereço do responsável', 'Endereço do envolvido'))]
         ];
         const eventoDeclaratorio = [
@@ -10468,7 +10481,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99ee — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99ef — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -13769,7 +13782,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           reds: value('reds'),
           natureza: value('natureza'),
           enderecoCorrespondencia: eventoDeclaratorio ? '' : value('enderecoCorrespondencia'),
+          cepCorrespondencia: eventoDeclaratorio ? '' : formatarCepCliente_(value('cepCorrespondencia')),
           endereco: value('endereco'),
+          cep: formatarCepCliente_(value('cep')),
           numero: value('numero'),
           complemento: padronizarTextoCadastroCliente_(value('complemento')),
           bairro: padronizarTextoCadastroCliente_(value('bairro')),
@@ -13799,6 +13814,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           escolaridade: value('escolaridade'),
           telefone: value('telefone'),
           email: value('email'),
+          cepResponsavel: formatarCepCliente_(value('cepResponsavel')),
           enderecoResponsavel: padronizarTextoCadastroCliente_(value('enderecoResponsavel')),
           eventoDeclaracaoNumero: eventoDeclaratorio ? value('eventoDeclaracaoNumero').toUpperCase() : '',
           eventoClassificacao: eventoDeclaratorio ? value('eventoClassificacao') : '',
@@ -14298,6 +14314,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               'enderecoResponsavel',
               [value('endereco'), value('numero'), value('complemento'), value('bairro')].filter(Boolean).join(', ')
             );
+            const cepResponsavelEl = document.getElementById('cepResponsavel');
+            if (cepResponsavelEl) cepResponsavelEl.value = formatarCepCliente_(value('cep'));
           } finally {
             preenchendoResponsavelLookup = false;
           }
@@ -14970,6 +14988,196 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         syncOtherCity();
       }
+
+      // V23.9.99ef — CEP opcional como preenchimento assistido.
+      // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
+      function normalizarCepCliente_(valor) {
+        return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
+      }
+
+      function formatarCepCliente_(valor) {
+        const d = normalizarCepCliente_(valor);
+        if (!d) return '';
+        if (d.length <= 5) return d;
+        return `${d.slice(0, 5)}-${d.slice(5)}`;
+      }
+
+      function textoSugestaoCep_(resultado) {
+        const logradouro = String(resultado?.logradouro || '').trim();
+        const bairro = String(resultado?.bairro || '').trim();
+        const cidade = String(resultado?.cidade || '').trim();
+        const uf = String(resultado?.uf || '').trim().toUpperCase();
+        return [logradouro, bairro, [cidade, uf].filter(Boolean).join(' / ')].filter(Boolean).join(', ');
+      }
+
+      function statusCepContexto_(contexto, mensagem = '', tipo = 'info') {
+        const alvo = document.querySelector(`[data-cep-status-context="${contexto}"]`);
+        if (!alvo) return;
+        const texto = String(mensagem || '').trim();
+        alvo.textContent = texto;
+        alvo.className = `lookup-status cep-lookup-status${texto ? ' show' : ''}${texto ? ` ${tipo}` : ''}`;
+      }
+
+      function configuracaoCepContexto_(contexto) {
+        const configuracoes = {
+          vistoria: { cepId: 'cep', enderecoId: 'endereco', bairroId: 'bairro', cidadeModo: 'vistoria', estruturado: true },
+          prepare: { cepId: 'prepareCep', enderecoId: 'prepareEndereco', bairroId: 'prepareBairro', cidadeId: 'prepareCidade', estruturado: true },
+          ddu: { cepId: 'dduCep', enderecoId: 'dduEndereco', bairroId: 'dduBairro', cidadeId: 'dduCidade', estruturado: true },
+          correspondencia: { cepId: 'cepCorrespondencia', enderecoCompletoId: 'enderecoCorrespondencia' },
+          responsavel: { cepId: 'cepResponsavel', enderecoCompletoId: 'enderecoResponsavel' },
+          'correcao-local': { cepId: 'record-correction-cep', enderecoId: 'record-correction-enderecoEdificacao', bairroId: 'record-correction-bairro', cidadeId: 'record-correction-cidade', estruturado: true, correcao: true },
+          'correcao-correspondencia': { cepId: 'record-correction-cepCorrespondencia', enderecoCompletoId: 'record-correction-enderecoCorrespondencia', correcao: true },
+          'correcao-responsavel': { cepId: 'record-correction-cepResponsavel', enderecoCompletoId: 'record-correction-enderecoResponsavel', correcao: true }
+        };
+        return configuracoes[contexto] || null;
+      }
+
+      function cidadeAtualCepContexto_(cfg) {
+        if (!cfg) return '';
+        if (cfg.cidadeModo === 'vistoria') return cityValue();
+        return String(document.getElementById(cfg.cidadeId)?.value || '').trim();
+      }
+
+      function aplicarCidadeCepContexto_(cfg, cidade) {
+        const valor = String(cidade || '').trim();
+        if (!cfg || !valor) return;
+        if (cfg.cidadeModo === 'vistoria') {
+          aplicarCidadeLocalizacao_(valor);
+          citySelect?.dispatchEvent(new Event('change', { bubbles: true }));
+          otherCity?.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+        const campo = document.getElementById(cfg.cidadeId);
+        if (!campo) return;
+        campo.value = valor;
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+        campo.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function valoresDivergemCep_(atual, sugerido) {
+        const a = String(atual || '').trim();
+        const s = String(sugerido || '').trim();
+        if (!a || !s) return false;
+        return normalize(a) !== normalize(s);
+      }
+
+      async function confirmarAplicacaoCepSeNecessario_(contexto, cfg, resultado) {
+        const sugestao = textoSugestaoCep_(resultado);
+        let divergencia = false;
+        let atualResumo = '';
+
+        if (cfg.estruturado) {
+          const atualEndereco = String(document.getElementById(cfg.enderecoId)?.value || '').trim();
+          const atualBairro = String(document.getElementById(cfg.bairroId)?.value || '').trim();
+          const atualCidade = cidadeAtualCepContexto_(cfg);
+          divergencia = valoresDivergemCep_(atualEndereco, resultado.logradouro) ||
+            valoresDivergemCep_(atualBairro, resultado.bairro) ||
+            valoresDivergemCep_(atualCidade, resultado.cidade);
+          atualResumo = [atualEndereco, atualBairro, atualCidade].filter(Boolean).join(', ');
+        } else {
+          const atual = String(document.getElementById(cfg.enderecoCompletoId)?.value || '').trim();
+          const atualUtil = normalize(atual) === normalize('O Mesmo') ? '' : atual;
+          divergencia = Boolean(atualUtil) && valoresDivergemCep_(atualUtil, sugestao);
+          atualResumo = atualUtil;
+        }
+
+        if (!divergencia) return true;
+        return confirmarGpv_(
+          `O CEP ${formatarCepCliente_(resultado.cep)} retornou:\n${sugestao || 'Endereço não detalhado'}\n\nJá existem dados de endereço preenchidos${atualResumo ? `:\n${atualResumo}` : '.'}\n\nDeseja usar a sugestão do CEP? Número e complemento não serão alterados.`,
+          'Endereço divergente',
+          { tom: 'info', rotuloConfirmar: 'Usar sugestão do CEP', rotuloCancelar: 'Manter dados atuais' }
+        );
+      }
+
+      function aplicarResultadoCepContexto_(contexto, cfg, resultado) {
+        const cepEl = document.getElementById(cfg.cepId);
+        if (cepEl) {
+          cepEl.value = formatarCepCliente_(resultado.cep);
+          cepEl.dispatchEvent(new Event('input', { bubbles: true }));
+          if (cfg.correcao) cepEl.dataset.correctionTouched = '1';
+        }
+
+        if (cfg.estruturado) {
+          const enderecoEl = document.getElementById(cfg.enderecoId);
+          const bairroEl = document.getElementById(cfg.bairroId);
+          if (enderecoEl && resultado.logradouro) {
+            enderecoEl.value = padronizarTextoCadastroCliente_(resultado.logradouro);
+            enderecoEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (bairroEl && resultado.bairro) {
+            bairroEl.value = padronizarTextoCadastroCliente_(resultado.bairro);
+            bairroEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          aplicarCidadeCepContexto_(cfg, resultado.cidade);
+        } else {
+          const alvo = document.getElementById(cfg.enderecoCompletoId);
+          if (alvo) {
+            alvo.value = textoSugestaoCep_(resultado);
+            alvo.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+
+        if (contexto === 'vistoria') {
+          syncResponsibleAddress();
+          scheduleDraftSave();
+          agendarConsultaRetornoLiberacao_(250);
+        } else if (contexto === 'prepare') {
+          agendarConsultaProcessoPf_('prepare', 220);
+        } else if (contexto === 'correspondencia' || contexto === 'responsavel') {
+          scheduleDraftSave();
+        }
+      }
+
+      async function buscarCepContexto_(contexto) {
+        const cfg = configuracaoCepContexto_(contexto);
+        if (!cfg) return;
+        const cepEl = document.getElementById(cfg.cepId);
+        const cep = normalizarCepCliente_(cepEl?.value || '');
+        if (!cep) {
+          statusCepContexto_(contexto, 'CEP opcional. Informe 8 dígitos somente se desejar fazer a busca.', 'info');
+          return;
+        }
+        if (cep.length !== 8) {
+          statusCepContexto_(contexto, 'Informe um CEP com 8 dígitos ou deixe o campo em branco.', 'error');
+          cepEl?.focus();
+          return;
+        }
+        if (!navigator.onLine) {
+          statusCepContexto_(contexto, 'Sem internet. Continue preenchendo o endereço manualmente; o CEP não é obrigatório.', 'info');
+          return;
+        }
+
+        if (cepEl) cepEl.value = formatarCepCliente_(cep);
+        statusCepContexto_(contexto, 'Consultando CEP...', 'info');
+        try {
+          const resultado = await apiRequest('config', { consulta: 'cep', cep }, 18000);
+          if (!resultado?.ok) throw new Error(resultado?.error || 'CEP não localizado.');
+          const usar = await confirmarAplicacaoCepSeNecessario_(contexto, cfg, resultado);
+          if (!usar) {
+            statusCepContexto_(contexto, `CEP ${formatarCepCliente_(resultado.cep)} localizado. Os dados atuais foram mantidos e continuam editáveis.`, 'info');
+            return;
+          }
+          aplicarResultadoCepContexto_(contexto, cfg, resultado);
+          const sugestao = textoSugestaoCep_(resultado);
+          statusCepContexto_(contexto, `${sugestao || 'CEP localizado.'} Dados sugeridos aplicados; altere livremente o que for necessário.`, 'success');
+        } catch (erro) {
+          statusCepContexto_(contexto, `${erro?.message || 'Não foi possível consultar o CEP agora.'} Você pode continuar preenchendo manualmente.`, 'error');
+        }
+      }
+
+      document.addEventListener('input', event => {
+        const campoCep = event.target.closest?.('[data-cep-input]');
+        if (!campoCep) return;
+        const formatado = formatarCepCliente_(campoCep.value);
+        if (campoCep.value !== formatado) campoCep.value = formatado;
+      });
+
+      document.addEventListener('click', event => {
+        const botao = event.target.closest?.('[data-cep-lookup-context]');
+        if (!botao) return;
+        event.preventDefault();
+        void buscarCepContexto_(String(botao.dataset.cepLookupContext || ''));
+      });
 
       function aplicarEnderecoDaLocalizacao_(resultado, substituir = false) {
         if (!resultado || typeof resultado !== 'object') return;
@@ -15724,7 +15932,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99ee — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99ef — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -15765,6 +15973,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // Endereço pode corresponder ao local efetivamente vistoriado e não
         // necessariamente ao endereço cadastral do CNPJ. Após limpar um CNPJ
         // anterior, preenche somente se o usuário ainda não informou o local.
+        const localJaInformado = ['endereco','numero','complemento','bairro'].some(id => String(value(id) || '').trim());
+        // Não associa o CEP cadastral da empresa a um local que já foi informado
+        // manualmente pelo vistoriador. Isso evita misturar CEP da sede com o endereço real.
+        if (!localJaInformado && setFieldFromCnpj_('cep', formatarCepCliente_(result.cep))) count += 1;
         if (setFieldFromCnpj_('endereco', padronizarTextoCadastroCliente_(result.endereco))) count += 1;
         if (setFieldFromCnpj_('numero', result.numero)) count += 1;
         if (setFieldFromCnpj_('complemento', padronizarTextoCadastroCliente_(result.complemento))) count += 1;
@@ -16229,7 +16441,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function limparDadosResponsavelExcetoTelefone_() {
         const campos = [
           'responsavel', 'nomeResponsavel', 'rg', 'cpf', 'mae', 'nascimento',
-          'profissao', 'estadoCivil', 'escolaridade', 'email', 'enderecoResponsavel'
+          'profissao', 'estadoCivil', 'escolaridade', 'email', 'cepResponsavel', 'enderecoResponsavel'
         ];
         preenchendoResponsavelLookup = true;
         try {
@@ -16266,6 +16478,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           setResponsibleField_('estadoCivil', item.estadoCivil, null, { forcar });
           setResponsibleField_('escolaridade', item.escolaridade, null, { forcar });
           setResponsibleField_('email', item.email, null, { forcar });
+          setResponsibleField_('cepResponsavel', formatarCepCliente_(item.cepResponsavel), null, { forcar });
           if (!document.getElementById('mesmoEnderecoResponsavel')?.checked) {
             setResponsibleField_('enderecoResponsavel', item.enderecoResponsavel, null, { forcar });
           } else {
@@ -17670,6 +17883,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         hideError();
         clearCnpjStatus();
+        statusCepContexto_('vistoria', '');
+        statusCepContexto_('correspondencia', '');
+        statusCepContexto_('responsavel', '');
         ultimoCnpjConsultado = '';
         cnpjConsultaSequencia += 1;
         cnpjAssociadoDadosEmpresa = '';
@@ -19614,7 +19830,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
         preparacaoCadastroIdPendente = '';
-        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
+        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
@@ -19628,6 +19844,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ultimoCnpjPreparacaoConsultado = '';
         prepareNomeFantasiaCnpjSugerido_ = '';
         clearPrepareCnpjStatus_();
+        statusCepContexto_('prepare', '');
         limparResultadoProcessoPf_('prepare');
         atualizarCamposPreparacaoPorTipo_();
       }
@@ -19659,6 +19876,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if(!dduRegisterModal) return; preencherVistoriadoresDdu_();
         const hoje=new Date(); const iso=new Date(hoje.getTime()-hoje.getTimezoneOffset()*60000).toISOString().slice(0,10);
         document.getElementById('dduRecebimento').value=iso; if(dduRegisterError){dduRegisterError.hidden=true;dduRegisterError.textContent='';}
+        statusCepContexto_('ddu', '');
         dduRegisterModal.hidden=false;
       }
       function fecharCadastroDdu_(){ if(dduRegisterModal) dduRegisterModal.hidden=true; }
@@ -19750,12 +19968,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const prazo=document.getElementById('dduPrazo').value, endereco=document.getElementById('dduEndereco').value.trim(), cidade=document.getElementById('dduCidade').value.trim(); const file=document.getElementById('dduPdfFile').files?.[0];
         if(!prazo||!endereco||!cidade||!file){if(dduRegisterError){dduRegisterError.textContent='Preencha data limite, cidade, endereço e selecione o PDF.';dduRegisterError.hidden=false;}return;}
         try{dduRegisterSaveBtn.disabled=true;dduRegisterSaveBtn.textContent='Enviando PDF...'; const arq=await lerArquivoBase64_(file,8*1024*1024,'.pdf');
-          await apiRequest('config',{consulta:'ddu_salvar',payload:{numeroDdu:document.getElementById('dduNumero').value,dataRecebimento:document.getElementById('dduRecebimento').value,dataLimite:prazo,vistoriadorResponsavel:document.getElementById('dduVistoriador').value,cidade,endereco,numero:document.getElementById('dduEnderecoNumero').value,bairro:document.getElementById('dduBairro').value,complemento:document.getElementById('dduComplemento').value,observacao:document.getElementById('dduObservacao').value,arquivo:arq}},120000);
+          await apiRequest('config',{consulta:'ddu_salvar',payload:{numeroDdu:document.getElementById('dduNumero').value,dataRecebimento:document.getElementById('dduRecebimento').value,dataLimite:prazo,vistoriadorResponsavel:document.getElementById('dduVistoriador').value,cidade,cep:formatarCepCliente_(document.getElementById('dduCep').value),endereco,numero:document.getElementById('dduEnderecoNumero').value,bairro:document.getElementById('dduBairro').value,complemento:document.getElementById('dduComplemento').value,observacao:document.getElementById('dduObservacao').value,arquivo:arq}},120000);
           fecharCadastroDdu_(); await carregarDdUs_(); if(dduListModal)dduListModal.hidden=false;
         }catch(e){if(dduRegisterError){dduRegisterError.textContent=e?.message||'Não foi possível cadastrar o DDU.';dduRegisterError.hidden=false;}}
         finally{dduRegisterSaveBtn.disabled=false;dduRegisterSaveBtn.textContent='Salvar DDU';}
       }
-      function iniciarDdu_(item){ if(!item)return; if(!prepararFormularioNovaVistoria_('DDU')) return; dduEmUsoId=String(item.id||''); dduEmUsoNumero=String(item.numeroDdu||'').trim(); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v}; set('demandaPrincipal','DDU'); set('dduProtocol',dduEmUsoNumero); set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} aplicarModoEventoDeclaratorio_({silencioso:true}); sincronizarDemandasEspeciais_(); agendarConsultaProcessoPf_('form',180); scheduleDraftSave(); appStatus.textContent='DDU carregado em formulário limpo. Complete os dados da fiscalização.'; }
+      function iniciarDdu_(item){ if(!item)return; if(!prepararFormularioNovaVistoria_('DDU')) return; dduEmUsoId=String(item.id||''); dduEmUsoNumero=String(item.numeroDdu||'').trim(); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v}; set('demandaPrincipal','DDU'); set('dduProtocol',dduEmUsoNumero); set('cep',item.cep);set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} aplicarModoEventoDeclaratorio_({silencioso:true}); sincronizarDemandasEspeciais_(); agendarConsultaProcessoPf_('form',180); scheduleDraftSave(); appStatus.textContent='DDU carregado em formulário limpo. Complete os dados da fiscalização.'; }
 
       function abrirModalPreparacao_(opcoes = {}) {
         fecharMenuMais_();
@@ -19787,6 +20005,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
+        set('prepareCep', formatarCepCliente_(item.cep || ''));
         set('prepareEndereco', item.endereco || '');
         set('prepareNumero', item.numero || '');
         set('prepareBairro', item.bairro || '');
@@ -19852,6 +20071,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           nomeFantasia: padronizarTextoCadastroCliente_(g('prepareNomeFantasia')),
           razaoSocial: padronizarTextoCadastroCliente_(g('prepareRazaoSocial')),
           area: g('prepareArea'),
+          cep: formatarCepCliente_(g('prepareCep')),
           endereco: padronizarTextoCadastroCliente_(g('prepareEndereco')),
           numero: g('prepareNumero'),
           bairro: padronizarTextoCadastroCliente_(g('prepareBairro')),
@@ -19888,6 +20108,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           alterados += setSeVazio('prepareRazaoSocial', item.razaoSocial) ? 1 : 0;
           alterados += setSeVazio('prepareCidade', item.cidade) ? 1 : 0;
+          alterados += setSeVazio('prepareCep', formatarCepCliente_(item.cep)) ? 1 : 0;
           alterados += setSeVazio('prepareEndereco', item.endereco) ? 1 : 0;
           alterados += setSeVazio('prepareNumero', item.numero) ? 1 : 0;
           alterados += setSeVazio('prepareBairro', item.bairro) ? 1 : 0;
@@ -19945,6 +20166,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const mapa = {
           prepareRazaoSocial: primeiro(dados.razaoSocial, dados.razao_social, dados.nome, dados.nomeEmpresarial),
           ...(pet ? {} : { prepareNomeFantasia: primeiro(dados.nomeFantasia, dados.nome_fantasia, dados.fantasia, dados.nome_fantasia_estabelecimento) }),
+          prepareCep: formatarCepCliente_(primeiro(dados.cep, dados.codigo_postal, dados.codigoPostal)),
           prepareEndereco: primeiro(dados.endereco, dados.logradouro, dados.descricao_tipo_de_logradouro && dados.logradouro ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}` : ''),
           prepareNumero: primeiro(dados.numero, dados.numeroEndereco),
           prepareBairro: primeiro(dados.bairro, dados.nome_bairro),
@@ -19952,9 +20174,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         };
         const camposEmpresa = new Set(['prepareRazaoSocial', 'prepareNomeFantasia']);
         let alterados = 0;
+        const localPreparacaoJaInformado = ['prepareEndereco','prepareNumero','prepareBairro'].some(id => String(document.getElementById(id)?.value || '').trim());
         Object.entries(mapa).forEach(([id, valor]) => {
           const el = document.getElementById(id);
           if (!el || !valor) return;
+          if (id === 'prepareCep' && localPreparacaoJaInformado) return;
           const atual = String(el.value || '').trim();
           // Razão Social/Nome Fantasia pertencem ao CNPJ e podem ser atualizados.
           // Endereço, número, bairro e cidade são apenas sugestões e nunca
@@ -20831,6 +21055,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
+        set('prepareCep', formatarCepCliente_(item.cep || ''));
         set('prepareEndereco', item.endereco || '');
         set('prepareNumero', item.numero || '');
         set('prepareBairro', item.bairro || '');
@@ -21493,6 +21718,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('nomeFantasia', item.nomeFantasia);
         set('razaoSocial', item.razaoSocial);
         set('cnpj', item.cnpj || item.cpf);
+        set('cep', formatarCepCliente_(item.cep || ''));
         set('endereco', item.endereco);
         set('numero', item.numero);
         set('bairro', item.bairro);
@@ -22993,7 +23219,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ee', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ef', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
