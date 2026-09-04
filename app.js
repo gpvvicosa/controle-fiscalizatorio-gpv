@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99du';
+      const APP_VERSION = '23.9.99dv';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2386,7 +2386,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99du';
+      const APP_REVISION_UI_ = '23.9.99dv';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4419,7 +4419,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99du', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dv', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4801,6 +4801,84 @@
       function digits(v) { return String(v || '').replace(/\D/g, ''); }
       function normalize(v) {
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      }
+
+      // V23.9.99dv — padronização visual/cadastral sem inventar acentos.
+      const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
+      const TEXTO_CADASTRO_SIGLAS_ = new Map([
+        ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
+        ['reds','REDS'], ['ddu','DDU'], ['cnpj','CNPJ'], ['cpf','CPF'], ['rg','RG'], ['pf','PF'],
+        ['ufv','UFV'], ['infoscip','INFOSCIP'], ['resim','RESIM'], ['pet','PET'], ['glp','GLP'],
+        ['spda','SPDA'], ['ibge','IBGE'], ['ltda','LTDA'], ['epp','EPP'], ['mei','MEI'], ['me','ME'],
+        ['sa','S.A.'], ['sn','S/N'], ['mg','MG'], ['br','BR']
+      ]);
+
+      function padronizarTokenCadastroCliente_(token, indice) {
+        const original = String(token || '');
+        if (!original) return original;
+        const bordas = original.match(/^([^0-9A-Za-zÀ-ÖØ-öø-ÿ]*)(.*?)([^0-9A-Za-zÀ-ÖØ-öø-ÿ]*)$/u);
+        const prefixo = bordas ? bordas[1] : '';
+        const nucleo = bordas ? bordas[2] : original;
+        const sufixo = bordas ? bordas[3] : '';
+        if (!nucleo) return original;
+
+        const chave = normalize(nucleo).replace(/[^a-z0-9]/g, '');
+        if (TEXTO_CADASTRO_SIGLAS_.has(chave)) {
+          const canonica = TEXTO_CADASTRO_SIGLAS_.get(chave);
+          const sufixoFinal = canonica.endsWith('.') && sufixo.startsWith('.') ? sufixo.slice(1) : sufixo;
+          return prefixo + canonica + sufixoFinal;
+        }
+
+        const rodovia = nucleo.match(/^([A-Za-zÀ-ÖØ-öø-ÿ]{1,5})-(\d[0-9A-Za-z.-]*)$/u);
+        if (rodovia && ['br','mg'].includes(normalize(rodovia[1]))) {
+          return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
+        }
+
+        const chavePalavra = normalize(nucleo).replace(/[^a-z]/g, '');
+        if (indice > 0 && TEXTO_CADASTRO_CONECTORES_.has(chavePalavra)) {
+          return prefixo + nucleo.toLocaleLowerCase('pt-BR') + sufixo;
+        }
+
+        const letras = nucleo.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/gu, '');
+        if (!letras) return original;
+        const maiusculo = letras === letras.toLocaleUpperCase('pt-BR');
+        const minusculo = letras === letras.toLocaleLowerCase('pt-BR');
+        if (!maiusculo && !minusculo) return original;
+
+        let novo = nucleo.toLocaleLowerCase('pt-BR');
+        novo = novo.replace(/(^|[-'’])([A-Za-zÀ-ÖØ-öø-ÿ])/gu, (_, separador, letra) => separador + letra.toLocaleUpperCase('pt-BR'));
+        return prefixo + novo + sufixo;
+      }
+
+      function padronizarTextoCadastroCliente_(valor) {
+        const texto = String(valor == null ? '' : valor).replace(/\s+/g, ' ').trim();
+        if (!texto) return '';
+        return texto.split(' ').map((token, indice) => padronizarTokenCadastroCliente_(token, indice)).join(' ');
+      }
+
+      function padronizarCidadeCadastroCliente_(valor) {
+        const texto = String(valor == null ? '' : valor).replace(/\s+/g, ' ').trim();
+        if (!texto) return '';
+        const cidades = [
+          ...(Array.isArray(appConfig?.opcoes?.cidade) ? appConfig.opcoes.cidade : []),
+          ...(Array.isArray(DEFAULT_CONFIG?.opcoes?.cidade) ? DEFAULT_CONFIG.opcoes.cidade : [])
+        ].filter(cidade => cidade && normalize(cidade) !== 'outro');
+        const oficial = cidades.find(cidade => normalize(cidade) === normalize(texto));
+        return oficial || padronizarTextoCadastroCliente_(texto);
+      }
+
+      function padronizarCampoFichaCliente_(rotulo, valor) {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (!texto) return '';
+        const chave = normalize(rotulo || '');
+        if (chave === 'cidade' || chave === 'municipio') return padronizarCidadeCadastroCliente_(texto);
+        const textual = [
+          'nome fantasia', 'razao social', 'endereco do estabelecimento', 'endereco', 'bairro', 'complemento',
+          'nome', 'responsavel', 'nome do responsavel', 'nome do envolvido', 'mae', 'nome da mae', 'profissao',
+          'endereco do responsavel', 'endereco do envolvido', 'nome do evento', 'organizador do evento',
+          'responsavel pelo evento'
+        ];
+        return textual.includes(chave) ? padronizarTextoCadastroCliente_(texto) : texto;
       }
 
 
@@ -6586,9 +6664,9 @@
       }
 
       function formatarEnderecoPainel_(item) {
-        const logradouro = String(item?.endereco || '').trim();
+        const logradouro = padronizarTextoCadastroCliente_(item?.endereco || '');
         const numero = String(item?.numero || '').trim();
-        const bairro = String(item?.bairro || '').trim();
+        const bairro = padronizarTextoCadastroCliente_(item?.bairro || '');
         const partes = [];
         if (logradouro) partes.push(logradouro);
         if (numero) partes[0] = partes[0] ? `${partes[0]}, ${numero}` : numero;
@@ -6662,15 +6740,15 @@
         }
 
         recordsTableBody.innerHTML = itens.map(item => {
-          const tituloBase = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const tituloBase = padronizarTextoCadastroCliente_(item.nomeFantasia || item.razaoSocial || '') || 'Registro sem nome';
           const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
           const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
           const proximaAcao = proximaAcaoPainel_(item);
           return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
-            <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? `<small>${escapeHtml(item.razaoSocial)}</small>` : ''}</td>
+            <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? `<small>${escapeHtml(padronizarTextoCadastroCliente_(item.razaoSocial))}</small>` : ''}</td>
             <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${escapeHtml(formatarEnderecoPainel_(item))}</td>
-            <td>${escapeHtml(item.cidade || '—')}</td>
+            <td>${escapeHtml(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</td>
             <td class="records-mono">${escapeHtml(identificadorPainel_(item).valor)}</td>
             <td>${escapeHtml(item.demanda || '—')}</td>
             <td>${statusBadgeHtml_(item.sancao)}</td>
@@ -6684,9 +6762,9 @@
         }).join('');
 
         recordsList.innerHTML = itens.map(item => {
-          const tituloBase = item.nomeFantasia || item.razaoSocial || 'Registro sem nome';
+          const tituloBase = padronizarTextoCadastroCliente_(item.nomeFantasia || item.razaoSocial || '') || 'Registro sem nome';
           const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
-          const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(titulo) ? item.razaoSocial : '';
+          const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? padronizarTextoCadastroCliente_(item.razaoSocial) : '';
           const endereco = formatarEnderecoPainel_(item);
           const proximaAcao = proximaAcaoPainel_(item);
           return `<button class="records-card" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
@@ -6694,7 +6772,7 @@
             ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
             <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span>${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
             <div class="records-card-meta">
-              <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(item.cidade || '—')}</strong></div>
+              <div class="records-meta-item"><span>Cidade</span><strong>${escapeHtml(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
               <div class="records-meta-item"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${escapeHtml(identificadorPainel_(item).valor)}</strong></div>
               <div class="records-meta-item"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</strong></div>
               <div class="records-meta-item"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
@@ -7548,7 +7626,7 @@
         const campos = Array.isArray(registro?.campos) ? registro.campos : [];
         for (const campo of campos) {
           const chave = normalize(campo?.rotulo || '');
-          if (procurados.includes(chave)) return String(campo?.valor || '').trim();
+          if (procurados.includes(chave)) return padronizarCampoFichaCliente_(campo?.rotulo || rotulos[0] || '', campo?.valor || '');
         }
         return '';
       }
@@ -8816,7 +8894,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function payloadWhatsAppFicha_(registro, telefone) {
         const nomeResponsavel = valorCampoFicha_(registro, 'Nome');
-        const nomeFantasia = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia');
+        const nomeFantasia = padronizarTextoCadastroCliente_(registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia'));
         const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
         const dataRegistro = valorCampoFicha_(registro, 'Data e hora');
         return {
@@ -9781,7 +9859,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordFineEstimateRegistroAtual = registro || null;
         const addressMapRequestToken = ++recordAddressMapRequestSeq_;
         const situacao = registro?.situacaoAtual || 'Sem situação';
-        const estabelecimento = registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social') || '—';
+        const estabelecimento = padronizarTextoCadastroCliente_(registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social')) || '—';
         const eventoDeclaracaoFicha = valorCampoFicha_(registro, 'Nº da declaração INFOSCIP');
         const eventoFicha = Boolean(eventoDeclaracaoFicha) || normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Eventos declaratórios'));
         const cnpj = valorCampoFicha_(registro, 'CNPJ');
@@ -12142,7 +12220,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           tipoFoto: 'geral',
           dataUrl,
           edificacao: value('nomeFantasia') || value('razaoSocial') || value('eventoNome') || value('endereco') || 'Edificação',
-          endereco: value('endereco'),
+          endereco: padronizarTextoCadastroCliente_(value('endereco')),
           pscip: value('pscip'),
           preparacaoId: String(preparacaoEmUsoId || ''),
           rascunhoId: String(currentRecordId || ''),
@@ -13002,9 +13080,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           _appVersao: APP_VERSION,
           _appRegraMultaHistorico: 'sim',
           vistoriadorResponsavel: value('vistoriadorResponsavel'),
-          cidade: cityValue() || 'Viçosa',
-          nomeFantasia: eventoDeclaratorio ? value('eventoNome') : value('nomeFantasia'),
-          razaoSocial: eventoDeclaratorio ? '' : value('razaoSocial'),
+          cidade: padronizarCidadeCadastroCliente_(cityValue() || 'Viçosa'),
+          nomeFantasia: padronizarTextoCadastroCliente_(eventoDeclaratorio ? value('eventoNome') : value('nomeFantasia')),
+          razaoSocial: eventoDeclaratorio ? '' : padronizarTextoCadastroCliente_(value('razaoSocial')),
           cnpj: eventoDeclaratorio ? '' : value('cnpj'),
           _appIdentificadorTipo: eventoDeclaratorio ? '' : tipoIdentificador_(value('cnpj')) ,
           _appLicenciamento: eventoDeclaratorio ? '' : value('licenciamento'),
@@ -13031,8 +13109,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           enderecoCorrespondencia: eventoDeclaratorio ? '' : value('enderecoCorrespondencia'),
           endereco: value('endereco'),
           numero: value('numero'),
-          complemento: value('complemento'),
-          bairro: value('bairro'),
+          complemento: padronizarTextoCadastroCliente_(value('complemento')),
+          bairro: padronizarTextoCadastroCliente_(value('bairro')),
           localizacaoLatitude: value('localizacaoLatitude'),
           localizacaoLongitude: value('localizacaoLongitude'),
           localizacaoCoordenadas: value('localizacaoCoordenadas'),
@@ -13049,24 +13127,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           altura: eventoDeclaratorio ? '' : value('altura'),
           ocupacao: eventoDeclaratorio ? '' : ocupacaoTextoFinal(),
           responsavel: value('responsavel'),
-          nomeResponsavel: value('nomeResponsavel'),
+          nomeResponsavel: padronizarTextoCadastroCliente_(value('nomeResponsavel')),
           rg: value('rg'),
           cpf: eventoDeclaratorio ? value('cpf') : (value('cpf') || (tipoIdentificador_(value('cnpj')) === 'cpf' ? value('cnpj') : '')) ,
-          mae: value('mae'),
+          mae: padronizarTextoCadastroCliente_(value('mae')),
           nascimento: value('nascimento'),
-          profissao: value('profissao'),
+          profissao: padronizarTextoCadastroCliente_(value('profissao')),
           estadoCivil: value('estadoCivil'),
           escolaridade: value('escolaridade'),
           telefone: value('telefone'),
           email: value('email'),
-          enderecoResponsavel: value('enderecoResponsavel'),
+          enderecoResponsavel: padronizarTextoCadastroCliente_(value('enderecoResponsavel')),
           eventoDeclaracaoNumero: eventoDeclaratorio ? value('eventoDeclaracaoNumero').toUpperCase() : '',
           eventoClassificacao: eventoDeclaratorio ? value('eventoClassificacao') : '',
-          eventoNome: eventoDeclaratorio ? value('eventoNome') : '',
+          eventoNome: eventoDeclaratorio ? padronizarTextoCadastroCliente_(value('eventoNome')) : '',
           eventoInicio: eventoDeclaratorio ? value('eventoInicio') : '',
           eventoTermino: eventoDeclaratorio ? value('eventoTermino') : '',
           eventoPublicoEstimado: eventoDeclaratorio ? value('eventoPublicoEstimado') : '',
-          eventoOrganizador: eventoDeclaratorio ? value('eventoOrganizador') : '',
+          eventoOrganizador: eventoDeclaratorio ? padronizarTextoCadastroCliente_(value('eventoOrganizador')) : '',
           eventoOrganizadorDocumento: eventoDeclaratorio ? value('eventoOrganizadorDocumento') : '',
           eventoTelefoneOrganizador: eventoDeclaratorio ? value('eventoTelefoneOrganizador') : '',
           retornoLiberacao: ehFluxoLiberacao_() ? value('retornoLiberacao') : '',
@@ -14989,16 +15067,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         // Nome Fantasia e Razão Social identificam a empresa e, por isso,
         // o retorno do CNPJ prevalece sobre resíduos de rascunho/autopreenchimento.
-        if (setFieldFromCnpj_('nomeFantasia', result.nomeFantasia, true)) count += 1;
-        if (setFieldFromCnpj_('razaoSocial', result.razaoSocial, true)) count += 1;
+        if (setFieldFromCnpj_('nomeFantasia', padronizarTextoCadastroCliente_(result.nomeFantasia), true)) count += 1;
+        if (setFieldFromCnpj_('razaoSocial', padronizarTextoCadastroCliente_(result.razaoSocial), true)) count += 1;
 
         // Endereço pode corresponder ao local efetivamente vistoriado e não
         // necessariamente ao endereço cadastral do CNPJ. Após limpar um CNPJ
         // anterior, preenche somente se o usuário ainda não informou o local.
-        if (setFieldFromCnpj_('endereco', result.endereco)) count += 1;
+        if (setFieldFromCnpj_('endereco', padronizarTextoCadastroCliente_(result.endereco))) count += 1;
         if (setFieldFromCnpj_('numero', result.numero)) count += 1;
-        if (setFieldFromCnpj_('complemento', result.complemento)) count += 1;
-        if (setFieldFromCnpj_('bairro', result.bairro)) count += 1;
+        if (setFieldFromCnpj_('complemento', padronizarTextoCadastroCliente_(result.complemento))) count += 1;
+        if (setFieldFromCnpj_('bairro', padronizarTextoCadastroCliente_(result.bairro))) count += 1;
         // Telefone e e-mail pertencem ao responsável e não são preenchidos pela consulta do CNPJ.
 
         if (document.getElementById('mesmoEnderecoResponsavel').checked) {
@@ -21972,7 +22050,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99du', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dv', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
