@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ec';
+      const APP_VERSION = '23.9.99ed';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2395,7 +2395,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ec';
+      const APP_REVISION_UI_ = '23.9.99ed';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4428,7 +4428,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ec', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ed', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4812,7 +4812,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99ec — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99ed — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4843,7 +4843,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99ec — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99ed — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -7767,7 +7767,7 @@
         if (camposLargos.includes(chave)) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99ec — classes exclusivamente visuais para os cards do resumo da Ficha.
+        // V23.9.99ed — classes exclusivamente visuais para os cards do resumo da Ficha.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9495,9 +9495,53 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
+      // V23.9.99ed — Centro de correção completa da vistoria.
+      // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
+      // separada por segurança; os demais dados operacionais podem ser corrigidos.
+      function registroEhPetCorrecao_(registro) {
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        return demanda === normalize('PET') ||
+          demanda.includes(normalize('PET')) ||
+          tipo.includes(normalize('PET')) ||
+          Boolean(
+            valorCampoFicha_(registro, 'Nº do AVCB do PET') ||
+            valorCampoFicha_(registro, 'Validade do AVCB do PET') ||
+            valorCampoFicha_(registro, 'Público máximo do PET')
+          );
+      }
+
+      function dataHoraParaInputCorrecao_(valor) {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (!texto) return '';
+        let m = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+        if (m) {
+          return `${m[3]}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}T${String(Number(m[4])).padStart(2,'0')}:${m[5]}`;
+        }
+        m = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/);
+        if (m) return `${m[1]}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[3])).padStart(2,'0')}T${String(Number(m[4])).padStart(2,'0')}:${m[5]}`;
+        const data = new Date(texto);
+        if (!Number.isNaN(data.getTime())) {
+          const p = n => String(n).padStart(2,'0');
+          return `${data.getFullYear()}-${p(data.getMonth()+1)}-${p(data.getDate())}T${p(data.getHours())}:${p(data.getMinutes())}`;
+        }
+        return '';
+      }
+
+      function dataParaInputCorrecao_(valor) {
+        const texto = String(valor == null ? '' : valor).trim();
+        if (!texto) return '';
+        let m = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m) return `${m[3]}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`;
+        m = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return `${m[1]}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[3])).padStart(2,'0')}`;
+        return texto;
+      }
+
       function camposCorrecaoRegistro_(registro) {
         const evento = registroEhEventoDeclaratorio_(registro);
-        const liberacao = registroEhLiberacao_(registro);
+        const pet = registroEhPetCorrecao_(registro);
+        const liberacao = registroEhLiberacao_(registro) || pet;
         const acessoria = registroEhAcessoria_(registro);
         const demanda = valorCampoFicha_(registro, 'Demanda');
         const renovacao = normalize(demanda).includes(normalize('Renovação AVCB'));
@@ -9505,78 +9549,112 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const campo = (id, grupo, rotulo, fontes, opcoes = {}) => ({ id, grupo, rotulo, fontes, ...opcoes });
 
         return [
-          campo('nomeFantasia', 'Estabelecimento', 'Nome Fantasia', ['Nome Fantasia'], { mostrar: !evento }),
-          campo('razaoSocial', 'Estabelecimento', 'Razão Social', ['Razão Social'], { mostrar: !evento }),
-          campo('documentoEstabelecimento', 'Estabelecimento', 'CNPJ / CPF do estabelecimento', ['CNPJ'], { mostrar: !evento, inputmode: 'numeric' }),
+          campo('dataHora', 'gerais', 'Data e hora da vistoria', ['Data e hora', 'Carimbo de data/hora'], { tipoInput: 'datetime-local' }),
+          campo('cidade', 'gerais', 'Cidade', ['Cidade']),
+          campo('tipoVistoria', 'gerais', 'Tipo de vistoria', ['Tipo de vistoria'], {
+            tipo: 'select',
+            opcoes: ['Vistoria de Fiscalização', 'Vistoria de Liberação']
+          }),
+          campo('demanda', 'gerais', 'Demanda', ['Demanda']),
+          campo('vistoriadorResponsavel', 'gerais', 'Vistoriador responsável', ['Vistoriador responsável']),
+          campo('enviadoPor', 'gerais', 'Enviado por', ['Enviado por']),
+          campo('reds', 'gerais', 'REDS', ['REDS']),
+          campo('natureza', 'gerais', 'Natureza', ['Natureza']),
 
-          campo('cidade', 'Edificação / local', 'Cidade', ['Cidade']),
-          campo('enderecoEdificacao', 'Edificação / local', evento ? 'Endereço do evento' : 'Endereço da edificação', ['Endereço do estabelecimento']),
-          campo('numero', 'Edificação / local', 'Número', ['Nº']),
-          campo('complemento', 'Edificação / local', 'Complemento', ['Complemento']),
-          campo('bairro', 'Edificação / local', 'Bairro', ['Bairro']),
-          campo('enderecoCorrespondencia', 'Edificação / local', 'Endereço para correspondência', ['Endereço para correspondência'], { mostrar: !evento }),
-          campo('area', 'Edificação / local', 'Área (m²)', ['Área (m²)', 'Área m²', 'Área'], { mostrar: !evento, inputmode: 'decimal' }),
-          campo('pavimentos', 'Edificação / local', 'Pavimentos', ['Pavimentos'], { mostrar: !evento, inputmode: 'numeric' }),
-          campo('altura', 'Edificação / local', 'Altura (m)', ['Altura (m)', 'Altura'], { mostrar: !evento, inputmode: 'decimal' }),
-          campo('ocupacao', 'Edificação / local', 'Ocupação / Divisão', ['Ocupação', 'Ocupação / Divisão', 'Divisão'], { mostrar: !evento }),
+          campo('nomeFantasia', 'estabelecimento', 'Nome Fantasia', ['Nome Fantasia'], { mostrar: !evento && !pet }),
+          campo('razaoSocial', 'estabelecimento', pet ? 'Razão Social do organizador' : 'Razão Social', ['Razão Social'], { mostrar: !evento }),
+          campo('documentoEstabelecimento', 'estabelecimento', pet ? 'CNPJ / CPF do organizador' : 'CNPJ / CPF do estabelecimento', ['CNPJ'], { mostrar: !evento, inputmode: 'numeric' }),
 
-          campo('pscip', 'Processo / vistoria', 'Nº do PSCIP / Projeto', ['Nº do PSCIP / Projeto'], { mostrar: !evento, placeholder: 'PRJ + 10 números ou 44/2016' }),
-          campo('pf', 'Processo / vistoria', 'Nº do PF', ['Nº do PF'], { mostrar: !evento }),
-          campo('tipoVistoria', 'Processo / vistoria', 'Tipo de vistoria', ['Tipo de vistoria'], { tipo: 'select', opcoes: ['Vistoria de Fiscalização', 'Vistoria de Liberação'] }),
-          campo('vistoriadorResponsavel', 'Processo / vistoria', 'Vistoriador responsável', ['Vistoriador responsável']),
-          campo('reds', 'Processo / vistoria', 'REDS', ['REDS']),
-          campo('natureza', 'Processo / vistoria', 'Natureza', ['Natureza']),
-          campo('demanda', 'Processo / vistoria', 'Demanda', ['Demanda']),
-          campo('resim', 'Processo / vistoria', 'RESIM', ['RESIM'], { mostrar: !evento }),
-          campo('situacaoLicenciamento', 'Processo / vistoria', 'Situação do licenciamento', ['Situação do licenciamento'], {
+          campo('pscip', 'processo', pet ? 'Nº do PSCIP do PET' : 'Nº do PSCIP / Projeto', ['Nº do PSCIP / Projeto'], { mostrar: !evento, placeholder: 'PRJ + 10 números ou 44/2016' }),
+          campo('pf', 'processo', 'Nº do PF', ['Nº do PF'], { mostrar: !evento }),
+          campo('numeroAuto', 'processo', 'Nº do Auto', ['Nº do Auto'], { mostrar: !evento }),
+          campo('resim', 'processo', 'RESIM', ['RESIM'], { mostrar: !evento }),
+          campo('situacaoLicenciamento', 'processo', 'Situação do licenciamento', ['Situação do licenciamento'], {
             mostrar: !evento,
             tipo: 'select',
             opcoes: ['Possui AVCB ou CLCB', 'Não possui', 'AVCB/CLCB vencido', 'Dispensado de licenciamento']
           }),
-          campo('situacaoPscip', 'Processo / vistoria', 'Situação atual do PSCIP', ['Situação atual do PSCIP'], { mostrar: !evento }),
-          campo('pendenciaDocumental', 'Processo / vistoria', 'Pendência documental', ['Pendência documental'], { mostrar: liberacao, tipo: 'select', opcoes: ['Sim', 'Não'] }),
-          campo('nDdu', 'Processo / vistoria', 'Nº DDU', ['Nº DDU'], { mostrar: ddu }),
-          campo('dataRenovacaoAvcb', 'Processo / vistoria', 'Data de renovação do AVCB', ['Data de renovação do AVCB'], { mostrar: renovacao, placeholder: 'DD/MM/AAAA' }),
-          campo('tipoLiberacao', 'Processo / vistoria', 'Tipo da liberação', ['Tipo da liberação'], { mostrar: liberacao, tipo: 'select', opcoes: ['Final', 'Parcial'] }),
-          campo('liberacaoParcialDescricao', 'Processo / vistoria', 'Área/trecho liberado', ['Área/trecho liberado'], { mostrar: liberacao, tipo: 'textarea' }),
-          campo('liberacaoParcialArea', 'Processo / vistoria', 'Área liberada parcialmente (m²)', ['Área liberada parcialmente (m²)'], { mostrar: liberacao, inputmode: 'decimal' }),
-          campo('acessoriaResultado', 'Processo / vistoria', 'Resultado da vistoria acessória', ['Resultado da vistoria acessória'], { mostrar: acessoria, tipo: 'select', opcoes: ['Irregularidades sanadas', 'Irregularidades persistem'] }),
-          campo('acessoriaTipoLicenca', 'Processo / vistoria', 'Documento de licenciamento da acessória', ['Documento de licenciamento da acessória'], { mostrar: acessoria }),
-          campo('acessoriaSituacaoAnterior', 'Processo / vistoria', 'Situação anterior do PF', ['Situação anterior do PF'], { mostrar: acessoria }),
+          campo('situacaoPscip', 'processo', 'Situação atual do PSCIP', ['Situação atual do PSCIP'], { mostrar: !evento }),
+          campo('pendenciaDocumental', 'processo', 'Pendência documental', ['Pendência documental'], { mostrar: liberacao, tipo: 'select', opcoes: ['Sim', 'Não'] }),
+          campo('nDdu', 'processo', 'Nº DDU', ['Nº DDU'], { mostrar: ddu }),
+          campo('dataRenovacaoAvcb', 'processo', 'Data de renovação do AVCB', ['Data de renovação do AVCB'], { mostrar: renovacao, placeholder: 'DD/MM/AAAA' }),
+          campo('tipoLiberacao', 'processo', 'Tipo da liberação', ['Tipo da liberação'], { mostrar: liberacao, tipo: 'select', opcoes: ['Final', 'Parcial'] }),
+          campo('liberacaoParcialDescricao', 'processo', 'Área/trecho liberado', ['Área/trecho liberado'], { mostrar: liberacao, tipo: 'textarea', wide: true }),
+          campo('liberacaoParcialArea', 'processo', 'Área liberada parcialmente (m²)', ['Área liberada parcialmente (m²)'], { mostrar: liberacao, inputmode: 'decimal' }),
+          campo('acessoriaResultado', 'processo', 'Resultado da vistoria acessória', ['Resultado da vistoria acessória'], { mostrar: acessoria, tipo: 'select', opcoes: ['Irregularidades sanadas', 'Irregularidades persistem'] }),
+          campo('acessoriaTipoLicenca', 'processo', 'Documento de licenciamento da acessória', ['Documento de licenciamento da acessória'], { mostrar: acessoria }),
+          campo('acessoriaSituacaoAnterior', 'processo', 'Situação anterior do PF', ['Situação anterior do PF'], { mostrar: acessoria }),
 
-          campo('responsavel', 'Responsável / envolvido', evento ? 'Vínculo / função' : 'Responsável / vínculo', ['Responsável']),
-          campo('nomeResponsavel', 'Responsável / envolvido', 'Nome', ['Nome']),
-          campo('rg', 'Responsável / envolvido', 'RG', ['RG']),
-          campo('cpfResponsavel', 'Responsável / envolvido', 'CPF', ['CPF'], { inputmode: 'numeric' }),
-          campo('mae', 'Responsável / envolvido', 'Mãe', ['Mãe']),
-          campo('nascimento', 'Responsável / envolvido', 'Data de nascimento', ['Nascimento', 'Data de nascimento'], { placeholder: 'DD/MM/AAAA' }),
-          campo('profissao', 'Responsável / envolvido', 'Profissão', ['Profissão']),
-          campo('estadoCivil', 'Responsável / envolvido', 'Estado civil', ['Estado civil']),
-          campo('escolaridade', 'Responsável / envolvido', 'Escolaridade', ['Escolaridade']),
-          campo('telefone', 'Responsável / envolvido', 'Telefone', ['Telefone'], { inputmode: 'tel' }),
-          campo('email', 'Responsável / envolvido', 'E-mail', ['E-mail'], { tipoInput: 'email' }),
-          campo('enderecoResponsavel', 'Responsável / envolvido', 'Endereço do responsável', ['Endereço do responsável', 'Endereço do envolvido']),
+          campo('enderecoEdificacao', 'local', pet ? 'Endereço do evento' : (evento ? 'Endereço do evento' : 'Endereço da edificação'), ['Endereço do estabelecimento']),
+          campo('numero', 'local', 'Número', ['Nº']),
+          campo('complemento', 'local', 'Complemento', ['Complemento']),
+          campo('bairro', 'local', 'Bairro', ['Bairro']),
+          campo('enderecoCorrespondencia', 'local', 'Endereço para correspondência', ['Endereço para correspondência'], { mostrar: !evento && !pet, wide: true }),
+          campo('area', 'local', 'Área (m²)', ['Área (m²)', 'Área m²', 'Área'], { mostrar: !evento, inputmode: 'decimal' }),
+          campo('pavimentos', 'local', 'Pavimentos', ['Pavimentos'], { mostrar: !evento, inputmode: 'numeric' }),
+          campo('altura', 'local', 'Altura (m)', ['Altura (m)', 'Altura'], { mostrar: !evento, inputmode: 'decimal' }),
+          campo('ocupacao', 'local', 'Ocupação / Divisão', ['Ocupação', 'Ocupação / Divisão', 'Divisão'], { mostrar: !evento }),
 
-          campo('eventoDeclaracaoNumero', 'Evento declaratório', 'Nº da declaração INFOSCIP', ['Nº da declaração INFOSCIP'], { mostrar: evento }),
-          campo('eventoClassificacao', 'Evento declaratório', 'Classificação do evento', ['Classificação do evento'], {
+          campo('responsavel', 'responsavel', evento ? 'Vínculo / função' : 'Responsável / vínculo', ['Responsável']),
+          campo('nomeResponsavel', 'responsavel', 'Nome', ['Nome']),
+          campo('rg', 'responsavel', 'RG', ['RG']),
+          campo('cpfResponsavel', 'responsavel', 'CPF', ['CPF'], { inputmode: 'numeric' }),
+          campo('mae', 'responsavel', 'Mãe', ['Mãe']),
+          campo('nascimento', 'responsavel', 'Data de nascimento', ['Nascimento', 'Data de nascimento'], { placeholder: 'DD/MM/AAAA' }),
+          campo('profissao', 'responsavel', 'Profissão', ['Profissão']),
+          campo('estadoCivil', 'responsavel', 'Estado civil', ['Estado civil']),
+          campo('escolaridade', 'responsavel', 'Escolaridade', ['Escolaridade']),
+          campo('telefone', 'responsavel', 'Telefone', ['Telefone'], { inputmode: 'tel' }),
+          campo('email', 'responsavel', 'E-mail', ['E-mail'], { tipoInput: 'email' }),
+          campo('enderecoResponsavel', 'responsavel', 'Endereço do responsável', ['Endereço do responsável', 'Endereço do envolvido'], { wide: true }),
+
+          campo('eventoNome', 'pet', 'Nome do evento', ['Nome do evento'], { mostrar: pet, wide: true }),
+          campo('eventoInicio', 'pet', 'Início do evento', ['Início do evento'], { mostrar: pet }),
+          campo('eventoTermino', 'pet', 'Término do evento', ['Término do evento'], { mostrar: pet }),
+          campo('petPublicoMaximo', 'pet', 'Público máximo aprovado', ['Público máximo do PET', 'Público estimado'], { mostrar: pet, inputmode: 'numeric' }),
+          campo('petAvcbNumero', 'pet', 'Nº do AVCB do PET', ['Nº do AVCB do PET'], { mostrar: pet }),
+          campo('petAvcbEmissao', 'pet', 'Data de emissão do AVCB do PET', ['Data de emissão do AVCB do PET'], { mostrar: pet, tipoInput: 'date' }),
+          campo('petAvcbValidade', 'pet', 'Validade do AVCB do PET', ['Validade do AVCB do PET'], { mostrar: pet, tipoInput: 'date' }),
+
+          campo('eventoDeclaracaoNumero', 'evento', 'Nº da declaração INFOSCIP', ['Nº da declaração INFOSCIP'], { mostrar: evento }),
+          campo('eventoClassificacao', 'evento', 'Classificação do evento', ['Classificação do evento'], {
             mostrar: evento,
             tipo: 'select',
             opcoes: ['Risco mínimo', 'Risco baixo', 'Risco médio'],
             opcoesEstritas: true
           }),
-          campo('eventoNome', 'Evento declaratório', 'Nome do evento', ['Nome do evento'], { mostrar: evento }),
-          campo('eventoInicio', 'Evento declaratório', 'Início do evento', ['Início do evento'], { mostrar: evento }),
-          campo('eventoTermino', 'Evento declaratório', 'Término do evento', ['Término do evento'], { mostrar: evento }),
-          campo('eventoPublicoEstimado', 'Evento declaratório', 'Público estimado', ['Público estimado'], { mostrar: evento, inputmode: 'numeric' }),
-          campo('eventoOrganizador', 'Evento declaratório', 'Organizador do evento', ['Organizador do evento'], { mostrar: evento }),
-          campo('eventoOrganizadorDocumento', 'Evento declaratório', 'CPF/CNPJ do organizador', ['CPF/CNPJ do organizador'], { mostrar: evento, inputmode: 'numeric' }),
-          campo('eventoTelefoneOrganizador', 'Evento declaratório', 'Telefone do organizador', ['Telefone do organizador'], { mostrar: evento, inputmode: 'tel' })
+          campo('eventoNome', 'evento', 'Nome do evento', ['Nome do evento'], { mostrar: evento, wide: true }),
+          campo('eventoInicio', 'evento', 'Início do evento', ['Início do evento'], { mostrar: evento }),
+          campo('eventoTermino', 'evento', 'Término do evento', ['Término do evento'], { mostrar: evento }),
+          campo('eventoPublicoEstimado', 'evento', 'Público estimado', ['Público estimado'], { mostrar: evento, inputmode: 'numeric' }),
+          campo('eventoOrganizador', 'evento', 'Organizador do evento', ['Organizador do evento'], { mostrar: evento }),
+          campo('eventoOrganizadorDocumento', 'evento', 'CPF/CNPJ do organizador', ['CPF/CNPJ do organizador'], { mostrar: evento, inputmode: 'numeric' }),
+          campo('eventoTelefoneOrganizador', 'evento', 'Telefone do organizador', ['Telefone do organizador'], { mostrar: evento, inputmode: 'tel' }),
+
+          campo('localizacaoLatitude', 'localizacao', 'Latitude', [], { inputmode: 'decimal' }),
+          campo('localizacaoLongitude', 'localizacao', 'Longitude', [], { inputmode: 'decimal' }),
+          campo('localizacaoPrecisao', 'localizacao', 'Precisão (m)', [], { inputmode: 'decimal' }),
+          campo('localizacaoOrigem', 'localizacao', 'Origem da localização', [], { tipo: 'select', opcoes: ['gps_auto', 'gps', 'mapa'] }),
+          campo('localizacaoCapturadaEm', 'localizacao', 'Capturada em', [], { tipoInput: 'datetime-local' }),
+          campo('localizacaoEnderecoIdentificado', 'localizacao', 'Endereço identificado pelo GPS/mapa', [], { tipo: 'textarea', wide: true })
         ].filter(item => item.mostrar !== false);
       }
 
       function valorCampoCorrecao_(registro, campo) {
+        const id = String(campo?.id || '');
+        const localizacao = registro?.localizacao || {};
+        if (id === 'dataHora') return dataHoraParaInputCorrecao_(valorCampoFicha_(registro, ...(campo?.fontes || [])));
+        if (id === 'petAvcbEmissao' || id === 'petAvcbValidade') {
+          return dataParaInputCorrecao_(valorCampoFicha_(registro, ...(campo?.fontes || [])));
+        }
+        if (id === 'localizacaoLatitude') return String(localizacao.latitude || '');
+        if (id === 'localizacaoLongitude') return String(localizacao.longitude || '');
+        if (id === 'localizacaoPrecisao') return String(localizacao.precisao || '');
+        if (id === 'localizacaoOrigem') return String(localizacao.origem || '');
+        if (id === 'localizacaoCapturadaEm') return dataHoraParaInputCorrecao_(localizacao.capturadaEm || '');
+        if (id === 'localizacaoEnderecoIdentificado') return String(localizacao.enderecoIdentificado || '');
         const valor = valorCampoFicha_(registro, ...(campo?.fontes || []));
-        if (campo?.id === 'nascimento') return formatarDataNascimentoFicha_(valor);
+        if (id === 'nascimento') return formatarDataNascimentoFicha_(valor);
         return valor;
       }
 
@@ -9591,19 +9669,102 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function htmlCampoCorrecao_(campo, valorAtual) {
         const id = `record-correction-${campo.id}`;
         const comum = `data-correction-id="${escapeAttr(campo.id)}" data-correction-label="${escapeAttr(campo.rotulo)}"`;
+        const classe = `record-correction-field${campo.wide ? ' wide' : ''}`;
         if (campo.tipo === 'select') {
           const opcoes = opcoesCampoCorrecao_(campo, valorAtual);
           const selecionadoValido = opcoes.some(v => normalize(v) === normalize(valorAtual));
           const optionsHtml = [`<option value="">Selecione</option>`].concat(
             opcoes.map(v => `<option value="${escapeAttr(v)}"${normalize(v) === normalize(valorAtual) ? ' selected' : ''}>${escapeHtml(v)}</option>`)
           ).join('');
-          return `<label class="record-correction-field"><span>${escapeHtml(campo.rotulo)}</span><select id="${escapeAttr(id)}" ${comum} data-correction-kind="select"${selecionadoValido ? ' data-correction-initial-valid="1"' : ''}>${optionsHtml}</select></label>`;
+          return `<label class="${classe}"><span>${escapeHtml(campo.rotulo)}</span><select id="${escapeAttr(id)}" ${comum} data-correction-kind="select"${selecionadoValido ? ' data-correction-initial-valid="1"' : ''}>${optionsHtml}</select></label>`;
         }
         if (campo.tipo === 'textarea') {
-          return `<label class="record-correction-field wide"><span>${escapeHtml(campo.rotulo)}</span><textarea id="${escapeAttr(id)}" ${comum} rows="3"${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}>${escapeHtml(valorAtual)}</textarea></label>`;
+          return `<label class="${classe}"><span>${escapeHtml(campo.rotulo)}</span><textarea id="${escapeAttr(id)}" ${comum} rows="3"${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}>${escapeHtml(valorAtual)}</textarea></label>`;
         }
         const tipo = campo.tipoInput || 'text';
-        return `<label class="record-correction-field"><span>${escapeHtml(campo.rotulo)}</span><input id="${escapeAttr(id)}" type="${escapeAttr(tipo)}" ${comum} value="${escapeAttr(valorAtual)}"${campo.inputmode ? ` inputmode="${escapeAttr(campo.inputmode)}"` : ''}${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}></label>`;
+        return `<label class="${classe}"><span>${escapeHtml(campo.rotulo)}</span><input id="${escapeAttr(id)}" type="${escapeAttr(tipo)}" ${comum} value="${escapeAttr(valorAtual)}"${campo.inputmode ? ` inputmode="${escapeAttr(campo.inputmode)}"` : ''}${campo.placeholder ? ` placeholder="${escapeAttr(campo.placeholder)}"` : ''}></label>`;
+      }
+
+      const RECORD_CORRECTION_GROUP_META_ = Object.freeze({
+        gerais: {
+          titulo: 'Corrigir dados gerais',
+          descricao: 'Data, cidade, tipo de vistoria, demanda, REDS e responsáveis pelo lançamento.'
+        },
+        estabelecimento: {
+          titulo: 'Estabelecimento / organizador',
+          descricao: 'Identificação da empresa, razão social e CNPJ/CPF.'
+        },
+        processo: {
+          titulo: 'Processo e vistoria',
+          descricao: 'PSCIP, PF, Auto, licenciamento, DDU e demais dados processuais.'
+        },
+        local: {
+          titulo: 'Edificação / local',
+          descricao: 'Endereço efetivamente vistoriado e características físicas.'
+        },
+        responsavel: {
+          titulo: 'Responsável',
+          descricao: 'Identificação, contato, endereço e dados complementares.'
+        },
+        pet: {
+          titulo: 'PET / Evento temporário',
+          descricao: 'Nome do evento, período, público e AVCB específico desta solicitação.'
+        },
+        evento: {
+          titulo: 'Evento declaratório',
+          descricao: 'Declaração INFOSCIP, classificação, organizador e público estimado.'
+        },
+        localizacao: {
+          titulo: 'Localização',
+          descricao: 'GPS, origem, precisão e endereço identificado.'
+        }
+      });
+
+      function metaGrupoCorrecao_(grupo) {
+        return RECORD_CORRECTION_GROUP_META_[grupo] || {
+          titulo: String(grupo || 'Dados'),
+          descricao: 'Dados vinculados ao registro.'
+        };
+      }
+
+      function htmlFotoCorrecao_(foto, indice) {
+        const id = String(foto?.fileId || foto?.id || '');
+        if (!id) return '';
+        const manter = Boolean(foto?.manter);
+        return `<article class="record-correction-photo-card" data-correction-photo-card="${escapeAttr(id)}">
+          <div class="record-correction-photo-thumb" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 7h4l1.4-2h5.2L16 7h4v12H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          </div>
+          <div class="record-correction-photo-copy">
+            <strong>${escapeHtml(foto?.nome || `Foto geral ${indice + 1}`)}</strong>
+            <span data-correction-photo-retention-text>${manter ? 'Retenção permanente' : 'Evidência temporária'}</span>
+          </div>
+          <div class="record-correction-photo-actions">
+            ${foto?.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}
+            <button type="button" data-correction-photo-toggle="${escapeAttr(id)}" data-correction-photo-keep="${manter ? '1' : '0'}">${manter ? 'Tornar temporária' : 'Manter'}</button>
+            <button class="danger" type="button" data-correction-photo-delete="${escapeAttr(id)}">Excluir</button>
+          </div>
+        </article>`;
+      }
+
+      function htmlGrupoFotosCorrecao_(registro) {
+        const fotos = Array.isArray(registro?.fotosGerais) ? registro.fotosGerais : [];
+        return `<details class="record-correction-group record-correction-group--fotos" data-correction-group="fotos">
+          <summary>
+            <span class="record-correction-group-main"><i aria-hidden="true"></i><span><strong>Fotografias</strong><em>Adicionar, abrir, manter ou excluir fotos gerais vinculadas à vistoria. As alterações em fotografias são aplicadas imediatamente.</em></span></span>
+            <small data-correction-photo-count>${fotos.length} foto${fotos.length === 1 ? '' : 's'}</small>
+          </summary>
+          <div class="record-correction-photo-body">
+            <div class="record-correction-photo-list" data-correction-photo-list>
+              ${fotos.length ? fotos.map(htmlFotoCorrecao_).join('') : '<div class="record-correction-photo-empty">Nenhuma fotografia geral vinculada a esta vistoria.</div>'}
+            </div>
+            <label class="record-correction-photo-add">
+              <input type="file" accept="image/jpeg,image/png,image/webp" data-correction-photo-add>
+              <span>+ Adicionar fotografia</span>
+            </label>
+            <p class="record-correction-photo-status" data-correction-photo-status></p>
+          </div>
+        </details>`;
       }
 
       function renderizarCamposCorrecao_(registro) {
@@ -9617,11 +9778,144 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (!grupos.has(campo.grupo)) grupos.set(campo.grupo, []);
           grupos.get(campo.grupo).push({ campo, atual });
         });
-        recordCorrectionFields.innerHTML = Array.from(grupos.entries()).map(([grupo, itens], index) => `
-          <details class="record-correction-group"${index < 2 || grupo === 'Responsável / envolvido' || grupo === 'Evento declaratório' ? ' open' : ''}>
-            <summary><span>${escapeHtml(grupo)}</span><small>${itens.length} campo${itens.length === 1 ? '' : 's'}</small></summary>
+
+        const htmlGrupos = Array.from(grupos.entries()).map(([grupo, itens]) => {
+          const meta = metaGrupoCorrecao_(grupo);
+          return `<details class="record-correction-group record-correction-group--${escapeAttr(grupo)}" data-correction-group="${escapeAttr(grupo)}"${grupo === 'gerais' ? ' open' : ''}>
+            <summary>
+              <span class="record-correction-group-main"><i aria-hidden="true"></i><span><strong>${escapeHtml(meta.titulo)}</strong><em>${escapeHtml(meta.descricao)}</em></span></span>
+              <small>${itens.length} campo${itens.length === 1 ? '' : 's'}</small>
+            </summary>
             <div class="record-correction-grid">${itens.map(item => htmlCampoCorrecao_(item.campo, item.atual)).join('')}</div>
-          </details>`).join('');
+          </details>`;
+        }).join('');
+
+        recordCorrectionFields.innerHTML = htmlGrupos + htmlGrupoFotosCorrecao_(registro);
+      }
+
+      function atualizarListaFotosCorrecao_() {
+        if (!recordCorrectionFields || !recordCorrectionRegistroAtual) return;
+        const grupo = recordCorrectionFields.querySelector('[data-correction-group="fotos"]');
+        const lista = grupo?.querySelector('[data-correction-photo-list]');
+        const contador = grupo?.querySelector('[data-correction-photo-count]');
+        if (!lista) return;
+        const fotos = Array.isArray(recordCorrectionRegistroAtual.fotosGerais) ? recordCorrectionRegistroAtual.fotosGerais : [];
+        lista.innerHTML = fotos.length ? fotos.map(htmlFotoCorrecao_).join('') : '<div class="record-correction-photo-empty">Nenhuma fotografia geral vinculada a esta vistoria.</div>';
+        if (contador) contador.textContent = `${fotos.length} foto${fotos.length === 1 ? '' : 's'}`;
+      }
+
+      function statusFotoCorrecao_(texto, erro = false) {
+        const alvo = recordCorrectionFields?.querySelector('[data-correction-photo-status]');
+        if (!alvo) return;
+        alvo.textContent = String(texto || '');
+        alvo.classList.toggle('error', Boolean(erro));
+      }
+
+      async function alternarRetencaoFotoCorrecao_(botao) {
+        const fileId = String(botao?.dataset?.correctionPhotoToggle || '');
+        if (!fileId || !navigator.onLine) {
+          statusFotoCorrecao_('Conecte-se à internet para alterar a retenção da fotografia.', true);
+          return;
+        }
+        botao.disabled = true;
+        try {
+          const manterAtual = botao.dataset.correctionPhotoKeep === '1';
+          const resposta = await apiRequest('config', {
+            consulta: 'foto_irregularidade_manter',
+            fileId,
+            manter: !manterAtual,
+            chaveFicha: recordsState.chaveSelecionada || ''
+          }, 20000);
+          const fotos = Array.isArray(recordCorrectionRegistroAtual?.fotosGerais) ? recordCorrectionRegistroAtual.fotosGerais : [];
+          const foto = fotos.find(item => String(item?.fileId || item?.id || '') === fileId);
+          if (foto) foto.manter = Boolean(resposta?.manter);
+          atualizarListaFotosCorrecao_();
+          renderizarFotosGeraisFicha_(recordCorrectionRegistroAtual);
+          statusFotoCorrecao_(Boolean(resposta?.manter) ? 'Fotografia marcada para retenção permanente.' : 'Fotografia voltou a ser temporária.');
+        } catch (erro) {
+          statusFotoCorrecao_(erro?.message || 'Não foi possível alterar a retenção da fotografia.', true);
+        } finally {
+          botao.disabled = false;
+        }
+      }
+
+      async function excluirFotoCorrecao_(botao) {
+        const fileId = String(botao?.dataset?.correctionPhotoDelete || '');
+        if (!fileId) return;
+        if (!navigator.onLine) {
+          statusFotoCorrecao_('Conecte-se à internet para excluir uma fotografia já enviada.', true);
+          return;
+        }
+        const confirmar = await confirmarGpv_(
+          'A fotografia será removida da vistoria e enviada para a lixeira do Drive.',
+          'Excluir fotografia?',
+          { tom: 'danger', rotuloConfirmar: 'Excluir fotografia', rotuloCancelar: 'Cancelar' }
+        );
+        if (!confirmar) return;
+        botao.disabled = true;
+        try {
+          await apiRequest('config', {
+            consulta: 'foto_irregularidade_excluir',
+            fileId,
+            chaveFicha: recordsState.chaveSelecionada || ''
+          }, 20000);
+          if (recordCorrectionRegistroAtual) {
+            recordCorrectionRegistroAtual.fotosGerais = (Array.isArray(recordCorrectionRegistroAtual.fotosGerais) ? recordCorrectionRegistroAtual.fotosGerais : [])
+              .filter(item => String(item?.fileId || item?.id || '') !== fileId);
+          }
+          atualizarListaFotosCorrecao_();
+          renderizarFotosGeraisFicha_(recordCorrectionRegistroAtual);
+          statusFotoCorrecao_('Fotografia excluída.');
+        } catch (erro) {
+          statusFotoCorrecao_(erro?.message || 'Não foi possível excluir a fotografia.', true);
+        } finally {
+          botao.disabled = false;
+        }
+      }
+
+      async function adicionarFotoCorrecao_(input) {
+        const file = input?.files?.[0];
+        if (!file) return;
+        if (!navigator.onLine) {
+          statusFotoCorrecao_('A inclusão de foto em uma vistoria já encerrada exige internet.', true);
+          input.value = '';
+          return;
+        }
+        input.disabled = true;
+        statusFotoCorrecao_('Preparando e enviando fotografia...');
+        try {
+          const dataUrl = await comprimirFotoIrregularidade_(file);
+          const registro = recordCorrectionRegistroAtual || {};
+          const resposta = await apiRequest('config', {
+            consulta: 'foto_irregularidade_salvar',
+            dataUrl,
+            tipoFoto: 'geral',
+            irregularidadeId: FOTO_GERAL_ITEM_ID_,
+            chaveFicha: recordsState.chaveSelecionada || String(registro?.chave || ''),
+            edificacao: registro?.titulo || valorCampoFicha_(registro, 'Nome do evento', 'Nome Fantasia', 'Razão Social') || 'Vistoria',
+            endereco: enderecoFicha_(registro),
+            pscip: valorPscipOperacionalFicha_(registro),
+            dataVistoria: valorCampoFicha_(registro, 'Data e hora') || ''
+          }, 45000);
+          if (!resposta?.fileId) throw new Error('O servidor não confirmou o armazenamento da fotografia.');
+          if (!Array.isArray(recordCorrectionRegistroAtual.fotosGerais)) recordCorrectionRegistroAtual.fotosGerais = [];
+          recordCorrectionRegistroAtual.fotosGerais.push({
+            fileId: resposta.fileId,
+            id: resposta.fileId,
+            nome: resposta.nome || `Foto geral ${recordCorrectionRegistroAtual.fotosGerais.length + 1}`,
+            url: resposta.url || '',
+            manter: Boolean(resposta.manter),
+            temporaria: true
+          });
+          atualizarListaFotosCorrecao_();
+          renderizarFotosGeraisFicha_(recordCorrectionRegistroAtual);
+          statusFotoCorrecao_('Fotografia adicionada à vistoria.');
+        } catch (erro) {
+          statusFotoCorrecao_(erro?.message || 'Não foi possível adicionar a fotografia.', true);
+        } finally {
+          input.disabled = false;
+          input.value = '';
+        }
       }
 
       function configurarCorrecaoFicha_(registro) {
@@ -9662,6 +9956,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return texto.replace(/\D/g, '');
         }
         if (id === 'pscip') return texto.toUpperCase().replace(/\s+/g, '');
+        if (['localizacaoLatitude','localizacaoLongitude','localizacaoPrecisao'].includes(id)) return texto.replace(',', '.');
+        if (['dataHora','localizacaoCapturadaEm'].includes(id)) return texto.replace('T', ' ').slice(0,16);
         return normalize(texto.replace(/\s+/g, ' '));
       }
 
@@ -9703,6 +9999,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (item.id === 'pscip' && valor && !pscipProjetoValido_(valor)) {
             return 'O Nº do PSCIP / Projeto deve usar PRJ + 10 números ou processo antigo, como 44/2016.';
           }
+          if (item.id === 'dataHora') {
+            if (!valor || Number.isNaN(new Date(valor).getTime())) return 'Informe uma Data e hora da vistoria válida.';
+          }
           if (item.id === 'nascimento' && valor) {
             const m = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
             if (!m) return 'A Data de nascimento deve estar no formato DD/MM/AAAA.';
@@ -9716,9 +10015,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               data.getDate() !== dia
             ) return 'Informe uma Data de nascimento válida no formato DD/MM/AAAA.';
           }
+          if (['petAvcbEmissao','petAvcbValidade'].includes(item.id) && valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+            return 'As datas do AVCB do PET devem ser válidas.';
+          }
+          if (item.id === 'petPublicoMaximo' && valor && (!/^\d+$/.test(valor) || Number(valor) <= 0)) {
+            return 'O público máximo do PET deve ser informado em número de pessoas.';
+          }
           if (item.id === 'eventoClassificacao' && valor && !['Risco mínimo','Risco baixo','Risco médio'].some(v => normalize(v) === normalize(valor))) {
             return 'Em evento declaratório, a classificação deve ser Risco mínimo, Risco baixo ou Risco médio.';
           }
+          if (item.id === 'localizacaoOrigem' && valor && !['gps_auto','gps','mapa'].includes(valor)) {
+            return 'A origem da localização deve ser gps_auto, gps ou mapa.';
+          }
+        }
+
+        const latEl = recordCorrectionFields?.querySelector('[data-correction-id="localizacaoLatitude"]');
+        const lonEl = recordCorrectionFields?.querySelector('[data-correction-id="localizacaoLongitude"]');
+        if (latEl && lonEl) {
+          const latTexto = String(latEl.value || '').trim().replace(',', '.');
+          const lonTexto = String(lonEl.value || '').trim().replace(',', '.');
+          if (Boolean(latTexto) !== Boolean(lonTexto)) return 'Latitude e longitude devem ser informadas juntas.';
+          if (latTexto && lonTexto) {
+            const lat = Number(latTexto);
+            const lon = Number(lonTexto);
+            if (!Number.isFinite(lat) || lat < -90 || lat > 90) return 'Informe uma latitude válida entre -90 e 90.';
+            if (!Number.isFinite(lon) || lon < -180 || lon > 180) return 'Informe uma longitude válida entre -180 e 180.';
+            if (Math.abs(lat) < 1e-12 && Math.abs(lon) < 1e-12) return 'As coordenadas 0,0 não representam uma localização válida.';
+          }
+        }
+        const precisaoEl = recordCorrectionFields?.querySelector('[data-correction-id="localizacaoPrecisao"]');
+        if (precisaoEl && String(precisaoEl.value || '').trim()) {
+          const p = Number(String(precisaoEl.value).replace(',', '.'));
+          if (!Number.isFinite(p) || p < 0) return 'Informe uma precisão de localização válida.';
         }
         return '';
       }
@@ -9951,7 +10279,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99ec — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99ed — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'resumo';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10125,7 +10453,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99ec — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99ed — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -15381,7 +15709,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99ec — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99ed — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -22167,6 +22495,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordCorrectionFields?.addEventListener('change', event => {
         const campo = event.target.closest?.('[data-correction-id]');
         if (campo) campo.dataset.correctionTouched = '1';
+        const fotoInput = event.target.closest?.('[data-correction-photo-add]');
+        if (fotoInput) void adicionarFotoCorrecao_(fotoInput);
+      });
+      recordCorrectionFields?.addEventListener('click', event => {
+        const manter = event.target.closest?.('[data-correction-photo-toggle]');
+        if (manter) {
+          event.preventDefault();
+          void alternarRetencaoFotoCorrecao_(manter);
+          return;
+        }
+        const excluir = event.target.closest?.('[data-correction-photo-delete]');
+        if (excluir) {
+          event.preventDefault();
+          void excluirFotoCorrecao_(excluir);
+        }
       });
       recordInfoscipUpdateBtn?.addEventListener('click', abrirAtualizacaoSituacaoInfoscip_);
       recordFineNoBtn?.addEventListener('click', () => salvarConferenciaMultaFicha_('Não possui multa em aberto'));
@@ -22635,7 +22978,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ec', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ed', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
