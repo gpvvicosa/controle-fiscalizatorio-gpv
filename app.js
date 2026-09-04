@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dv';
+      const APP_VERSION = '23.9.99dw';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2386,7 +2386,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dv';
+      const APP_REVISION_UI_ = '23.9.99dw';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4419,7 +4419,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dv', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dw', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4803,7 +4803,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99dv — padronização visual/cadastral sem inventar acentos.
+      // V23.9.99dw — padronização visual/cadastral sem inventar acentos.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -9937,19 +9937,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               contexto: 'ficha'
             })
           : (registro?.parcial ? '<section class="location-map-card location-map-card--record record-progress-placeholder"><strong>Localização e mapa</strong><span>Carregando em segundo plano...</span></section>' : montarReferenciaEnderecoPendenteFicha_(registro, addressMapRequestToken));
+        const naoInformadoResponsavel_ = valor => {
+          const texto = String(valor == null ? '' : valor).trim();
+          return texto || 'Não informado';
+        };
         const responsavel = [
-          ['Responsável / vínculo', valorCampoFicha_(registro, 'Responsável')],
-          ['Nome', valorCampoFicha_(registro, 'Nome')],
-          ['RG', valorCampoFicha_(registro, 'RG')],
-          ['CPF', valorCampoFicha_(registro, 'CPF')],
-          ['Mãe', valorCampoFicha_(registro, 'Mãe')],
-          ['Data de nascimento', formatarDataNascimentoFicha_(valorCampoFicha_(registro, 'Nascimento', 'Data de nascimento'))],
-          ['Profissão', valorCampoFicha_(registro, 'Profissão')],
-          ['Estado civil', valorCampoFicha_(registro, 'Estado civil')],
-          ['Escolaridade', valorCampoFicha_(registro, 'Escolaridade')],
-          ['Telefone', valorCampoFicha_(registro, 'Telefone')],
-          ['E-mail', valorCampoFicha_(registro, 'E-mail')],
-          ['Endereço do responsável', valorCampoFicha_(registro, 'Endereço do responsável', 'Endereço do envolvido')]
+          ['Responsável / vínculo', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Responsável'))],
+          ['Nome', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Nome'))],
+          ['RG', naoInformadoResponsavel_(valorCampoFicha_(registro, 'RG'))],
+          ['CPF', naoInformadoResponsavel_(valorCampoFicha_(registro, 'CPF'))],
+          ['Mãe', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Mãe'))],
+          ['Data de nascimento', naoInformadoResponsavel_(formatarDataNascimentoFicha_(valorCampoFicha_(registro, 'Nascimento', 'Data de nascimento')))],
+          ['Profissão', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Profissão'))],
+          ['Estado civil', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Estado civil'))],
+          ['Escolaridade', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Escolaridade'))],
+          ['Telefone', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Telefone'))],
+          ['E-mail', naoInformadoResponsavel_(valorCampoFicha_(registro, 'E-mail'))],
+          ['Endereço do responsável', naoInformadoResponsavel_(valorCampoFicha_(registro, 'Endereço do responsável', 'Endereço do envolvido'))]
         ];
         const eventoDeclaratorio = [
           ['Nº da declaração INFOSCIP', valorCampoFicha_(registro, 'Nº da declaração INFOSCIP')],
@@ -22050,7 +22054,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dv', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dw', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
