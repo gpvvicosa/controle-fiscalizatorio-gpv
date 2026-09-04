@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99eh — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99ei — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16549,5 +16549,132 @@ body.records-mode .record-infoscip-update-panel{
   body.records-mode .record-detail-section-btn{
     min-height:43px!important;
     font-size:8.5px!important;
+  }
+}
+
+
+/* =============================================================================
+   V23.9.99ei — Navegação da Ficha mais viva + abertura direta em Local
+   ============================================================================= */
+body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
+  color:#8a4b08!important;
+  border-color:#efbd63!important;
+  background:linear-gradient(145deg,#fff0c7,#ffd98e)!important;
+  box-shadow:0 7px 18px rgba(190,112,11,.16)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="local"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#d8840d,#f4ae2b)!important;
+  box-shadow:0 5px 12px rgba(206,124,10,.25)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="processo"]{
+  color:#5a35a5!important;
+  border-color:#b9a3f1!important;
+  background:linear-gradient(145deg,#eee8ff,#dcd0ff)!important;
+  box-shadow:0 7px 18px rgba(91,56,165,.14)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="processo"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#6f49c9,#8d68e4)!important;
+  box-shadow:0 5px 12px rgba(91,56,165,.23)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="responsavel"]{
+  color:#176b45!important;
+  border-color:#8bd0ab!important;
+  background:linear-gradient(145deg,#dff7e9,#bfeccf)!important;
+  box-shadow:0 7px 18px rgba(23,107,69,.13)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="responsavel"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#1e8a58,#39af76)!important;
+  box-shadow:0 5px 12px rgba(23,107,69,.22)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="historico"]{
+  color:#855a00!important;
+  border-color:#e9bd4f!important;
+  background:linear-gradient(145deg,#fff1b8,#ffdc6e)!important;
+  box-shadow:0 7px 18px rgba(161,105,0,.14)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="historico"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#c68a0b,#e7ad25)!important;
+  box-shadow:0 5px 12px rgba(161,105,0,.22)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="relatorios"]{
+  color:#961d28!important;
+  border-color:#ee9ea6!important;
+  background:linear-gradient(145deg,#ffe0e3,#ffc2c8)!important;
+  box-shadow:0 7px 18px rgba(150,29,40,.13)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="relatorios"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#b32632,#d94651)!important;
+  box-shadow:0 5px 12px rgba(150,29,40,.23)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="acoes"]{
+  color:#08666c!important;
+  border-color:#7ac8cd!important;
+  background:linear-gradient(145deg,#d9f4f2,#aee4e3)!important;
+  box-shadow:0 7px 18px rgba(8,102,108,.13)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="acoes"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#0c7f86,#20a7ab)!important;
+  box-shadow:0 5px 12px rgba(8,102,108,.22)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="localizacao"]{
+  color:#075d82!important;
+  border-color:#78c7e5!important;
+  background:linear-gradient(145deg,#d9f3ff,#afe3f6)!important;
+  box-shadow:0 7px 18px rgba(7,93,130,.13)!important;
+}
+body.records-mode .record-detail-section-btn[data-record-detail-section="localizacao"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#0d7fa8,#27a8d1)!important;
+  box-shadow:0 5px 12px rgba(7,93,130,.22)!important;
+}
+
+/* O estado ativo fica ainda mais evidente, preservando a cor própria de cada seção. */
+body.records-mode .record-detail-section-btn.is-active{
+  transform:translateY(-1px)!important;
+  border-width:2px!important;
+  filter:saturate(1.08) contrast(1.02)!important;
+  box-shadow:0 10px 25px rgba(15,23,42,.14)!important;
+}
+body.records-mode .record-detail-section-btn.is-active .record-detail-section-icon{
+  transform:scale(1.05)!important;
+}
+body.records-mode .record-detail-section-btn:hover{
+  filter:saturate(1.06)!important;
+}
+
+/* Em PET, a aba inicial Local assume a identidade do evento temporário. */
+body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-section-btn[data-record-detail-section="local"]{
+  color:#8a4b08!important;
+  border-color:#edaa3d!important;
+  background:linear-gradient(145deg,#ffe9b5,#ffc861)!important;
+}
+body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-section-btn[data-record-detail-section="local"] .record-detail-section-icon{
+  color:#fff!important;
+  background:linear-gradient(135deg,#c97008,#f0a11b)!important;
+}
+
+/* Sete seções: sem rolagem horizontal e com boa distribuição no mobile. */
+@media(max-width:899px){
+  body.records-mode .record-detail-section-nav{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  }
+  body.records-mode .record-detail-section-btn{
+    min-height:52px!important;
+  }
+}
+@media(max-width:420px){
+  body.records-mode .record-detail-section-btn{
+    font-size:7.8px!important;
+  }
+}
+@media(max-width:350px){
+  body.records-mode .record-detail-section-nav{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
   }
 }
