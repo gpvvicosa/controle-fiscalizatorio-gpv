@@ -14887,7 +14887,7 @@ body.records-mode .record-fine-estimate-card{margin-bottom:10px}
 }
 
 /* =============================================================================
-   V23.9.99dx — Repaginação visual da Ficha do Processo
+   V23.9.99dy — Repaginação visual da Ficha do Processo
    Hierarquia operacional, leitura rápida e responsividade sem alterar regras.
    ============================================================================= */
 .record-detail-top-actions{
@@ -15299,7 +15299,7 @@ body.records-mode .record-audit-panel{
   body.records-mode .record-detail-sheet-link{transition:none!important;transform:none!important}
 }
 
-/* Ajustes finais de precedência da V23.9.99dx */
+/* Ajustes finais de precedência da V23.9.99dy */
 body.records-mode .record-operational-summary .record-detail-field:last-child{
   grid-column:auto!important;
   background:#fff!important;
@@ -15313,4 +15313,26 @@ body.records-mode .record-responsible-group .record-detail-fields{
 }
 @media(max-width:620px){
   body.records-mode .record-responsible-group .record-detail-fields{grid-template-columns:1fr!important}
+}
+
+
+/* =============================================================================
+   V23.9.99dy — estabilidade da entrada e seleção do fluxo de vistoria
+   Nenhuma regra de negócio: apenas evita camadas residuais capturando cliques.
+   ============================================================================= */
+body:not(.records-mode) .record-detail-screen:not(.show){
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+body:not(.records-mode) #tipoVistoriaSecao{
+  position:relative;
+  z-index:2;
+}
+body:not(.records-mode) #fluxoFiscalizacaoBtn,
+body:not(.records-mode) #fluxoLiberacaoBtn{
+  position:relative;
+  z-index:3;
+  pointer-events:auto!important;
+  touch-action:manipulation;
 }

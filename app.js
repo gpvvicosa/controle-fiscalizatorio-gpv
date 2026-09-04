@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99dx';
+      const APP_VERSION = '23.9.99dy';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2388,7 +2388,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99dx';
+      const APP_REVISION_UI_ = '23.9.99dy';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4421,7 +4421,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99dx', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99dy', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4805,7 +4805,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99dx — padronização visual/cadastral sem inventar acentos.
+      // V23.9.99dy — padronização visual/cadastral sem inventar acentos.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -6497,11 +6497,38 @@
         agendarSincronizacaoNavegacao_();
       }
 
+      function normalizarEstadoVisualEntradaVistoria_() {
+        // V23.9.99dy — impede que uma camada residual do Painel/Ficha capture
+        // os cliques dos cartões de Fiscalização/Liberação após trocar de vista.
+        try { fecharDetalheRegistro_({ restaurarContexto: false }); } catch (erro) {
+          registrarFalhaInterface_('Entrada na Vistoria', `Fechar ficha: ${erro?.message || erro}`);
+        }
+        try { fecharMenuMais_(); } catch (_) {}
+        document.body.classList.remove('records-mode', 'detail-open');
+        if (recordDetailScreen) {
+          recordDetailScreen.classList.remove('show');
+          recordDetailScreen.setAttribute('aria-hidden', 'true');
+          recordDetailScreen.style.pointerEvents = '';
+        }
+        if (recordsPanel) recordsPanel.hidden = true;
+        if (form) form.removeAttribute('hidden');
+
+        const barraProgramada = document.getElementById('programmedReturnBar');
+        const programaEmPreenchimento = Boolean(barraProgramada && !barraProgramada.hidden);
+        if (!programaEmPreenchimento && tipoVistoriaSecao) {
+          tipoVistoriaSecao.hidden = false;
+          tipoVistoriaSecao.removeAttribute('aria-hidden');
+        }
+
+        // Usa o watchdog já existente como segunda barreira para overlays órfãos.
+        try { repararInterfaceOrfa_('entrada na Vistoria', true); } catch (_) {}
+      }
+
       async function mostrarVistaFormulario_() {
         const estavaNoFormulario = vistaAtualNavegacao_() === 'form';
         if (usuarioEmTreinamento_() && !estavaNoFormulario) await mostrarAvisoAcessoGeral_('vistoria');
+        normalizarEstadoVisualEntradaVistoria_();
         marcarAbaApp_('form');
-        fecharDetalheRegistro_({ restaurarContexto: false });
         atualizarVistaNaUrl_('form');
         atualizarResumoRascunhosLocais_();
         atualizarResumoOperacionalHome_();
@@ -7596,6 +7623,8 @@
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
         recordFineCheckRegistroAtual = null;
+        recordDetailRegistroAtual = null;
+        recordFineEstimateRegistroAtual = null;
         recordCorrectionRegistroAtual = null;
         recordResultRegistroAtual = null;
         recordCorrectionOriginal = new Map();
@@ -11168,6 +11197,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function aplicarFluxoVistoria_(fluxo, opcoes = {}) {
         const f = fluxo === 'liberacao' ? 'liberacao' : (fluxo === 'fiscalizacao' ? 'fiscalizacao' : '');
+        const falhasSecundarias = [];
+        const etapaSegura = (nome, fn) => {
+          try { return fn(); }
+          catch (erro) {
+            const detalhe = `${nome}: ${erro?.message || erro}`;
+            falhasSecundarias.push(detalhe);
+            registrarFalhaInterface_('Fluxo de vistoria', detalhe);
+            console.warn('[GPV] Etapa secundária do fluxo não concluída:', nome, erro);
+            return undefined;
+          }
+        };
+
+        // A seleção e a abertura do formulário são a parte crítica. Elas acontecem
+        // antes das sincronizações auxiliares para que uma falha secundária nunca
+        // faça o cartão parecer sem resposta.
         if (tipoVistoriaInput) tipoVistoriaInput.value = f === 'liberacao' ? 'Vistoria de Liberação' : (f === 'fiscalizacao' ? 'Vistoria de Fiscalização' : '');
         fluxoFiscalizacaoBtn?.classList.toggle('is-active', f === 'fiscalizacao');
         fluxoLiberacaoBtn?.classList.toggle('is-active', f === 'liberacao');
@@ -11176,38 +11220,51 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', f === 'fiscalizacao' ? 'true' : 'false');
         fluxoLiberacaoBtn?.setAttribute('aria-pressed', f === 'liberacao' ? 'true' : 'false');
         vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
+        if (tipoVistoriaSecao) {
+          tipoVistoriaSecao.hidden = false;
+          tipoVistoriaSecao.removeAttribute('aria-hidden');
+        }
         if (notificacoesLiberacaoSecao) notificacoesLiberacaoSecao.hidden = f !== 'liberacao';
         if (vistoriaBottomBar) vistoriaBottomBar.hidden = !f;
-        atualizarBotaoCancelarVistoriaNaoProgramada_();
         if (fluxoVistoriaAtualTexto) {
           fluxoVistoriaAtualTexto.hidden = !f;
           fluxoVistoriaAtualTexto.textContent = f === 'liberacao'
             ? 'Fluxo selecionado: Vistoria de Liberação — resultado: Liberado ou Notificado. O acompanhamento de multa do INFOSCIP Fiscalização é tratado separadamente.'
             : (f === 'fiscalizacao' ? 'Fluxo selecionado: Vistoria de Fiscalização.' : '');
         }
-        atualizarOpcoesDemandaPorFluxo_();
-        atualizarOpcoesSancaoPorFluxo_();
+
+        if (f && !opcoes.silencioso) {
+          const cidade = document.getElementById('cidadeSecao');
+          requestAnimationFrame(() => {
+            try { cidade?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+          });
+        }
+
+        etapaSegura('botão cancelar', atualizarBotaoCancelarVistoriaNaoProgramada_);
+        etapaSegura('opções de demanda', atualizarOpcoesDemandaPorFluxo_);
+        etapaSegura('opções de sanção', atualizarOpcoesSancaoPorFluxo_);
         if (licenciamentoFieldWrap) licenciamentoFieldWrap.hidden = f === 'liberacao';
         if (possuiPscipFieldWrap) possuiPscipFieldWrap.hidden = f === 'liberacao';
         if (f === 'liberacao') {
           if (licenciamentoSelect) licenciamentoSelect.value = '';
           if (possuiPscipSelect) possuiPscipSelect.value = 'sim';
-          syncPscip_();
+          etapaSegura('sincronização PSCIP', syncPscip_);
           const demanda = document.getElementById('demandaPrincipal');
           if (demanda && (!demanda.value || [normalize('Fiscalização'), normalize('Eventos declaratórios')].includes(normalize(demanda.value)))) demanda.value = 'Liberação';
         } else {
-          syncLicenciamento();
+          etapaSegura('situação de licenciamento', syncLicenciamento);
         }
-        if (f === 'liberacao') agendarConsultaRetornoLiberacao_(300);
-        else resetarRetornoLiberacao_();
-        aplicarModoEventoDeclaratorio_({ silencioso: true });
-        syncNotificado();
-        atualizarVerificacaoMetasFiscalizacao_();
-        atualizarEstimativaMultaVistoria_();
-        if (f === 'fiscalizacao') garantirUfemgEstimativaAtual_();
-        if (!opcoes.silencioso && f) {
-          document.getElementById('cidadeSecao')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          scheduleDraftSave();
+        if (f === 'liberacao') etapaSegura('retorno de liberação', () => agendarConsultaRetornoLiberacao_(300));
+        else etapaSegura('limpeza retorno de liberação', resetarRetornoLiberacao_);
+        etapaSegura('modo evento declaratório', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
+        etapaSegura('situação Notificado', syncNotificado);
+        etapaSegura('verificação de metas', atualizarVerificacaoMetasFiscalizacao_);
+        etapaSegura('estimativa de multa', atualizarEstimativaMultaVistoria_);
+        if (f === 'fiscalizacao') etapaSegura('UFEMG', garantirUfemgEstimativaAtual_);
+        if (!opcoes.silencioso && f) etapaSegura('salvar rascunho', scheduleDraftSave);
+
+        if (falhasSecundarias.length && appStatus) {
+          appStatus.textContent = 'Tipo de vistoria selecionado. Uma atualização auxiliar não respondeu; o preenchimento continua disponível.';
         }
       }
 
@@ -20881,8 +20938,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      fluxoFiscalizacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('fiscalizacao'));
-      fluxoLiberacaoBtn?.addEventListener('click', () => aplicarFluxoVistoria_('liberacao'));
+      let ultimoAcionamentoFluxoVistoria_ = { fluxo: '', em: 0 };
+      function acionarFluxoVistoriaSeguro_(fluxo, event) {
+        const f = fluxo === 'liberacao' ? 'liberacao' : 'fiscalizacao';
+        const agora = Date.now();
+        // pointerup normalmente é seguido de click. Evita execução dupla sem perder
+        // o fallback necessário em alguns PWAs Android.
+        if (ultimoAcionamentoFluxoVistoria_.fluxo === f && agora - ultimoAcionamentoFluxoVistoria_.em < 350) return;
+        ultimoAcionamentoFluxoVistoria_ = { fluxo: f, em: agora };
+        event?.preventDefault?.();
+        try {
+          normalizarEstadoVisualEntradaVistoria_();
+          marcarAbaApp_('form');
+          aplicarFluxoVistoria_(f);
+          const esperado = f === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização';
+          if (String(tipoVistoriaInput?.value || '') !== esperado) throw new Error('Tipo de vistoria não foi confirmado no formulário.');
+          if (appStatus) appStatus.textContent = `${esperado} selecionada.`;
+        } catch (erro) {
+          registrarFalhaInterface_('Seleção do tipo de vistoria', erro?.message || erro);
+          console.error('[GPV] Falha ao selecionar tipo de vistoria:', erro);
+          if (appStatus) appStatus.textContent = 'Não foi possível concluir a seleção do tipo de vistoria. Use Diagnóstico do aplicativo para consultar o erro registrado.';
+        }
+      }
+      [['fiscalizacao', fluxoFiscalizacaoBtn], ['liberacao', fluxoLiberacaoBtn]].forEach(([fluxo, botao]) => {
+        botao?.addEventListener('pointerup', event => acionarFluxoVistoriaSeguro_(fluxo, event));
+        botao?.addEventListener('click', event => acionarFluxoVistoriaSeguro_(fluxo, event));
+      });
       document.getElementById('partialBtn')?.addEventListener('click', concluirParcialmente_);
       document.getElementById('continueSharedBtn')?.addEventListener('click', continuarRascunhoCompartilhado_);
       document.getElementById('localDraftSummaryCard')?.addEventListener('click', abrirListaRascunhosLocais_);
@@ -22116,7 +22197,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dx', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99dy', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
