@@ -15336,3 +15336,143 @@ body:not(.records-mode) #fluxoLiberacaoBtn{
   pointer-events:auto!important;
   touch-action:manipulation;
 }
+
+
+/* =============================================================================
+   V23.9.99eb — Ficha do Processo modular e moderna
+   O cabeçalho permanece sempre visível; os detalhes são apresentados por seção.
+   ============================================================================= */
+body.records-mode .record-detail-heading{
+  background:linear-gradient(180deg,#fff 0%,#fbfbfc 100%)!important;
+  border-bottom:0!important;
+  padding-bottom:14px!important;
+}
+body.records-mode .record-detail-heading-copy{min-width:0}
+body.records-mode .record-detail-heading .record-detail-section-label{
+  display:inline-flex!important;align-items:center;gap:6px;
+  color:#8f1117!important;background:#fff3f3;border:1px solid #f1d7d8;
+  border-radius:999px;padding:5px 9px;font-size:9px!important;letter-spacing:.06em;text-transform:uppercase;
+}
+body.records-mode .record-detail-line{
+  display:block!important;margin-top:10px!important;color:#172033!important;
+  font-size:21px!important;font-weight:900!important;line-height:1.15!important;letter-spacing:-.02em;
+}
+body.records-mode .record-detail-heading p{margin-top:5px!important;font-size:11px!important;color:#667085!important}
+body.records-mode .record-current-status{
+  border:1px solid #eaecf0!important;border-radius:14px!important;background:#fff!important;
+  box-shadow:0 8px 24px rgba(16,24,40,.05);padding:10px 12px!important;
+}
+body.records-mode .record-detail-content{padding-top:0!important}
+body.records-mode .record-detail-section-nav{
+  position:sticky;top:0;z-index:7;display:flex;gap:7px;align-items:center;
+  margin:0 -2px 8px;padding:10px 2px 9px;overflow-x:auto;overscroll-behavior-inline:contain;
+  scrollbar-width:thin;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);
+  border-bottom:1px solid #f0f1f3;
+}
+body.records-mode .record-detail-section-btn{
+  flex:0 0 auto;min-height:40px;border:1px solid #e4e7ec;border-radius:12px;background:#fff;
+  color:#475467;padding:8px 11px;display:inline-flex;align-items:center;gap:7px;
+  font:800 10px/1.1 inherit;cursor:pointer;white-space:nowrap;
+  box-shadow:0 1px 2px rgba(16,24,40,.03);transition:background .16s,border-color .16s,color .16s,box-shadow .16s,transform .16s;
+}
+body.records-mode .record-detail-section-btn:hover{border-color:#d5d9e0;background:#f9fafb;transform:translateY(-1px)}
+body.records-mode .record-detail-section-btn.is-active{
+  color:#8f1117;border-color:#e7b9bb;background:#fff4f4;box-shadow:0 5px 14px rgba(143,17,23,.08);
+}
+body.records-mode .record-detail-section-btn[hidden]{display:none!important}
+body.records-mode .record-detail-section-btn:focus-visible{outline:3px solid rgba(143,17,23,.18);outline-offset:2px}
+body.records-mode .record-detail-section-icon{
+  width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:#f2f4f7;color:#667085;
+  font-size:12px;line-height:1;font-weight:900;
+}
+body.records-mode .record-detail-section-btn.is-active .record-detail-section-icon{background:#8f1117;color:#fff}
+body.records-mode .record-detail-section-hint{
+  margin:0 0 12px;padding:0 2px;color:#667085;font-size:10px;line-height:1.45;
+}
+body.records-mode .record-detail-groups{display:block!important}
+body.records-mode .record-detail-module-panel{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:12px;animation:recordSectionIn .16s ease-out;
+}
+body.records-mode [data-record-section-panel].record-section-is-inactive{display:none!important}
+body.records-mode .record-detail-module-panel .record-detail-group{margin:0!important}
+body.records-mode .record-detail-module-panel--summary .record-operational-summary{
+  border:1px solid #e5e7eb!important;border-radius:18px!important;overflow:hidden!important;
+  box-shadow:0 8px 24px rgba(16,24,40,.045)!important;
+}
+body.records-mode .record-detail-module-panel--summary .record-operational-summary h3{
+  background:linear-gradient(90deg,#8f1117,#a92b31)!important;color:#fff!important;border:0!important;
+  padding:12px 14px!important;font-size:11px!important;letter-spacing:.02em!important;
+}
+body.records-mode .record-detail-module-panel--summary .record-operational-summary .record-detail-fields{
+  background:#fff!important;padding:10px!important;gap:9px!important;
+}
+body.records-mode .record-detail-module-panel--summary .record-operational-summary .record-detail-field{
+  border:1px solid #edf0f3!important;border-radius:12px!important;background:#fbfcfd!important;
+  min-height:72px!important;padding:11px 12px!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-group{
+  border-radius:17px!important;border:1px solid #e5e7eb!important;box-shadow:0 8px 22px rgba(16,24,40,.04)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-group h3{
+  background:#fafafa!important;color:#253047!important;padding:12px 14px!important;font-size:11px!important;
+  border-bottom:1px solid #eceef1!important;
+}
+body.records-mode .record-pet-group h3{
+  background:linear-gradient(90deg,#fff7ed,#fffbeb)!important;color:#8a4b08!important;border-bottom-color:#f4dfc0!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-fields{gap:0!important;padding:0!important}
+body.records-mode .record-detail-module-panel .record-detail-field{
+  background:#fff!important;border-radius:0!important;border:0!important;border-bottom:1px solid #f0f2f4!important;
+  min-height:58px!important;padding:11px 13px!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field:last-child{border-bottom:0!important}
+body.records-mode .record-detail-module-panel .record-detail-field label{color:#7b8494!important;font-size:8px!important;letter-spacing:.055em!important}
+body.records-mode .record-detail-module-panel .record-detail-field div{font-size:12px!important;color:#172033!important}
+body.records-mode .record-correction-panel,
+body.records-mode .record-infoscip-update-panel,
+body.records-mode .record-notifications-panel,
+body.records-mode .record-general-photos-panel,
+body.records-mode .record-infoscip-history,
+body.records-mode .record-reds-report,
+body.records-mode .record-whatsapp-panel,
+body.records-mode .record-history-panel,
+body.records-mode .record-audit-panel{
+  margin-top:0!important;margin-bottom:12px!important;border-radius:17px!important;box-shadow:0 8px 22px rgba(16,24,40,.04)!important;
+}
+body.records-mode .record-detail-section-nav + .record-detail-section-hint + .record-detail-groups + [data-record-section-panel]:not(.record-section-is-inactive){margin-top:0!important}
+@keyframes recordSectionIn{from{opacity:.45;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+@media(min-width:900px){
+  body.records-mode .record-detail-section-nav{gap:8px}
+  body.records-mode .record-detail-section-btn{padding:9px 13px;font-size:10px}
+  body.records-mode .record-detail-module-panel .record-detail-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.records-mode .record-detail-module-panel .record-detail-field:nth-child(odd){border-right:1px solid #f0f2f4!important}
+  body.records-mode .record-detail-module-panel .record-detail-field.is-wide{grid-column:1/-1!important;border-right:0!important}
+  body.records-mode .record-detail-module-panel--summary .record-operational-summary .record-detail-fields{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  body.records-mode .record-detail-module-panel--summary .record-operational-summary .record-detail-field{border:1px solid #edf0f3!important}
+}
+
+@media(max-width:899px){
+  body.records-mode .record-detail-heading{padding:14px 12px 10px!important}
+  body.records-mode .record-detail-line{font-size:18px!important}
+  body.records-mode .record-detail-content{padding:0 10px 24px!important}
+  body.records-mode .record-detail-section-nav{margin:0 -10px 8px;padding:9px 10px 8px}
+  body.records-mode .record-detail-section-btn{min-height:38px;padding:7px 10px}
+  body.records-mode .record-detail-section-hint{margin-bottom:10px;font-size:9px}
+}
+
+@media(max-width:620px){
+  body.records-mode .record-detail-section-icon{width:20px;height:20px;font-size:11px}
+  body.records-mode .record-detail-section-btn{border-radius:11px;font-size:9px}
+  body.records-mode .record-detail-module-panel .record-detail-fields{grid-template-columns:1fr!important}
+  body.records-mode .record-detail-module-panel .record-detail-field,
+  body.records-mode .record-detail-module-panel .record-detail-field:nth-child(odd),
+  body.records-mode .record-detail-module-panel .record-detail-field.is-wide{grid-column:auto!important;border-right:0!important}
+  body.records-mode .record-detail-module-panel--summary .record-operational-summary .record-detail-fields{grid-template-columns:1fr!important}
+  body.records-mode .record-current-status{padding:8px 9px!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  body.records-mode .record-detail-module-panel{animation:none!important}
+  body.records-mode .record-detail-section-btn{transition:none!important;transform:none!important}
+}

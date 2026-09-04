@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ea';
+      const APP_VERSION = '23.9.99eb';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1884,6 +1884,10 @@
       const recordDetailLine = document.getElementById('recordDetailLine');
       const recordDetailLoading = document.getElementById('recordDetailLoading');
       const recordDetailGroups = document.getElementById('recordDetailGroups');
+      const recordDetailSectionNav = document.getElementById('recordDetailSectionNav');
+      const recordDetailSectionHint = document.getElementById('recordDetailSectionHint');
+      const recordDetailSectionLocalBtn = document.getElementById('recordDetailSectionLocalBtn');
+      const recordDetailSectionLocalLabel = document.getElementById('recordDetailSectionLocalLabel');
       const recordDetailSheetLink = document.getElementById('recordDetailSheetLink');
       const recordDetailBackdrop = document.getElementById('recordDetailBackdrop');
       const recordDetailStatusBadge = document.getElementById('recordDetailStatusBadge');
@@ -2391,7 +2395,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ea';
+      const APP_REVISION_UI_ = '23.9.99eb';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4424,7 +4428,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ea', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99eb', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4808,7 +4812,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99ea — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99eb — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4839,7 +4843,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99ea — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99eb — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -9941,6 +9945,68 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      // V23.9.99eb — Ficha modular: o usuário escolhe a seção necessária no momento.
+      let recordDetailSectionActive_ = 'resumo';
+      const RECORD_DETAIL_SECTION_HINTS_ = {
+        resumo: 'Visão rápida da situação atual e do que exige atenção.',
+        processo: 'PSCIP, PF, REDS, licenciamento, demanda e demais dados processuais.',
+        local: 'Identificação e características do local vistoriado.',
+        responsavel: 'Dados completos da pessoa que acompanhou ou responde pela vistoria.',
+        historico: 'Linha do tempo e alterações registradas no processo.',
+        relatorios: 'Textos operacionais para REDS, INFOSCIP e comunicação ao responsável.',
+        acoes: 'Correções e atualizações operacionais permitidas para este processo.',
+        localizacao: 'GPS, mapa e fotografias da vistoria.'
+      };
+
+      function registroEhPetFicha_(registro) {
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        return demanda === normalize('PET') || demanda.includes(normalize('PET')) || tipo.includes(normalize('PET')) ||
+          Boolean(valorCampoFicha_(registro, 'Nº do AVCB do PET') || valorCampoFicha_(registro, 'Validade do AVCB do PET'));
+      }
+
+      function selecionarSecaoFicha_(secao = 'resumo', opcoes = {}) {
+        if (!recordDetailScreen) return;
+        const alvo = String(secao || 'resumo');
+        const botaoAlvo = recordDetailSectionNav?.querySelector(`[data-record-detail-section="${alvo}"]`);
+        if (botaoAlvo?.hidden && alvo !== 'resumo') return selecionarSecaoFicha_('resumo', opcoes);
+        recordDetailSectionActive_ = alvo;
+        recordDetailSectionNav?.querySelectorAll('[data-record-detail-section]').forEach(botao => {
+          const ativo = botao.dataset.recordDetailSection === alvo;
+          botao.classList.toggle('is-active', ativo);
+          botao.setAttribute('aria-selected', ativo ? 'true' : 'false');
+          if (ativo && opcoes.focar) botao.focus({ preventScroll: true });
+        });
+        recordDetailScreen.querySelectorAll('[data-record-section-panel]').forEach(painel => {
+          painel.classList.toggle('record-section-is-inactive', painel.dataset.recordSectionPanel !== alvo);
+        });
+        if (recordDetailSectionHint) {
+          let hint = RECORD_DETAIL_SECTION_HINTS_[alvo] || '';
+          if (alvo === 'local' && registroEhPetFicha_(recordDetailRegistroAtual)) hint = 'Dados próprios do PET, organizador e local real do evento temporário.';
+          recordDetailSectionHint.textContent = hint;
+        }
+      }
+
+      function atualizarNavegacaoFicha_(registro) {
+        const pet = registroEhPetFicha_(registro);
+        if (recordDetailSectionLocalLabel) recordDetailSectionLocalLabel.textContent = pet ? 'PET / Evento' : 'Local';
+        if (recordDetailSectionLocalBtn) recordDetailSectionLocalBtn.title = pet ? 'Dados do PET e local do evento' : 'Dados da edificação ou local vistoriado';
+
+        // Ações podem desaparecer para perfis sem permissão ou quando não houver nenhuma ação disponível.
+        recordDetailSectionNav?.querySelectorAll('[data-record-detail-section]').forEach(botao => {
+          const secao = botao.dataset.recordDetailSection;
+          if (secao === 'resumo' || secao === 'processo' || secao === 'local' || secao === 'responsavel' || secao === 'localizacao') {
+            botao.hidden = false;
+            return;
+          }
+          const candidatos = Array.from(recordDetailScreen.querySelectorAll(`[data-record-section-panel="${secao}"]`));
+          botao.hidden = candidatos.length > 0 && !candidatos.some(el => !el.hidden && String(el.textContent || '').trim());
+        });
+        const ativo = recordDetailSectionNav?.querySelector(`[data-record-detail-section="${recordDetailSectionActive_}"]`);
+        if (ativo?.hidden) recordDetailSectionActive_ = 'resumo';
+        selecionarSecaoFicha_(recordDetailSectionActive_);
+      }
+
       function renderizarFichaRegistro_(registro) {
         recordDetailRegistroAtual = registro || null;
         recordFineEstimateRegistroAtual = registro || null;
@@ -10052,6 +10118,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['CPF/CNPJ do organizador', valorCampoFicha_(registro, 'CPF/CNPJ do organizador')],
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
+        const petFicha = registroEhPetFicha_(registro);
+        const petEvento = [
+          ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
+          ['Razão Social / organizador', razaoSocial],
+          ['CNPJ do organizador', cnpj],
+          ['PSCIP do PET', idsProjetoFicha.atual],
+          ['Nº do AVCB do PET', valorCampoFicha_(registro, 'Nº do AVCB do PET')],
+          ['Data de emissão do AVCB', valorCampoFicha_(registro, 'Data de emissão do AVCB do PET')],
+          ['Validade do AVCB', valorCampoFicha_(registro, 'Validade do AVCB do PET')],
+          ['Público máximo aprovado', valorCampoFicha_(registro, 'Público máximo do PET') || valorCampoFicha_(registro, 'Público estimado')],
+          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação', 'Ocupação / Divisão', 'Divisão')],
+          ['Início do evento', valorCampoFicha_(registro, 'Início do evento')],
+          ['Término do evento', valorCampoFicha_(registro, 'Término do evento')]
+        ];
 
         const sugestao = registro?.sugestaoFiscalizacao || null;
         const controleSugestao = registro?.controleSugestaoFiscalizacao || null;
@@ -10091,19 +10171,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ${usuarioPodeOperar_() ? `<button type="button" class="btn btn-primary" data-ficha-program-suggestion>Programar vistoria</button>` : ''}
         </section>` : (registro?.avisoHistorico ? `<section class="record-history-reset-note">${escapeHtml(registro.avisoHistorico)}</section>` : ''));
 
+        const blocoEventoFicha = petFicha
+          ? montarGrupoFicha_('PET — Projeto de Evento Temporário', petEvento, 'record-event-group record-detail-group--wide record-pet-group')
+          : montarGrupoFicha_('Evento declaratório', eventoDeclaratorio, 'record-event-group record-detail-group--wide');
         recordDetailGroups.innerHTML =
-          montarAvisoSincronizacaoFicha_(registro) +
-          avisoSugestao +
-          blocoObservacoesSugestao +
-          montarBlocoRetornoLiberacaoFicha_(registro) +
-          montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary record-detail-group--wide') +
-          montarEstimativaMultaFicha_(registro) +
-          montarGrupoFicha_('Processo', processo, 'record-process-group') +
-          montarGrupoFicha_('Evento declaratório', eventoDeclaratorio, 'record-event-group record-detail-group--wide') +
-          montarGrupoFicha_('Edificação', local, 'record-building-group') +
-          montarGrupoFicha_(eventoFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide') +
-          montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group') +
-          mapaLocalizacaoFicha;
+          `<div class="record-detail-module-panel record-detail-module-panel--summary" data-record-section-panel="resumo">${
+            montarAvisoSincronizacaoFicha_(registro) +
+            avisoSugestao +
+            blocoObservacoesSugestao +
+            montarBlocoRetornoLiberacaoFicha_(registro) +
+            montarGrupoFicha_('Resumo operacional', resumoOperacionalFicha_(registro, situacao), 'record-operational-summary record-detail-group--wide') +
+            montarEstimativaMultaFicha_(registro)
+          }</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="processo">${montarGrupoFicha_('Processo', processo, 'record-process-group record-detail-group--wide')}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="responsavel">${montarGrupoFicha_(eventoFicha || petFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide')}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="localizacao">${montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group record-detail-group--wide')}${mapaLocalizacaoFicha}</div>`;
 
         const cidadeFichaCabecalho = valorCampoFicha_(registro, 'Cidade');
         const tipoFichaCabecalho = valorCampoFicha_(registro, 'Tipo de vistoria');
@@ -10128,6 +10211,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         renderizarAuditoriaRegistro_(registro?.auditoria || []);
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
         aplicarPermissoesInterface_();
+        atualizarNavegacaoFicha_(registro);
+        requestAnimationFrame(() => atualizarNavegacaoFicha_(registro));
         if (!coordenadasFicha && !registro?.parcial) void hidratarMapaPorEnderecoFicha_(registro, addressMapRequestToken);
       }
 
@@ -10260,6 +10345,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         else if (!jaAberta) recordDetailReturnContext = '';
         recordsState.chaveSelecionada = chave;
         recordsState.linhaSelecionada = Number(linhaHint || 0);
+        if (!jaAberta) recordDetailSectionActive_ = 'resumo';
         recordTimelineHistorico_ = [];
         recordTimelineAuditoria_ = [];
         marcarLinhaSelecionada_();
@@ -15287,7 +15373,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99ea — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99eb — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -22039,6 +22125,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         event.preventDefault();
         abrirDetalheRegistro_(linha.dataset.recordKey || '', Number(linha.dataset.recordLine || 0));
       });
+      recordDetailSectionNav?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-record-detail-section]');
+        if (!botao || botao.hidden) return;
+        selecionarSecaoFicha_(botao.dataset.recordDetailSection || 'resumo', { focar: false });
+      });
+      recordDetailSectionNav?.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        const botoes = Array.from(recordDetailSectionNav.querySelectorAll('[data-record-detail-section]')).filter(botao => !botao.hidden);
+        if (!botoes.length) return;
+        const atual = Math.max(0, botoes.indexOf(document.activeElement));
+        let indice = atual;
+        if (event.key === 'ArrowRight') indice = (atual + 1) % botoes.length;
+        if (event.key === 'ArrowLeft') indice = (atual - 1 + botoes.length) % botoes.length;
+        if (event.key === 'Home') indice = 0;
+        if (event.key === 'End') indice = botoes.length - 1;
+        event.preventDefault();
+        selecionarSecaoFicha_(botoes[indice].dataset.recordDetailSection || 'resumo', { focar: true });
+      });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailSummaryCopyBtn?.addEventListener('click', copiarResumoOperacionalFicha_);
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
@@ -22523,7 +22627,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ea', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99eb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
