@@ -15339,7 +15339,7 @@ body:not(.records-mode) #fluxoLiberacaoBtn{
 
 
 /* =============================================================================
-   V23.9.99ed — Ficha do Processo modular e moderna
+   V23.9.99ee — Ficha do Processo modular e moderna
    O cabeçalho permanece sempre visível; os detalhes são apresentados por seção.
    ============================================================================= */
 body.records-mode .record-detail-heading{
@@ -15478,7 +15478,7 @@ body.records-mode .record-detail-section-nav + .record-detail-section-hint + .re
 }
 
 /* =============================================================================
-   V23.9.99ed — Ficha Premium Colorida
+   V23.9.99ee — Ficha Premium Colorida
    Evolução estritamente visual da Ficha do Processo: hierarquia, cor e leitura.
    ============================================================================= */
 body.records-mode .record-detail-shell{
@@ -15864,7 +15864,7 @@ body.records-mode .location-map-card--record{border-top:3px solid #087878!import
   body.records-mode .record-detail-module-panel .record-copy-value-btn{transition:none!important;transform:none!important}
 }
 
-/* Refinos finais V23.9.99ed — carregamento progressivo e linha do tempo. */
+/* Refinos finais V23.9.99ee — carregamento progressivo e linha do tempo. */
 body.records-mode .record-sync-banner--loading{
   position:relative!important;margin-bottom:12px!important;padding:11px 14px 11px 42px!important;
   border:1px solid #d7e3f4!important;border-radius:14px!important;
@@ -15920,7 +15920,7 @@ body.records-mode .history-body p{
 
 
 /* ==========================================================================
-   V23.9.99ed — Ficha colorida + Centro de correção completa
+   V23.9.99ee — Ficha colorida + Centro de correção completa
    ========================================================================== */
 
 /* Barra de navegação: cada seção possui identidade cromática mesmo inativa. */
@@ -16139,4 +16139,248 @@ body.records-mode .record-correction-panel--complete .record-correction-btn:hove
 @media (prefers-reduced-motion:reduce){
   body.records-mode .record-detail-section-btn,
   .record-correction-group>summary::after{transition:none!important}
+}
+
+/* =========================================================
+   V23.9.99ee — Interior Premium da Ficha
+   Refina os cards internos das seções com visual mais moderno,
+   colorido e organizado, sem alterar a lógica do sistema.
+   ========================================================= */
+body.records-mode .record-detail-module-panel .record-detail-group{
+  overflow:visible!important;
+  background:linear-gradient(180deg,#ffffff 0%,#fcfcfe 100%)!important;
+  box-shadow:0 12px 34px rgba(15,23,42,.055)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-group h3{
+  position:relative!important;
+  min-height:50px!important;
+  padding:14px 16px!important;
+  border-bottom:1px solid rgba(219,223,230,.9)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-group h3::after{
+  content:'';
+  position:absolute;
+  left:15px;
+  right:15px;
+  bottom:-1px;
+  height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,.0),rgba(255,255,255,.72),rgba(255,255,255,.0));
+  pointer-events:none;
+}
+body.records-mode .record-process-group{
+  border-color:#e4ddfb!important;
+}
+body.records-mode .record-process-group>h3{
+  background:linear-gradient(180deg,#f8f6ff,#f1edff)!important;
+  color:#5b38a5!important;
+}
+body.records-mode .record-process-group>h3::before{
+  background:#ece6ff!important;
+  color:#5b38a5!important;
+}
+body.records-mode .record-building-group{
+  border-color:#dce9f4!important;
+}
+body.records-mode .record-building-group>h3{
+  background:linear-gradient(180deg,#f6fbff,#eef6ff)!important;
+  color:#155a8a!important;
+}
+body.records-mode .record-building-group>h3::before{
+  background:#e1f0ff!important;
+  color:#155a8a!important;
+}
+body.records-mode .record-responsible-group{
+  border-color:#dbe7e3!important;
+  background:linear-gradient(180deg,#ffffff 0%,#fbfefc 100%)!important;
+}
+body.records-mode .record-responsible-group>h3{
+  background:linear-gradient(180deg,#f5fbf8,#eef8f3)!important;
+  color:#1a6b4b!important;
+}
+body.records-mode .record-responsible-group>h3::before{
+  background:#dff3e8!important;
+  color:#1a6b4b!important;
+}
+body.records-mode .record-event-group{
+  border-color:#f4dfc6!important;
+}
+body.records-mode .record-event-group>h3{
+  background:linear-gradient(180deg,#fff8ef,#fff2df)!important;
+  color:#b25b00!important;
+}
+body.records-mode .record-event-group>h3::before{
+  background:#ffe7c2!important;
+  color:#b25b00!important;
+}
+body.records-mode .record-location-group{
+  border-color:#d6eaec!important;
+}
+body.records-mode .record-location-group>h3{
+  background:linear-gradient(180deg,#f4fcfd,#ebf8fa)!important;
+  color:#0f6b74!important;
+}
+body.records-mode .record-location-group>h3::before{
+  background:#d9f2f5!important;
+  color:#0f6b74!important;
+}
+
+body.records-mode .record-detail-module-panel .record-detail-fields{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;
+  gap:12px!important;
+  padding:14px!important;
+  background:transparent!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field,
+body.records-mode .record-detail-module-panel .record-detail-field:nth-child(odd){
+  position:relative!important;
+  min-height:102px!important;
+  padding:14px 14px 12px!important;
+  border:1px solid #e8ecf2!important;
+  border-right:1px solid #e8ecf2!important;
+  border-bottom:1px solid #e8ecf2!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,#ffffff 0%,#fbfcff 100%)!important;
+  box-shadow:0 8px 20px rgba(15,23,42,.04)!important;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field:hover{
+  transform:translateY(-1px)!important;
+  box-shadow:0 12px 26px rgba(15,23,42,.065)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field::before{
+  content:'';
+  position:absolute;
+  left:14px;
+  top:0;
+  width:46px;
+  height:4px;
+  border-radius:0 0 999px 999px;
+  background:linear-gradient(90deg,#cfd6e3,#aeb7c9);
+  opacity:.95;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.field-identity::before{background:linear-gradient(90deg,#7c3aed,#5b38a5)!important}
+body.records-mode .record-detail-module-panel .record-detail-field.field-contact::before{background:linear-gradient(90deg,#0f766e,#14b8a6)!important}
+body.records-mode .record-detail-module-panel .record-detail-field.field-date::before{background:linear-gradient(90deg,#2563eb,#60a5fa)!important}
+body.records-mode .record-detail-module-panel .record-detail-field.field-address::before{background:linear-gradient(90deg,#0f6b74,#4fbec8)!important}
+body.records-mode .record-detail-module-panel .record-detail-field.field-metric::before{background:linear-gradient(90deg,#a16207,#f59e0b)!important}
+body.records-mode .record-detail-module-panel .record-detail-field.field-status::before{background:linear-gradient(90deg,#b42318,#f97316)!important}
+body.records-mode .record-detail-module-panel .record-detail-field.field-featured{
+  background:linear-gradient(180deg,#ffffff 0%,#f7faff 100%)!important;
+  border-color:#dde6f6!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.is-wide{
+  grid-column:1/-1!important;
+  min-height:96px!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field label{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  color:#7b8799!important;
+  font-size:9px!important;
+  line-height:1.2!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field .record-detail-copy-row{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  margin-top:9px!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field .record-detail-copy-value{
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  color:#172033!important;
+  font-size:14px!important;
+  line-height:1.45!important;
+  font-weight:820!important;
+  letter-spacing:-.012em!important;
+  overflow-wrap:anywhere!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.field-mono .record-detail-copy-value{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace!important;
+  font-size:13px!important;
+  letter-spacing:-.01em!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.is-empty{
+  background:linear-gradient(180deg,#fcfcfd 0%,#f8fafc 100%)!important;
+  border-style:dashed!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.is-empty .record-detail-copy-value{
+  color:#98a2b3!important;
+  font-weight:700!important;
+  font-style:italic!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field .record-copy-value-btn{
+  flex:0 0 auto!important;
+  min-width:36px!important;
+  width:36px!important;
+  min-height:36px!important;
+  height:36px!important;
+  border-radius:11px!important;
+  border:1px solid #dde3ec!important;
+  background:linear-gradient(180deg,#ffffff,#f5f8fc)!important;
+  box-shadow:0 4px 10px rgba(15,23,42,.04)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field .record-copy-value-btn:hover{
+  border-color:#c8d3e2!important;
+  background:linear-gradient(180deg,#ffffff,#eef3f9)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field .record-copy-value-btn svg{
+  width:14px!important;
+  height:14px!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.field-contact{
+  background:linear-gradient(180deg,#ffffff 0%,#fbfffe 100%)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.field-address{
+  background:linear-gradient(180deg,#ffffff 0%,#fbfeff 100%)!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-field.field-status{
+  background:linear-gradient(180deg,#ffffff 0%,#fffaf8 100%)!important;
+}
+
+body.records-mode .record-operational-summary .record-detail-fields{
+  padding:12px!important;
+  gap:12px!important;
+}
+body.records-mode .record-operational-summary .record-detail-field,
+body.records-mode .record-operational-summary .record-detail-field:nth-child(odd){
+  min-height:102px!important;
+  border-radius:16px!important;
+  box-shadow:0 10px 22px rgba(15,23,42,.05)!important;
+}
+
+body.records-mode .record-history-panel,
+body.records-mode .record-reds-report,
+body.records-mode .record-whatsapp-panel,
+body.records-mode .record-audit-panel,
+body.records-mode .record-general-photos-panel,
+body.records-mode .record-notifications-panel,
+body.records-mode .record-infoscip-history,
+body.records-mode .record-correction-panel,
+body.records-mode .record-infoscip-update-panel{
+  border:1px solid #e5eaf1!important;
+  box-shadow:0 12px 30px rgba(15,23,42,.05)!important;
+}
+
+@media (max-width: 900px){
+  body.records-mode .record-detail-module-panel .record-detail-fields{
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+    padding:12px!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-field,
+  body.records-mode .record-detail-module-panel .record-detail-field:nth-child(odd){
+    min-height:90px!important;
+    padding:13px 13px 11px!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-field .record-detail-copy-value{
+    font-size:13px!important;
+  }
 }
