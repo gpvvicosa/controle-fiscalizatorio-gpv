@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99ew — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99ex — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99ew — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99ex — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99ew — Painel inicial premium
+   V23.9.99ex — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99ew — Página Vistoria Premium
+   V23.9.99ex — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17530,7 +17530,7 @@ body:not(.records-mode) .home-operational-connection{
 }
 
 /* =============================================================================
-   V23.9.99ew — Topo Premium do Painel
+   V23.9.99ex — Topo Premium do Painel
    Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
    e navegação principal. Sem alteração de lógica operacional.
    ============================================================================= */
@@ -17779,7 +17779,7 @@ body.records-mode .app-view-btn.active::after{
 
 
 /* =============================================================================
-   V23.9.99ew — Central "Mais" Premium
+   V23.9.99ex — Central "Mais" Premium
    Mantém funções/permissões existentes e moderniza apenas apresentação.
    ============================================================================= */
 .app-more-menu{
@@ -18006,7 +18006,7 @@ body.records-mode .app-view-btn.active::after{
 }
 
 /* =============================================================================
-   V23.9.99ew — Filtros e Busca Premium do Painel
+   V23.9.99ex — Filtros e Busca Premium do Painel
    Busca em destaque, filtros recolhíveis no mobile, chips ativos e estados vazios.
    ============================================================================= */
 body.records-mode .dashboard-filters{
@@ -18457,7 +18457,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99ew — Status e Feedback Operacional Premium
+   V23.9.99ex — Status e Feedback Operacional Premium
    ============================================================================= */
 .premium-feedback-stack{
   position:fixed;
@@ -18634,7 +18634,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99ew — revisão final mobile + destaque claro do card/aba ativa
+   V23.9.99ex — revisão final mobile + destaque claro do card/aba ativa
    ============================================================================= */
 :root{
   --active-ring: 0 0 0 3px rgba(185,28,28,.14), 0 12px 28px rgba(15,23,42,.12);
@@ -18726,7 +18726,7 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
 
 
 /* =============================================================================
-   V23.9.99ew — Performance e carregamento
+   V23.9.99ex — Performance e carregamento
    Renderização progressiva de conteúdo fora da área visível.
    ============================================================================= */
 @supports (content-visibility:auto){
@@ -18766,7 +18766,7 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
 
 
 /* =============================================================================
-   V23.9.99ew — Ergonomia e Acessibilidade
+   V23.9.99ex — Ergonomia e Acessibilidade
    Melhora toque, foco, contraste, leitura e segurança de uso sem alterar lógica.
    ============================================================================= */
 
@@ -18994,12 +18994,12 @@ button[data-destructive]:focus-visible{
 
 
 /* =============================================================================
-   V23.9.99ew — Auditoria final de estabilidade
+   V23.9.99ex — Auditoria final de estabilidade
    Consolidação de versão após revisão estrutural dos fluxos críticos.
    ============================================================================= */
 
 /* =============================================================================
-   V23.9.99ew — Ações rápidas e produtividade
+   V23.9.99ex — Ações rápidas e produtividade
    ============================================================================= */
 body.records-mode .records-card{
   cursor:pointer;
@@ -19115,7 +19115,7 @@ body.records-mode button.records-card-cta{
 
 
 /* =============================================================================
-   V23.9.99ew — Conferência inteligente antes de finalizar
+   V23.9.99ex — Conferência inteligente antes de finalizar
    ============================================================================= */
 #reviewModal .review-intelligent-notice{
   margin:8px 18px 12px;
@@ -19138,4 +19138,538 @@ body.records-mode button.records-card-cta{
 @media(max-width:640px){
   #reviewModal .review-intelligent-notice{margin:7px 12px 10px;padding:12px}
   .review-intelligent-notice li{font-size:11.5px}
+}
+
+
+/* =============================================================================
+   V23.9.99ex — Painel Premium no padrão de referência
+   Reconstrói a hierarquia visual do Painel sem alterar regras ou dados.
+   ============================================================================= */
+body.records-mode{
+  --panel-red:#a30e18;
+  --panel-green:#0e8d52;
+  --panel-blue:#1475c9;
+  --panel-amber:#ef9f16;
+  --panel-slate:#7b8797;
+  --panel-card:#ffffff;
+  --panel-line:#e2e8ef;
+}
+
+/* Topo: cartão de usuário independente + navegação Painel/Vistoria/Mais. */
+body.records-mode .app-view-nav{
+  overflow:visible!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:0!important;
+}
+body.records-mode .app-view-nav::after{display:none!important}
+body.records-mode .app-user-status-stack{
+  width:100%!important;
+  margin:0 0 12px!important;
+}
+body.records-mode .app-user-status-row{
+  width:100%!important;
+  min-height:78px!important;
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr) 50px!important;
+  align-items:center!important;
+  gap:12px!important;
+  padding:11px 14px!important;
+  border:1px solid #dfe5eb!important;
+  border-radius:22px!important;
+  background:linear-gradient(180deg,#fff,#fbfcfd)!important;
+  box-shadow:0 12px 28px rgba(15,23,42,.07)!important;
+}
+body.records-mode .app-user-avatar{
+  width:52px!important;
+  height:52px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  background:linear-gradient(145deg,#c91f2d,#991019)!important;
+  color:#fff!important;
+  box-shadow:0 8px 18px rgba(163,14,24,.22)!important;
+}
+body.records-mode .app-user-avatar .ui-icon{width:27px!important;height:27px!important;stroke-width:2.2!important}
+body.records-mode .app-user-profile-copy{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+}
+body.records-mode .logged-user-badge{
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#141b2b!important;
+  font-size:18px!important;
+  line-height:1.15!important;
+  font-weight:900!important;
+}
+body.records-mode .logged-user-badge::before{display:none!important}
+body.records-mode .app-user-welcome{
+  margin-top:3px!important;
+  color:#778295!important;
+  font-size:11px!important;
+  font-weight:650!important;
+}
+body.records-mode .app-user-status-stack .sync-summary{
+  margin-top:2px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#8892a1!important;
+  font-size:8.5px!important;
+  font-weight:700!important;
+}
+body.records-mode .app-alerts-bell{
+  width:48px!important;
+  height:48px!important;
+  justify-self:end!important;
+  border:1px solid #e0e4e9!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 7px 18px rgba(15,23,42,.06)!important;
+}
+body.records-mode .app-view-nav-actions{gap:9px!important}
+body.records-mode .app-view-btn{
+  min-height:78px!important;
+  flex-direction:row!important;
+  justify-content:flex-start!important;
+  gap:11px!important;
+  padding:10px 13px!important;
+  border-radius:20px!important;
+  font-size:14px!important;
+  font-weight:900!important;
+}
+body.records-mode .app-view-btn .app-view-icon{
+  width:50px!important;
+  height:50px!important;
+  flex:0 0 50px!important;
+  border-radius:15px!important;
+}
+body.records-mode .app-view-btn.active::after{
+  left:22%!important;
+  right:22%!important;
+  bottom:0!important;
+  height:5px!important;
+}
+
+/* O cabeçalho redundante do painel fica discreto; no mobile a hierarquia começa nos indicadores. */
+body.records-mode .dashboard-hero{
+  margin-bottom:12px!important;
+  border-radius:20px!important;
+}
+
+/* Processos registrados: um único painel contendo todos os indicadores. */
+body.records-mode .dashboard-kpis{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:0!important;
+  margin:0 0 14px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid var(--panel-line)!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  box-shadow:0 12px 30px rgba(15,23,42,.065)!important;
+}
+body.records-mode .dashboard-kpi{
+  min-width:0!important;
+  min-height:88px!important;
+  margin:0!important;
+  padding:13px 14px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+body.records-mode .dashboard-kpi:not(.kpi-total){border-top:1px solid #edf0f4!important}
+body.records-mode .kpi-total{
+  grid-column:1/-1!important;
+  min-height:104px!important;
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:14px!important;
+  border-bottom:1px solid #e7ebf0!important;
+}
+body.records-mode .kpi-total>div:last-child{
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto!important;
+  align-items:center!important;
+  column-gap:14px!important;
+}
+body.records-mode .kpi-total span{grid-column:1;grid-row:1!important;color:#182033!important;font-size:17px!important;font-weight:900!important}
+body.records-mode .kpi-total small{grid-column:1;grid-row:2!important;margin:3px 0 0!important;font-size:11px!important;color:#7a8493!important}
+body.records-mode .kpi-total strong{grid-column:2;grid-row:1/3!important;margin:0!important;font-size:46px!important;line-height:1!important;color:#111827!important}
+body.records-mode .dashboard-kpi-icon{
+  width:46px!important;
+  height:46px!important;
+  flex:0 0 46px!important;
+  border-radius:14px!important;
+}
+body.records-mode .kpi-total .dashboard-kpi-icon{width:52px!important;height:52px!important}
+body.records-mode .dashboard-kpi-icon .ui-icon{width:23px!important;height:23px!important}
+body.records-mode .kpi-regularizado,
+body.records-mode .kpi-liberado,
+body.records-mode .kpi-advertencia{grid-column:span 2!important;border-right:1px solid #edf0f4!important}
+body.records-mode .kpi-advertencia{border-right:0!important}
+body.records-mode .kpi-multa1,
+body.records-mode .kpi-multa2{grid-column:span 3!important}
+body.records-mode .kpi-multa1{border-right:1px solid #edf0f4!important}
+body.records-mode .dashboard-kpi:not(.kpi-total){display:flex!important;align-items:center!important;gap:10px!important}
+body.records-mode .dashboard-kpi:not(.kpi-total)>div:last-child{min-width:0!important}
+body.records-mode .dashboard-kpi:not(.kpi-total) strong{font-size:24px!important;line-height:1!important;margin:0 0 2px!important;color:#151b2b!important}
+body.records-mode .dashboard-kpi:not(.kpi-total) span{font-size:10.5px!important;color:#596477!important;font-weight:800!important}
+body.records-mode .dashboard-kpi:not(.kpi-total) small{font-size:8.5px!important;color:#8a94a3!important;margin-top:2px!important}
+
+/* Histórico 2024/2025: card com total e distribuição, no padrão da referência. */
+body.records-mode .dashboard-suggestions-card{
+  display:grid!important;
+  grid-template-columns:54px minmax(0,1fr) auto 34px!important;
+  grid-template-areas:'icon copy count arrow' 'metrics metrics metrics metrics'!important;
+  align-items:center!important;
+  gap:9px 12px!important;
+  width:100%!important;
+  margin:0 0 14px!important;
+  padding:15px 16px!important;
+  border:1px solid #efc6ca!important;
+  border-radius:22px!important;
+  background:linear-gradient(180deg,#fffafa,#fff5f5)!important;
+  box-shadow:0 12px 30px rgba(163,14,24,.065)!important;
+  text-align:left!important;
+}
+body.records-mode .dashboard-suggestions-icon{
+  grid-area:icon!important;
+  width:48px!important;
+  height:48px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:15px!important;
+  background:linear-gradient(145deg,#e52c39,#be1320)!important;
+  color:#fff!important;
+  font-size:24px!important;
+  font-weight:950!important;
+  box-shadow:0 8px 18px rgba(190,19,32,.20)!important;
+}
+body.records-mode .dashboard-suggestions-copy{grid-area:copy!important;min-width:0!important}
+body.records-mode .dashboard-suggestions-copy strong{display:block!important;color:#182033!important;font-size:16px!important;line-height:1.15!important;font-weight:920!important}
+body.records-mode .dashboard-suggestions-copy small{display:block!important;margin-top:3px!important;color:#778295!important;font-size:10.5px!important;font-weight:650!important}
+body.records-mode .dashboard-suggestions-count{
+  grid-area:count!important;
+  min-width:70px!important;
+  padding:3px 8px!important;
+  border-radius:13px!important;
+  background:#fff0f1!important;
+  color:#a50813!important;
+  font-size:34px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  text-align:center!important;
+}
+body.records-mode .dashboard-suggestions-arrow{
+  grid-area:arrow!important;
+  width:34px!important;
+  height:40px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:12px!important;
+  background:#fff1f2!important;
+  color:#b10d18!important;
+  font-size:30px!important;
+  line-height:1!important;
+  font-weight:700!important;
+}
+body.records-mode .dashboard-suggestions-breakdown{
+  grid-area:metrics!important;
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:0!important;
+  padding-top:11px!important;
+  border-top:1px solid #f0d9dc!important;
+}
+body.records-mode .dashboard-suggestion-metric{
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:18px auto!important;
+  grid-template-rows:auto auto!important;
+  column-gap:8px!important;
+  align-items:center!important;
+  padding:2px 12px!important;
+}
+body.records-mode .dashboard-suggestion-metric+ .dashboard-suggestion-metric{border-left:1px solid #eadfe1!important}
+body.records-mode .dashboard-suggestion-metric i{grid-column:1;grid-row:1/3;width:15px!important;height:15px!important;border-radius:50%!important;background:#db3443!important}
+body.records-mode .dashboard-suggestion-metric.metric-medium i{background:#ff9f1c!important}
+body.records-mode .dashboard-suggestion-metric.metric-watch i{background:#8995a5!important}
+body.records-mode .dashboard-suggestion-metric b{grid-column:2;grid-row:1;color:#172033!important;font-size:18px!important;line-height:1!important;font-weight:930!important}
+body.records-mode .dashboard-suggestion-metric small{grid-column:2;grid-row:2;margin-top:2px!important;color:#707b8e!important;font-size:9.5px!important;line-height:1.15!important;font-weight:650!important}
+
+/* Metas: composição semelhante à referência, sem rolagem horizontal no mobile. */
+body.records-mode .dashboard-goals{
+  margin:0 0 14px!important;
+  padding:15px!important;
+  border:1px solid #cfe9db!important;
+  border-radius:22px!important;
+  background:linear-gradient(180deg,#fbfffd,#f2fcf6)!important;
+  box-shadow:0 12px 30px rgba(14,141,82,.055)!important;
+}
+body.records-mode .dashboard-goals-head{align-items:center!important;margin-bottom:12px!important}
+body.records-mode .dashboard-goals-kicker{font-size:9px!important;color:#0e8d52!important}
+body.records-mode .dashboard-goals h3{font-size:17px!important;line-height:1.15!important}
+body.records-mode .dashboard-goals-head p{font-size:10.5px!important}
+body.records-mode .dashboard-goals-open{
+  min-height:42px!important;
+  padding:0 13px!important;
+  border-radius:13px!important;
+  background:#effaf4!important;
+  color:#087a46!important;
+  font-size:11px!important;
+}
+body.records-mode .dashboard-goals-open::after{content:'›';margin-left:8px;font-size:20px;line-height:1}
+body.records-mode .dashboard-goals-overall{
+  grid-template-columns:auto minmax(120px,1fr) auto!important;
+  gap:10px!important;
+  padding:12px 13px!important;
+  border:1px solid #e0e8e3!important;
+  border-radius:15px!important;
+  background:#fff!important;
+}
+body.records-mode .dashboard-goals-overall-copy strong{font-size:18px!important}
+body.records-mode .dashboard-goals-overall-copy span{font-size:9px!important}
+body.records-mode .dashboard-goals-percent{font-size:20px!important}
+body.records-mode .dashboard-goals-grid{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:9px!important;
+  overflow:visible!important;
+  padding:0!important;
+}
+body.records-mode .dashboard-goal-item{
+  min-width:0!important;
+  grid-column:span 2!important;
+  display:grid!important;
+  grid-template-columns:39px minmax(0,1fr)!important;
+  gap:9px!important;
+  align-items:start!important;
+  padding:10px!important;
+  border:1px solid #e1e6eb!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  box-shadow:0 5px 14px rgba(15,23,42,.03)!important;
+}
+body.records-mode .dashboard-goal-item:nth-child(n+4){grid-column:span 3!important}
+body.records-mode .dashboard-goal-icon{
+  width:36px!important;
+  height:36px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:11px!important;
+  background:#edf7ff!important;
+  color:#1475c9!important;
+}
+body.records-mode .dashboard-goal-item:nth-child(2) .dashboard-goal-icon{background:#eafbf2!important;color:#0e8d52!important}
+body.records-mode .dashboard-goal-item:nth-child(3) .dashboard-goal-icon{background:#f3edff!important;color:#7552cb!important}
+body.records-mode .dashboard-goal-item:nth-child(4) .dashboard-goal-icon{background:#fff5d9!important;color:#e48605!important}
+body.records-mode .dashboard-goal-item:nth-child(5) .dashboard-goal-icon{background:#fff0f2!important;color:#d31b35!important}
+body.records-mode .dashboard-goal-icon .ui-icon{width:19px!important;height:19px!important}
+body.records-mode .dashboard-goal-content{min-width:0!important}
+body.records-mode .dashboard-goal-item-top{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:5px!important}
+body.records-mode .dashboard-goal-item-top strong{font-size:9.7px!important;line-height:1.15!important;color:#233047!important}
+body.records-mode .dashboard-goal-item-top b{font-size:14px!important;line-height:1!important;color:#121827!important}
+body.records-mode .dashboard-goal-mini-progress{height:6px!important;margin-top:8px!important}
+body.records-mode .dashboard-goal-item small{display:block!important;margin-top:6px!important;color:#7d8796!important;font-size:8.5px!important}
+
+/* Consulta: azul mais forte e compacta, no padrão da referência. */
+body.records-mode .dashboard-filters{
+  margin-top:0!important;
+  border-color:#cfe0f0!important;
+  border-radius:22px!important;
+  background:linear-gradient(180deg,#fbfdff,#f4f9ff)!important;
+}
+body.records-mode .dashboard-filters::before{width:6px!important;background:linear-gradient(180deg,#1384d8,#0a6db8)!important}
+body.records-mode .dashboard-filter-head-copy>small{display:none!important}
+body.records-mode .dashboard-filter-head-copy>strong{font-size:14.5px!important}
+body.records-mode .dashboard-filter-kicker{font-size:9px!important}
+body.records-mode .dashboard-search{min-height:66px!important;border-width:2px!important;border-color:#bed6eb!important}
+body.records-mode .dashboard-search-icon-wrap{width:45px!important;height:45px!important;flex-basis:45px!important;border-radius:13px!important;background:linear-gradient(135deg,#0879ce,#0e9ac5)!important}
+body.records-mode .dashboard-search-copy>small{display:none!important}
+body.records-mode .dashboard-search input{height:36px!important;line-height:36px!important;font-size:15px!important;font-weight:650!important}
+body.records-mode .dashboard-filter-toggle{font-size:10.5px!important}
+
+/* Status da consulta como barra informativa com atualização destacada. */
+body.records-mode .records-status:not(.loading):not(.error):not(.searching){
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:12px 0!important;
+  padding:12px 14px!important;
+  border:1px solid #e1e6ec!important;
+  border-radius:17px!important;
+  background:#fff!important;
+  color:#697386!important;
+  font-size:10.5px!important;
+  line-height:1.35!important;
+  box-shadow:0 6px 16px rgba(15,23,42,.035)!important;
+}
+body.records-mode .records-status:not(.loading):not(.error):not(.searching)::before{
+  content:'▤'!important;
+  width:34px!important;
+  height:34px!important;
+  flex:0 0 34px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:10px!important;
+  background:#f3f1fa!important;
+  color:#423a68!important;
+  font-size:17px!important;
+}
+body.records-mode .records-status strong{color:#182033!important;font-size:12px!important}
+body.records-mode .records-freshness{
+  margin-left:auto!important;
+  min-height:42px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  padding:7px 12px!important;
+  border:1px solid #bfe4cd!important;
+  border-radius:12px!important;
+  background:#effbf4!important;
+  color:#0b874d!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  white-space:nowrap!important;
+}
+
+/* Cards dos processos: resumo visual primeiro, detalhes preservados em composição compacta. */
+body.records-mode .records-list{gap:12px!important}
+body.records-mode .records-card{
+  padding:14px 14px 13px 17px!important;
+  border-radius:19px!important;
+  border-color:#dfe5eb!important;
+  box-shadow:0 8px 20px rgba(15,23,42,.045)!important;
+}
+body.records-mode .records-card-accent{width:5px!important}
+body.records-mode .records-card-top{align-items:flex-start!important;gap:10px!important}
+body.records-mode .records-card-title{font-size:16px!important;line-height:1.18!important}
+body.records-mode .records-card-date{font-size:9px!important;padding:4px 7px!important}
+body.records-mode .records-card-subtitle{font-size:10px!important;margin-top:4px!important}
+body.records-mode .records-card-status-row{margin-top:8px!important}
+body.records-mode .records-card-meta{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:6px!important;
+  margin-top:9px!important;
+}
+body.records-mode .records-meta-item{
+  min-height:52px!important;
+  padding:8px!important;
+  border-radius:11px!important;
+  box-shadow:none!important;
+}
+body.records-mode .records-meta-item span{font-size:7.5px!important}
+body.records-mode .records-meta-item strong{margin-top:3px!important;font-size:10px!important}
+body.records-mode .records-card-address{margin-top:8px!important;padding:8px 9px!important;font-size:10px!important}
+body.records-mode .records-card-quick-actions{margin-top:8px!important}
+body.records-mode .records-card-action{margin-top:8px!important;padding:9px 10px 9px 36px!important;border-radius:11px!important}
+body.records-mode .records-card-action::before{left:9px!important;top:9px!important;width:20px!important;height:20px!important}
+body.records-mode .records-card-action span{font-size:7.5px!important}
+body.records-mode .records-card-action strong{font-size:10.5px!important;margin-top:2px!important}
+body.records-mode .records-card-action small{font-size:9px!important}
+body.records-mode .records-card-cta{
+  min-height:38px!important;
+  margin-top:8px!important;
+  border-radius:11px!important;
+  padding:6px 7px 6px 11px!important;
+  font-size:10.5px!important;
+}
+body.records-mode .records-card-cta-icon{width:25px!important;height:25px!important;border-radius:8px!important}
+
+@media(max-width:760px){
+  body.records-mode .hero{width:calc(100% - 20px)!important;margin:6px 10px 10px!important;padding:6px!important;border-radius:20px!important}
+  body.records-mode .app-view-nav{width:calc(100% - 20px)!important;margin:0 10px 12px!important}
+  body.records-mode .app-user-status-row{min-height:72px!important;grid-template-columns:52px minmax(0,1fr) 46px!important;padding:9px 11px!important;border-radius:20px!important}
+  body.records-mode .app-user-avatar{width:46px!important;height:46px!important}
+  body.records-mode .logged-user-badge{font-size:15.5px!important}
+  body.records-mode .app-user-welcome{font-size:10px!important}
+  body.records-mode .app-user-status-stack .sync-summary{font-size:7.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:100%!important}
+  body.records-mode .app-alerts-bell{width:44px!important;height:44px!important}
+  body.records-mode .app-view-nav-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+  body.records-mode .app-view-btn{min-height:70px!important;gap:7px!important;padding:7px 8px!important;border-radius:16px!important;font-size:12px!important}
+  body.records-mode .app-view-btn .app-view-icon{width:42px!important;height:42px!important;flex-basis:42px!important;border-radius:13px!important}
+  body.records-mode .dashboard-hero{display:none!important}
+  body.records-mode .dashboard-main-content{padding-top:0!important}
+
+  body.records-mode .dashboard-kpis{border-radius:20px!important;margin-bottom:12px!important}
+  body.records-mode .kpi-total{min-height:92px!important;grid-template-columns:48px minmax(0,1fr) auto!important;padding:11px 12px!important;gap:10px!important}
+  body.records-mode .kpi-total .dashboard-kpi-icon{width:44px!important;height:44px!important}
+  body.records-mode .kpi-total span{font-size:14px!important}
+  body.records-mode .kpi-total small{font-size:9px!important}
+  body.records-mode .kpi-total strong{font-size:38px!important}
+  body.records-mode .dashboard-kpi:not(.kpi-total){min-height:76px!important;padding:10px!important;gap:7px!important}
+  body.records-mode .dashboard-kpi:not(.kpi-total) .dashboard-kpi-icon{width:36px!important;height:36px!important;flex-basis:36px!important;border-radius:11px!important}
+  body.records-mode .dashboard-kpi:not(.kpi-total) .dashboard-kpi-icon .ui-icon{width:19px!important;height:19px!important}
+  body.records-mode .dashboard-kpi:not(.kpi-total) strong{font-size:20px!important}
+  body.records-mode .dashboard-kpi:not(.kpi-total) span{font-size:8.5px!important}
+  body.records-mode .dashboard-kpi:not(.kpi-total) small{font-size:7.4px!important}
+
+  body.records-mode .dashboard-suggestions-card{grid-template-columns:46px minmax(0,1fr) auto 30px!important;padding:12px!important;border-radius:19px!important;gap:8px 9px!important}
+  body.records-mode .dashboard-suggestions-icon{width:42px!important;height:42px!important;border-radius:13px!important;font-size:21px!important}
+  body.records-mode .dashboard-suggestions-copy strong{font-size:13.5px!important}
+  body.records-mode .dashboard-suggestions-copy small{font-size:8.5px!important}
+  body.records-mode .dashboard-suggestions-count{min-width:58px!important;font-size:28px!important}
+  body.records-mode .dashboard-suggestions-arrow{width:30px!important;height:36px!important;font-size:26px!important}
+  body.records-mode .dashboard-suggestion-metric{padding:2px 7px!important;grid-template-columns:14px auto!important;column-gap:6px!important}
+  body.records-mode .dashboard-suggestion-metric i{width:12px!important;height:12px!important}
+  body.records-mode .dashboard-suggestion-metric b{font-size:15px!important}
+  body.records-mode .dashboard-suggestion-metric small{font-size:7.6px!important}
+
+  body.records-mode .dashboard-goals{padding:12px!important;border-radius:19px!important}
+  body.records-mode .dashboard-goals-head{gap:8px!important}
+  body.records-mode .dashboard-goals h3{font-size:14px!important}
+  body.records-mode .dashboard-goals-head p{font-size:8.8px!important}
+  body.records-mode .dashboard-goals-open{min-height:38px!important;padding:0 9px!important;font-size:9px!important}
+  body.records-mode .dashboard-goals-overall{padding:10px!important;gap:7px!important}
+  body.records-mode .dashboard-goals-overall-copy strong{font-size:16px!important}
+  body.records-mode .dashboard-goals-percent{font-size:17px!important}
+  body.records-mode .dashboard-goals-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:7px!important}
+  body.records-mode .dashboard-goal-item{grid-column:span 2!important;grid-template-columns:31px minmax(0,1fr)!important;gap:6px!important;padding:8px!important;border-radius:12px!important}
+  body.records-mode .dashboard-goal-item:nth-child(n+4){grid-column:span 3!important}
+  body.records-mode .dashboard-goal-icon{width:29px!important;height:29px!important;border-radius:9px!important}
+  body.records-mode .dashboard-goal-icon .ui-icon{width:16px!important;height:16px!important}
+  body.records-mode .dashboard-goal-item-top{display:block!important}
+  body.records-mode .dashboard-goal-item-top strong{display:block!important;font-size:7.6px!important;min-height:18px!important}
+  body.records-mode .dashboard-goal-item-top b{display:block!important;margin-top:3px!important;font-size:12px!important}
+  body.records-mode .dashboard-goal-mini-progress{height:5px!important;margin-top:5px!important}
+  body.records-mode .dashboard-goal-item small{font-size:7px!important;margin-top:4px!important}
+
+  body.records-mode .dashboard-filter-result-count{font-size:8.5px!important;padding:0 9px!important}
+  body.records-mode .dashboard-filter-toggle{font-size:9px!important;padding:0 9px!important}
+  body.records-mode .dashboard-search{min-height:60px!important;padding:7px 9px!important}
+  body.records-mode .dashboard-search-icon-wrap{width:40px!important;height:40px!important;flex-basis:40px!important}
+  body.records-mode .dashboard-search input{font-size:16px!important}
+
+  body.records-mode .records-status:not(.loading):not(.error):not(.searching){padding:10px!important;font-size:9px!important;gap:8px!important;flex-wrap:wrap!important}
+  body.records-mode .records-status:not(.loading):not(.error):not(.searching)::before{width:30px!important;height:30px!important;flex-basis:30px!important}
+  body.records-mode .records-freshness{min-height:36px!important;padding:5px 9px!important;font-size:8.5px!important}
+
+  body.records-mode .records-card{padding:12px 11px 11px 15px!important;border-radius:17px!important}
+  body.records-mode .records-card-title{font-size:14px!important}
+  body.records-mode .records-card-status-row .status-badge,
+  body.records-mode .records-card-demand-chip{min-height:24px!important;padding:4px 7px!important;font-size:8px!important}
+  body.records-mode .records-card-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important}
+  body.records-mode .records-meta-item{min-height:46px!important;padding:7px!important}
+  body.records-mode .records-card-quick-btn{min-height:34px!important;padding:7px 9px!important;font-size:9px!important}
+}
+
+@media(max-width:390px){
+  body.records-mode .dashboard-suggestion-metric small{font-size:7px!important}
+  body.records-mode .dashboard-goal-item{grid-template-columns:26px minmax(0,1fr)!important;gap:5px!important;padding:7px!important}
+  body.records-mode .dashboard-goal-icon{width:25px!important;height:25px!important}
+  body.records-mode .dashboard-goal-item-top strong{font-size:7.1px!important}
 }

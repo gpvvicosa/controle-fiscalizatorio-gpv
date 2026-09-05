@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ew';
+      const APP_VERSION = '23.9.99ex';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1732,7 +1732,7 @@
       let premiumFeedbackTimer_ = 0;
       let premiumFeedbackLastText_ = '';
 
-      // V23.9.99ew — feedback operacional não bloqueante. Mantém os diálogos
+      // V23.9.99ex — feedback operacional não bloqueante. Mantém os diálogos
       // de confirmação existentes e apenas espelha conclusões/alertas relevantes.
       function classificarFeedbackPremium_(mensagem) {
         const texto = String(mensagem || '').trim();
@@ -2226,6 +2226,9 @@
       const inspectionSuggestionsCard = document.getElementById('inspectionSuggestionsCard');
       const inspectionSuggestionsText = document.getElementById('inspectionSuggestionsText');
       const inspectionSuggestionsCount = document.getElementById('inspectionSuggestionsCount');
+      const inspectionSuggestionsHigh = document.getElementById('inspectionSuggestionsHigh');
+      const inspectionSuggestionsMedium = document.getElementById('inspectionSuggestionsMedium');
+      const inspectionSuggestionsWatch = document.getElementById('inspectionSuggestionsWatch');
       const inspectionSuggestionsBadge = document.getElementById('inspectionSuggestionsBadge');
       const inspectionSuggestionsVistoriaCard = document.getElementById('inspectionSuggestionsVistoriaCard');
       const inspectionSuggestionsVistoriaText = document.getElementById('inspectionSuggestionsVistoriaText');
@@ -2462,7 +2465,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ew';
+      const APP_REVISION_UI_ = '23.9.99ex';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2666,7 +2669,7 @@
           const texto = inspectionSuggestionsRefreshBtn.querySelector('span');
           if (texto) texto.textContent = 'Atualizar agora';
           corrigidos += 1;
-          detalhes.push('botão de atualização das sugestões');
+          detalhes.push('botão de atualização do histórico 2024/2025');
         }
 
         if (recordsRefreshBtn?.disabled && !recordsState.carregando) {
@@ -4495,7 +4498,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ew', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ex', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4879,7 +4882,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99ew — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99ex — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4910,7 +4913,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99ew — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99ex — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -6413,7 +6416,7 @@
       }
 
       function vistaInicialPorDispositivo_() {
-        // V23.9.99ew — entrada padrão do aplicativo: Painel em qualquer dispositivo.
+        // V23.9.99ex — entrada padrão do aplicativo: Painel em qualquer dispositivo.
         // Rotas explícitas (ex.: ?view=vistoria), acesso auxiliar e ações de retomada
         // continuam podendo abrir diretamente o fluxo correspondente.
         return 'records';
@@ -6920,7 +6923,7 @@
         return { principal, detalhe };
       }
 
-      // V23.9.99ew — identidade visual dos cards do Painel sem alterar a lógica do processo.
+      // V23.9.99ex — identidade visual dos cards do Painel sem alterar a lógica do processo.
       function classesCardPainel_(item) {
         const classes = ['records-card', classeStatus_(item?.sancao || '')];
         const demanda = normalize(item?.demanda || '');
@@ -7064,6 +7067,16 @@
         return 'is-pending';
       }
 
+      function iconeMetaPainelHtml_(nome) {
+        const n = normalize(nome || '');
+        if (n.includes('clcb')) return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l3 3V20H7z"/><path d="M14 3.5v3h3M9.5 11h5M9.5 14h5M9.5 17h3"/></svg>';
+        if (n.includes('renovacao')) return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7 7 0 1 0 1 7"/><path d="M19 4.5V8h-3.5M5 16a7 7 0 0 0 12 2"/></svg>';
+        if (n.includes('evento')) return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 3v5M16 3v5M4 10h16"/></svg>';
+        if (n.includes('risco')) return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 20H3z"/><path d="M12 9v5M12 17h.01"/></svg>';
+        if (n.includes('brigada')) return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.6"/><circle cx="16" cy="9" r="2.2"/><path d="M4.5 19c.5-3.6 2.2-5.5 4.8-5.5s4.4 1.9 4.8 5.5M13.5 14.5c2.8-.4 4.7 1.1 5.4 4.5"/></svg>';
+        return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V9M12 18V5M19 18v-7"/></svg>';
+      }
+
       function renderizarMetas_(dados) {
         metasMensaisAtual = dados || null;
         const categorias = Array.isArray(dados?.categorias) ? dados.categorias : [];
@@ -7098,9 +7111,12 @@
               ? (realizado >= meta ? '✓ Meta atingida' : `Falta${Math.max(0, meta - realizado) === 1 ? '' : 'm'} ${Math.max(0, meta - realizado)}`)
               : 'Realização informativa';
             return `<article class="dashboard-goal-item ${classeMeta_(item)}">
-              <div class="dashboard-goal-item-top"><strong>${escaparHtmlMetas_(item?.nome || '')}</strong><b>${valor}</b></div>
-              <div class="dashboard-goal-mini-progress"><span style="width:${pct}%"></span></div>
-              <small>${escaparHtmlMetas_(rodape)}</small>
+              <span class="dashboard-goal-icon" aria-hidden="true">${iconeMetaPainelHtml_(item?.nome || '')}</span>
+              <div class="dashboard-goal-content">
+                <div class="dashboard-goal-item-top"><strong>${escaparHtmlMetas_(item?.nome || '')}</strong><b>${valor}</b></div>
+                <div class="dashboard-goal-mini-progress"><span style="width:${pct}%"></span></div>
+                <small>${escaparHtmlMetas_(rodape)}</small>
+              </div>
             </article>`;
           }).join('');
         }
@@ -7586,7 +7602,7 @@
         });
       }
 
-      // V23.9.99ew — tarefas secundárias são adiadas para não competir com a renderização principal.
+      // V23.9.99ex — tarefas secundárias são adiadas para não competir com a renderização principal.
       function agendarTarefaOciosa_(tarefa, atrasoMaximo = 700) {
         if (typeof tarefa !== 'function') return;
         if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
@@ -7973,7 +7989,7 @@
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99ew — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99ex — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -7989,7 +8005,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99ew — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99ex — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9717,7 +9733,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99ew — Centro de correção completa da vistoria.
+      // V23.9.99ex — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -10522,7 +10538,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99ew — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99ex — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'local';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10708,7 +10724,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99ew — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99ex — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -10744,7 +10760,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? `<section class="record-suggestion-manual-regularized">
               <div>
                 <strong>✓ Sugestão encerrada — regularização informada</strong>
-                <p>Este endereço foi retirado manualmente das Sugestões de Fiscalização.</p>
+                <p>Este endereço foi retirado manualmente da lista de acompanhamento do histórico 2024/2025.</p>
                 <small>${[
                   controleSugestao.registradoEm ? `Registrado em ${controleSugestao.registradoEm}` : '',
                   controleSugestao.usuario ? `por ${controleSugestao.usuario}` : '',
@@ -15359,7 +15375,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99ew — CEP opcional como preenchimento assistido.
+      // V23.9.99ex — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -16308,7 +16324,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99ew — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99ex — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -18326,7 +18342,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return valor || '—';
       }
 
-      // V23.9.99ew — conferência inteligente antes de finalizar.
+      // V23.9.99ex — conferência inteligente antes de finalizar.
       // Mantém as regras obrigatórias existentes e acrescenta somente:
       // 1) bloqueios para inconsistências objetivas; 2) alertas de conferência não impeditivos.
       function dataHoraComparavelConferencia_(valor) {
@@ -21080,11 +21096,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const acompanhamento = Number(r.acompanhamento || 0);
 
         if (inspectionSuggestionsCount) inspectionSuggestionsCount.textContent = String(total);
+        if (inspectionSuggestionsHigh) inspectionSuggestionsHigh.textContent = String(alta);
+        if (inspectionSuggestionsMedium) inspectionSuggestionsMedium.textContent = String(media);
+        if (inspectionSuggestionsWatch) inspectionSuggestionsWatch.textContent = String(acompanhamento);
         if (inspectionSuggestionsBadge) inspectionSuggestionsBadge.textContent = String(total);
         if (inspectionSuggestionsText) {
           inspectionSuggestionsText.textContent = total
-            ? `${alta} alta prioridade • ${media} média • ${acompanhamento} acompanhamento`
-            : 'Nenhum local sugerido com os critérios atuais.';
+            ? 'Histórico de 2024 e 2025 organizado para consulta e acompanhamento.'
+            : 'Nenhum registro histórico enquadrado nos critérios atuais.';
         }
         if (inspectionSuggestionsCard) {
           inspectionSuggestionsCard.classList.toggle('has-high', alta > 0);
@@ -21099,12 +21118,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (inspectionSuggestionsVistoriaSummary) {
           inspectionSuggestionsVistoriaSummary.innerHTML = total
             ? `<span class="suggestion-priority-chip suggestion-priority-chip--high"><b>${alta}</b> alta</span><span class="suggestion-priority-chip suggestion-priority-chip--medium"><b>${media}</b> média</span><span class="suggestion-priority-chip suggestion-priority-chip--watch"><b>${acompanhamento}</b> acompanhamento</span>`
-            : '<span class="suggestion-priority-chip suggestion-priority-chip--empty">Nenhuma sugestão pendente</span>';
+            : '<span class="suggestion-priority-chip suggestion-priority-chip--empty">Nenhum registro pendente</span>';
         }
         if (inspectionSuggestionsVistoriaText) {
           inspectionSuggestionsVistoriaText.textContent = total
-            ? 'Locais indicados para nova fiscalização com base no histórico e no risco.'
-            : 'A lista continua disponível para consulta mesmo sem sugestões pendentes.';
+            ? 'Histórico de 2024 e 2025 organizado para consulta e acompanhamento.'
+            : 'A lista continua disponível para consulta mesmo sem registros pendentes de acompanhamento.';
         }
         if (inspectionSuggestionsVistoriaCard) {
           inspectionSuggestionsVistoriaCard.classList.toggle('has-high', alta > 0);
@@ -21117,8 +21136,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const cacheLocal = lerCacheSugestoesFiscalizacaoLocal_();
         if (!cacheLocal && inspectionSuggestionsVistoriaSummary) {
           inspectionSuggestionsVistoriaSummary.textContent = navigator.onLine
-            ? 'Buscando locais prioritários...'
-            : 'Prioridades disponíveis quando houver conexão';
+            ? 'Carregando histórico 2024/2025...'
+            : 'Histórico disponível quando houver conexão';
         }
         if (cacheLocal) {
           resumoSugestoesFiscalizacao = cacheLocal.resumo || resumoSugestoesFiscalizacao;
@@ -21136,7 +21155,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           sugestoesFiscalizacaoGeradoEm = String(r?.geradoEm || sugestoesFiscalizacaoGeradoEm || '');
           atualizarResumoSugestoesUi_();
         } catch (erro) {
-          if (!cacheLocal && inspectionSuggestionsText) inspectionSuggestionsText.textContent = 'Não foi possível atualizar as prioridades agora.';
+          if (!cacheLocal && inspectionSuggestionsText) inspectionSuggestionsText.textContent = 'Não foi possível atualizar o histórico 2024/2025 agora.';
         }
       }
 
@@ -21146,8 +21165,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         if (!sugestoesFiscalizacaoCarregadas) {
           preparedInspectionsList.innerHTML = navigator.onLine
-            ? '<div class="prepared-empty">Carregando sugestões de fiscalização...</div>'
-            : '<div class="prepared-empty">As sugestões precisam de conexão para cruzar a base atual com 2024-2025.</div>';
+            ? '<div class="prepared-empty">Carregando histórico de 2024/2025...</div>'
+            : '<div class="prepared-empty">O histórico 2024/2025 precisa de conexão para atualizar a classificação de acompanhamento.</div>';
           if (preparedInspectionsStatus) {
             preparedInspectionsStatus.textContent = 'Somente locais fiscalizados antes de 02/07/2025, sem nova vistoria e sem regularização posterior.';
           }
@@ -21312,7 +21331,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           renderizarSugestoesFiscalizacao_();
 
           await avisarGpv_(
-            'A observação foi registrada e ficará disponível nas Sugestões, na Ficha e ao programar a vistoria.',
+            'A observação foi registrada e ficará disponível no histórico 2024/2025, na Ficha e ao programar a vistoria.',
             'Observação salva',
             { tom: 'success' }
           );
@@ -21344,7 +21363,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           .join(', ');
 
         const confirmou = await confirmarGpv_(
-          `Confirma que esta edificação se encontra regularizada?\n\n${titulo}${endereco ? `\n${endereco}` : ''}\n\nEsta ação retira o local das Sugestões de Fiscalização, mas não altera a vistoria histórica.`,
+          `Confirma que esta edificação se encontra regularizada?\n\n${titulo}${endereco ? `\n${endereco}` : ''}\n\nEsta ação retira o local da lista de acompanhamento do histórico 2024/2025, mas não altera a vistoria histórica.`,
           'Marcar como regularizado',
           {
             tom: 'warning',
@@ -21378,7 +21397,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           renderizarSugestoesFiscalizacao_();
 
           await avisarGpv_(
-            `A edificação foi retirada das Sugestões de Fiscalização.${resposta?.controle?.usuario ? `\nRegistrado por: ${resposta.controle.usuario}.` : ''}`,
+            `A edificação foi retirada da lista de acompanhamento do histórico 2024/2025.${resposta?.controle?.usuario ? `\nRegistrado por: ${resposta.controle.usuario}.` : ''}`,
             'Regularização registrada',
             { tom: 'success' }
           );
@@ -21414,7 +21433,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ].filter(Boolean).join(', ');
 
         const confirmou = await confirmarGpv_(
-          `Deseja reabrir esta edificação nas Sugestões de Fiscalização?\n\n${titulo}${endereco ? `\n${endereco}` : ''}\n\nO registro anterior de regularização continuará preservado no histórico de controle.`,
+          `Deseja reabrir esta edificação na lista de acompanhamento do histórico 2024/2025?\n\n${titulo}${endereco ? `\n${endereco}` : ''}\n\nO registro anterior de regularização continuará preservado no histórico de controle.`,
           'Reabrir sugestão',
           {
             tom: 'warning',
@@ -21456,7 +21475,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
 
           await avisarGpv_(
-            'A edificação foi reaberta para voltar a ser considerada nas Sugestões de Fiscalização.',
+            'A edificação foi reaberta para voltar a ser considerada na lista de acompanhamento do histórico 2024/2025.',
             'Sugestão reaberta',
             { tom: 'success' }
           );
@@ -21496,7 +21515,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const exibindoCache = sugestoesFiscalizacaoCarregadas && sugestoesFiscalizacao.length >= 0;
         if (preparedInspectionsStatus && filtroPreparacoes === 'sugestoes') {
           preparedInspectionsStatus.textContent = forcarAtualizacao
-            ? 'Recalculando as sugestões com os dados mais recentes...'
+            ? 'Atualizando o histórico 2024/2025 com os dados mais recentes...'
             : (exibindoCache
               ? 'Lista exibida imediatamente. Conferindo se há alterações em segundo plano...'
               : 'Localizando fiscalizações anteriores a 02/07/2025 ainda sem retorno...');
@@ -21527,9 +21546,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           atualizarResumoSugestoesUi_();
         } catch (erro) {
           if (sugestoesFiscalizacaoCarregadas && preparedInspectionsStatus && filtroPreparacoes === 'sugestoes') {
-            preparedInspectionsStatus.textContent = 'Últimas sugestões válidas mantidas. A atualização do servidor está temporariamente indisponível.';
+            preparedInspectionsStatus.textContent = 'Últimos dados válidos do histórico 2024/2025 mantidos. A atualização do servidor está temporariamente indisponível.';
           } else if (preparedInspectionsStatus) {
-            preparedInspectionsStatus.textContent = 'Não foi possível atualizar as sugestões agora. Tente novamente em instantes.';
+            preparedInspectionsStatus.textContent = 'Não foi possível atualizar o histórico 2024/2025 agora. Tente novamente em instantes.';
           }
         } finally {
           sugestoesFiscalizacaoAtualizando = false;
@@ -23761,7 +23780,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ew', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ex', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
