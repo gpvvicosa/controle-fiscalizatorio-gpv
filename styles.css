@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99ek — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99el — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99ek — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99el — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99ek — Painel inicial premium
+   V23.9.99el — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99ek — Página Vistoria Premium
+   V23.9.99el — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17527,4 +17527,252 @@ body:not(.records-mode) .home-operational-connection{
 @media(prefers-reduced-motion:reduce){
   body:not(.records-mode) .inspection-flow-grid-after-programmed .inspection-flow-card,
   body:not(.records-mode) #localDraftSummaryCard::after{transition:none!important}
+}
+
+/* =============================================================================
+   V23.9.99el — Topo Premium do Painel
+   Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
+   e navegação principal. Sem alteração de lógica operacional.
+   ============================================================================= */
+body.records-mode .hero{
+  position:relative!important;
+  overflow:hidden!important;
+  margin-top:10px!important;
+  margin-bottom:12px!important;
+  border:1px solid rgba(112,10,16,.22)!important;
+  border-radius:26px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(250,245,245,.96))!important;
+  box-shadow:0 16px 36px rgba(76,17,22,.10),0 2px 8px rgba(15,23,42,.04)!important;
+  padding:12px!important;
+}
+body.records-mode .hero::before{
+  content:'';
+  position:absolute;
+  inset:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 94% 12%,rgba(242,166,35,.16),transparent 23%),
+    radial-gradient(circle at 4% 90%,rgba(143,23,28,.09),transparent 26%);
+}
+body.records-mode .hero-banner{
+  position:relative!important;
+  z-index:1!important;
+  display:block!important;
+  width:100%!important;
+  border-radius:19px!important;
+  box-shadow:0 10px 25px rgba(74,12,17,.12)!important;
+}
+
+body.records-mode .app-view-nav{
+  position:relative!important;
+  overflow:hidden!important;
+  margin-bottom:14px!important;
+  padding:13px 14px 14px!important;
+  border:1px solid rgba(127,29,29,.14)!important;
+  border-radius:24px!important;
+  background:
+    radial-gradient(circle at 5% 5%,rgba(22,138,80,.07),transparent 25%),
+    radial-gradient(circle at 94% 18%,rgba(47,103,197,.07),transparent 25%),
+    linear-gradient(145deg,rgba(255,255,255,.985),rgba(249,250,252,.97))!important;
+  box-shadow:0 15px 34px rgba(15,23,42,.075)!important;
+}
+body.records-mode .app-view-nav::after{
+  content:'';
+  position:absolute!important;
+  left:20px!important;
+  right:20px!important;
+  bottom:0!important;
+  height:3px!important;
+  border-radius:999px 999px 0 0!important;
+  background:linear-gradient(90deg,#13864d 0 33%,#b32632 33% 66%,#2c65bd 66% 100%)!important;
+  opacity:.85!important;
+}
+body.records-mode .app-user-status-stack{
+  position:relative!important;
+  z-index:1!important;
+  margin:0 auto 10px!important;
+  gap:4px!important;
+}
+body.records-mode .app-user-status-row{
+  gap:9px!important;
+}
+body.records-mode .logged-user-badge{
+  min-height:38px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  padding:7px 14px!important;
+  border:1px solid #e5d7d9!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,#fff,#fbf7f8)!important;
+  color:#7f1d1d!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  letter-spacing:-.01em!important;
+  box-shadow:0 7px 18px rgba(98,24,29,.075)!important;
+}
+body.records-mode .logged-user-badge::before{
+  content:'•'!important;
+  width:20px!important;
+  height:20px!important;
+  display:grid!important;
+  place-items:center!important;
+  margin-right:7px!important;
+  border-radius:50%!important;
+  background:linear-gradient(135deg,#8f171d,#b82b34)!important;
+  color:#fff!important;
+  font-size:13px!important;
+  line-height:1!important;
+}
+body.records-mode .app-alerts-bell{
+  width:42px!important;
+  height:42px!important;
+  border:1px solid #ead9db!important;
+  border-radius:14px!important;
+  background:linear-gradient(180deg,#fff,#fbf7f8)!important;
+  color:#8f171d!important;
+  box-shadow:0 7px 18px rgba(98,24,29,.075)!important;
+}
+body.records-mode .app-alerts-bell .ui-icon{
+  width:19px!important;
+  height:19px!important;
+}
+body.records-mode .app-user-status-stack .sync-summary{
+  padding:3px 9px!important;
+  border-radius:999px!important;
+  background:#f6f8fb!important;
+  color:#667085!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+}
+
+body.records-mode .app-view-nav-actions{
+  position:relative!important;
+  z-index:1!important;
+  gap:10px!important;
+}
+body.records-mode .app-view-btn{
+  position:relative!important;
+  min-height:64px!important;
+  padding:9px 12px!important;
+  border:1px solid #e1e7ee!important;
+  border-radius:17px!important;
+  background:linear-gradient(180deg,#fff,#f8fafc)!important;
+  color:#4b5565!important;
+  box-shadow:0 7px 17px rgba(15,23,42,.055)!important;
+  font-weight:850!important;
+  transition:transform .16s ease,box-shadow .16s ease,filter .16s ease!important;
+}
+body.records-mode .app-view-btn:hover,
+body.records-mode .app-view-btn:focus-visible{
+  transform:translateY(-1px)!important;
+  box-shadow:0 11px 23px rgba(15,23,42,.085)!important;
+}
+body.records-mode .app-view-btn .app-view-icon{
+  width:42px!important;
+  height:42px!important;
+  border-radius:14px!important;
+  box-shadow:0 5px 12px rgba(15,23,42,.07)!important;
+}
+body.records-mode .app-view-btn .app-view-icon .ui-icon{
+  width:22px!important;
+  height:22px!important;
+}
+body.records-mode #recordsTabBtn{
+  border-color:#9ed9ba!important;
+  background:linear-gradient(145deg,#f0fff6,#def7e9)!important;
+  color:#147844!important;
+}
+body.records-mode #recordsTabBtn .app-view-icon{
+  background:linear-gradient(135deg,#168a50,#31b66f)!important;
+  color:#fff!important;
+}
+body.records-mode #formTabBtn{
+  border-color:#efb6ba!important;
+  background:linear-gradient(145deg,#fff6f6,#ffe8ea)!important;
+  color:#9d222b!important;
+}
+body.records-mode #formTabBtn .app-view-icon{
+  background:linear-gradient(135deg,#b32632,#dc4b55)!important;
+  color:#fff!important;
+}
+body.records-mode #navMoreMenuBtn{
+  border-color:#b9cff3!important;
+  background:linear-gradient(145deg,#f4f8ff,#e7efff)!important;
+  color:#295da9!important;
+}
+body.records-mode #navMoreMenuBtn .app-view-icon{
+  background:linear-gradient(135deg,#356ac3,#5c89da)!important;
+  color:#fff!important;
+}
+body.records-mode .app-view-btn.active{
+  transform:translateY(-2px)!important;
+  border-width:2px!important;
+  filter:saturate(1.08)!important;
+  box-shadow:0 13px 28px rgba(20,120,68,.16)!important;
+}
+body.records-mode .app-view-btn.active::after{
+  content:''!important;
+  position:absolute!important;
+  left:22%!important;
+  right:22%!important;
+  bottom:6px!important;
+  height:3px!important;
+  border-radius:999px!important;
+  background:currentColor!important;
+}
+
+/* Mobile: mantém o topo premium sem ocupar espaço excessivo. */
+@media(max-width:760px){
+  body.records-mode .hero{
+    width:calc(100% - 28px)!important;
+    margin:8px 14px 12px!important;
+    padding:8px!important;
+    border-radius:22px!important;
+  }
+  body.records-mode .hero-banner{
+    border-radius:15px!important;
+  }
+  body.records-mode .app-view-nav{
+    width:calc(100% - 28px)!important;
+    margin:0 14px 12px!important;
+    padding:10px 11px 12px!important;
+    border-radius:21px!important;
+  }
+  body.records-mode .app-user-status-stack{margin-bottom:8px!important}
+  body.records-mode .logged-user-badge{
+    min-height:34px!important;
+    padding:5px 11px!important;
+    font-size:11.5px!important;
+  }
+  body.records-mode .logged-user-badge::before{
+    width:17px!important;
+    height:17px!important;
+    margin-right:5px!important;
+    font-size:10px!important;
+  }
+  body.records-mode .app-alerts-bell{
+    width:38px!important;
+    height:38px!important;
+    border-radius:13px!important;
+  }
+  body.records-mode .app-view-nav-actions{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  body.records-mode .app-view-btn{
+    min-height:66px!important;
+    padding:7px 5px!important;
+    border-radius:15px!important;
+    gap:5px!important;
+    font-size:12px!important;
+  }
+  body.records-mode .app-view-btn .app-view-icon{
+    width:38px!important;
+    height:38px!important;
+    border-radius:12px!important;
+  }
+  body.records-mode .app-view-btn .app-view-icon .ui-icon{
+    width:20px!important;
+    height:20px!important;
+  }
 }
