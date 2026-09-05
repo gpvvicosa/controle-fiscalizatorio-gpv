@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99el — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99em — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99el — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99em — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99el — Painel inicial premium
+   V23.9.99em — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99el — Página Vistoria Premium
+   V23.9.99em — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17530,7 +17530,7 @@ body:not(.records-mode) .home-operational-connection{
 }
 
 /* =============================================================================
-   V23.9.99el — Topo Premium do Painel
+   V23.9.99em — Topo Premium do Painel
    Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
    e navegação principal. Sem alteração de lógica operacional.
    ============================================================================= */
@@ -17775,4 +17775,232 @@ body.records-mode .app-view-btn.active::after{
     width:20px!important;
     height:20px!important;
   }
+}
+
+
+/* =============================================================================
+   V23.9.99em — Central "Mais" Premium
+   Mantém funções/permissões existentes e moderniza apenas apresentação.
+   ============================================================================= */
+.app-more-menu{
+  --more-accent:#8f0f17;
+  width:min(720px,calc(100vw - 24px));
+  max-height:calc(100dvh - 24px);
+  padding:0!important;
+  border:1px solid rgba(145,38,44,.20)!important;
+  border-radius:26px!important;
+  background:linear-gradient(180deg,#fff 0%,#fbfcff 100%)!important;
+  box-shadow:0 30px 90px rgba(36,10,14,.26),0 2px 8px rgba(15,23,42,.06)!important;
+  overflow:auto!important;
+  scrollbar-gutter:stable;
+}
+.app-more-menu-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:6!important;
+  min-height:94px!important;
+  padding:18px 20px!important;
+  display:grid!important;
+  grid-template-columns:54px minmax(0,1fr) 42px!important;
+  align-items:center!important;
+  gap:14px!important;
+  border-bottom:1px solid rgba(145,38,44,.12)!important;
+  background:
+    radial-gradient(circle at 88% 8%,rgba(196,33,44,.11),transparent 34%),
+    linear-gradient(135deg,rgba(255,255,255,.985),rgba(255,245,246,.985))!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+}
+.app-more-menu-hero-icon{
+  width:54px;
+  height:54px;
+  display:grid;
+  place-items:center;
+  border-radius:17px;
+  color:#fff;
+  background:linear-gradient(145deg,#9b1119,#c62e39);
+  box-shadow:0 10px 24px rgba(155,17,25,.24);
+}
+.app-more-menu-hero-icon .ui-icon{width:25px;height:25px;stroke-width:1.9}
+.app-more-menu-head-copy{gap:2px!important}
+.app-more-menu-kicker{
+  margin:0 0 2px!important;
+  color:#9b1119!important;
+  font-size:9px!important;
+  line-height:1.2!important;
+  font-weight:950!important;
+  letter-spacing:.11em!important;
+  text-transform:uppercase!important;
+}
+.app-more-menu-head strong{
+  color:#182230!important;
+  font-size:21px!important;
+  line-height:1.1!important;
+  font-weight:920!important;
+  letter-spacing:-.025em!important;
+}
+.app-more-menu-head-copy>span:last-child{
+  max-width:500px;
+  margin-top:4px!important;
+  color:#697386!important;
+  font-size:11px!important;
+  line-height:1.4!important;
+  font-weight:620!important;
+}
+.app-more-menu-close{
+  width:42px!important;
+  height:42px!important;
+  border:1px solid #edd8da!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.92)!important;
+  color:#8e1c24!important;
+  font-size:25px!important;
+  box-shadow:0 6px 18px rgba(76,16,21,.07)!important;
+}
+.app-more-menu-close:hover{background:#fff0f1!important;border-color:#e8aeb2!important}
+.app-more-menu-summary{
+  margin:14px 16px 2px;
+  min-height:32px;
+  padding:7px 11px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid #e7ebf1;
+  border-radius:12px;
+  background:linear-gradient(180deg,#fbfcfe,#f7f9fc);
+  color:#667085;
+  font-size:10px;
+  font-weight:700;
+}
+.app-more-menu-summary-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#1b9a59;
+  box-shadow:0 0 0 4px rgba(27,154,89,.10);
+}
+.app-more-menu-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:11px;
+  padding:14px 16px 18px;
+}
+.app-more-menu-grid>.app-more-menu-item{
+  --tone-bg:#f5f7fa;
+  --tone-border:#e5e9ef;
+  --tone-ink:#475569;
+  position:relative;
+  min-height:84px!important;
+  margin:0!important;
+  padding:13px 43px 13px 13px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+  border:1px solid var(--tone-border)!important;
+  border-radius:17px!important;
+  background:linear-gradient(145deg,#fff 0%,var(--tone-bg) 100%)!important;
+  box-shadow:0 7px 20px rgba(15,23,42,.045)!important;
+  overflow:hidden;
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,filter .16s ease!important;
+}
+.app-more-menu-grid>.app-more-menu-item::before{
+  content:'';
+  position:absolute;
+  left:0;
+  top:14px;
+  bottom:14px;
+  width:4px;
+  border-radius:0 999px 999px 0;
+  background:var(--tone-ink);
+  opacity:.86;
+}
+.app-more-menu-grid>.app-more-menu-item::after{
+  content:'›';
+  position:absolute;
+  right:14px;
+  top:50%;
+  transform:translateY(-52%);
+  color:var(--tone-ink);
+  font-size:25px;
+  line-height:1;
+  font-weight:600;
+  opacity:.7;
+}
+.app-more-menu-grid>.app-more-menu-item:hover{
+  transform:translateY(-2px)!important;
+  filter:saturate(1.04);
+  box-shadow:0 12px 28px rgba(15,23,42,.075)!important;
+}
+.app-more-menu-grid>.app-more-menu-item>.ui-icon{
+  width:44px!important;
+  height:44px!important;
+  flex:0 0 44px!important;
+  padding:11px!important;
+  border:1px solid color-mix(in srgb,var(--tone-ink) 20%,transparent)!important;
+  border-radius:14px!important;
+  background:color-mix(in srgb,var(--tone-bg) 74%,#fff)!important;
+  color:var(--tone-ink)!important;
+  box-shadow:0 5px 14px rgba(15,23,42,.05)!important;
+}
+.app-more-menu-grid>.app-more-menu-item>span{min-width:0!important}
+.app-more-menu-grid>.app-more-menu-item strong{
+  color:#202939!important;
+  font-size:13px!important;
+  line-height:1.25!important;
+  font-weight:880!important;
+  letter-spacing:-.01em!important;
+}
+.app-more-menu-grid>.app-more-menu-item small{
+  margin-top:4px!important;
+  color:#717b8c!important;
+  font-size:10px!important;
+  line-height:1.35!important;
+  font-weight:580!important;
+}
+.app-more-menu-item[data-menu-tone="red"],
+.app-more-menu-item[data-menu-tone="crimson"]{--tone-bg:#fff0f1;--tone-border:#f1c7ca;--tone-ink:#ad1e29}
+.app-more-menu-item[data-menu-tone="green"],
+.app-more-menu-item[data-menu-tone="emerald"]{--tone-bg:#effaf4;--tone-border:#ccebd9;--tone-ink:#16824c}
+.app-more-menu-item[data-menu-tone="amber"]{--tone-bg:#fff8e8;--tone-border:#f0dfad;--tone-ink:#a96a00}
+.app-more-menu-item[data-menu-tone="blue"]{--tone-bg:#eef6ff;--tone-border:#cfe3fb;--tone-ink:#2563a8}
+.app-more-menu-item[data-menu-tone="violet"]{--tone-bg:#f5f0ff;--tone-border:#ded0f8;--tone-ink:#7047b5}
+.app-more-menu-item[data-menu-tone="cyan"]{--tone-bg:#edfafd;--tone-border:#c9eaf0;--tone-ink:#087990}
+.app-more-menu-item[data-menu-tone="slate"]{--tone-bg:#f3f6f8;--tone-border:#dde4ea;--tone-ink:#526173}
+.app-more-menu-item[data-menu-tone="indigo"]{--tone-bg:#f0f1ff;--tone-border:#d5d7fa;--tone-ink:#4f46c9}
+.app-more-menu-item[data-menu-tone="rose"]{--tone-bg:#fff1f5;--tone-border:#f4ccd8;--tone-ink:#b51e4c}
+.app-more-menu-item:disabled{opacity:.55!important;filter:grayscale(.08)}
+
+@media(max-width:900px){
+  .app-more-menu{
+    width:calc(100vw - 20px)!important;
+    max-height:calc(100dvh - 20px)!important;
+    border-radius:24px!important;
+  }
+  .app-more-menu-head{
+    min-height:88px!important;
+    padding:15px 15px!important;
+    grid-template-columns:48px minmax(0,1fr) 39px!important;
+    gap:11px!important;
+  }
+  .app-more-menu-hero-icon{width:48px;height:48px;border-radius:15px}
+  .app-more-menu-head strong{font-size:19px!important}
+  .app-more-menu-head-copy>span:last-child{font-size:10px!important}
+  .app-more-menu-summary{margin:11px 12px 0;font-size:9.5px}
+  .app-more-menu-grid{
+    grid-template-columns:1fr!important;
+    gap:9px!important;
+    padding:11px 12px max(16px,env(safe-area-inset-bottom))!important;
+  }
+  .app-more-menu-grid>.app-more-menu-item{
+    min-height:76px!important;
+    padding:11px 40px 11px 12px!important;
+    border-radius:16px!important;
+  }
+  .app-more-menu-grid>.app-more-menu-item>.ui-icon{
+    width:42px!important;
+    height:42px!important;
+    flex-basis:42px!important;
+  }
+  .app-more-menu-grid>.app-more-menu-item strong{font-size:12.5px!important}
+  .app-more-menu-grid>.app-more-menu-item small{font-size:9.7px!important}
 }
