@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99et';
+      const APP_VERSION = '23.9.99ew';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1732,7 +1732,7 @@
       let premiumFeedbackTimer_ = 0;
       let premiumFeedbackLastText_ = '';
 
-      // V23.9.99et — feedback operacional não bloqueante. Mantém os diálogos
+      // V23.9.99ew — feedback operacional não bloqueante. Mantém os diálogos
       // de confirmação existentes e apenas espelha conclusões/alertas relevantes.
       function classificarFeedbackPremium_(mensagem) {
         const texto = String(mensagem || '').trim();
@@ -2376,6 +2376,7 @@
       const ocupacoesSelecionadasLista = document.getElementById('ocupacoesSelecionadasLista');
       const reviewModal = document.getElementById('reviewModal');
       const reviewList = document.getElementById('reviewList');
+      const reviewIntelligentNotice = document.getElementById('reviewIntelligentNotice');
       const reviewDuplicateNotice = document.getElementById('reviewDuplicateNotice');
       const reviewClosureNotice = document.getElementById('reviewClosureNotice');
       const processClosureNotice = document.getElementById('processClosureNotice');
@@ -2461,7 +2462,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99et';
+      const APP_REVISION_UI_ = '23.9.99ew';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4494,7 +4495,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99et', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ew', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4878,7 +4879,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99et — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99ew — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4909,7 +4910,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99et — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99ew — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -6412,7 +6413,7 @@
       }
 
       function vistaInicialPorDispositivo_() {
-        // V23.9.99et — entrada padrão do aplicativo: Painel em qualquer dispositivo.
+        // V23.9.99ew — entrada padrão do aplicativo: Painel em qualquer dispositivo.
         // Rotas explícitas (ex.: ?view=vistoria), acesso auxiliar e ações de retomada
         // continuam podendo abrir diretamente o fluxo correspondente.
         return 'records';
@@ -6919,7 +6920,7 @@
         return { principal, detalhe };
       }
 
-      // V23.9.99et — identidade visual dos cards do Painel sem alterar a lógica do processo.
+      // V23.9.99ew — identidade visual dos cards do Painel sem alterar a lógica do processo.
       function classesCardPainel_(item) {
         const classes = ['records-card', classeStatus_(item?.sancao || '')];
         const demanda = normalize(item?.demanda || '');
@@ -7585,7 +7586,7 @@
         });
       }
 
-      // V23.9.99et — tarefas secundárias são adiadas para não competir com a renderização principal.
+      // V23.9.99ew — tarefas secundárias são adiadas para não competir com a renderização principal.
       function agendarTarefaOciosa_(tarefa, atrasoMaximo = 700) {
         if (typeof tarefa !== 'function') return;
         if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
@@ -7972,7 +7973,7 @@
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99et — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99ew — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -7988,7 +7989,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99et — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99ew — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9716,7 +9717,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99et — Centro de correção completa da vistoria.
+      // V23.9.99ew — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -10521,7 +10522,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99et — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99ew — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'local';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10707,7 +10708,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99et — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99ew — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -15358,7 +15359,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99et — CEP opcional como preenchimento assistido.
+      // V23.9.99ew — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -16307,7 +16308,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99et — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99ew — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -18325,7 +18326,121 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return valor || '—';
       }
 
-      function mostrarRevisaoAntesEnvio_(payload, duplicidade, encerramentoFiscal) {
+      // V23.9.99ew — conferência inteligente antes de finalizar.
+      // Mantém as regras obrigatórias existentes e acrescenta somente:
+      // 1) bloqueios para inconsistências objetivas; 2) alertas de conferência não impeditivos.
+      function dataHoraComparavelConferencia_(valor) {
+        const texto = String(valor || '').trim();
+        if (!texto) return null;
+        const data = new Date(texto);
+        return Number.isNaN(data.getTime()) ? null : data;
+      }
+
+      function avaliarConferenciaFinalInteligente_() {
+        const bloqueios = [];
+        const alertas = [];
+        const adicionarBloqueio = (mensagem, element = null, scrollTarget = null) => bloqueios.push({ mensagem, element, scrollTarget });
+        const adicionarAlerta = mensagem => {
+          const texto = String(mensagem || '').trim();
+          if (texto && !alertas.includes(texto)) alertas.push(texto);
+        };
+
+        const pet = ehPet_();
+        const eventoDeclaratorio = ehEventoDeclaratorio_();
+        const eventoTemporario = pet || eventoDeclaratorio;
+        const liberacao = ehFluxoLiberacao_();
+        const sancao = normalize(value('sancao'));
+
+        // PET deve permanecer no fluxo interno de Vistoria de Liberação.
+        if (pet && !liberacao) {
+          adicionarBloqueio(
+            'PET — Projeto de Evento Temporário deve ser concluído pelo fluxo de Vistoria de Liberação.',
+            document.getElementById('tipoVistoria'),
+            document.getElementById('tipoVistoriaSecao')
+          );
+        }
+
+        // Datas de evento não podem se inverter.
+        if (eventoTemporario) {
+          const inicio = dataHoraComparavelConferencia_(value('eventoInicio'));
+          const termino = dataHoraComparavelConferencia_(value('eventoTermino'));
+          if (inicio && termino && termino.getTime() < inicio.getTime()) {
+            adicionarBloqueio(
+              'A data/hora de término do evento não pode ser anterior ao início.',
+              document.getElementById('eventoTermino')
+            );
+          }
+        }
+
+        // AVCB do PET: emissão posterior à validade é uma inconsistência objetiva.
+        if (pet) {
+          const emissao = dataHoraComparavelConferencia_(value('petAvcbEmissao'));
+          const validade = dataHoraComparavelConferencia_(value('petAvcbValidade'));
+          if (emissao && validade && validade.getTime() < emissao.getTime()) {
+            adicionarBloqueio(
+              'A validade do AVCB do PET não pode ser anterior à data de emissão.',
+              document.getElementById('petAvcbValidade')
+            );
+          }
+
+          if (sancao === normalize('Liberado')) {
+            if (!String(value('petAvcbNumero') || '').trim()) adicionarAlerta('PET liberado sem Nº do AVCB informado. O campo é opcional, mas vale conferir antes de registrar.');
+            if (!String(value('petAvcbEmissao') || '').trim()) adicionarAlerta('PET liberado sem data de emissão do AVCB. O campo é opcional, mas vale conferir antes de registrar.');
+
+            const terminoEvento = dataHoraComparavelConferencia_(value('eventoTermino'));
+            const validadeAvcb = dataHoraComparavelConferencia_(value('petAvcbValidade'));
+            if (terminoEvento && validadeAvcb && validadeAvcb.getTime() < terminoEvento.getTime()) {
+              adicionarAlerta('A validade informada do AVCB do PET termina antes do término informado para o evento. Confira as datas.');
+            }
+          }
+        }
+
+        // Endereço pode ser concluído com GPS, mas número/bairro ausentes merecem conferência.
+        const endereco = String(value('endereco') || '').trim();
+        const numero = String(value('numero') || '').trim();
+        const bairro = String(value('bairro') || '').trim();
+        const gps = localizacaoValidaFormulario_();
+        if (endereco && !numero) adicionarAlerta('Endereço sem número. Se o local não possuir numeração, informe S/N para deixar o registro explícito.');
+        if (endereco && !bairro) adicionarAlerta('Endereço sem bairro informado. Confira se o dado está disponível.');
+        if (!endereco && gps) adicionarAlerta('A vistoria está identificada por localização GPS, mas o logradouro não foi informado. Confira se deseja manter o registro dessa forma.');
+
+        // Contato do responsável continua opcional; apenas sinaliza ausência total de contato.
+        if (!eventoDeclaratorio && String(value('nomeResponsavel') || '').trim()) {
+          const telefone = String(value('telefone') || '').trim();
+          const email = String(value('email') || '').trim();
+          if (!telefone && !email) adicionarAlerta('Responsável sem telefone e sem e-mail. Esses campos são opcionais, mas podem facilitar contato posterior.');
+        }
+
+        // Combinações permitidas, mas que merecem uma última conferência operacional.
+        if (liberacao && sancao === normalize('Liberado') && normalize(value('pendenciaDocumental')) === normalize('sim')) {
+          adicionarAlerta('Resultado Liberado com pendência documental marcada como Sim. Confira se essa combinação é intencional.');
+        }
+
+        if (liberacao && normalize(value('tipoLiberacao')) === normalize('parcial')) {
+          const areaTotal = numeroAreaM2_(value('area'));
+          const areaParcial = numeroAreaM2_(value('liberacaoParcialArea'));
+          if (Number.isFinite(areaTotal) && areaTotal > 0 && Number.isFinite(areaParcial) && areaParcial > areaTotal) {
+            adicionarAlerta('A área informada como liberada parcialmente é maior que a área total cadastrada. Confira os valores.');
+          }
+        }
+
+        return { bloqueios, alertas };
+      }
+
+      function aplicarBloqueioConferenciaFinal_(conferencia) {
+        const bloqueios = Array.isArray(conferencia?.bloqueios) ? conferencia.bloqueios : [];
+        if (!bloqueios.length) return true;
+        const primeiro = bloqueios[0];
+        return mostrarPendenciaValidacaoGuiada_(
+          primeiro.element || null,
+          primeiro.mensagem || 'Há uma inconsistência que precisa ser corrigida antes de finalizar.',
+          bloqueios.length,
+          true,
+          primeiro.scrollTarget || null
+        );
+      }
+
+      function mostrarRevisaoAntesEnvio_(payload, duplicidade, encerramentoFiscal, conferenciaFinal = null) {
         const identificador = digits(payload?.cnpj);
         const idFormatado = identificador.length === 14
           ? formatarCnpjTela_(identificador)
@@ -18497,10 +18612,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? `Atenção: já existe vistoria recente deste CNPJ/CPF no mesmo endereço. Registro mais recente: ${duplicados[0].carimbo || 'data não informada'} — ${duplicados[0].estabelecimento || 'estabelecimento'}${duplicados[0].sancao ? ` — ${duplicados[0].sancao}` : ''}. Se esta é uma nova vistoria, você pode continuar.`
           : '';
 
+        const alertasConferencia = Array.isArray(conferenciaFinal?.alertas) ? conferenciaFinal.alertas : [];
+        const textoAlertasConferencia = alertasConferencia.length
+          ? `CONFERÊNCIA INTELIGENTE — ${alertasConferencia.length} alerta${alertasConferencia.length === 1 ? '' : 's'}:\n${alertasConferencia.map((item, indice) => `${indice + 1}. ${item}`).join('\n')}\n\n`
+          : '';
+
         if (!reviewModal || !reviewList || !reviewConfirmBtn || !reviewCancelBtn) {
           const texto = itens.map(([r, v]) => `${r}: ${v}`).join('\n');
           return confirmarGpv_(
-            `${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}`,
+            `${textoAlertasConferencia}${avisoDuplicidade ? avisoDuplicidade + '\n\n' : ''}${texto}`,
             usuarioPodeOperar_() ? 'Confirmar registro' : 'Concluir treinamento',
             { rotuloConfirmar: usuarioPodeOperar_() ? 'Confirmar e registrar' : 'Concluir' }
           ).then(confirmado => ({ confirmado, encerrarProcesso: false, chaveProcesso: '' }));
@@ -18552,6 +18672,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           </div>
           ${secoesHtml}
         `;
+        if (reviewIntelligentNotice) {
+          if (alertasConferencia.length) {
+            reviewIntelligentNotice.innerHTML = `<div class="review-intelligent-head"><span aria-hidden="true">⚠</span><div><strong>Conferência inteligente</strong><small>${alertasConferencia.length} ponto${alertasConferencia.length === 1 ? '' : 's'} para conferir antes de registrar. São alertas não impeditivos.</small></div></div><ul>${alertasConferencia.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+            reviewIntelligentNotice.hidden = false;
+          } else {
+            reviewIntelligentNotice.hidden = true;
+            reviewIntelligentNotice.innerHTML = '';
+          }
+        }
         if (reviewDuplicateNotice) {
           reviewDuplicateNotice.hidden = !avisoDuplicidade;
           reviewDuplicateNotice.textContent = avisoDuplicidade;
@@ -18654,6 +18783,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         if (!validarNotificacoesParaNotificado_(true)) return;
 
+        const conferenciaFinal = avaliarConferenciaFinalInteligente_();
+        if (!aplicarBloqueioConferenciaFinal_(conferenciaFinal)) return;
+
         const liberadoComRascunho = ehFluxoLiberacao_() &&
           normalize(value('sancao')) === normalize('Liberado') &&
           notificacoesPossuemConteudo_();
@@ -18693,7 +18825,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           consultarDuplicidadeAntesEnvio_(payload),
           consultarEncerramentoFiscal_(payload)
         ]);
-        const revisao = await mostrarRevisaoAntesEnvio_(payload, duplicidade, encerramentoFiscal);
+        const revisao = await mostrarRevisaoAntesEnvio_(payload, duplicidade, encerramentoFiscal, conferenciaFinal);
         if (!revisao?.confirmado) {
           appStatus.textContent = 'Revise os campos e confirme novamente quando estiver pronto.';
           return;
@@ -23629,7 +23761,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99et', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ew', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
