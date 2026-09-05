@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99eq — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99er — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99eq — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99er — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99eq — Painel inicial premium
+   V23.9.99er — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99eq — Página Vistoria Premium
+   V23.9.99er — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17530,7 +17530,7 @@ body:not(.records-mode) .home-operational-connection{
 }
 
 /* =============================================================================
-   V23.9.99eq — Topo Premium do Painel
+   V23.9.99er — Topo Premium do Painel
    Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
    e navegação principal. Sem alteração de lógica operacional.
    ============================================================================= */
@@ -17779,7 +17779,7 @@ body.records-mode .app-view-btn.active::after{
 
 
 /* =============================================================================
-   V23.9.99eq — Central "Mais" Premium
+   V23.9.99er — Central "Mais" Premium
    Mantém funções/permissões existentes e moderniza apenas apresentação.
    ============================================================================= */
 .app-more-menu{
@@ -18006,7 +18006,7 @@ body.records-mode .app-view-btn.active::after{
 }
 
 /* =============================================================================
-   V23.9.99eq — Filtros e Busca Premium do Painel
+   V23.9.99er — Filtros e Busca Premium do Painel
    Busca em destaque, filtros recolhíveis no mobile, chips ativos e estados vazios.
    ============================================================================= */
 body.records-mode .dashboard-filters{
@@ -18457,7 +18457,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99eq — Status e Feedback Operacional Premium
+   V23.9.99er — Status e Feedback Operacional Premium
    ============================================================================= */
 .premium-feedback-stack{
   position:fixed;
@@ -18634,7 +18634,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99eq — revisão final mobile + destaque claro do card/aba ativa
+   V23.9.99er — revisão final mobile + destaque claro do card/aba ativa
    ============================================================================= */
 :root{
   --active-ring: 0 0 0 3px rgba(185,28,28,.14), 0 12px 28px rgba(15,23,42,.12);
@@ -18726,7 +18726,7 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
 
 
 /* =============================================================================
-   V23.9.99eq — Performance e carregamento
+   V23.9.99er — Performance e carregamento
    Renderização progressiva de conteúdo fora da área visível.
    ============================================================================= */
 @supports (content-visibility:auto){
@@ -18761,5 +18761,233 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
   .app-more-menu-item{
     transition:none!important;
     animation:none!important;
+  }
+}
+
+
+/* =============================================================================
+   V23.9.99er — Ergonomia e Acessibilidade
+   Melhora toque, foco, contraste, leitura e segurança de uso sem alterar lógica.
+   ============================================================================= */
+
+/* Foco de teclado visível e consistente */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible{
+  outline:3px solid rgba(37,99,235,.34)!important;
+  outline-offset:3px!important;
+  box-shadow:0 0 0 5px rgba(37,99,235,.10)!important;
+}
+
+/* Não deixa foco escondido atrás de cabeçalhos fixos */
+input,
+select,
+textarea,
+button,
+a,
+[tabindex]{
+  scroll-margin-top:96px;
+}
+
+/* Melhora contraste dos textos secundários mais claros */
+.hint,
+.field .hint,
+.record-detail-field label,
+.record-detail-section-hint,
+.app-more-menu-item small,
+.inspection-flow-copy small,
+.dashboard-filter-label,
+.records-card small,
+.records-status,
+.sync-summary{
+  color:#5f6b7b!important;
+}
+
+/* Estado desabilitado mais evidente */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+[aria-disabled="true"]{
+  opacity:.62!important;
+  cursor:not-allowed!important;
+  filter:grayscale(.15)!important;
+}
+
+/* Campos obrigatórios mais fáceis de identificar */
+label.required::after,
+.required > label::after{
+  content:" *";
+  color:#b42318;
+  font-weight:900;
+}
+label.required::after{
+  display:inline;
+}
+
+/* Evita cortes em textos operacionais longos */
+.records-card,
+.record-detail-field,
+.record-detail-copy-value,
+.app-more-menu-item,
+.inspection-flow-copy,
+.dashboard-filter-control,
+.record-detail-section-btn,
+.btn,
+button{
+  overflow-wrap:anywhere;
+  word-break:normal;
+  min-width:0;
+}
+
+/* Área de toque confortável em dispositivos touch */
+@media (pointer:coarse){
+  button,
+  .btn,
+  a.dashboard-header-action,
+  .app-view-btn,
+  .record-detail-section-btn,
+  .prepared-filter,
+  .location-map-layer-btn,
+  .goals-modal-tab,
+  .record-copy-value-btn,
+  .app-more-menu-item{
+    min-height:44px!important;
+  }
+
+  .record-copy-value-btn,
+  .app-more-menu-close,
+  .record-detail-close,
+  .dashboard-sync-indicator,
+  .app-alerts-btn,
+  .inspection-start-choice-close{
+    min-width:44px!important;
+    width:44px;
+    min-height:44px!important;
+    height:44px;
+  }
+
+  .app-view-btn,
+  .record-detail-section-btn,
+  .inspection-flow-card,
+  .app-more-menu-item{
+    -webkit-tap-highlight-color:rgba(125,21,27,.08);
+  }
+}
+
+/* Mobile: evita zoom automático no iOS e melhora leitura */
+@media(max-width:899px){
+  input,
+  select,
+  textarea{
+    font-size:16px!important;
+    line-height:1.35!important;
+  }
+
+  label,
+  .field label{
+    font-size:max(12px, .76rem)!important;
+    line-height:1.3!important;
+  }
+
+  .btn,
+  button{
+    line-height:1.25;
+  }
+
+  .record-detail-section-btn{
+    padding:7px 5px!important;
+  }
+
+  .record-detail-section-btn span:last-child{
+    line-height:1.15!important;
+  }
+
+  .records-card{
+    max-width:100%!important;
+  }
+
+  .record-detail-content,
+  .records-list,
+  .inspection-flow-section,
+  .app-more-menu{
+    overflow-x:hidden!important;
+  }
+}
+
+/* Ações destrutivas ganham presença visual inequívoca quando já existentes */
+.btn-danger,
+.danger,
+button[data-danger],
+button[data-destructive]{
+  border-color:#b42318!important;
+  color:#fff!important;
+  background:linear-gradient(180deg,#c83228,#a61b15)!important;
+}
+.btn-danger:focus-visible,
+.danger:focus-visible,
+button[data-danger]:focus-visible,
+button[data-destructive]:focus-visible{
+  outline-color:rgba(180,35,24,.42)!important;
+}
+
+/* Mensagens e feedbacks com melhor leitura */
+[role="alert"],
+[role="status"],
+.avisar-gpv,
+.toast,
+.app-toast,
+.operational-feedback{
+  line-height:1.45!important;
+}
+
+/* Contraste adicional para estados principais */
+.status-badge.status-liberado,
+.status-badge.status-regularizado,
+.status-liberado .status-badge,
+.status-regularizado .status-badge{
+  border:1px solid #80c69b!important;
+}
+.status-badge.status-autuado,
+.status-autuado .status-badge{
+  border:1px solid #e39690!important;
+}
+.status-badge.status-advertencia,
+.status-advertencia .status-badge{
+  border:1px solid #ddb862!important;
+}
+.status-badge.status-notificado,
+.status-notificado .status-badge{
+  border:1px solid #e3a06c!important;
+}
+
+/* Melhora leitura com preferências de alto contraste do sistema */
+@media (prefers-contrast: more){
+  .records-card,
+  .record-detail-group,
+  .record-detail-field,
+  .inspection-flow-card,
+  .app-more-menu-item,
+  .app-view-btn,
+  .record-detail-section-btn{
+    border-width:2px!important;
+  }
+  .hint,
+  .field .hint,
+  small{
+    color:#364152!important;
+  }
+}
+
+/* Respeita redução de movimento também nos novos estados premium */
+@media (prefers-reduced-motion: reduce){
+  *,
+  *::before,
+  *::after{
+    scroll-behavior:auto!important;
   }
 }
