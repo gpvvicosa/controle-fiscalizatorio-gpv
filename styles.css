@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99en — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99eo — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99en — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99eo — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99en — Painel inicial premium
+   V23.9.99eo — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99en — Página Vistoria Premium
+   V23.9.99eo — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17530,7 +17530,7 @@ body:not(.records-mode) .home-operational-connection{
 }
 
 /* =============================================================================
-   V23.9.99en — Topo Premium do Painel
+   V23.9.99eo — Topo Premium do Painel
    Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
    e navegação principal. Sem alteração de lógica operacional.
    ============================================================================= */
@@ -17779,7 +17779,7 @@ body.records-mode .app-view-btn.active::after{
 
 
 /* =============================================================================
-   V23.9.99en — Central "Mais" Premium
+   V23.9.99eo — Central "Mais" Premium
    Mantém funções/permissões existentes e moderniza apenas apresentação.
    ============================================================================= */
 .app-more-menu{
@@ -18006,7 +18006,7 @@ body.records-mode .app-view-btn.active::after{
 }
 
 /* =============================================================================
-   V23.9.99en — Filtros e Busca Premium do Painel
+   V23.9.99eo — Filtros e Busca Premium do Painel
    Busca em destaque, filtros recolhíveis no mobile, chips ativos e estados vazios.
    ============================================================================= */
 body.records-mode .dashboard-filters{
@@ -18453,4 +18453,181 @@ body.records-mode .records-empty--premium>.btn{
   body.records-mode .dashboard-filter-grid{
     grid-template-columns:1fr!important;
   }
+}
+
+
+/* =============================================================================
+   V23.9.99eo — Status e Feedback Operacional Premium
+   ============================================================================= */
+.premium-feedback-stack{
+  position:fixed;
+  top:calc(env(safe-area-inset-top,0px) + 14px);
+  left:50%;
+  z-index:12050;
+  width:min(520px,calc(100vw - 24px));
+  transform:translateX(-50%);
+  pointer-events:none;
+}
+.premium-feedback-toast{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:54px;
+  padding:9px 10px 9px 11px;
+  border:1px solid #dfe5ec;
+  border-radius:17px;
+  background:rgba(255,255,255,.97);
+  color:#253044;
+  box-shadow:0 18px 50px rgba(15,23,42,.19),0 3px 10px rgba(15,23,42,.08);
+  opacity:0;
+  transform:translateY(-12px) scale(.98);
+  transition:opacity .18s ease,transform .18s ease;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  pointer-events:auto;
+}
+.premium-feedback-toast.is-visible{opacity:1;transform:translateY(0) scale(1)}
+.premium-feedback-toast.is-leaving{opacity:0;transform:translateY(-8px) scale(.985)}
+.premium-feedback-icon{
+  width:32px;
+  height:32px;
+  flex:0 0 32px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  font-size:16px;
+  font-weight:950;
+}
+.premium-feedback-copy{
+  min-width:0;
+  flex:1 1 auto;
+  font-size:11.5px;
+  line-height:1.4;
+  font-weight:780;
+}
+.premium-feedback-close{
+  width:31px;
+  height:31px;
+  flex:0 0 31px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:10px;
+  background:rgba(15,23,42,.045);
+  color:#667085;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+}
+.premium-feedback-toast.is-success{border-color:#bfe3cc;background:linear-gradient(135deg,rgba(246,255,249,.98),rgba(236,250,241,.98))}
+.premium-feedback-toast.is-success .premium-feedback-icon{background:#d9f3e2;color:#176b3a}
+.premium-feedback-toast.is-warning{border-color:#efd39a;background:linear-gradient(135deg,rgba(255,251,239,.98),rgba(255,245,219,.98))}
+.premium-feedback-toast.is-warning .premium-feedback-icon{background:#ffe8af;color:#8f5f00}
+.premium-feedback-toast.is-error{border-color:#efc0bd;background:linear-gradient(135deg,rgba(255,248,248,.98),rgba(254,236,235,.98))}
+.premium-feedback-toast.is-error .premium-feedback-icon{background:#f9d8d5;color:#b42318}
+
+/* Indicador permanente de sincronização mais legível e coerente em todas as telas. */
+.sync-summary{
+  position:relative;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-height:27px!important;
+  padding:4px 9px!important;
+  border:1px solid #dce4ed!important;
+  border-radius:999px!important;
+  background:#f8fafc!important;
+  color:#526071!important;
+  font-size:8.5px!important;
+  line-height:1.2!important;
+  font-weight:850!important;
+  box-shadow:0 4px 10px rgba(15,23,42,.035)!important;
+}
+.sync-summary::before{
+  content:'';
+  width:8px;
+  height:8px;
+  flex:0 0 8px;
+  border-radius:50%;
+  background:#94a3b8;
+  box-shadow:0 0 0 3px rgba(148,163,184,.13);
+}
+.sync-summary.is-ok{border-color:#c8e6d2!important;background:#f2fbf5!important;color:#176b3a!important}
+.sync-summary.is-ok::before{background:#29a85b;box-shadow:0 0 0 3px rgba(41,168,91,.15)}
+.sync-summary.is-pending{border-color:#efd9a7!important;background:#fffaf0!important;color:#8a5d09!important}
+.sync-summary.is-pending::before{background:#e4a11b;box-shadow:0 0 0 3px rgba(228,161,27,.16)}
+.sync-summary.is-offline{border-color:#edc2c0!important;background:#fff6f5!important;color:#a13a33!important}
+.sync-summary.is-offline::before{background:#cf4e43;box-shadow:0 0 0 3px rgba(207,78,67,.14)}
+
+.dashboard-sync-indicator{
+  transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease!important;
+}
+.dashboard-sync-indicator.is-ok{background:#e8f7ed!important;border-color:#bfe1ca!important;color:#176b3a!important;box-shadow:0 5px 13px rgba(23,107,58,.10)!important}
+.dashboard-sync-indicator.is-pending{background:#fff5dc!important;border-color:#eccb81!important;color:#9a6700!important;box-shadow:0 5px 13px rgba(154,103,0,.10)!important}
+.dashboard-sync-indicator.is-offline{background:#fff0ef!important;border-color:#e9bbb7!important;color:#b42318!important;box-shadow:0 5px 13px rgba(180,35,24,.09)!important}
+
+/* Linguagem de status coerente: mais saturada, mantendo caráter institucional. */
+.status-badge.status-liberado,
+.status-badge.status-regularizado,
+.status-liberado>.status-badge,
+.status-regularizado>.status-badge{
+  background:linear-gradient(135deg,#d9f4e2,#bfe9cd)!important;
+  border-color:#89cda2!important;
+  color:#126637!important;
+}
+.status-badge.status-autuado,
+.status-autuado>.status-badge{
+  background:linear-gradient(135deg,#ffe1df,#f8beba)!important;
+  border-color:#e38f89!important;
+  color:#a51f17!important;
+}
+.status-badge.status-advertencia,
+.status-advertencia>.status-badge{
+  background:linear-gradient(135deg,#fff0be,#ffd977)!important;
+  border-color:#e6b940!important;
+  color:#855900!important;
+}
+.status-badge.status-notificado,
+.status-notificado>.status-badge{
+  background:linear-gradient(135deg,#ffe5c8,#ffc486)!important;
+  border-color:#e99a49!important;
+  color:#994809!important;
+}
+
+/* Estados vazios recebem acabamento consistente e deixam claro que não houve falha. */
+.local-drafts-empty,
+.sync-center-empty,
+.app-alerts-empty,
+.duvidas-empty,
+.mobile-choice-empty{
+  border:1px dashed #cad6e3!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,#fbfdff,#f5f9fc)!important;
+  color:#667085!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.72)!important;
+}
+.local-drafts-empty,
+.sync-center-empty{
+  padding:20px 16px!important;
+  text-align:center!important;
+}
+.local-drafts-empty strong,
+.sync-center-empty strong{
+  color:#263449!important;
+  font-weight:900!important;
+}
+
+@media(max-width:760px){
+  .premium-feedback-stack{
+    top:calc(env(safe-area-inset-top,0px) + 9px);
+    width:calc(100vw - 18px);
+  }
+  .premium-feedback-toast{
+    min-height:51px;
+    padding:8px 8px 8px 9px;
+    border-radius:15px;
+  }
+  .premium-feedback-copy{font-size:10.5px}
+  .sync-summary{max-width:100%!important;font-size:8px!important}
 }
