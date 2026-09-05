@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99em';
+      const APP_VERSION = '23.9.99en';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1855,6 +1855,12 @@
       const recordsInspectorFilter = document.getElementById('recordsInspectorFilter');
       const recordsPeriodFilter = document.getElementById('recordsPeriodFilter');
       const recordsClearFiltersBtn = document.getElementById('recordsClearFiltersBtn');
+      const recordsFiltersPanel = document.getElementById('recordsFiltersPanel');
+      const recordsFiltersBody = document.getElementById('recordsFiltersBody');
+      const recordsFiltersToggleBtn = document.getElementById('recordsFiltersToggleBtn');
+      const recordsActiveFilters = document.getElementById('recordsActiveFilters');
+      const recordsFiltersActiveCount = document.getElementById('recordsFiltersActiveCount');
+      const recordsFilterResultCount = document.getElementById('recordsFilterResultCount');
       const recordsRefreshBtn = document.getElementById('recordsRefreshBtn');
       const recordsStatus = document.getElementById('recordsStatus');
       const recordsList = document.getElementById('recordsList');
@@ -2399,7 +2405,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99em';
+      const APP_REVISION_UI_ = '23.9.99en';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4432,7 +4438,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99em', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99en', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4816,7 +4822,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99em — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99en — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4847,7 +4853,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99em — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99en — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -6350,7 +6356,7 @@
       }
 
       function vistaInicialPorDispositivo_() {
-        // V23.9.99em — entrada padrão do aplicativo: Painel em qualquer dispositivo.
+        // V23.9.99en — entrada padrão do aplicativo: Painel em qualquer dispositivo.
         // Rotas explícitas (ex.: ?view=vistoria), acesso auxiliar e ações de retomada
         // continuam podendo abrir diretamente o fluxo correspondente.
         return 'records';
@@ -6594,6 +6600,102 @@
         };
       }
 
+      function rotuloFiltroPainel_(chave, valor) {
+        const textos = {
+          busca: 'Busca', cidade: 'Cidade', demanda: 'Demanda', sancao: 'Situação',
+          tipo: 'Tipo', vistoriador: 'Vistoriador', periodo: 'Período', prazoMulta: 'Prazo'
+        };
+        let exibicao = String(valor || '').trim();
+        if (chave === 'periodo') {
+          if (exibicao === '30d') exibicao = 'Últimos 30 dias';
+          else if (exibicao === '90d') exibicao = 'Últimos 90 dias';
+          else if (exibicao === '365d') exibicao = 'Últimos 12 meses';
+          else if (exibicao.startsWith('ano:')) exibicao = `Ano ${exibicao.slice(4)}`;
+        }
+        if (chave === 'prazoMulta') {
+          exibicao = exibicao === 'primeira' ? 'Sujeitas à 1ª multa' : (exibicao === 'segunda' ? 'Sujeitas à 2ª multa' : exibicao);
+        }
+        return { titulo: textos[chave] || chave, exibicao };
+      }
+
+      function atualizarPainelFiltrosPremium_() {
+        const filtros = filtrosConsultaAtuais_();
+        const ativos = Object.entries(filtros).filter(([, valor]) => Boolean(String(valor || '').trim()));
+        if (recordsFilterResultCount) {
+          const total = Number(recordsState.total || 0);
+          recordsFilterResultCount.textContent = `${total} registro${total === 1 ? '' : 's'}`;
+        }
+        if (recordsFiltersActiveCount) {
+          recordsFiltersActiveCount.hidden = !ativos.length;
+          recordsFiltersActiveCount.textContent = String(ativos.length);
+        }
+        if (recordsClearFiltersBtn) recordsClearFiltersBtn.hidden = !ativos.length;
+        recordsFiltersPanel?.classList.toggle('has-active-filters', ativos.length > 0);
+        if (recordsActiveFilters) {
+          recordsActiveFilters.hidden = !ativos.length;
+          recordsActiveFilters.innerHTML = ativos.map(([chave, valor]) => {
+            const rotulo = rotuloFiltroPainel_(chave, valor);
+            return `<button type="button" class="dashboard-filter-chip" data-remove-record-filter="${escapeAttr(chave)}" title="Remover filtro ${escapeAttr(rotulo.titulo)}"><span>${escapeHtml(rotulo.titulo)}</span><strong>${escapeHtml(rotulo.exibicao)}</strong><b aria-hidden="true">×</b></button>`;
+          }).join('');
+        }
+      }
+
+      function definirFiltrosPainelRecolhidos_(recolhido, persistir = true) {
+        const ocultar = Boolean(recolhido);
+        recordsFiltersPanel?.classList.toggle('is-collapsed', ocultar);
+        if (recordsFiltersBody) recordsFiltersBody.hidden = ocultar;
+        if (recordsFiltersToggleBtn) {
+          recordsFiltersToggleBtn.setAttribute('aria-expanded', ocultar ? 'false' : 'true');
+          const span = recordsFiltersToggleBtn.querySelector('span');
+          if (span) span.textContent = ocultar ? 'Mostrar filtros' : 'Filtros';
+        }
+        if (persistir) {
+          try { localStorage.setItem('gpvPainelFiltrosRecolhidos', ocultar ? '1' : '0'); } catch (_) {}
+        }
+      }
+
+      function iniciarFiltrosPainelPremium_() {
+        let salvo = '';
+        try { salvo = localStorage.getItem('gpvPainelFiltrosRecolhidos') || ''; } catch (_) {}
+        const mobile = typeof matchMedia === 'function' && matchMedia('(max-width: 760px)').matches;
+        definirFiltrosPainelRecolhidos_(salvo ? salvo === '1' : mobile, false);
+        atualizarPainelFiltrosPremium_();
+      }
+
+      function removerFiltroPainel_(chave) {
+        const mapa = {
+          busca: recordsSearch,
+          cidade: recordsCityFilter,
+          demanda: recordsDemandFilter,
+          sancao: recordsSanctionFilter,
+          tipo: recordsTypeFilter,
+          vistoriador: recordsInspectorFilter,
+          periodo: recordsPeriodFilter
+        };
+        if (chave === 'prazoMulta') {
+          recordsState.prazoMulta = '';
+          atualizarEstadoCardsMulta_();
+        } else if (mapa[chave]) {
+          mapa[chave].value = '';
+        }
+        atualizarPainelFiltrosPremium_();
+        carregarRegistros_(true, { forcar: true, motivo: 'remoção de filtro' });
+      }
+
+      function destacarBuscaPainelHtml_(valor) {
+        const texto = String(valor == null ? '' : valor);
+        const busca = String(recordsSearch?.value || '').trim();
+        if (!texto || !busca || busca.length < 2) return escapeHtml(texto);
+        const base = texto.toLocaleLowerCase('pt-BR');
+        const alvo = busca.toLocaleLowerCase('pt-BR');
+        const indice = base.indexOf(alvo);
+        if (indice < 0) return escapeHtml(texto);
+        const antes = texto.slice(0, indice);
+        const termo = texto.slice(indice, indice + busca.length);
+        const depois = texto.slice(indice + busca.length);
+        return `${escapeHtml(antes)}<mark class="records-search-highlight">${escapeHtml(termo)}</mark>${escapeHtml(depois)}`;
+      }
+
       function atualizarEstadoCardsMulta_() {
         const ativo1 = recordsState.prazoMulta === 'primeira';
         const ativo2 = recordsState.prazoMulta === 'segunda';
@@ -6611,6 +6713,7 @@
         if (recordsTypeFilter) recordsTypeFilter.value = '';
         if (recordsInspectorFilter) recordsInspectorFilter.value = '';
         if (recordsPeriodFilter) recordsPeriodFilter.value = '';
+        atualizarPainelFiltrosPremium_();
       }
 
       function filtrarPorPrazoMulta_(tipo) {
@@ -6760,7 +6863,7 @@
         return { principal, detalhe };
       }
 
-      // V23.9.99em — identidade visual dos cards do Painel sem alterar a lógica do processo.
+      // V23.9.99en — identidade visual dos cards do Painel sem alterar a lógica do processo.
       function classesCardPainel_(item) {
         const classes = ['records-card', classeStatus_(item?.sancao || '')];
         const demanda = normalize(item?.demanda || '');
@@ -6782,8 +6885,10 @@
       function renderizarRegistros_() {
         const itens = recordsState.itens || [];
         if (!itens.length) {
-          recordsList.innerHTML = '<div class="records-empty">Nenhum registro encontrado com os filtros informados.</div>';
+          const possuiFiltros = Object.values(filtrosConsultaAtuais_()).some(Boolean);
+          recordsList.innerHTML = `<div class="records-empty records-empty--premium"><span class="records-empty-icon" aria-hidden="true">⌕</span><strong>${possuiFiltros ? 'Nenhum processo encontrado' : 'Nenhum registro disponível'}</strong><p>${possuiFiltros ? 'Tente remover um filtro ou usar outro termo de busca.' : 'Quando houver registros disponíveis, eles aparecerão aqui.'}</p>${possuiFiltros ? '<button type="button" class="btn btn-secondary" data-clear-record-filters>Limpar filtros</button>' : ''}</div>`;
           recordsTableBody.innerHTML = '<tr><td colspan="11" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
+          atualizarPainelFiltrosPremium_();
           return;
         }
 
@@ -6794,14 +6899,14 @@
           const proximaAcao = proximaAcaoPainel_(item);
           return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
-            <td><strong>${escapeHtml(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? `<small>${escapeHtml(padronizarTextoCadastroCliente_(item.razaoSocial))}</small>` : ''}</td>
-            <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${escapeHtml(formatarEnderecoPainel_(item))}</td>
-            <td>${escapeHtml(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</td>
-            <td class="records-mono">${escapeHtml(identificadorPainel_(item).valor)}</td>
+            <td><strong>${destacarBuscaPainelHtml_(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? `<small>${destacarBuscaPainelHtml_(padronizarTextoCadastroCliente_(item.razaoSocial))}</small>` : ''}</td>
+            <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${destacarBuscaPainelHtml_(formatarEnderecoPainel_(item))}</td>
+            <td>${destacarBuscaPainelHtml_(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</td>
+            <td class="records-mono">${destacarBuscaPainelHtml_(identificadorPainel_(item).valor)}</td>
             <td>${escapeHtml(item.demanda || '—')}</td>
             <td>${statusBadgeHtml_(item.sancao)}</td>
             <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
-            <td class="records-mono">${escapeHtml(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
+            <td class="records-mono">${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
             <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5"/></svg>
@@ -6818,16 +6923,16 @@
           const classesCard = classesCardPainel_(item);
           return `<button class="${escapeAttr(classesCard)}" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
             <div class="records-card-accent" aria-hidden="true"></div>
-            <div class="records-card-top"><div class="records-card-title">${escapeHtml(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
-            ${razao ? `<div class="records-card-subtitle">${escapeHtml(razao)}</div>` : ''}
+            <div class="records-card-top"><div class="records-card-title">${destacarBuscaPainelHtml_(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
+            ${razao ? `<div class="records-card-subtitle">${destacarBuscaPainelHtml_(razao)}</div>` : ''}
             <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span class="records-card-demand-chip">${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
             <div class="records-card-meta">
-              <div class="records-meta-item records-meta-item--city"><span>Cidade</span><strong>${escapeHtml(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
-              <div class="records-meta-item records-meta-item--doc"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${escapeHtml(identificadorPainel_(item).valor)}</strong></div>
-              <div class="records-meta-item records-meta-item--pscip"><span>Nº PSCIP</span><strong>${escapeHtml(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</strong></div>
+              <div class="records-meta-item records-meta-item--city"><span>Cidade</span><strong>${destacarBuscaPainelHtml_(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
+              <div class="records-meta-item records-meta-item--doc"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${destacarBuscaPainelHtml_(identificadorPainel_(item).valor)}</strong></div>
+              <div class="records-meta-item records-meta-item--pscip"><span>Nº PSCIP</span><strong>${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</strong></div>
               <div class="records-meta-item records-meta-item--pf"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
             </div>
-            ${endereco && endereco !== '—' ? `<div class="records-card-address"><span class="records-card-address-icon" aria-hidden="true">⌖</span><span>${escapeHtml(endereco)}</span></div>` : ''}
+            ${endereco && endereco !== '—' ? `<div class="records-card-address"><span class="records-card-address-icon" aria-hidden="true">⌖</span><span>${destacarBuscaPainelHtml_(endereco)}</span></div>` : ''}
             <div class="records-card-action"><span>Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
             <div class="records-card-cta"><span>Ver ficha completa</span><span class="records-card-cta-icon" aria-hidden="true">→</span></div>
           </button>`;
@@ -7480,6 +7585,7 @@
         if (!chaveAindaVisivel) recordsState.chaveSelecionada = '';
         renderizarRegistros_();
         atualizarPaginacao_();
+        atualizarPainelFiltrosPremium_();
 
         const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(Boolean);
         const rotuloMulta = recordsState.prazoMulta === 'primeira'
@@ -7774,7 +7880,7 @@
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99em — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99en — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -7790,7 +7896,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99em — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99en — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9518,7 +9624,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99em — Centro de correção completa da vistoria.
+      // V23.9.99en — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -10311,7 +10417,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99em — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99en — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'local';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10496,7 +10602,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99em — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99en — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -15010,7 +15116,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99em — CEP opcional como preenchimento assistido.
+      // V23.9.99en — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -15959,7 +16065,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99em — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99en — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -22671,11 +22777,30 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false, { forcar: true, motivo: 'atualização manual' }));
+      iniciarFiltrosPainelPremium_();
       recordsClearFiltersBtn?.addEventListener('click', () => {
         limparFiltrosVisiveisPainel_();
         recordsState.prazoMulta = '';
         atualizarEstadoCardsMulta_();
         carregarRegistros_(true, { forcar: true, motivo: 'limpeza de filtros' });
+      });
+      recordsFiltersToggleBtn?.addEventListener('click', () => {
+        definirFiltrosPainelRecolhidos_(!recordsFiltersPanel?.classList.contains('is-collapsed'));
+      });
+      recordsActiveFilters?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-remove-record-filter]');
+        if (!botao) return;
+        removerFiltroPainel_(String(botao.dataset.removeRecordFilter || ''));
+      });
+      recordsList?.addEventListener('click', event => {
+        const limpar = event.target.closest('[data-clear-record-filters]');
+        if (!limpar) return;
+        event.preventDefault();
+        event.stopPropagation();
+        limparFiltrosVisiveisPainel_();
+        recordsState.prazoMulta = '';
+        atualizarEstadoCardsMulta_();
+        carregarRegistros_(true, { forcar: true, motivo: 'limpeza de filtros pelo estado vazio' });
       });
       kpiMulta1Card?.addEventListener('click', () => filtrarPorPrazoMulta_('primeira'));
       kpiMulta2Card?.addEventListener('click', () => filtrarPorPrazoMulta_('segunda'));
@@ -22683,12 +22808,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         clearTimeout(recordsSearchTimer);
         recordsState.prazoMulta = '';
         atualizarEstadoCardsMulta_();
+        atualizarPainelFiltrosPremium_();
         recordsSearchTimer = setTimeout(() => carregarRegistros_(true, { forcar: true, motivo: 'nova busca' }), 300);
       });
       [recordsCityFilter, recordsDemandFilter, recordsSanctionFilter, recordsTypeFilter, recordsInspectorFilter, recordsPeriodFilter].forEach(select => {
         select?.addEventListener('change', () => {
           recordsState.prazoMulta = '';
           atualizarEstadoCardsMulta_();
+          atualizarPainelFiltrosPremium_();
           carregarRegistros_(true, { forcar: true, motivo: 'alteração de filtro' });
         });
       });
@@ -23246,7 +23373,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99em', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99en', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
