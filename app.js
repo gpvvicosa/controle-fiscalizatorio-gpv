@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99es';
+      const APP_VERSION = '23.9.99et';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1732,7 +1732,7 @@
       let premiumFeedbackTimer_ = 0;
       let premiumFeedbackLastText_ = '';
 
-      // V23.9.99es — feedback operacional não bloqueante. Mantém os diálogos
+      // V23.9.99et — feedback operacional não bloqueante. Mantém os diálogos
       // de confirmação existentes e apenas espelha conclusões/alertas relevantes.
       function classificarFeedbackPremium_(mensagem) {
         const texto = String(mensagem || '').trim();
@@ -1954,6 +1954,10 @@
       const recordDetailBackdrop = document.getElementById('recordDetailBackdrop');
       const recordDetailStatusBadge = document.getElementById('recordDetailStatusBadge');
       const recordCurrentStatus = document.querySelector('.record-current-status');
+      const recordQuickActionsPanel = document.getElementById('recordQuickActionsPanel');
+      const recordQuickNewInspectionBtn = document.getElementById('recordQuickNewInspectionBtn');
+      const recordQuickScheduleBtn = document.getElementById('recordQuickScheduleBtn');
+      const recordQuickNewPetBtn = document.getElementById('recordQuickNewPetBtn');
       const recordInfoscipUpdatePanel = document.getElementById('recordInfoscipUpdatePanel');
       const recordInfoscipUpdateBtn = document.getElementById('recordInfoscipUpdateBtn');
       const recordFineCheckPanel = document.getElementById('recordFineCheckPanel');
@@ -2457,7 +2461,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99es';
+      const APP_REVISION_UI_ = '23.9.99et';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4490,7 +4494,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99es', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99et', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4874,7 +4878,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99es — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99et — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4905,7 +4909,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99es — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99et — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -6408,7 +6412,7 @@
       }
 
       function vistaInicialPorDispositivo_() {
-        // V23.9.99es — entrada padrão do aplicativo: Painel em qualquer dispositivo.
+        // V23.9.99et — entrada padrão do aplicativo: Painel em qualquer dispositivo.
         // Rotas explícitas (ex.: ?view=vistoria), acesso auxiliar e ações de retomada
         // continuam podendo abrir diretamente o fluxo correspondente.
         return 'records';
@@ -6915,7 +6919,7 @@
         return { principal, detalhe };
       }
 
-      // V23.9.99es — identidade visual dos cards do Painel sem alterar a lógica do processo.
+      // V23.9.99et — identidade visual dos cards do Painel sem alterar a lógica do processo.
       function classesCardPainel_(item) {
         const classes = ['records-card', classeStatus_(item?.sancao || '')];
         const demanda = normalize(item?.demanda || '');
@@ -6932,6 +6936,26 @@
         recordsTableBody.querySelectorAll('.records-table-row').forEach(row => {
           row.classList.toggle('selected', Boolean(recordsState.chaveSelecionada) && row.dataset.recordKey === recordsState.chaveSelecionada);
         });
+      }
+
+      function urlMapaPainel_(item) {
+        const endereco = formatarEnderecoPainel_(item);
+        const cidade = padronizarCidadeCadastroCliente_(item?.cidade || '');
+        if (!endereco || endereco === '—') return '';
+        const consulta = [endereco, cidade, 'MG'].filter(Boolean).join(', ');
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta)}`;
+      }
+
+      function atalhosCardPainelHtml_(item) {
+        const identificador = identificadorPainel_(item);
+        const mapa = urlMapaPainel_(item);
+        const copiar = identificador.valor && identificador.valor !== '—'
+          ? `<button type="button" class="records-card-quick-btn" data-record-quick-action="copy-doc" data-copy-value="${escapeAttr(identificador.valor)}" aria-label="Copiar ${escapeAttr(identificador.rotulo)}">Copiar ${escapeHtml(identificador.rotulo)}</button>`
+          : '';
+        const mapaHtml = mapa
+          ? `<a class="records-card-quick-btn" data-record-quick-action="map" href="${escapeAttr(mapa)}" target="_blank" rel="noopener noreferrer">Mapa</a>`
+          : '';
+        return `<div class="records-card-quick-actions" aria-label="Ações rápidas">${copiar}${mapaHtml}<a class="records-card-quick-btn" data-record-quick-action="infoscip" href="https://www.fiscalizacaobombeiros.mg.gov.br" target="_blank" rel="noopener noreferrer">INFOSCIP</a></div>`;
       }
 
       function renderizarRegistros_() {
@@ -6973,7 +6997,7 @@
           const endereco = formatarEnderecoPainel_(item);
           const proximaAcao = proximaAcaoPainel_(item);
           const classesCard = classesCardPainel_(item);
-          return `<button class="${escapeAttr(classesCard)}" type="button" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+          return `<article class="${escapeAttr(classesCard)}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}">
             <div class="records-card-accent" aria-hidden="true"></div>
             <div class="records-card-top"><div class="records-card-title">${destacarBuscaPainelHtml_(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${destacarBuscaPainelHtml_(razao)}</div>` : ''}
@@ -6985,9 +7009,10 @@
               <div class="records-meta-item records-meta-item--pf"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
             </div>
             ${endereco && endereco !== '—' ? `<div class="records-card-address"><span class="records-card-address-icon" aria-hidden="true">⌖</span><span>${destacarBuscaPainelHtml_(endereco)}</span></div>` : ''}
+            ${atalhosCardPainelHtml_(item)}
             <div class="records-card-action"><span>Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
-            <div class="records-card-cta"><span>Ver ficha completa</span><span class="records-card-cta-icon" aria-hidden="true">→</span></div>
-          </button>`;
+            <button type="button" class="records-card-cta" data-record-open aria-label="Abrir ficha de ${escapeAttr(titulo)}"><span>Ver ficha completa</span><span class="records-card-cta-icon" aria-hidden="true">→</span></button>
+          </article>`;
         }).join('');
       }
 
@@ -7560,7 +7585,7 @@
         });
       }
 
-      // V23.9.99es — tarefas secundárias são adiadas para não competir com a renderização principal.
+      // V23.9.99et — tarefas secundárias são adiadas para não competir com a renderização principal.
       function agendarTarefaOciosa_(tarefa, atrasoMaximo = 700) {
         if (typeof tarefa !== 'function') return;
         if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
@@ -7947,7 +7972,7 @@
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99es — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99et — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -7963,7 +7988,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99es — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99et — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9691,7 +9716,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99es — Centro de correção completa da vistoria.
+      // V23.9.99et — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -10496,7 +10521,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99es — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99et — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'local';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10682,7 +10707,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99es — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99et — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -10763,6 +10788,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailStatusBadge.textContent = situacao;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
+        if (recordQuickActionsPanel) recordQuickActionsPanel.hidden = false;
+        if (recordQuickNewPetBtn) recordQuickNewPetBtn.hidden = !petFicha;
         configurarCorrecaoFicha_(registro);
         configurarCorrecaoResultadoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
@@ -10783,6 +10810,136 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           hidratarMapaFichaSeNecessario_();
         } else {
           recordAddressMapLazyPending_ = null;
+        }
+      }
+
+      function dadosSegurosFichaParaNovaAcao_(registro) {
+        const cnpj = valorCampoFicha_(registro, 'CNPJ');
+        const cpf = valorCampoFicha_(registro, 'CPF');
+        return {
+          documento: cnpj || cpf || '',
+          nomeFantasia: registroEhPetFicha_(registro) ? '' : (valorCampoFicha_(registro, 'Nome Fantasia') || registro?.titulo || ''),
+          razaoSocial: valorCampoFicha_(registro, 'Razão Social'),
+          cep: valorCampoFicha_(registro, 'CEP'),
+          endereco: valorCampoFicha_(registro, 'Endereço do estabelecimento', 'Endereço'),
+          numero: valorCampoFicha_(registro, 'Nº', 'Número'),
+          complemento: valorCampoFicha_(registro, 'Complemento'),
+          bairro: valorCampoFicha_(registro, 'Bairro'),
+          cidade: valorCampoFicha_(registro, 'Cidade', 'Município'),
+          area: valorCampoFicha_(registro, 'Área m²', 'Área')
+        };
+      }
+
+      function preencherCidadeNovaAcao_(cidade) {
+        const valorCidade = String(cidade || '').trim();
+        if (!valorCidade || !citySelect) return;
+        const opcao = Array.from(citySelect.options || []).find(op => normalize(op.value) === normalize(valorCidade));
+        if (opcao) {
+          citySelect.value = opcao.value;
+          if (otherCity) otherCity.value = '';
+        } else {
+          citySelect.value = 'Outro';
+          if (otherCity) otherCity.value = valorCidade;
+        }
+        syncOtherCity();
+      }
+
+      function preencherCamposSegurosNovaVistoria_(registro, opcoes = {}) {
+        const dados = dadosSegurosFichaParaNovaAcao_(registro);
+        const apenasOrganizadorPet = Boolean(opcoes.apenasOrganizadorPet);
+        const set = (id, valor) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.value = valor == null ? '' : String(valor);
+        };
+        set('cnpj', dados.documento);
+        if (document.getElementById('cnpj')) {
+          const d = digits(dados.documento || '');
+          document.getElementById('cnpj').value = d.length === 14 ? formatarCnpjTela_(d) : (d.length === 11 ? formatarCpfTela_(d) : dados.documento || '');
+        }
+        set('razaoSocial', dados.razaoSocial);
+        if (apenasOrganizadorPet) {
+          set('nomeFantasia', '');
+          set('cep', '');
+          set('endereco', '');
+          set('numero', '');
+          set('complemento', '');
+          set('bairro', '');
+          set('area', '');
+          set('pscip', '');
+          set('pf', '');
+          set('petAvcbNumero', '');
+          set('petAvcbEmissao', '');
+          set('petAvcbValidade', '');
+          set('eventoNome', '');
+          return;
+        }
+        set('nomeFantasia', dados.nomeFantasia);
+        set('cep', formatarCepCliente_(dados.cep));
+        set('endereco', dados.endereco);
+        set('numero', dados.numero);
+        set('complemento', dados.complemento);
+        set('bairro', dados.bairro);
+        set('area', dados.area);
+        preencherCidadeNovaAcao_(dados.cidade);
+      }
+
+      async function iniciarNovaVistoriaDaFicha_(opcoes = {}) {
+        const registro = recordDetailRegistroAtual;
+        if (!registro) return;
+        const pet = Boolean(opcoes.pet);
+        prepararFormularioNovaVistoria_(pet ? 'Novo PET deste organizador' : 'Nova vistoria deste local');
+        await mostrarVistaFormulario_();
+        if (pet) {
+          aplicarFluxoVistoria_('liberacao', { silencioso: true });
+          const demanda = document.getElementById('demandaPrincipal');
+          if (demanda) demanda.value = 'PET';
+          aplicarModoEventoDeclaratorio_({ silencioso: true });
+          atualizarOpcoesSancaoPorFluxo_();
+          fluxoLiberacaoBtn?.classList.remove('is-active');
+          fluxoLiberacaoBtn?.setAttribute('aria-pressed', 'false');
+          fluxoPetBtn?.classList.add('is-active');
+          fluxoPetBtn?.setAttribute('aria-pressed', 'true');
+          preencherCamposSegurosNovaVistoria_(registro, { apenasOrganizadorPet: true });
+          if (appStatus) appStatus.textContent = 'Novo PET iniciado com somente CNPJ e Razão Social do organizador. Evento, endereço, PSCIP, AVCB e resultado permanecem em branco.';
+        } else {
+          preencherCamposSegurosNovaVistoria_(registro);
+          if (appStatus) appStatus.textContent = 'Nova vistoria iniciada com identificação e endereço reaproveitados. Tipo, demanda, PSCIP, PF, sanção e resultado não foram copiados.';
+        }
+        scheduleDraftSave();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function programarNovaVistoriaDaFicha_() {
+        const registro = recordDetailRegistroAtual;
+        if (!registro) return;
+        const dados = dadosSegurosFichaParaNovaAcao_(registro);
+        fecharDetalheRegistro_({ restaurarContexto: false });
+        abrirModalPreparacao_();
+        const set = (id, valor) => {
+          const el = document.getElementById(id);
+          if (el && valor != null) el.value = String(valor);
+        };
+        const d = digits(dados.documento || '');
+        set('prepareCnpj', d.length === 14 ? formatarCnpjTela_(d) : (d.length === 11 ? formatarCpfTela_(d) : dados.documento));
+        set('prepareNomeFantasia', dados.nomeFantasia);
+        set('prepareRazaoSocial', dados.razaoSocial);
+        set('prepareArea', dados.area);
+        set('prepareCep', formatarCepCliente_(dados.cep));
+        set('prepareEndereco', dados.endereco);
+        set('prepareNumero', dados.numero);
+        set('prepareBairro', dados.bairro);
+        set('prepareCidade', dados.cidade || 'Viçosa');
+        set('prepareTipo', '');
+        set('prepareDemanda', '');
+        set('preparePscip', 'PRJ');
+        set('preparePf', '');
+        set('prepareEventoDeclaracaoNumero', '');
+        atualizarCamposPreparacaoPorTipo_();
+        const status = document.getElementById('prepareCnpjStatus');
+        if (status) {
+          status.textContent = 'Dados básicos reaproveitados da Ficha. Confira e escolha o tipo/data da nova vistoria.';
+          status.className = 'lookup-status show info';
         }
       }
 
@@ -15201,7 +15358,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99es — CEP opcional como preenchimento assistido.
+      // V23.9.99et — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -16150,7 +16307,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99es — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99et — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -22918,7 +23075,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordsState.limite = [8, 15, 25].includes(limite) ? limite : 25;
         carregarRegistros_(true, { forcar: true, motivo: 'quantidade por página' });
       });
-      recordsList?.addEventListener('click', event => {
+      recordsList?.addEventListener('click', async event => {
+        const atalho = event.target.closest('[data-record-quick-action]');
+        if (atalho) {
+          event.stopPropagation();
+          const acao = atalho.dataset.recordQuickAction || '';
+          if (acao === 'copy-doc') {
+            event.preventDefault();
+            const ok = await copiarTextoClipboard_(atalho.dataset.copyValue || '');
+            avisarGpv_(ok ? 'Documento copiado.' : 'Não foi possível copiar o documento.', ok ? 'Ação rápida' : 'Falha ao copiar', { tom: ok ? 'success' : 'warning' });
+          }
+          return;
+        }
         const card = event.target.closest('.records-card');
         if (card) abrirDetalheRegistro_(card.dataset.recordKey || '', Number(card.dataset.recordLine || 0));
       });
@@ -22961,6 +23129,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailSummaryCopyBtn?.addEventListener('click', copiarResumoOperacionalFicha_);
+      recordQuickNewInspectionBtn?.addEventListener('click', () => { void iniciarNovaVistoriaDaFicha_(); });
+      recordQuickScheduleBtn?.addEventListener('click', programarNovaVistoriaDaFicha_);
+      recordQuickNewPetBtn?.addEventListener('click', () => { void iniciarNovaVistoriaDaFicha_({ pet: true }); });
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
       recordCorrectionBtn?.addEventListener('click', abrirCorrecaoRegistro_);
       recordResultCorrectionBtn?.addEventListener('click', abrirCorrecaoResultadoVistoria_);
@@ -23458,7 +23629,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99es', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99et', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

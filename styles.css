@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99es — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99et — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99es — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99et — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99es — Painel inicial premium
+   V23.9.99et — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99es — Página Vistoria Premium
+   V23.9.99et — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17530,7 +17530,7 @@ body:not(.records-mode) .home-operational-connection{
 }
 
 /* =============================================================================
-   V23.9.99es — Topo Premium do Painel
+   V23.9.99et — Topo Premium do Painel
    Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
    e navegação principal. Sem alteração de lógica operacional.
    ============================================================================= */
@@ -17779,7 +17779,7 @@ body.records-mode .app-view-btn.active::after{
 
 
 /* =============================================================================
-   V23.9.99es — Central "Mais" Premium
+   V23.9.99et — Central "Mais" Premium
    Mantém funções/permissões existentes e moderniza apenas apresentação.
    ============================================================================= */
 .app-more-menu{
@@ -18006,7 +18006,7 @@ body.records-mode .app-view-btn.active::after{
 }
 
 /* =============================================================================
-   V23.9.99es — Filtros e Busca Premium do Painel
+   V23.9.99et — Filtros e Busca Premium do Painel
    Busca em destaque, filtros recolhíveis no mobile, chips ativos e estados vazios.
    ============================================================================= */
 body.records-mode .dashboard-filters{
@@ -18457,7 +18457,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99es — Status e Feedback Operacional Premium
+   V23.9.99et — Status e Feedback Operacional Premium
    ============================================================================= */
 .premium-feedback-stack{
   position:fixed;
@@ -18634,7 +18634,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99es — revisão final mobile + destaque claro do card/aba ativa
+   V23.9.99et — revisão final mobile + destaque claro do card/aba ativa
    ============================================================================= */
 :root{
   --active-ring: 0 0 0 3px rgba(185,28,28,.14), 0 12px 28px rgba(15,23,42,.12);
@@ -18726,7 +18726,7 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
 
 
 /* =============================================================================
-   V23.9.99es — Performance e carregamento
+   V23.9.99et — Performance e carregamento
    Renderização progressiva de conteúdo fora da área visível.
    ============================================================================= */
 @supports (content-visibility:auto){
@@ -18766,7 +18766,7 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
 
 
 /* =============================================================================
-   V23.9.99es — Ergonomia e Acessibilidade
+   V23.9.99et — Ergonomia e Acessibilidade
    Melhora toque, foco, contraste, leitura e segurança de uso sem alterar lógica.
    ============================================================================= */
 
@@ -18994,6 +18994,121 @@ button[data-destructive]:focus-visible{
 
 
 /* =============================================================================
-   V23.9.99es — Auditoria final de estabilidade
+   V23.9.99et — Auditoria final de estabilidade
    Consolidação de versão após revisão estrutural dos fluxos críticos.
    ============================================================================= */
+
+/* =============================================================================
+   V23.9.99et — Ações rápidas e produtividade
+   ============================================================================= */
+body.records-mode .records-card{
+  cursor:pointer;
+  color:inherit;
+  font:inherit;
+  width:100%;
+}
+body.records-mode .records-card-quick-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:12px 0 2px;
+  position:relative;
+  z-index:2;
+}
+body.records-mode .records-card-quick-btn{
+  appearance:none;
+  border:1px solid #d6dee8;
+  border-radius:999px;
+  background:#fff;
+  color:#344054;
+  min-height:34px;
+  padding:7px 11px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:11px;
+  line-height:1.1;
+  font-family:inherit;
+  text-decoration:none;
+  cursor:pointer;
+  box-shadow:0 3px 9px rgba(15,23,42,.045);
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+body.records-mode .records-card-quick-btn:hover,
+body.records-mode .records-card-quick-btn:focus-visible{
+  transform:translateY(-1px);
+  border-color:#aebcca;
+  background:#f8fafc;
+  box-shadow:0 6px 14px rgba(15,23,42,.08);
+}
+body.records-mode .records-card--pet .records-card-quick-btn{
+  border-color:#ead4a7;
+  background:#fffdf7;
+}
+
+.record-quick-actions-panel{
+  border:1px solid #d6e2ef;
+  border-radius:20px;
+  padding:16px;
+  margin:12px 0;
+  background:linear-gradient(180deg,#fbfdff,#f5f9fd);
+  box-shadow:0 10px 24px rgba(15,23,42,.055);
+}
+.record-quick-actions-head h3{
+  margin:0 0 4px;
+  color:#26374a;
+  font-size:16px;
+}
+.record-quick-actions-head span{
+  color:#5f6b7b;
+  font-size:12px;
+  line-height:1.4;
+}
+.record-quick-actions-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+.record-quick-action-btn{
+  border:1px solid #d7e0ea;
+  border-radius:15px;
+  min-height:74px;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:4px;
+  text-align:left;
+  background:#fff;
+  color:#26374a;
+  box-shadow:0 6px 15px rgba(15,23,42,.045);
+  cursor:pointer;
+  transition:transform .17s ease,box-shadow .17s ease,border-color .17s ease;
+}
+.record-quick-action-btn strong{font-size:13px;line-height:1.2}
+.record-quick-action-btn small{font-size:10.5px;line-height:1.35;color:#647184}
+.record-quick-action-btn:hover,
+.record-quick-action-btn:focus-visible{
+  transform:translateY(-1px);
+  box-shadow:0 10px 20px rgba(15,23,42,.09);
+}
+.record-quick-action-btn--new{border-color:#bcdcc9;background:linear-gradient(180deg,#fff,#f3fbf6)}
+.record-quick-action-btn--schedule{border-color:#c9d9ee;background:linear-gradient(180deg,#fff,#f4f8fe)}
+.record-quick-action-btn--pet{border-color:#ead09a;background:linear-gradient(180deg,#fffdf8,#fff7e7)}
+
+@media(max-width:720px){
+  .record-quick-actions-grid{grid-template-columns:1fr}
+  .record-quick-action-btn{min-height:62px}
+  body.records-mode .records-card-quick-btn{min-height:38px;padding:8px 12px;font-size:11px}
+}
+
+body.records-mode button.records-card-cta{
+  appearance:none;
+  width:100%;
+  font:inherit;
+  cursor:pointer;
+  text-align:left;
+}
