@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99er — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99es — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99er — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99es — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99er — Painel inicial premium
+   V23.9.99es — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99er — Página Vistoria Premium
+   V23.9.99es — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17530,7 +17530,7 @@ body:not(.records-mode) .home-operational-connection{
 }
 
 /* =============================================================================
-   V23.9.99er — Topo Premium do Painel
+   V23.9.99es — Topo Premium do Painel
    Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
    e navegação principal. Sem alteração de lógica operacional.
    ============================================================================= */
@@ -17779,7 +17779,7 @@ body.records-mode .app-view-btn.active::after{
 
 
 /* =============================================================================
-   V23.9.99er — Central "Mais" Premium
+   V23.9.99es — Central "Mais" Premium
    Mantém funções/permissões existentes e moderniza apenas apresentação.
    ============================================================================= */
 .app-more-menu{
@@ -18006,7 +18006,7 @@ body.records-mode .app-view-btn.active::after{
 }
 
 /* =============================================================================
-   V23.9.99er — Filtros e Busca Premium do Painel
+   V23.9.99es — Filtros e Busca Premium do Painel
    Busca em destaque, filtros recolhíveis no mobile, chips ativos e estados vazios.
    ============================================================================= */
 body.records-mode .dashboard-filters{
@@ -18457,7 +18457,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99er — Status e Feedback Operacional Premium
+   V23.9.99es — Status e Feedback Operacional Premium
    ============================================================================= */
 .premium-feedback-stack{
   position:fixed;
@@ -18634,7 +18634,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99er — revisão final mobile + destaque claro do card/aba ativa
+   V23.9.99es — revisão final mobile + destaque claro do card/aba ativa
    ============================================================================= */
 :root{
   --active-ring: 0 0 0 3px rgba(185,28,28,.14), 0 12px 28px rgba(15,23,42,.12);
@@ -18726,7 +18726,7 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
 
 
 /* =============================================================================
-   V23.9.99er — Performance e carregamento
+   V23.9.99es — Performance e carregamento
    Renderização progressiva de conteúdo fora da área visível.
    ============================================================================= */
 @supports (content-visibility:auto){
@@ -18766,7 +18766,7 @@ body.records-mode .record-detail-section-btn.is-active .record-detail-section-ic
 
 
 /* =============================================================================
-   V23.9.99er — Ergonomia e Acessibilidade
+   V23.9.99es — Ergonomia e Acessibilidade
    Melhora toque, foco, contraste, leitura e segurança de uso sem alterar lógica.
    ============================================================================= */
 
@@ -18820,7 +18820,7 @@ textarea:disabled,
 
 /* Campos obrigatórios mais fáceis de identificar */
 label.required::after,
-.required > label::after{
+.required:not(label) > label::after{
   content:" *";
   color:#b42318;
   font-weight:900;
@@ -18991,3 +18991,9 @@ button[data-destructive]:focus-visible{
     scroll-behavior:auto!important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99es — Auditoria final de estabilidade
+   Consolidação de versão após revisão estrutural dos fluxos críticos.
+   ============================================================================= */
