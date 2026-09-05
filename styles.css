@@ -16481,7 +16481,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99eo — Navegação mobile da Ficha sem rolagem horizontal
+   V23.9.99ep — Navegação mobile da Ficha sem rolagem horizontal
    As oito seções ficam visíveis em grade responsiva; desktop permanece inalterado.
    ============================================================================= */
 @media(max-width:899px){
@@ -16554,7 +16554,7 @@ body.records-mode .record-infoscip-update-panel{
 
 
 /* =============================================================================
-   V23.9.99eo — Navegação da Ficha mais viva + abertura direta em Local
+   V23.9.99ep — Navegação da Ficha mais viva + abertura direta em Local
    ============================================================================= */
 body.records-mode .record-detail-section-btn[data-record-detail-section="local"]{
   color:#8a4b08!important;
@@ -16680,7 +16680,7 @@ body.records-mode .record-detail-screen.record-detail-is-pet .record-detail-sect
 }
 
 /* =============================================================================
-   V23.9.99eo — Painel inicial premium
+   V23.9.99ep — Painel inicial premium
    Repagina os cards dos registros e dá maior destaque à ação de abrir a Ficha.
    ============================================================================= */
 body.records-mode .records-status{
@@ -17055,7 +17055,7 @@ body.records-mode .records-card:focus-visible .records-card-cta{
 }
 
 /* =============================================================================
-   V23.9.99eo — Página Vistoria Premium
+   V23.9.99ep — Página Vistoria Premium
    Repaginação visual da central de vistoria. Não altera regras operacionais.
    ============================================================================= */
 body:not(.records-mode) #tipoVistoriaSecao.inspection-flow-section{
@@ -17530,7 +17530,7 @@ body:not(.records-mode) .home-operational-connection{
 }
 
 /* =============================================================================
-   V23.9.99eo — Topo Premium do Painel
+   V23.9.99ep — Topo Premium do Painel
    Refina exclusivamente a parte superior do Painel: banner, usuário, notificações
    e navegação principal. Sem alteração de lógica operacional.
    ============================================================================= */
@@ -17779,7 +17779,7 @@ body.records-mode .app-view-btn.active::after{
 
 
 /* =============================================================================
-   V23.9.99eo — Central "Mais" Premium
+   V23.9.99ep — Central "Mais" Premium
    Mantém funções/permissões existentes e moderniza apenas apresentação.
    ============================================================================= */
 .app-more-menu{
@@ -18006,7 +18006,7 @@ body.records-mode .app-view-btn.active::after{
 }
 
 /* =============================================================================
-   V23.9.99eo — Filtros e Busca Premium do Painel
+   V23.9.99ep — Filtros e Busca Premium do Painel
    Busca em destaque, filtros recolhíveis no mobile, chips ativos e estados vazios.
    ============================================================================= */
 body.records-mode .dashboard-filters{
@@ -18457,7 +18457,7 @@ body.records-mode .records-empty--premium>.btn{
 
 
 /* =============================================================================
-   V23.9.99eo — Status e Feedback Operacional Premium
+   V23.9.99ep — Status e Feedback Operacional Premium
    ============================================================================= */
 .premium-feedback-stack{
   position:fixed;
@@ -18630,4 +18630,96 @@ body.records-mode .records-empty--premium>.btn{
   }
   .premium-feedback-copy{font-size:10.5px}
   .sync-summary{max-width:100%!important;font-size:8px!important}
+}
+
+
+/* =============================================================================
+   V23.9.99ep — revisão final mobile + destaque claro do card/aba ativa
+   ============================================================================= */
+:root{
+  --active-ring: 0 0 0 3px rgba(185,28,28,.14), 0 12px 28px rgba(15,23,42,.12);
+}
+
+/* Navegação principal: Painel / Vistoria / Mais */
+body.records-mode .app-view-btn,
+body:not(.records-mode) .app-view-btn{
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease, filter .18s ease;
+}
+body.records-mode .app-view-btn.active,
+body:not(.records-mode) .app-view-btn.active{
+  transform: translateY(-1px) scale(1.01)!important;
+  box-shadow: var(--active-ring)!important;
+  border-width: 2px!important;
+  filter: saturate(1.08) contrast(1.02)!important;
+}
+body.records-mode .app-view-btn.active .app-view-icon,
+body:not(.records-mode) .app-view-btn.active .app-view-icon{
+  transform: scale(1.06)!important;
+  box-shadow: 0 8px 18px rgba(15,23,42,.18)!important;
+}
+body.records-mode .app-view-btn.active::after,
+body:not(.records-mode) .app-view-btn.active::after{
+  height: 4px!important;
+  border-radius: 999px!important;
+}
+
+/* Fluxos e cartões de escolha */
+.inspection-flow-card,
+.prepared-filter,
+.location-map-layer-btn,
+.goals-modal-tab,
+.record-detail-section-btn{
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease, filter .18s ease;
+}
+.inspection-flow-card.is-active,
+.prepared-filter.is-active,
+.location-map-layer-btn.is-active,
+.goals-modal-tab.active,
+body.records-mode .record-detail-section-btn.is-active{
+  transform: translateY(-1px)!important;
+  box-shadow: var(--active-ring)!important;
+  border-width: 2px!important;
+  filter: saturate(1.1) contrast(1.03)!important;
+}
+.inspection-flow-card.is-active .inspection-flow-icon,
+body.records-mode .record-detail-section-btn.is-active .record-detail-section-icon{
+  transform: scale(1.06)!important;
+  box-shadow: 0 8px 18px rgba(15,23,42,.16)!important;
+}
+
+/* Realça ainda mais o item ativo da Ficha no mobile */
+@media(max-width:899px){
+  body.records-mode .record-detail-section-btn.is-active{
+    box-shadow: 0 0 0 3px rgba(185,28,28,.16), 0 10px 22px rgba(15,23,42,.14)!important;
+  }
+  body.records-mode .app-view-btn.active,
+  body:not(.records-mode) .app-view-btn.active{
+    box-shadow: 0 0 0 3px rgba(185,28,28,.14), 0 10px 22px rgba(15,23,42,.12)!important;
+  }
+}
+
+/* Seletores/tabs ativos com feedback mais forte */
+.goals-modal-tab.active{
+  color:#8f1117!important;
+  background:linear-gradient(180deg,#fff7f7,#ffe9ea)!important;
+}
+.prepared-filter.is-active{
+  color:#8f1117!important;
+  background:linear-gradient(180deg,#fff7f7,#ffe9ea)!important;
+}
+.location-map-layer-btn.is-active{
+  box-shadow: 0 0 0 3px rgba(125,21,27,.16), 0 8px 18px rgba(125,21,27,.18)!important;
+}
+
+/* Dica visual geral para estados ativos baseados em aria */
+[aria-selected="true"],
+[aria-pressed="true"]{
+  outline: none;
+}
+[aria-selected="true"]:focus-visible,
+[aria-pressed="true"]:focus-visible,
+.app-view-btn.active:focus-visible,
+.record-detail-section-btn.is-active:focus-visible,
+.inspection-flow-card.is-active:focus-visible{
+  box-shadow: 0 0 0 4px rgba(37,99,235,.18), var(--active-ring)!important;
 }
