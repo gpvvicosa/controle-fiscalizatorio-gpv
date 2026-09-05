@@ -19675,7 +19675,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =========================================================
-   V23.9.99ey — Premium da área Mais + Acessos úteis
+   V23.9.99ez — Premium da área Mais + Acessos úteis
    ========================================================= */
 .app-more-menu{
   background:
@@ -19969,4 +19969,144 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
   .useful-link-card small{font-size:12px !important}
   .useful-link-arrow{width:32px;height:32px;font-size:19px !important;border-radius:10px}
   .useful-links-note{margin:8px 16px 18px !important;padding:12px 14px !important;font-size:12px !important}
+}
+
+/* =========================================================
+   V23.9.99ez — Ficha mobile compacta e mais eficiente
+   Reduz rolagem vertical sem alterar dados ou lógica.
+   ========================================================= */
+@media (max-width:680px){
+  body.records-mode .record-detail-module-panel .record-detail-group{
+    border-radius:16px!important;
+    box-shadow:0 8px 22px rgba(15,23,42,.045)!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-group h3{
+    min-height:42px!important;
+    padding:10px 12px!important;
+    font-size:14px!important;
+    line-height:1.2!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-group h3::after{
+    left:12px!important;
+    right:12px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    padding:8px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field,
+  body.records-mode .record-detail-module-panel .record-detail-field:nth-child(odd){
+    grid-column:auto!important;
+    min-height:68px!important;
+    padding:9px 9px 8px!important;
+    border-radius:12px!important;
+    border:1px solid #e7ebf1!important;
+    box-shadow:0 4px 12px rgba(15,23,42,.035)!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field.is-wide,
+  body.records-mode .record-detail-module-panel .record-detail-field.is-wide-mobile{
+    grid-column:1/-1!important;
+    min-height:64px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field::before{
+    left:9px!important;
+    width:32px!important;
+    height:3px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field label{
+    font-size:7.8px!important;
+    line-height:1.15!important;
+    letter-spacing:.065em!important;
+    min-height:18px;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field .record-detail-copy-row{
+    align-items:center!important;
+    gap:6px!important;
+    margin-top:4px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field .record-detail-copy-value{
+    font-size:11.6px!important;
+    line-height:1.28!important;
+    font-weight:800!important;
+    letter-spacing:-.008em!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field.field-mono .record-detail-copy-value{
+    font-size:10.8px!important;
+    line-height:1.25!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field .record-copy-value-btn{
+    min-width:34px!important;
+    width:34px!important;
+    min-height:34px!important;
+    height:34px!important;
+    border-radius:10px!important;
+    padding:0!important;
+    box-shadow:0 3px 8px rgba(15,23,42,.035)!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field .record-copy-value-btn svg{
+    width:12px!important;
+    height:12px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field.is-empty{
+    min-height:58px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-detail-field.is-empty .record-detail-copy-value{
+    font-size:10.5px!important;
+  }
+
+  body.records-mode .record-detail-section-hint{
+    margin:6px 2px 9px!important;
+    font-size:9px!important;
+    line-height:1.35!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-operational-summary .record-detail-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    padding:8px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-operational-summary .record-detail-field,
+  body.records-mode .record-detail-module-panel .record-operational-summary .record-detail-field:nth-child(odd){
+    min-height:66px!important;
+    padding:9px!important;
+  }
+
+  body.records-mode .record-detail-module-panel .record-operational-summary .record-detail-field:last-child{
+    grid-column:1/-1!important;
+  }
+}
+
+/* Em celulares extremamente estreitos, preserva a leitura dos dados longos. */
+@media (max-width:340px){
+  body.records-mode .record-detail-module-panel .record-detail-fields{
+    gap:6px!important;
+    padding:7px!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-field,
+  body.records-mode .record-detail-module-panel .record-detail-field:nth-child(odd){
+    padding:8px 7px!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-field .record-detail-copy-value{
+    font-size:10.8px!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-field .record-copy-value-btn{
+    min-width:32px!important;
+    width:32px!important;
+    min-height:32px!important;
+    height:32px!important;
+  }
 }
