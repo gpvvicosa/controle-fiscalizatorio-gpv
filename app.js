@@ -10430,14 +10430,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return `<section class="record-responsible-cep-recovery is-loading" id="recordResponsibleCepRecovery" data-cep="${escapeAttr(cepFormatado)}">
           <div class="record-responsible-cep-recovery-icon" aria-hidden="true">⌖</div>
           <div class="record-responsible-cep-recovery-copy">
-            <span class="record-responsible-cep-recovery-kicker">Endereço pelo CEP</span>
+            <span class="record-responsible-cep-recovery-kicker">Endereço do responsável pelo CEP</span>
             <strong id="recordResponsibleCepRecoveryTitle">Consultando ${escapeHtml(cepFormatado)}...</strong>
             <p id="recordResponsibleCepRecoveryText">A Ficha possui CEP do responsável, mas o endereço completo não foi gravado neste registro.</p>
             <small id="recordResponsibleCepRecoveryNote">A consulta serve apenas para recuperar uma sugestão postal. Número e complemento não são inventados.</small>
           </div>
           <div class="record-responsible-cep-recovery-actions">
             ${podeSalvar ? '<button type="button" class="btn btn-primary" data-record-responsible-cep-save disabled>Salvar no cadastro</button>' : ''}
-            <button type="button" class="btn btn-secondary" data-record-responsible-cep-copy data-copy-field-value="" data-copy-field-label="Endereço sugerido pelo CEP" hidden>Copiar endereço</button>
+            <button type="button" class="btn btn-secondary" data-record-responsible-cep-copy data-copy-field-value="" data-copy-field-label="Endereço do responsável sugerido pelo CEP" hidden>Copiar endereço</button>
           </div>
         </section>`;
       }
@@ -10457,7 +10457,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!navigator.onLine) {
           card.classList.remove('is-loading');
           card.classList.add('is-offline');
-          if (titulo) titulo.textContent = `CEP ${cepFormatado} disponível`;
+          if (titulo) titulo.textContent = `CEP do responsável ${cepFormatado} disponível`;
           if (texto) texto.textContent = 'Conecte-se à internet para buscar uma sugestão de endereço para este CEP.';
           if (nota) nota.textContent = 'O cadastro atual não será alterado.';
           return;
@@ -10478,7 +10478,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           };
           card.classList.remove('is-loading', 'is-offline', 'is-error');
           card.classList.add('is-ready');
-          if (titulo) titulo.textContent = 'Endereço sugerido pelo CEP';
+          if (titulo) titulo.textContent = 'Endereço do responsável sugerido pelo CEP';
           if (texto) texto.textContent = sugestao;
           if (nota) nota.textContent = `Fonte: ${recordResponsibleCepRecoveryState_.fonte}. Confira o número e o complemento antes de usar como endereço completo.`;
           if (salvarBtn) salvarBtn.disabled = false;
@@ -10490,9 +10490,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (token !== recordResponsibleCepRecoverySeq_ || recordDetailRegistroAtual !== registro) return;
           card.classList.remove('is-loading', 'is-ready');
           card.classList.add('is-error');
-          if (titulo) titulo.textContent = 'Não foi possível recuperar o endereço';
+          if (titulo) titulo.textContent = 'Não foi possível recuperar o endereço do responsável';
           if (texto) texto.textContent = erro?.message || 'A consulta do CEP falhou.';
-          if (nota) nota.textContent = 'O CEP continua registrado e o endereço pode ser corrigido manualmente pela Ficha.';
+          if (nota) nota.textContent = 'O CEP do responsável continua registrado e o endereço pode ser corrigido manualmente pela Ficha.';
         }
       }
 
