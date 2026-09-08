@@ -19675,7 +19675,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =========================================================
-   V23.9.99fa — Premium da área Mais + Acessos úteis
+   V23.9.99fb — Premium da área Mais + Acessos úteis
    ========================================================= */
 .app-more-menu{
   background:
@@ -19972,7 +19972,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =========================================================
-   V23.9.99fa — Ficha mobile compacta e mais eficiente
+   V23.9.99fb — Ficha mobile compacta e mais eficiente
    Reduz rolagem vertical sem alterar dados ou lógica.
    ========================================================= */
 @media (max-width:680px){
@@ -20109,4 +20109,139 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
     min-height:32px!important;
     height:32px!important;
   }
+}
+
+/* =============================================================================
+   V23.9.99fb — Recuperação do endereço do responsável pelo CEP
+   ============================================================================= */
+body.records-mode .record-responsible-cep-recovery{
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) auto;
+  align-items:center;
+  gap:14px;
+  margin:14px 0 0;
+  padding:16px 18px;
+  border:1px solid #cfe3f8;
+  border-radius:18px;
+  background:linear-gradient(180deg,#f8fcff 0%,#eef7ff 100%);
+  box-shadow:0 12px 28px rgba(15,23,42,.06);
+}
+body.records-mode .record-responsible-cep-recovery-icon{
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg,#0ea5e9,#2563eb);
+  color:#fff;
+  font-size:27px;
+  font-weight:900;
+  box-shadow:0 10px 22px rgba(37,99,235,.20);
+}
+body.records-mode .record-responsible-cep-recovery-copy{min-width:0}
+body.records-mode .record-responsible-cep-recovery-kicker{
+  display:block;
+  color:#2563a8;
+  font-size:10px;
+  line-height:1.2;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+body.records-mode .record-responsible-cep-recovery-copy strong{
+  display:block;
+  margin-top:3px;
+  color:#172033;
+  font-size:14px;
+  line-height:1.3;
+}
+body.records-mode .record-responsible-cep-recovery-copy p{
+  margin:5px 0 0;
+  color:#475569;
+  font-size:12px;
+  line-height:1.45;
+}
+body.records-mode .record-responsible-cep-recovery-copy small{
+  display:block;
+  margin-top:5px;
+  color:#667085;
+  font-size:10.5px;
+  line-height:1.4;
+}
+body.records-mode .record-responsible-cep-recovery-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:8px;
+}
+body.records-mode .record-responsible-cep-recovery-actions .btn{
+  min-height:38px;
+  padding:8px 12px;
+  border-radius:12px;
+  font-size:11px;
+}
+body.records-mode .record-responsible-cep-recovery.is-loading{
+  border-color:#d7e5f4;
+  background:linear-gradient(180deg,#fbfdff,#f4f8fc);
+}
+body.records-mode .record-responsible-cep-recovery.is-loading .record-responsible-cep-recovery-icon{
+  animation:recordResponsibleCepPulse 1.25s ease-in-out infinite alternate;
+}
+body.records-mode .record-responsible-cep-recovery.is-ready{
+  border-color:#b7dfca;
+  background:linear-gradient(180deg,#f7fffa,#eefbf4);
+}
+body.records-mode .record-responsible-cep-recovery.is-ready .record-responsible-cep-recovery-icon{
+  background:linear-gradient(135deg,#16a34a,#059669);
+  box-shadow:0 10px 22px rgba(5,150,105,.18);
+}
+body.records-mode .record-responsible-cep-recovery.is-offline,
+body.records-mode .record-responsible-cep-recovery.is-error{
+  border-color:#f0d7aa;
+  background:linear-gradient(180deg,#fffdf7,#fff8e8);
+}
+body.records-mode .record-responsible-cep-recovery.is-offline .record-responsible-cep-recovery-icon,
+body.records-mode .record-responsible-cep-recovery.is-error .record-responsible-cep-recovery-icon{
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  box-shadow:0 10px 22px rgba(217,119,6,.18);
+}
+body.records-mode .record-responsible-cep-recovery.is-saving{opacity:.72;pointer-events:none}
+@keyframes recordResponsibleCepPulse{from{transform:scale(.96);opacity:.75}to{transform:scale(1.03);opacity:1}}
+
+@media(max-width:720px){
+  body.records-mode .record-responsible-cep-recovery{
+    grid-template-columns:42px minmax(0,1fr);
+    gap:10px;
+    margin-top:10px;
+    padding:12px;
+    border-radius:15px;
+  }
+  body.records-mode .record-responsible-cep-recovery-icon{
+    width:42px;
+    height:42px;
+    border-radius:13px;
+    font-size:22px;
+  }
+  body.records-mode .record-responsible-cep-recovery-copy strong{font-size:12.8px}
+  body.records-mode .record-responsible-cep-recovery-copy p{font-size:10.8px;line-height:1.4}
+  body.records-mode .record-responsible-cep-recovery-copy small{font-size:9.5px}
+  body.records-mode .record-responsible-cep-recovery-actions{
+    grid-column:1/-1;
+    justify-content:stretch;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+  }
+  body.records-mode .record-responsible-cep-recovery-actions .btn{
+    width:100%;
+    min-height:36px;
+    padding:7px 9px;
+    font-size:10px;
+  }
+}
+@media(max-width:380px){
+  body.records-mode .record-responsible-cep-recovery-actions{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  body.records-mode .record-responsible-cep-recovery.is-loading .record-responsible-cep-recovery-icon{animation:none!important}
 }

@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fa';
+      const APP_VERSION = '23.9.99fb';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1732,7 +1732,7 @@
       let premiumFeedbackTimer_ = 0;
       let premiumFeedbackLastText_ = '';
 
-      // V23.9.99fa — feedback operacional não bloqueante. Mantém os diálogos
+      // V23.9.99fb — feedback operacional não bloqueante. Mantém os diálogos
       // de confirmação existentes e apenas espelha conclusões/alertas relevantes.
       function classificarFeedbackPremium_(mensagem) {
         const texto = String(mensagem || '').trim();
@@ -2465,7 +2465,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fa';
+      const APP_REVISION_UI_ = '23.9.99fb';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4498,7 +4498,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fa', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fb', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4882,7 +4882,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99fa — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99fb — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4913,7 +4913,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99fa — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99fb — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -6416,7 +6416,7 @@
       }
 
       function vistaInicialPorDispositivo_() {
-        // V23.9.99fa — entrada padrão do aplicativo: Painel em qualquer dispositivo.
+        // V23.9.99fb — entrada padrão do aplicativo: Painel em qualquer dispositivo.
         // Rotas explícitas (ex.: ?view=vistoria), acesso auxiliar e ações de retomada
         // continuam podendo abrir diretamente o fluxo correspondente.
         return 'records';
@@ -6923,7 +6923,7 @@
         return { principal, detalhe };
       }
 
-      // V23.9.99fa — identidade visual dos cards do Painel sem alterar a lógica do processo.
+      // V23.9.99fb — identidade visual dos cards do Painel sem alterar a lógica do processo.
       function classesCardPainel_(item) {
         const classes = ['records-card', classeStatus_(item?.sancao || '')];
         const demanda = normalize(item?.demanda || '');
@@ -7602,7 +7602,7 @@
         });
       }
 
-      // V23.9.99fa — tarefas secundárias são adiadas para não competir com a renderização principal.
+      // V23.9.99fb — tarefas secundárias são adiadas para não competir com a renderização principal.
       function agendarTarefaOciosa_(tarefa, atrasoMaximo = 700) {
         if (typeof tarefa !== 'function') return;
         if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
@@ -7987,12 +7987,12 @@
           'prazo / proxima acao', 'proxima acao', 'local do evento', 'observacao geral'
         ];
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
-        // V23.9.99fa — no mobile, textos naturalmente longos ocupam a largura total
+        // V23.9.99fb — no mobile, textos naturalmente longos ocupam a largura total
         // sem obrigar os demais dados curtos a ficarem em uma única coluna.
         if (chave.includes('e-mail') || chave.includes('observacao') || chave.includes('descricao')) classes.push('is-wide-mobile');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99fa — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99fb — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -8008,7 +8008,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99fa — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99fb — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9736,7 +9736,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99fa — Centro de correção completa da vistoria.
+      // V23.9.99fb — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -10419,6 +10419,138 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       const ADDRESS_GEOCODE_CACHE_STORAGE_ = 'gpvEnderecoGeocodificadoFichaV1';
       let recordAddressMapRequestSeq_ = 0;
       let recordAddressMapLazyPending_ = null;
+      let recordResponsibleCepRecoverySeq_ = 0;
+      let recordResponsibleCepRecoveryState_ = null;
+
+      function montarRecuperacaoEnderecoResponsavelFicha_(cep, enderecoAtual, registro) {
+        const cepFormatado = formatarCepCliente_(cep || '');
+        if (!cepFormatado || String(enderecoAtual || '').trim()) return '';
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        const podeSalvar = usuarioPodeOperar_() && !historico;
+        return `<section class="record-responsible-cep-recovery is-loading" id="recordResponsibleCepRecovery" data-cep="${escapeAttr(cepFormatado)}">
+          <div class="record-responsible-cep-recovery-icon" aria-hidden="true">⌖</div>
+          <div class="record-responsible-cep-recovery-copy">
+            <span class="record-responsible-cep-recovery-kicker">Endereço pelo CEP</span>
+            <strong id="recordResponsibleCepRecoveryTitle">Consultando ${escapeHtml(cepFormatado)}...</strong>
+            <p id="recordResponsibleCepRecoveryText">A Ficha possui CEP do responsável, mas o endereço completo não foi gravado neste registro.</p>
+            <small id="recordResponsibleCepRecoveryNote">A consulta serve apenas para recuperar uma sugestão postal. Número e complemento não são inventados.</small>
+          </div>
+          <div class="record-responsible-cep-recovery-actions">
+            ${podeSalvar ? '<button type="button" class="btn btn-primary" data-record-responsible-cep-save disabled>Salvar no cadastro</button>' : ''}
+            <button type="button" class="btn btn-secondary" data-record-responsible-cep-copy data-copy-field-value="" data-copy-field-label="Endereço sugerido pelo CEP" hidden>Copiar endereço</button>
+          </div>
+        </section>`;
+      }
+
+      async function consultarRecuperacaoEnderecoResponsavelFicha_(registro, cep) {
+        const card = document.getElementById('recordResponsibleCepRecovery');
+        const cepFormatado = formatarCepCliente_(cep || '');
+        if (!card || !cepFormatado) return;
+        const token = ++recordResponsibleCepRecoverySeq_;
+        recordResponsibleCepRecoveryState_ = null;
+        const titulo = document.getElementById('recordResponsibleCepRecoveryTitle');
+        const texto = document.getElementById('recordResponsibleCepRecoveryText');
+        const nota = document.getElementById('recordResponsibleCepRecoveryNote');
+        const salvarBtn = card.querySelector('[data-record-responsible-cep-save]');
+        const copiarBtn = card.querySelector('[data-record-responsible-cep-copy]');
+
+        if (!navigator.onLine) {
+          card.classList.remove('is-loading');
+          card.classList.add('is-offline');
+          if (titulo) titulo.textContent = `CEP ${cepFormatado} disponível`;
+          if (texto) texto.textContent = 'Conecte-se à internet para buscar uma sugestão de endereço para este CEP.';
+          if (nota) nota.textContent = 'O cadastro atual não será alterado.';
+          return;
+        }
+
+        try {
+          const resultado = await apiRequest('config', { consulta: 'cep', cep: normalizarCepCliente_(cepFormatado) }, 18000);
+          if (token !== recordResponsibleCepRecoverySeq_ || recordDetailRegistroAtual !== registro || !document.getElementById('recordResponsibleCepRecovery')) return;
+          if (!resultado?.ok) throw new Error(resultado?.error || 'CEP não localizado.');
+          const temEnderecoUtil = Boolean(String(resultado?.logradouro || '').trim() || String(resultado?.bairro || '').trim() || String(resultado?.cidade || '').trim());
+          if (!temEnderecoUtil) throw new Error('O CEP foi localizado, mas não retornou detalhes suficientes de endereço.');
+          const sugestao = textoSugestaoCep_(resultado);
+          recordResponsibleCepRecoveryState_ = {
+            registro,
+            cep: cepFormatado,
+            endereco: sugestao,
+            fonte: String(resultado?.fonte || 'ViaCEP')
+          };
+          card.classList.remove('is-loading', 'is-offline', 'is-error');
+          card.classList.add('is-ready');
+          if (titulo) titulo.textContent = 'Endereço sugerido pelo CEP';
+          if (texto) texto.textContent = sugestao;
+          if (nota) nota.textContent = `Fonte: ${recordResponsibleCepRecoveryState_.fonte}. Confira o número e o complemento antes de usar como endereço completo.`;
+          if (salvarBtn) salvarBtn.disabled = false;
+          if (copiarBtn) {
+            copiarBtn.hidden = false;
+            copiarBtn.dataset.copyFieldValue = sugestao;
+          }
+        } catch (erro) {
+          if (token !== recordResponsibleCepRecoverySeq_ || recordDetailRegistroAtual !== registro) return;
+          card.classList.remove('is-loading', 'is-ready');
+          card.classList.add('is-error');
+          if (titulo) titulo.textContent = 'Não foi possível recuperar o endereço';
+          if (texto) texto.textContent = erro?.message || 'A consulta do CEP falhou.';
+          if (nota) nota.textContent = 'O CEP continua registrado e o endereço pode ser corrigido manualmente pela Ficha.';
+        }
+      }
+
+      async function salvarEnderecoResponsavelRecuperadoFicha_() {
+        const estado = recordResponsibleCepRecoveryState_;
+        const registro = recordDetailRegistroAtual;
+        if (!estado?.endereco || !registro || estado.registro !== registro) return;
+        if (!usuarioPodeOperar_()) return;
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        if (historico) {
+          avisarGpv_('Registros da base histórica 2024-2025 são somente para consulta.', 'Registro histórico');
+          return;
+        }
+        if (!navigator.onLine) {
+          avisarGpv_('É necessário estar online para salvar a correção do endereço do responsável.', 'Sem conexão');
+          return;
+        }
+        const confirmar = await confirmarGpv_(
+          `O CEP ${estado.cep} retornou:\n${estado.endereco}\n\nSalvar esta sugestão como endereço do responsável? Confira depois o número e o complemento, pois esses dados não são fornecidos pelo CEP.`,
+          'Salvar endereço do responsável',
+          { tom: 'info', rotuloConfirmar: 'Salvar no cadastro', rotuloCancelar: 'Cancelar' }
+        );
+        if (!confirmar) return;
+
+        const card = document.getElementById('recordResponsibleCepRecovery');
+        const salvarBtn = card?.querySelector('[data-record-responsible-cep-save]');
+        if (salvarBtn) salvarBtn.disabled = true;
+        const chaveAnterior = recordsState.chaveSelecionada || String(registro?.chave || '');
+        const linhaHint = Number(recordsState.linhaSelecionada || registro?.linhaAtual || 0);
+        try {
+          if (card) card.classList.add('is-saving');
+          const resposta = await apiRequest('config', {
+            consulta: 'registro_corrigir',
+            chave: chaveAnterior,
+            linhaHint,
+            motivo: `Endereço do responsável recuperado pelo CEP ${estado.cep}`,
+            dispositivo: nomeDispositivo_(),
+            alteracoes: { enderecoResponsavel: estado.endereco }
+          }, 65000);
+          limparCachesConsulta_();
+          const novaChave = String(resposta?.chave || chaveAnterior);
+          appStatus.textContent = 'Endereço do responsável salvo na vistoria e registrado na auditoria.';
+          recordResponsibleCepRecoveryState_ = null;
+          await abrirDetalheRegistro_(novaChave, Number(resposta?.linha || linhaHint));
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'endereço do responsável recuperado pelo CEP' });
+        } catch (erro) {
+          if (card) card.classList.remove('is-saving');
+          if (salvarBtn) salvarBtn.disabled = false;
+          avisarGpv_(erro?.message || 'Não foi possível salvar o endereço do responsável.', 'Falha ao salvar');
+        }
+      }
+
+      document.addEventListener('click', event => {
+        const botao = event.target.closest?.('[data-record-responsible-cep-save]');
+        if (!botao) return;
+        event.preventDefault();
+        void salvarEnderecoResponsavelRecuperadoFicha_();
+      });
 
       function hidratarMapaFichaSeNecessario_() {
         const pendente = recordAddressMapLazyPending_;
@@ -10541,7 +10673,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99fa — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99fb — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'local';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10607,6 +10739,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function renderizarFichaRegistro_(registro) {
         recordDetailRegistroAtual = registro || null;
         recordFineEstimateRegistroAtual = registro || null;
+        recordResponsibleCepRecoveryState_ = null;
+        recordResponsibleCepRecoverySeq_ += 1;
         const addressMapRequestToken = ++recordAddressMapRequestSeq_;
         const situacao = registro?.situacaoAtual || 'Sem situação';
         const estabelecimento = padronizarTextoCadastroCliente_(registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social')) || '—';
@@ -10715,6 +10849,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['CEP do responsável', naoInformadoResponsavel_(cepResponsavelFicha)],
           ['Endereço completo do responsável', naoInformadoResponsavel_(enderecoResponsavelCompletoFicha)]
         ];
+        const blocoRecuperacaoEnderecoResponsavel = montarRecuperacaoEnderecoResponsavelFicha_(
+          cepResponsavelFicha,
+          enderecoResponsavelBrutoFicha,
+          registro
+        );
         const eventoDeclaratorio = [
           ['Nº da declaração INFOSCIP', valorCampoFicha_(registro, 'Nº da declaração INFOSCIP')],
           ['Classificação do evento', valorCampoFicha_(registro, 'Classificação do evento')],
@@ -10727,7 +10866,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99fa — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99fb — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -10795,7 +10934,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="processo">${montarGrupoFicha_('Processo', processo, 'record-process-group record-detail-group--wide')}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}</div>` +
-          `<div class="record-detail-module-panel" data-record-section-panel="responsavel">${montarGrupoFicha_(eventoFicha || petFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide')}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="responsavel">${montarGrupoFicha_(eventoFicha || petFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide')}${blocoRecuperacaoEnderecoResponsavel}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="localizacao">${montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group record-detail-group--wide')}${mapaLocalizacaoFicha}</div>`;
 
         const cidadeFichaCabecalho = valorCampoFicha_(registro, 'Cidade');
@@ -10810,6 +10949,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
         if (recordQuickActionsPanel) recordQuickActionsPanel.hidden = false;
         if (recordQuickNewPetBtn) recordQuickNewPetBtn.hidden = !petFicha;
+        if (blocoRecuperacaoEnderecoResponsavel) void consultarRecuperacaoEnderecoResponsavelFicha_(registro, cepResponsavelFicha);
         configurarCorrecaoFicha_(registro);
         configurarCorrecaoResultadoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
@@ -14124,6 +14264,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         }
         const situacaoMultaInfoscip = 'Não conferido';
+        const cepResponsavelPayload = formatarCepCliente_(value('cepResponsavel'));
+        const enderecoResponsavelDigitado = padronizarTextoCadastroCliente_(value('enderecoResponsavel'));
+        const enderecoResponsavelViaCep = (!enderecoResponsavelDigitado && ultimaSugestaoCepResponsavel_ &&
+          normalizarCepCliente_(ultimaSugestaoCepResponsavel_.cep || '') === normalizarCepCliente_(cepResponsavelPayload))
+          ? padronizarTextoCadastroCliente_(ultimaSugestaoCepResponsavel_.endereco || '')
+          : '';
         return {
           _appRegistroId: currentRecordId,
           _appUsuarioId: String(authState.usuario?.id || ''),
@@ -14197,8 +14343,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           escolaridade: value('escolaridade'),
           telefone: value('telefone'),
           email: value('email'),
-          cepResponsavel: formatarCepCliente_(value('cepResponsavel')),
-          enderecoResponsavel: padronizarTextoCadastroCliente_(value('enderecoResponsavel')),
+          cepResponsavel: cepResponsavelPayload,
+          enderecoResponsavel: enderecoResponsavelDigitado || enderecoResponsavelViaCep,
           eventoDeclaracaoNumero: eventoDeclaratorio ? value('eventoDeclaracaoNumero').toUpperCase() : '',
           eventoClassificacao: eventoDeclaratorio ? value('eventoClassificacao') : '',
           eventoNome: eventoTemporario ? padronizarTextoCadastroCliente_(value('eventoNome')) : '',
@@ -15378,7 +15524,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99fa — CEP opcional como preenchimento assistido.
+      // V23.9.99fb — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -15412,6 +15558,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         alvo.textContent = texto;
         alvo.className = `lookup-status cep-lookup-status${texto ? ' show' : ''}${texto ? ` ${tipo}` : ''}`;
       }
+
+      let aplicandoSugestaoCepResponsavel_ = false;
+      let ultimaSugestaoCepResponsavel_ = null;
 
       function configuracaoCepContexto_(contexto) {
         const configuracoes = {
@@ -15507,8 +15656,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } else {
           const alvo = document.getElementById(cfg.enderecoCompletoId);
           if (alvo) {
-            alvo.value = textoSugestaoCep_(resultado);
-            alvo.dispatchEvent(new Event('input', { bubbles: true }));
+            const sugestaoEndereco = textoSugestaoCep_(resultado);
+            if (contexto === 'responsavel') aplicandoSugestaoCepResponsavel_ = true;
+            try {
+              alvo.value = sugestaoEndereco;
+              alvo.dispatchEvent(new Event('input', { bubbles: true }));
+              if (contexto === 'responsavel') {
+                ultimaSugestaoCepResponsavel_ = {
+                  cep: formatarCepCliente_(resultado.cep),
+                  endereco: sugestaoEndereco
+                };
+              }
+            } finally {
+              if (contexto === 'responsavel') aplicandoSugestaoCepResponsavel_ = false;
+            }
           }
         }
 
@@ -15554,7 +15715,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           aplicarResultadoCepContexto_(contexto, cfg, resultado);
           const sugestao = textoSugestaoCep_(resultado);
-          statusCepContexto_(contexto, `${sugestao || 'CEP localizado.'} Dados sugeridos aplicados; altere livremente o que for necessário.`, 'success');
+          const complementoSucesso = contexto === 'responsavel'
+            ? 'Endereço aplicado ao responsável e será salvo junto com a vistoria enquanto permanecer neste campo. Altere livremente se necessário.'
+            : 'Dados sugeridos aplicados; altere livremente o que for necessário.';
+          statusCepContexto_(contexto, `${sugestao || 'CEP localizado.'} ${complementoSucesso}`, 'success');
         } catch (erro) {
           statusCepContexto_(contexto, `${erro?.message || 'Não foi possível consultar o CEP agora.'} Você pode continuar preenchendo manualmente.`, 'error');
         }
@@ -15565,6 +15729,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!campoCep) return;
         const formatado = formatarCepCliente_(campoCep.value);
         if (campoCep.value !== formatado) campoCep.value = formatado;
+      });
+
+      document.addEventListener('input', event => {
+        if (event.target?.id === 'enderecoResponsavel' && !aplicandoSugestaoCepResponsavel_ && ultimaSugestaoCepResponsavel_) {
+          const atual = String(event.target.value || '').trim();
+          if (normalize(atual) !== normalize(ultimaSugestaoCepResponsavel_.endereco || '')) ultimaSugestaoCepResponsavel_ = null;
+        }
+        if (event.target?.id === 'cepResponsavel' && ultimaSugestaoCepResponsavel_) {
+          const atualCep = formatarCepCliente_(event.target.value || '');
+          if (normalizarCepCliente_(atualCep) !== normalizarCepCliente_(ultimaSugestaoCepResponsavel_.cep || '')) ultimaSugestaoCepResponsavel_ = null;
+        }
       });
 
       document.addEventListener('click', event => {
@@ -16327,7 +16502,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99fa — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99fb — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -18247,6 +18422,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function resetForm(preservarRascunhoAtual = false, limpezaForte = false) {
         restaurarPainelProgramadas_(false);
+        ultimaSugestaoCepResponsavel_ = null;
+        aplicandoSugestaoCepResponsavel_ = false;
         preparacaoEmUsoId = '';
         dduEmUsoId = '';
         dduEmUsoNumero = '';
@@ -18345,7 +18522,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return valor || '—';
       }
 
-      // V23.9.99fa — conferência inteligente antes de finalizar.
+      // V23.9.99fb — conferência inteligente antes de finalizar.
       // Mantém as regras obrigatórias existentes e acrescenta somente:
       // 1) bloqueios para inconsistências objetivas; 2) alertas de conferência não impeditivos.
       function dataHoraComparavelConferencia_(valor) {
@@ -23783,7 +23960,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fa', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
