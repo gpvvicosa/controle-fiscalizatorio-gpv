@@ -20546,3 +20546,26 @@ body.inspection-awaiting-first-edit #activeInspectionNotificationsBtn{
   .registered-inspection-detail-actions #registeredInspectionDetailStartBtn{margin-left:0;grid-column:1/-1}
   .registered-inspection-detail-actions #registeredInspectionDetailFileBtn{width:100%;text-align:center}
 }
+
+
+/* ============================================================
+   V23.9.99ff — Traçar rota sem iniciar vistoria
+   ============================================================ */
+.address-location-btn--route{
+  text-decoration:none;
+  background:#eef5ff;
+  border-color:#b8c8e4;
+  color:#214d86;
+}
+.address-location-btn--route:hover{
+  background:#e5effd;
+  border-color:#91acd1;
+}
+.address-location-btn--route[hidden]{display:none!important}
+.registered-inspection-route-btn{
+  text-decoration:none;
+  font-weight:850!important;
+}
+@media(max-width:680px){
+  .registered-inspection-detail-actions #registeredInspectionDetailRouteBtn{width:100%;text-align:center}
+}

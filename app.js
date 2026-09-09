@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fe';
+      const APP_VERSION = '23.9.99ff';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2226,6 +2226,7 @@
       const registeredInspectionDetailCloseBtn = document.getElementById('registeredInspectionDetailCloseBtn');
       const registeredInspectionDetailBackBtn = document.getElementById('registeredInspectionDetailBackBtn');
       const registeredInspectionDetailFileBtn = document.getElementById('registeredInspectionDetailFileBtn');
+      const registeredInspectionDetailRouteBtn = document.getElementById('registeredInspectionDetailRouteBtn');
       const registeredInspectionDetailStartBtn = document.getElementById('registeredInspectionDetailStartBtn');
       const prepareDwgWrap = document.getElementById('prepareDwgWrap');
       const prepareDwgFile = document.getElementById('prepareDwgFile');
@@ -2312,6 +2313,7 @@
 
       const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
       const chooseMapLocationBtn = document.getElementById('chooseMapLocationBtn');
+      const routeToInspectionBtn = document.getElementById('routeToInspectionBtn');
       const locationAddressStatus = document.getElementById('locationAddressStatus');
       // V23.9.99db — estas referências precisam ser renováveis. Na versão anterior,
       // o app.js podia ser executado antes do HTML do seletor de mapa ser analisado,
@@ -2480,7 +2482,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fe';
+      const APP_REVISION_UI_ = '23.9.99ff';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4513,7 +4515,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fe', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ff', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6964,6 +6966,60 @@
         if (!endereco || endereco === '—') return '';
         const consulta = [endereco, cidade, 'MG'].filter(Boolean).join(', ');
         return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta)}`;
+      }
+
+      // V23.9.99ff — rota para o local da vistoria. A origem é deixada em branco
+      // para o Google Maps utilizar a posição atual/selecionada pelo próprio usuário.
+      // A simples abertura desta URL é somente navegação: não cria rascunho e não
+      // altera o estado de início da vistoria.
+      function urlRotaGoogleMaps_(dados = {}) {
+        const lat = Number(String(dados.latitude ?? '').trim().replace(',', '.'));
+        const lon = Number(String(dados.longitude ?? '').trim().replace(',', '.'));
+        let destino = '';
+        if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0)) {
+          destino = `${lat},${lon}`;
+        } else {
+          const enderecoBase = String(dados.endereco || '').trim();
+          if (!enderecoBase) return '';
+          destino = [
+            enderecoBase,
+            dados.numero,
+            dados.bairro,
+            dados.cidade,
+            dados.uf || 'MG'
+          ].map(v => String(v || '').trim()).filter(Boolean).join(', ');
+        }
+        if (!destino) return '';
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destino)}&travelmode=driving`;
+      }
+
+      function urlRotaVistoriaCadastrada_(item = {}) {
+        return urlRotaGoogleMaps_({
+          latitude: item.localizacaoLatitude || item.latitude || '',
+          longitude: item.localizacaoLongitude || item.longitude || '',
+          endereco: item.endereco || '',
+          numero: item.numero || '',
+          bairro: item.bairro || '',
+          cidade: item.cidade || '',
+          uf: item.uf || item.estado || 'MG'
+        });
+      }
+
+      function atualizarLinkRotaVistoria_() {
+        if (!routeToInspectionBtn) return;
+        const url = urlRotaGoogleMaps_({
+          latitude: value('localizacaoLatitude'),
+          longitude: value('localizacaoLongitude'),
+          endereco: value('endereco'),
+          numero: value('numero'),
+          bairro: value('bairro'),
+          cidade: cityValue(),
+          uf: 'MG'
+        });
+        routeToInspectionBtn.hidden = !url;
+        routeToInspectionBtn.href = url || '#';
+        if (url) routeToInspectionBtn.setAttribute('aria-label', 'Traçar rota até o endereço desta vistoria no Google Maps');
+        else routeToInspectionBtn.removeAttribute('aria-label');
       }
 
       function atalhosCardPainelHtml_(item) {
@@ -16157,6 +16213,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
         if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
         if (localizacaoOrigemInput) localizacaoOrigemInput.value = 'mapa';
+        atualizarLinkRotaVistoria_();
         fecharSeletorLocalizacaoMapa_();
         scheduleDraftSave();
         mostrarStatusLocalizacao_(
@@ -16320,6 +16377,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
             if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
             if (localizacaoOrigemInput) localizacaoOrigemInput.value = 'gps_auto';
+            atualizarLinkRotaVistoria_();
             ultimoErroCapturaLocalizacaoAutomatica_ = '';
             scheduleDraftSave();
             resolve(true);
@@ -16380,6 +16438,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (localizacaoCapturadaEmInput) localizacaoCapturadaEmInput.value = new Date().toISOString();
             if (localizacaoEnderecoIdentificadoInput) localizacaoEnderecoIdentificadoInput.value = '';
             if (localizacaoOrigemInput) localizacaoOrigemInput.value = 'gps';
+            atualizarLinkRotaVistoria_();
 
             scheduleDraftSave();
 
@@ -18379,6 +18438,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
         if (sancaoSelect && p.sancao) sancaoSelect.value = String(p.sancao);
         syncOtherCity(); syncLicenciamento(); syncPscip_(); syncNotificado(); sincronizarDemandasEspeciais_(); atualizarCampoRenovacaoAvcb_(); atualizarVerificacaoMetasFiscalizacao_();
+        atualizarLinkRotaVistoria_();
       }
 
       function restoreDraft() {
@@ -18507,6 +18567,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
         syncPendenciaDocumental_();
         syncOtherCity();
+        atualizarLinkRotaVistoria_();
         syncLicenciamento();
         syncPscip_();
         sincronizarDemandasEspeciais_();
@@ -20649,6 +20710,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function fecharDetalheVistoriaCadastrada_(restaurarLista = true) {
         const origem = detalheVistoriaCadastradaAtual_?.tipo || '';
         if (registeredInspectionDetailModal) registeredInspectionDetailModal.hidden = true;
+        if (registeredInspectionDetailRouteBtn) { registeredInspectionDetailRouteBtn.hidden = true; registeredInspectionDetailRouteBtn.href = '#'; }
         detalheVistoriaCadastradaAtual_ = null;
         document.body.classList.remove('registered-inspection-detail-open');
         if (!restaurarLista) return;
@@ -20663,6 +20725,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const pet = !ehDdu && normalize(item.demandaPrincipal || '') === normalize('PET');
         const eventoDeclaratorio = !ehDdu && (normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero));
         detalheVistoriaCadastradaAtual_ = { tipo, id: String(item.id || '') };
+        const urlRota = urlRotaVistoriaCadastrada_(item);
+        if (registeredInspectionDetailRouteBtn) {
+          registeredInspectionDetailRouteBtn.hidden = !urlRota;
+          registeredInspectionDetailRouteBtn.href = urlRota || '#';
+          registeredInspectionDetailRouteBtn.textContent = 'Traçar rota';
+          registeredInspectionDetailRouteBtn.setAttribute('aria-label', ehDdu ? 'Traçar rota até o endereço do DDU no Google Maps' : 'Traçar rota até o endereço da vistoria no Google Maps');
+        }
 
         if (registeredInspectionDetailBrand) registeredInspectionDetailBrand.hidden = !ehDdu;
         if (registeredInspectionDetailKicker) registeredInspectionDetailKicker.textContent = ehDdu ? 'DDU — Disque Denúncia Unificado' : 'Vistoria cadastrada';
@@ -20899,6 +20968,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();}
         aplicarModoEventoDeclaratorio_({silencioso:true});
         sincronizarDemandasEspeciais_();
+        atualizarLinkRotaVistoria_();
         agendarConsultaProcessoPf_('form',180);
         if (draftStatus) draftStatus.textContent = 'Aguardando primeiro preenchimento';
         appStatus.textContent=`DDU ${dduEmUsoNumero||'181'} carregado para consulta/preenchimento. A vistoria só será iniciada quando houver a primeira alteração operacional.`;
@@ -22694,6 +22764,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         applyIdentificadorMask();
         atualizarVerificacaoMetasFiscalizacao_();
+        atualizarLinkRotaVistoria_();
         agendarConsultaProcessoPf_('form', 180);
         rolarParaFormularioProgramado_();
         if (draftStatus) draftStatus.textContent = 'Aguardando primeiro preenchimento';
@@ -23228,6 +23299,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (event.target.classList.contains('invalid') && String(event.target.value || '').trim() && (!validacaoGuiadaAtiva_ || event.target !== validacaoGuiadaAtual_)) event.target.classList.remove('invalid');
         if (document.getElementById('mesmoEnderecoResponsavel').checked && ['endereco','numero','complemento','bairro'].includes(event.target.id)) syncResponsibleAddress();
+        if (['endereco','numero','bairro','outraCidade'].includes(event.target.id)) atualizarLinkRotaVistoria_();
         if (ehFluxoLiberacao_() && ['endereco','numero','cnpj','pscip'].includes(event.target.id)) {
           agendarConsultaRetornoLiberacao_(650);
         }
@@ -23235,6 +23307,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       form.addEventListener('change', event => {
         if (event.isTrusted) ativarInicioEfetivoVistoria_('alteração do formulário');
+        if (['endereco','numero','bairro','cidadeSelect','outraCidade'].includes(event.target.id)) atualizarLinkRotaVistoria_();
         if (ehFluxoLiberacao_() && ['endereco','numero','cnpj','pscip','cidade','cidadeOutro'].includes(event.target.id)) {
           agendarConsultaRetornoLiberacao_(250);
         }
@@ -24229,7 +24302,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fe', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ff', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
