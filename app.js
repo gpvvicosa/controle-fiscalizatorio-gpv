@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fh';
+      const APP_VERSION = '23.9.99fi';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2499,7 +2499,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fh';
+      const APP_REVISION_UI_ = '23.9.99fi';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4532,7 +4532,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fh', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fi', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -18099,9 +18099,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const autoAtual = prepare ? preparePfAutoAtual : processoPfAutoAtual;
           if (input && autoAtual && String(input.value || '').trim() === autoAtual) input.value = '';
           if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
-          if (status) { status.textContent = (!prepare && ehVistoriaAcessoria_())
-            ? 'Nenhum processo fiscalizatório anterior autuado e ainda aberto foi localizado pelos dados informados.'
-            : 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.'; status.className = 'lookup-status show info'; }
+          if (status) {
+            const pfInformado = String((prepare ? preparePfInput : processPfInput)?.value || '').trim();
+            status.textContent = (!prepare && ehVistoriaAcessoria_())
+              ? 'Nenhum processo fiscalizatório anterior autuado e ainda aberto foi localizado pelos dados informados.'
+              : (pfInformado.length >= 5
+                ? `Nenhum processo localizado para o Nº do PF ${pfInformado}.`
+                : 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.');
+            status.className = 'lookup-status show info';
+          }
           return;
         }
         if (!prepare && ehVistoriaAcessoria_()) {
@@ -18147,11 +18153,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const chave = chaveFiltrosProcessoPf_(filtros);
         const status = prepare ? preparePfLookupStatus : processPfLookupStatus;
         if (status) {
+          const pfDigitado = String(filtros.pf || '').trim();
           status.textContent = ((!prepare && ehEventoDeclaratorio_()) || (prepare && ehEventoDeclaratorioPreparacao_()))
             ? 'Verificando histórico de eventos declaratórios pelo endereço do evento...'
-            : (!prepare && ehVistoriaAcessoria_())
-              ? 'Localizando processo fiscalizatório anterior de local já autuado...'
-              : 'Verificando processo anterior por Nº do PF, CNPJ/CPF, PSCIP e endereço...';
+            : pfDigitado.length >= 5
+              ? `Buscando Nº do PF ${pfDigitado} na planilha...`
+              : (!prepare && ehVistoriaAcessoria_())
+                ? 'Localizando processo fiscalizatório anterior de local já autuado...'
+                : 'Verificando processo anterior por Nº do PF, CNPJ/CPF, PSCIP e endereço...';
           status.className = 'lookup-status show info';
         }
         try {
@@ -23832,7 +23841,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           processoAcessoriaVinculado = null;
           sincronizarVistoriaAcessoria_();
         }
+        // V23.9.99fi — Nº do PF é uma chave de consulta por si só.
+        // Ao completar/digitar o PF, a pesquisa é disparada automaticamente,
+        // sem depender de CNPJ, PSCIP ou endereço.
+        agendarConsultaProcessoPf_('form', 320);
       });
+      processPfInput?.addEventListener('blur', () => agendarConsultaProcessoPf_('form', 80));
       sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       pendenciaDocumentalSelect?.addEventListener('change', scheduleDraftSave);
       situacaoMultaInfoscipSelect?.addEventListener('change', () => { scheduleDraftSave(); agendarConsultaEncerramentoFiscal_(); });

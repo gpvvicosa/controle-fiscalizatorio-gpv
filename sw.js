@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260909-v23-9-99-fh-consultas-cep-cnpj-pf';
-const VERSION = '23.9.99fh';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260909-v23-9-99-fi-pf-automatico-toda-planilha';
+const VERSION = '23.9.99fi';
 
 const CORE_SHELL = [
   './',
