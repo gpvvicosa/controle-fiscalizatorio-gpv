@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fb';
+      const APP_VERSION = '23.9.99fc';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1732,7 +1732,7 @@
       let premiumFeedbackTimer_ = 0;
       let premiumFeedbackLastText_ = '';
 
-      // V23.9.99fb — feedback operacional não bloqueante. Mantém os diálogos
+      // V23.9.99fc — feedback operacional não bloqueante. Mantém os diálogos
       // de confirmação existentes e apenas espelha conclusões/alertas relevantes.
       function classificarFeedbackPremium_(mensagem) {
         const texto = String(mensagem || '').trim();
@@ -2465,7 +2465,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fb';
+      const APP_REVISION_UI_ = '23.9.99fc';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4498,7 +4498,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fb', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fc', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4882,7 +4882,7 @@
         return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
       }
 
-      // V23.9.99fb — padronização visual/cadastral, com números romanos preservados em maiúsculas.
+      // V23.9.99fc — padronização visual/cadastral, com números romanos preservados em maiúsculas.
       const TEXTO_CADASTRO_CONECTORES_ = new Set(['a','as','e','o','os','da','das','de','do','dos','em','na','nas','no','nos','por','para']);
       const TEXTO_CADASTRO_SIGLAS_ = new Map([
         ['tjmg','TJMG'], ['cbmmg','CBMMG'], ['avcb','AVCB'], ['clcb','CLCB'], ['pscip','PSCIP'],
@@ -4913,7 +4913,7 @@
           return prefixo + rodovia[1].toLocaleUpperCase('pt-BR') + '-' + rodovia[2] + sufixo;
         }
 
-        // V23.9.99fb — números romanos válidos permanecem sempre em maiúsculas.
+        // V23.9.99fc — números romanos válidos permanecem sempre em maiúsculas.
         // Ex.: xxix -> XXIX, bloco iv -> Bloco IV.
         const romano = nucleo.toLocaleUpperCase('pt-BR');
         if (/^(?=[MDCLXVI]+$)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(romano)) {
@@ -6416,7 +6416,7 @@
       }
 
       function vistaInicialPorDispositivo_() {
-        // V23.9.99fb — entrada padrão do aplicativo: Painel em qualquer dispositivo.
+        // V23.9.99fc — entrada padrão do aplicativo: Painel em qualquer dispositivo.
         // Rotas explícitas (ex.: ?view=vistoria), acesso auxiliar e ações de retomada
         // continuam podendo abrir diretamente o fluxo correspondente.
         return 'records';
@@ -6923,7 +6923,7 @@
         return { principal, detalhe };
       }
 
-      // V23.9.99fb — identidade visual dos cards do Painel sem alterar a lógica do processo.
+      // V23.9.99fc — identidade visual dos cards do Painel sem alterar a lógica do processo.
       function classesCardPainel_(item) {
         const classes = ['records-card', classeStatus_(item?.sancao || '')];
         const demanda = normalize(item?.demanda || '');
@@ -7602,7 +7602,7 @@
         });
       }
 
-      // V23.9.99fb — tarefas secundárias são adiadas para não competir com a renderização principal.
+      // V23.9.99fc — tarefas secundárias são adiadas para não competir com a renderização principal.
       function agendarTarefaOciosa_(tarefa, atrasoMaximo = 700) {
         if (typeof tarefa !== 'function') return;
         if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
@@ -7987,12 +7987,12 @@
           'prazo / proxima acao', 'proxima acao', 'local do evento', 'observacao geral'
         ];
         if (camposLargos.includes(chave) || chave.includes('endereco')) classes.push('is-wide');
-        // V23.9.99fb — no mobile, textos naturalmente longos ocupam a largura total
+        // V23.9.99fc — no mobile, textos naturalmente longos ocupam a largura total
         // sem obrigar os demais dados curtos a ficarem em uma única coluna.
         if (chave.includes('e-mail') || chave.includes('observacao') || chave.includes('descricao')) classes.push('is-wide-mobile');
         if (normalize(valor || '') === normalize('Não informado')) classes.push('is-empty');
 
-        // V23.9.99fb — classes visuais premium para enriquecer o interior da Ficha.
+        // V23.9.99fc — classes visuais premium para enriquecer o interior da Ficha.
         const camposIdentidade = [
           'nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador',
           'responsavel / vinculo', 'cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador',
@@ -8008,7 +8008,7 @@
         if (['nome', 'estabelecimento', 'nome do evento', 'razao social', 'razao social / organizador'].includes(chave)) classes.push('field-featured');
         if (['cpf', 'cnpj', 'cnpj do organizador', 'cpf/cnpj do organizador', 'cnpj / cpf', 'cnpj / cpf do estabelecimento', 'nº do pf', 'nº do auto', 'reds'].includes(chave) || chave.includes('pscip') || chave.includes('avcb')) classes.push('field-mono');
 
-        // V23.9.99fb — cards do resumo da Ficha mantêm identidade própria.
+        // V23.9.99fc — cards do resumo da Ficha mantêm identidade própria.
         if (chave === normalize('Situação atual')) classes.push('record-summary-card', 'record-summary-card--status', classeStatus_(valor));
         else if (chave === normalize('Próxima ação')) classes.push('record-summary-card', 'record-summary-card--action');
         else if (chave === normalize('Situação de multa')) classes.push('record-summary-card', 'record-summary-card--fine');
@@ -9736,7 +9736,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
       }
 
-      // V23.9.99fb — Centro de correção completa da vistoria.
+      // V23.9.99fc — Centro de correção completa da vistoria.
       // A situação administrativa (sanção, multa e evolução no INFOSCIP) continua
       // separada por segurança; os demais dados operacionais podem ser corrigidos.
       function registroEhPetCorrecao_(registro) {
@@ -10673,7 +10673,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      // V23.9.99fb — Ficha modular: o usuário escolhe a seção necessária no momento.
+      // V23.9.99fc — Ficha modular: o usuário escolhe a seção necessária no momento.
       let recordDetailSectionActive_ = 'local';
       const RECORD_DETAIL_SECTION_HINTS_ = {
         resumo: 'Visão rápida da situação atual e do que exige atenção.',
@@ -10866,7 +10866,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Telefone', valorCampoFicha_(registro, 'Telefone do organizador')]
         ];
         const petFicha = registroEhPetFicha_(registro);
-        // V23.9.99fb — permite identidade visual própria da Ficha quando o processo é PET.
+        // V23.9.99fc — permite identidade visual própria da Ficha quando o processo é PET.
         recordDetailScreen?.classList.toggle('record-detail-is-pet', petFicha);
         const petEvento = [
           ['Nome do evento', valorCampoFicha_(registro, 'Nome do evento') || estabelecimento],
@@ -15524,7 +15524,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         syncOtherCity();
       }
 
-      // V23.9.99fb — CEP opcional como preenchimento assistido.
+      // V23.9.99fc — CEP opcional como preenchimento assistido.
       // O CEP nunca é obrigatório e o endereço retornado é somente uma sugestão editável.
       function normalizarCepCliente_(valor) {
         return String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -16502,7 +16502,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function limparDadosEmpresaParaNovoCnpj_(novoCnpj) {
-        // V23.9.99fb — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
+        // V23.9.99fc — CNPJ identifica a empresa, mas o endereço da vistoria é independente.
         // Ao trocar o CNPJ, limpa apenas os dados empresariais; o local já confirmado
         // pelo vistoriador não é apagado nem substituído silenciosamente.
         const campos = ['nomeFantasia', 'razaoSocial'];
@@ -18522,7 +18522,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return valor || '—';
       }
 
-      // V23.9.99fb — conferência inteligente antes de finalizar.
+      // V23.9.99fc — conferência inteligente antes de finalizar.
       // Mantém as regras obrigatórias existentes e acrescenta somente:
       // 1) bloqueios para inconsistências objetivas; 2) alertas de conferência não impeditivos.
       function dataHoraComparavelConferencia_(valor) {
@@ -20570,13 +20570,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
       }
 
-      function preencherVistoriadoresDdu_() {
-        const el=document.getElementById('dduVistoriador'); if(!el) return;
-        const atual=el.value; const nomes=Array.from(new Set((usuariosAtivosApp||[]).map(u=>String(u?.nome||u||'').trim()).filter(Boolean)));
-        el.innerHTML='<option value="">Não definido</option>'+nomes.map(n=>`<option value="${escapeAttr(n)}">${escapeHtml(n)}</option>`).join(''); if(atual) el.value=atual;
-      }
       function abrirCadastroDdu_(){
-        if(!dduRegisterModal) return; preencherVistoriadoresDdu_();
+        if(!dduRegisterModal) return;
         const hoje=new Date(); const iso=new Date(hoje.getTime()-hoje.getTimezoneOffset()*60000).toISOString().slice(0,10);
         document.getElementById('dduRecebimento').value=iso; if(dduRegisterError){dduRegisterError.hidden=true;dduRegisterError.textContent='';}
         statusCepContexto_('ddu', '');
@@ -20592,10 +20587,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // V23.9.54 — o atalho DDU só existe visualmente quando há demanda pendente.
         // Registros concluídos/cancelados continuam disponíveis na janela DDU, mas não geram alerta na vistoria.
         if (dduSummaryCard) dduSummaryCard.hidden = ativos.length === 0;
-        if(dduSummaryCount)dduSummaryCount.textContent=String(ativos.length); if(dduSummaryText)dduSummaryText.textContent=ativos.length?`${ativos.length} demanda(s) pendente(s)${vencidos?` • ${vencidos} atrasada(s)`:criticos?` • ${criticos} próxima(s) do prazo`:''}`:'Nenhuma demanda pendente';
+        if(dduSummaryCount)dduSummaryCount.textContent=String(ativos.length);
+        if(dduSummaryText){
+          const base=ativos.length===1?'1 DDU aguardando vistoria':`${ativos.length} DDUs aguardando vistoria`;
+          const prazo=vencidos?` • ${vencidos} atrasada(s)`:criticos?` • ${criticos} próxima(s) do prazo`:'';
+          dduSummaryText.textContent=ativos.length?`${base}${prazo}`:'Nenhuma DDU pendente';
+        }
         dduSummaryCard?.classList.toggle('is-danger',vencidos>0); dduSummaryCard?.classList.toggle('is-warning',!vencidos&&criticos>0);
         if(!dduList)return;
-        const card=(x,concluido=false)=>{const p=classificarPrazoDdu_(x.dataLimite); const end=[x.endereco,x.numero,x.bairro,x.cidade].filter(Boolean).join(', '); let ret=''; if(concluido&&x.excluirArquivoApos){const fim=new Date(x.excluirArquivoApos); if(!Number.isNaN(fim.getTime())){const h=Math.max(0,Math.ceil((fim-Date.now())/3600000));ret=`Concluído • PDF disponível por cerca de ${h} h`;}} return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3><p>${escapeHtml(end)}</p><p>${x.vistoriadorResponsavel?`<b>Vistoriador:</b> ${escapeHtml(x.vistoriadorResponsavel)}`:'Vistoriador não definido'}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O PDF será enviado automaticamente para a lixeira após 24 h.':'PDF disponível enquanto a demanda estiver aberta e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener">Ver PDF</a>`:''}${concluido?'':`<button class="btn btn-primary ddu-start-btn" type="button" data-ddu-start="${escapeAttr(x.id)}">Iniciar fiscalização</button>`}</div></article>`};
+        const card=(x,concluido=false)=>{
+          const p=classificarPrazoDdu_(x.dataLimite);
+          const end=[x.endereco,x.numero,x.bairro,x.cidade].filter(Boolean).join(', ');
+          let ret='';
+          if(concluido&&x.excluirArquivoApos){
+            const fim=new Date(x.excluirArquivoApos);
+            if(!Number.isNaN(fim.getTime())){const h=Math.max(0,Math.ceil((fim-Date.now())/3600000));ret=`Concluído • PDF disponível por cerca de ${h} h`;}
+          }
+          const atendimento=concluido
+            ? (x.vistoriadorResponsavel?`<b>Vistoriador:</b> ${escapeHtml(x.vistoriadorResponsavel)}`:'Vistoria concluída')
+            : '<b>Atendimento:</b> disponível para toda a equipe do GPV';
+          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3><p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O PDF será enviado automaticamente para a lixeira após 24 h.':'PDF disponível enquanto a demanda estiver aberta e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener">Ver PDF</a>`:''}${concluido?'':`<button class="btn btn-primary ddu-start-btn" type="button" data-ddu-start="${escapeAttr(x.id)}">Iniciar fiscalização</button>`}</div></article>`;
+        };
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
       function lerCacheDdus_() {
@@ -20671,12 +20683,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const prazo=document.getElementById('dduPrazo').value, endereco=document.getElementById('dduEndereco').value.trim(), cidade=document.getElementById('dduCidade').value.trim(); const file=document.getElementById('dduPdfFile').files?.[0];
         if(!prazo||!endereco||!cidade||!file){if(dduRegisterError){dduRegisterError.textContent='Preencha data limite, cidade, endereço e selecione o PDF.';dduRegisterError.hidden=false;}return;}
         try{dduRegisterSaveBtn.disabled=true;dduRegisterSaveBtn.textContent='Enviando PDF...'; const arq=await lerArquivoBase64_(file,8*1024*1024,'.pdf');
-          await apiRequest('config',{consulta:'ddu_salvar',payload:{numeroDdu:document.getElementById('dduNumero').value,dataRecebimento:document.getElementById('dduRecebimento').value,dataLimite:prazo,vistoriadorResponsavel:document.getElementById('dduVistoriador').value,cidade,cep:formatarCepCliente_(document.getElementById('dduCep').value),endereco,numero:document.getElementById('dduEnderecoNumero').value,bairro:document.getElementById('dduBairro').value,complemento:document.getElementById('dduComplemento').value,observacao:document.getElementById('dduObservacao').value,arquivo:arq}},120000);
+          await apiRequest('config',{consulta:'ddu_salvar',payload:{numeroDdu:document.getElementById('dduNumero').value,dataRecebimento:document.getElementById('dduRecebimento').value,dataLimite:prazo,vistoriadorResponsavel:'',cidade,cep:formatarCepCliente_(document.getElementById('dduCep').value),endereco,numero:document.getElementById('dduEnderecoNumero').value,bairro:document.getElementById('dduBairro').value,complemento:document.getElementById('dduComplemento').value,observacao:document.getElementById('dduObservacao').value,arquivo:arq}},120000);
           fecharCadastroDdu_(); await carregarDdUs_(); if(dduListModal)dduListModal.hidden=false;
         }catch(e){if(dduRegisterError){dduRegisterError.textContent=e?.message||'Não foi possível cadastrar o DDU.';dduRegisterError.hidden=false;}}
         finally{dduRegisterSaveBtn.disabled=false;dduRegisterSaveBtn.textContent='Salvar DDU';}
       }
-      function iniciarDdu_(item){ if(!item)return; if(!prepararFormularioNovaVistoria_('DDU')) return; dduEmUsoId=String(item.id||''); dduEmUsoNumero=String(item.numeroDdu||'').trim(); if(dduListModal)dduListModal.hidden=true; aplicarFluxoVistoria_('fiscalizacao',{silencioso:true}); const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v}; set('demandaPrincipal','DDU'); set('dduProtocol',dduEmUsoNumero); set('cep',item.cep);set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);set('vistoriadorResponsavel',item.vistoriadorResponsavel); if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();} aplicarModoEventoDeclaratorio_({silencioso:true}); sincronizarDemandasEspeciais_(); agendarConsultaProcessoPf_('form',180); scheduleDraftSave(); appStatus.textContent='DDU carregado em formulário limpo. Complete os dados da fiscalização.'; }
+      async function iniciarDdu_(item){
+        if(!item)return;
+        if(dduListModal)dduListModal.hidden=true;
+        await mostrarVistaFormulario_();
+        if(!prepararFormularioNovaVistoria_('DDU')) return;
+        dduEmUsoId=String(item.id||'');
+        dduEmUsoNumero=String(item.numeroDdu||'').trim();
+        aplicarFluxoVistoria_('fiscalizacao',{silencioso:true});
+        const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v};
+        set('demandaPrincipal','DDU');
+        set('dduProtocol',dduEmUsoNumero);
+        set('cep',item.cep);set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);
+        set('vistoriadorResponsavel',authState.usuario?.nome || item.vistoriadorResponsavel);
+        if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();}
+        aplicarModoEventoDeclaratorio_({silencioso:true});
+        sincronizarDemandasEspeciais_();
+        agendarConsultaProcessoPf_('form',180);
+        scheduleDraftSave();
+        appStatus.textContent=`DDU ${dduEmUsoNumero||'181'} carregada. Atendimento iniciado por ${authState.usuario?.nome || 'usuário atual'}.`;
+      }
 
       function abrirModalPreparacao_(opcoes = {}) {
         fecharMenuMais_();
@@ -22747,7 +22778,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
-      dduList?.addEventListener('click', e => { const b=e.target.closest('[data-ddu-start]'); if(!b)return; iniciarDdu_(ddusAtivos.find(x=>String(x.id)===String(b.dataset.dduStart))); });
+      dduList?.addEventListener('click', e => { const b=e.target.closest('[data-ddu-start]'); if(!b)return; void iniciarDdu_(ddusAtivos.find(x=>String(x.id)===String(b.dataset.dduStart))); });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
       desktopPrepareInspectionBtn?.addEventListener('click', () => { fecharListaProgramadas_(); abrirModalPreparacao_({ retornarProgramadas: true }); });
       prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
@@ -23960,7 +23991,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fb', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fc', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

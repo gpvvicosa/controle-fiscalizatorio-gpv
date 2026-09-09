@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260908-v23-9-99-fb-responsavel';
-const VERSION = '23.9.99fb';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260909-v23-9-99-fc-ddu-equipe';
+const VERSION = '23.9.99fc';
 
 const CORE_SHELL = [
   './',
@@ -14,6 +14,7 @@ const CORE_SHELL = [
   `./assets/app-vistoriador-icon-512-ck.png?v=${VERSION}`,
   `./assets/splash-app-vistoriador.webp?v=${VERSION}`,
   `./assets/splash-app-vistoriador-desktop.webp?v=${VERSION}`,
+  `./assets/logo-ddu-181.webp?v=${VERSION}`,
   './offline.html'
 ];
 

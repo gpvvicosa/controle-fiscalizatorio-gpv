@@ -19675,7 +19675,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =========================================================
-   V23.9.99fb — Premium da área Mais + Acessos úteis
+   V23.9.99fc — Premium da área Mais + Acessos úteis
    ========================================================= */
 .app-more-menu{
   background:
@@ -19972,7 +19972,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =========================================================
-   V23.9.99fb — Ficha mobile compacta e mais eficiente
+   V23.9.99fc — Ficha mobile compacta e mais eficiente
    Reduz rolagem vertical sem alterar dados ou lógica.
    ========================================================= */
 @media (max-width:680px){
@@ -20112,7 +20112,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =============================================================================
-   V23.9.99fb — Recuperação do endereço do responsável pelo CEP
+   V23.9.99fc — Recuperação do endereço do responsável pelo CEP
    ============================================================================= */
 body.records-mode .record-responsible-cep-recovery{
   display:grid;
@@ -20244,4 +20244,170 @@ body.records-mode .record-responsible-cep-recovery.is-saving{opacity:.72;pointer
 }
 @media(prefers-reduced-motion:reduce){
   body.records-mode .record-responsible-cep-recovery.is-loading .record-responsible-cep-recovery-icon{animation:none!important}
+}
+
+
+/* =========================================================
+   V23.9.99fc — DDU 181: demanda coletiva no Painel inicial
+   ========================================================= */
+body.records-mode .dashboard-ddu-summary-card{
+  width:auto;
+  margin:14px 20px 0;
+  padding:12px 16px;
+  min-height:82px;
+  border:1px solid #bfd8f5;
+  border-left:5px solid #1478e5;
+  border-radius:18px;
+  background:linear-gradient(135deg,#ffffff 0%,#f3f8ff 58%,#fff7f7 100%);
+  box-shadow:0 10px 28px rgba(15,23,42,.07);
+}
+body.records-mode .dashboard-ddu-summary-card:hover{
+  border-color:#8bbcf0;
+  box-shadow:0 14px 34px rgba(20,120,229,.12);
+}
+.ddu-summary-brand{
+  flex:0 0 auto;
+  width:172px;
+  height:58px;
+  padding:5px 8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  border-radius:14px;
+  background:#05080d;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 8px 18px rgba(15,23,42,.16);
+}
+.ddu-summary-brand img,
+.ddu-list-title-brand img,
+.ddu-register-brand img,
+.useful-link-ddu-brand img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+body.records-mode .dashboard-ddu-summary-card .ddu-summary-copy strong{
+  color:#13233a;
+  font-size:1.04rem;
+  line-height:1.2;
+}
+body.records-mode .dashboard-ddu-summary-card .ddu-summary-copy small{
+  color:#53657a;
+  font-size:.84rem;
+  line-height:1.35;
+}
+body.records-mode .dashboard-ddu-summary-card .ddu-summary-count{
+  min-width:42px;
+  height:42px;
+  padding:0 12px;
+  background:#e8f2ff;
+  color:#0759aa;
+  border:1px solid #c9e0fb;
+}
+body.records-mode .dashboard-ddu-summary-card.is-warning .ddu-summary-count{
+  background:#fff3cd;
+  color:#8a5a00;
+  border-color:#f1d58c;
+}
+body.records-mode .dashboard-ddu-summary-card.is-danger .ddu-summary-count{
+  background:#fee2e2;
+  color:#991b1b;
+  border-color:#f2b8b5;
+}
+
+.ddu-register-title-wrap{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:0;
+}
+.ddu-register-brand,
+.ddu-list-title-brand{
+  flex:0 0 auto;
+  width:142px;
+  height:47px;
+  padding:4px 7px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  background:#05080d;
+  overflow:hidden;
+  box-shadow:0 7px 18px rgba(15,23,42,.16);
+}
+.ddu-register-head p{
+  max-width:700px;
+  line-height:1.35;
+}
+.ddu-list-title-wrap > div small{
+  display:block;
+  margin-top:3px;
+  color:#667085;
+  font-size:.76rem;
+  font-weight:700;
+}
+.ddu-team-status{
+  color:#245b3d!important;
+}
+.ddu-team-status b{
+  color:#17482f;
+}
+.useful-link-ddu-brand{
+  padding:5px!important;
+  background:#05080d!important;
+  overflow:hidden!important;
+}
+
+@media(max-width:700px){
+  body.records-mode .dashboard-ddu-summary-card{
+    margin:10px 12px 0;
+    padding:10px 11px;
+    min-height:74px;
+    gap:10px;
+    border-radius:16px;
+  }
+  .ddu-summary-brand{
+    width:116px;
+    height:43px;
+    padding:4px 6px;
+    border-radius:11px;
+  }
+  body.records-mode .dashboard-ddu-summary-card .ddu-summary-copy strong{font-size:.93rem}
+  body.records-mode .dashboard-ddu-summary-card .ddu-summary-copy small{font-size:.73rem;line-height:1.25}
+  body.records-mode .dashboard-ddu-summary-card .ddu-summary-count{
+    min-width:34px;
+    height:34px;
+    padding:0 9px;
+    font-size:.82rem;
+  }
+  .ddu-register-title-wrap{
+    align-items:flex-start;
+    gap:9px;
+  }
+  .ddu-register-brand,
+  .ddu-list-title-brand{
+    width:105px;
+    height:38px;
+    padding:3px 5px;
+    border-radius:10px;
+  }
+  .ddu-register-head p{font-size:.75rem!important}
+  .ddu-list-title-wrap > div small{font-size:.68rem}
+}
+
+@media(max-width:430px){
+  body.records-mode .dashboard-ddu-summary-card{
+    display:grid;
+    grid-template-columns:104px minmax(0,1fr) auto;
+  }
+  .ddu-summary-brand{width:104px;height:40px}
+  .ddu-register-title-wrap{
+    display:block;
+  }
+  .ddu-register-brand{
+    width:118px;
+    height:40px;
+    margin-bottom:7px;
+  }
 }
