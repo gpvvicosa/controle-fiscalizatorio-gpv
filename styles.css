@@ -19675,7 +19675,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =========================================================
-   V23.9.99fc — Premium da área Mais + Acessos úteis
+   V23.9.99fd — Premium da área Mais + Acessos úteis
    ========================================================= */
 .app-more-menu{
   background:
@@ -19972,7 +19972,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =========================================================
-   V23.9.99fc — Ficha mobile compacta e mais eficiente
+   V23.9.99fd — Ficha mobile compacta e mais eficiente
    Reduz rolagem vertical sem alterar dados ou lógica.
    ========================================================= */
 @media (max-width:680px){
@@ -20112,7 +20112,7 @@ body.records-mode .records-card-cta-icon{width:25px!important;height:25px!import
 }
 
 /* =============================================================================
-   V23.9.99fc — Recuperação do endereço do responsável pelo CEP
+   V23.9.99fd — Recuperação do endereço do responsável pelo CEP
    ============================================================================= */
 body.records-mode .record-responsible-cep-recovery{
   display:grid;
@@ -20248,7 +20248,7 @@ body.records-mode .record-responsible-cep-recovery.is-saving{opacity:.72;pointer
 
 
 /* =========================================================
-   V23.9.99fc — DDU 181: demanda coletiva no Painel inicial
+   V23.9.99fd — DDU 181: demanda coletiva no Painel inicial
    ========================================================= */
 body.records-mode .dashboard-ddu-summary-card{
   width:auto;
@@ -20410,4 +20410,139 @@ body.records-mode .dashboard-ddu-summary-card.is-danger .ddu-summary-count{
     height:40px;
     margin-bottom:7px;
   }
+}
+
+/* ============================================================
+   V23.9.99fd — Consulta antes do início + início efetivo por edição
+   ============================================================ */
+.registered-inspection-detail-card{
+  width:min(780px,94vw);
+  max-height:90vh;
+}
+.registered-inspection-detail-head{
+  align-items:flex-start;
+}
+.registered-inspection-detail-title-wrap{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+.registered-inspection-detail-title-wrap>div{min-width:0}
+.registered-inspection-detail-brand{
+  display:grid;
+  place-items:center;
+  width:76px;
+  height:56px;
+  flex:0 0 auto;
+  padding:5px;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  background:#fff;
+  overflow:hidden;
+}
+.registered-inspection-detail-brand[hidden]{display:none!important}
+.registered-inspection-detail-brand img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.registered-inspection-detail-kicker{
+  display:block;
+  margin-bottom:3px;
+  color:#667085;
+  font-size:.76rem;
+  font-weight:850;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.registered-inspection-detail-head h2{
+  margin:0;
+}
+.registered-inspection-detail-head p{
+  margin:4px 0 0;
+  color:#667085;
+}
+.registered-inspection-detail-body{
+  overflow:auto;
+}
+.registered-inspection-detail-status{
+  margin-bottom:12px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#f7f8fa;
+  color:#475467;
+  font-size:.88rem;
+  font-weight:700;
+}
+.registered-inspection-detail-status:empty{display:none}
+.registered-inspection-detail-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.registered-inspection-detail-field{
+  min-width:0;
+  padding:12px 13px;
+  border:1px solid #e7e9ee;
+  border-radius:13px;
+  background:#fff;
+}
+.registered-inspection-detail-field.is-wide{grid-column:1/-1}
+.registered-inspection-detail-field span{
+  display:block;
+  margin-bottom:4px;
+  color:#667085;
+  font-size:.74rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+.registered-inspection-detail-field strong,
+.registered-inspection-detail-field p{
+  display:block;
+  margin:0;
+  color:#1d2939;
+  font-size:.94rem;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+  white-space:pre-wrap;
+}
+.registered-inspection-detail-field strong{font-weight:800}
+.registered-inspection-detail-actions{
+  gap:9px;
+  flex-wrap:wrap;
+}
+.registered-inspection-detail-actions .btn{
+  min-height:44px;
+}
+.registered-inspection-detail-actions #registeredInspectionDetailStartBtn{
+  margin-left:auto;
+}
+.ddu-item[data-ddu-id]{cursor:pointer}
+.ddu-item[data-ddu-id]:focus-visible{
+  outline:3px solid rgba(112,18,22,.18);
+  outline-offset:2px;
+}
+.ddu-item .ddu-details-btn,
+.programmed-card .prepared-open-btn{
+  font-weight:800!important;
+}
+body.inspection-awaiting-first-edit #draftStatus{
+  color:#667085;
+}
+body.inspection-awaiting-first-edit #activeInspectionCancelBtn,
+body.inspection-awaiting-first-edit #activeInspectionNotificationsBtn{
+  display:none!important;
+}
+@media(max-width:680px){
+  .registered-inspection-detail-card{width:96vw;max-height:92vh}
+  .registered-inspection-detail-title-wrap{align-items:flex-start;gap:9px}
+  .registered-inspection-detail-brand{width:64px;height:48px;border-radius:12px}
+  .registered-inspection-detail-grid{grid-template-columns:1fr}
+  .registered-inspection-detail-field.is-wide{grid-column:auto}
+  .registered-inspection-detail-actions{display:grid;grid-template-columns:1fr 1fr}
+  .registered-inspection-detail-actions #registeredInspectionDetailStartBtn{margin-left:0;grid-column:1/-1}
+  .registered-inspection-detail-actions #registeredInspectionDetailFileBtn{width:100%;text-align:center}
 }
