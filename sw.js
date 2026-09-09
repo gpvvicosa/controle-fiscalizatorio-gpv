@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260909-v23-9-99-fc-ddu-equipe';
-const VERSION = '23.9.99fd';
+const VERSION = '23.9.99fe';
 
 const CORE_SHELL = [
   './',
