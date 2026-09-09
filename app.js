@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ff';
+      const APP_VERSION = '23.9.99fg';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2207,6 +2207,10 @@
       const dduSummaryCard = document.getElementById('dduSummaryCard');
       const dduSummaryCount = document.getElementById('dduSummaryCount');
       const dduSummaryText = document.getElementById('dduSummaryText');
+      const dduVistoriaSummaryRow = document.getElementById('dduVistoriaSummaryRow');
+      const dduVistoriaSummaryCard = document.getElementById('dduVistoriaSummaryCard');
+      const dduVistoriaSummaryCount = document.getElementById('dduVistoriaSummaryCount');
+      const dduVistoriaSummaryText = document.getElementById('dduVistoriaSummaryText');
       const dduRegisterModal = document.getElementById('dduRegisterModal');
       const dduRegisterCloseBtn = document.getElementById('dduRegisterCloseBtn');
       const dduRegisterCancelBtn = document.getElementById('dduRegisterCancelBtn');
@@ -2227,6 +2231,7 @@
       const registeredInspectionDetailBackBtn = document.getElementById('registeredInspectionDetailBackBtn');
       const registeredInspectionDetailFileBtn = document.getElementById('registeredInspectionDetailFileBtn');
       const registeredInspectionDetailRouteBtn = document.getElementById('registeredInspectionDetailRouteBtn');
+      const registeredInspectionDetailEditBtn = document.getElementById('registeredInspectionDetailEditBtn');
       const registeredInspectionDetailStartBtn = document.getElementById('registeredInspectionDetailStartBtn');
       const prepareDwgWrap = document.getElementById('prepareDwgWrap');
       const prepareDwgFile = document.getElementById('prepareDwgFile');
@@ -2444,6 +2449,11 @@
       let preparacaoEmUsoId = '';
       let dduEmUsoId = '';
       let dduEmUsoNumero = '';
+      let dduEditandoId = '';
+      let dduCadastroRetornarLista = false;
+      let dduCnpjConsultaSequencia = 0;
+      let dduCnpjConsultaEmAndamento = null;
+      let dduCnpjConsultaNumero = '';
       let processoAcessoriaVinculado = null;
       let ddusAtivos = [];
       let detalheVistoriaCadastradaAtual_ = null;
@@ -2482,7 +2492,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ff';
+      const APP_REVISION_UI_ = '23.9.99fg';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4515,7 +4525,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ff', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fg', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6968,11 +6978,39 @@
         return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta)}`;
       }
 
-      // V23.9.99ff — rota para o local da vistoria. A origem é deixada em branco
+      // V23.9.99fg — rota para o local da vistoria. A origem é deixada em branco
       // para o Google Maps utilizar a posição atual/selecionada pelo próprio usuário.
       // A simples abertura desta URL é somente navegação: não cria rascunho e não
       // altera o estado de início da vistoria.
+      function normalizarLinkRotaMaps_(valor) {
+        const texto = String(valor || '').trim();
+        if (!texto) return '';
+        try {
+          const url = new URL(texto);
+          if (url.protocol !== 'https:') return '';
+          const host = String(url.hostname || '').toLowerCase();
+          const caminho = String(url.pathname || '').toLowerCase();
+          const googleMaps = (/^(?:www\.)?google\.[a-z.]+$/.test(host) && caminho.startsWith('/maps'))
+            || /^maps\.google\.[a-z.]+$/.test(host)
+            || host === 'maps.app.goo.gl'
+            || (host === 'goo.gl' && caminho.startsWith('/maps'));
+          return googleMaps ? url.href : '';
+        } catch (_) {
+          return '';
+        }
+      }
+
+      function validarLinkRotaMapsFormulario_(valor) {
+        const texto = String(valor || '').trim();
+        if (!texto) return '';
+        const normalizado = normalizarLinkRotaMaps_(texto);
+        if (!normalizado) throw new Error('O link da rota deve ser um endereço HTTPS válido do Google Maps.');
+        return normalizado;
+      }
+
       function urlRotaGoogleMaps_(dados = {}) {
+        const manual = normalizarLinkRotaMaps_(dados.rotaUrl || dados.linkRota || dados.rotaMapsUrl || '');
+        if (manual) return manual;
         const lat = Number(String(dados.latitude ?? '').trim().replace(',', '.'));
         const lon = Number(String(dados.longitude ?? '').trim().replace(',', '.'));
         let destino = '';
@@ -6995,6 +7033,7 @@
 
       function urlRotaVistoriaCadastrada_(item = {}) {
         return urlRotaGoogleMaps_({
+          rotaUrl: item.rotaUrl || item.linkRota || item.rotaMapsUrl || '',
           latitude: item.localizacaoLatitude || item.latitude || '',
           longitude: item.localizacaoLongitude || item.longitude || '',
           endereco: item.endereco || '',
@@ -7008,6 +7047,7 @@
       function atualizarLinkRotaVistoria_() {
         if (!routeToInspectionBtn) return;
         const url = urlRotaGoogleMaps_({
+          rotaUrl: value('rotaMapsUrl'),
           latitude: value('localizacaoLatitude'),
           longitude: value('localizacaoLongitude'),
           endereco: value('endereco'),
@@ -20659,7 +20699,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
         preparacaoCadastroIdPendente = '';
-        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
+        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareRotaUrl','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
@@ -20734,6 +20774,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         if (registeredInspectionDetailBrand) registeredInspectionDetailBrand.hidden = !ehDdu;
+        if (registeredInspectionDetailEditBtn) registeredInspectionDetailEditBtn.hidden = true;
         if (registeredInspectionDetailKicker) registeredInspectionDetailKicker.textContent = ehDdu ? 'DDU — Disque Denúncia Unificado' : 'Vistoria cadastrada';
         const titulo = ehDdu
           ? (item.numeroDdu || 'DDU 181')
@@ -20752,22 +20793,35 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Recebimento', formatarDataPreparacao_(item.dataRecebimento)));
           campos.push(campoDetalheCadastrado_('Data Expiração', formatarDataPreparacao_(item.dataLimite)));
           campos.push(campoDetalheCadastrado_('Situação do prazo', prazo.r));
+          campos.push(campoDetalheCadastrado_('CNPJ / CPF', item.cnpj || item.cpf));
+          campos.push(campoDetalheCadastrado_('Nº do PSCIP / Projeto', item.pscip ? projetoPscipOperacional_(item.pscip) : 'Não informado'));
+          campos.push(campoDetalheCadastrado_('Nº do PF', item.pf));
+          campos.push(campoDetalheCadastrado_('Nome Fantasia', item.nomeFantasia));
+          campos.push(campoDetalheCadastrado_('Razão Social', item.razaoSocial));
+          campos.push(campoDetalheCadastrado_('Área', item.area ? `${item.area} m²` : 'Não informada'));
           campos.push(campoDetalheCadastrado_('Cidade', item.cidade));
           campos.push(campoDetalheCadastrado_('CEP', formatarCepCliente_(item.cep || '')));
           campos.push(campoDetalheCadastrado_('Endereço', [item.endereco, item.numero].filter(Boolean).join(', '), { largo: true }));
           campos.push(campoDetalheCadastrado_('Bairro', item.bairro));
           campos.push(campoDetalheCadastrado_('Complemento / referência', item.complemento));
-          campos.push(campoDetalheCadastrado_('Observações', item.observacao, { largo: true, paragrafo: true }));
+          if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoDetalheCadastrado_('Rota', 'Link manual do Google Maps cadastrado'));
+          campos.push(campoDetalheCadastrado_('Observações / teor da denúncia', item.observacao, { largo: true, paragrafo: true }));
           if (registeredInspectionDetailStatus) {
             const concluido = normalize(item.status) === normalize('Concluído');
             registeredInspectionDetailStatus.textContent = concluido
               ? `DDU concluído${item.vistoriadorResponsavel ? ` por ${item.vistoriadorResponsavel}` : ''}.`
-              : 'DDU pendente e disponível para toda a equipe do GPV. Nenhum militar é vinculado apenas por consultar esta ficha.';
+              : (item.vistoriaIniciada
+                ? `Vistoria em andamento${item.rascunhoAtualizadoPor ? ` por ${item.rascunhoAtualizadoPor}` : ''}. Consultar esta ficha não altera o atendimento.`
+                : 'DDU pendente e disponível para toda a equipe do GPV. Nenhum militar é vinculado apenas por consultar esta ficha.');
           }
           if (registeredInspectionDetailStartBtn) {
             const concluido = normalize(item.status) === normalize('Concluído') || normalize(item.status) === normalize('Cancelado');
             registeredInspectionDetailStartBtn.hidden = concluido;
-            registeredInspectionDetailStartBtn.textContent = 'Iniciar vistoria';
+            registeredInspectionDetailStartBtn.textContent = item.vistoriaIniciada ? 'Continuar vistoria' : 'Iniciar vistoria';
+          }
+          if (registeredInspectionDetailEditBtn) {
+            const indisponivel = normalize(item.status) === normalize('Concluído') || normalize(item.status) === normalize('Cancelado') || Boolean(item.vistoriaIniciada);
+            registeredInspectionDetailEditBtn.hidden = indisponivel;
           }
           if (registeredInspectionDetailFileBtn) {
             registeredInspectionDetailFileBtn.hidden = !item.arquivoUrl;
@@ -20792,6 +20846,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Endereço', [item.endereco, item.numero].filter(Boolean).join(', '), { largo: true }));
           campos.push(campoDetalheCadastrado_('Bairro', item.bairro));
           campos.push(campoDetalheCadastrado_('Cidade', item.cidade));
+          if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoDetalheCadastrado_('Rota', 'Link manual do Google Maps cadastrado'));
           campos.push(campoDetalheCadastrado_('Observação prévia', item.observacaoPrevia || item.observacao, { largo: true, paragrafo: true }));
           if (registeredInspectionDetailStatus) {
             registeredInspectionDetailStatus.textContent = item.vistoriaIniciada
@@ -20802,6 +20857,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             registeredInspectionDetailStartBtn.hidden = false;
             registeredInspectionDetailStartBtn.textContent = item.vistoriaIniciada ? 'Continuar vistoria' : 'Iniciar vistoria';
           }
+          if (registeredInspectionDetailEditBtn) registeredInspectionDetailEditBtn.hidden = Boolean(item.vistoriaIniciada);
           if (registeredInspectionDetailFileBtn) {
             registeredInspectionDetailFileBtn.hidden = !item.arquivoDwgUrl;
             registeredInspectionDetailFileBtn.href = item.arquivoDwgUrl || '#';
@@ -20834,14 +20890,225 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (abriu) fecharDetalheVistoriaCadastrada_(false);
       }
 
+      function editarVistoriaPeloDetalheCadastrado_() {
+        const atual = detalheVistoriaCadastradaAtual_;
+        if (!atual?.id) return;
+        if (atual.tipo === 'ddu') {
+          const item = ddusAtivos.find(x => String(x.id) === String(atual.id));
+          if (!item || item.vistoriaIniciada) {
+            appStatus.textContent = 'Este DDU já possui vistoria iniciada e não pode ser editado pelo cadastro prévio.';
+            return;
+          }
+          fecharDetalheVistoriaCadastrada_(false);
+          abrirEdicaoDdu_(item);
+          return;
+        }
+        const item = preparacoesVistoria.find(x => String(x.id) === String(atual.id));
+        if (!item || item.vistoriaIniciada) {
+          appStatus.textContent = 'Esta vistoria já possui preenchimento iniciado e não pode ser editada pelo cadastro prévio.';
+          return;
+        }
+        fecharDetalheVistoriaCadastrada_(false);
+        abrirEdicaoPreparacao_(item);
+      }
+
+      function showDduCnpjStatus_(message, type = 'info') {
+        const el = document.getElementById('dduCnpjStatus');
+        if (!el) return;
+        el.className = message ? `lookup-status show ${type}` : 'lookup-status';
+        el.textContent = message || '';
+      }
+
+      function limparFormularioDdu_() {
+        dduEditandoId = '';
+        const hoje = new Date();
+        const iso = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+        const ids = ['dduNumero','dduPrazo','dduCnpj','dduPf','dduNomeFantasia','dduRazaoSocial','dduArea','dduCep','dduEndereco','dduEnderecoNumero','dduBairro','dduComplemento','dduRotaUrl','dduObservacao'];
+        ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        const recebimento = document.getElementById('dduRecebimento'); if (recebimento) recebimento.value = iso;
+        const cidade = document.getElementById('dduCidade'); if (cidade) cidade.value = 'Viçosa';
+        const pscip = document.getElementById('dduPscip'); if (pscip) pscip.value = 'PRJ';
+        const pdf = document.getElementById('dduPdfFile'); if (pdf) { pdf.value = ''; pdf.required = true; }
+        const pdfLabel = document.getElementById('dduPdfLabel'); pdfLabel?.classList.add('required');
+        const pdfStatus = document.getElementById('dduPdfStatus'); if (pdfStatus) { pdfStatus.className = 'lookup-status'; pdfStatus.textContent = ''; }
+        const titulo = document.getElementById('dduRegisterTitle'); if (titulo) titulo.textContent = 'Cadastrar DDU';
+        if (dduRegisterSaveBtn) dduRegisterSaveBtn.textContent = 'Salvar DDU';
+        if (dduRegisterError) { dduRegisterError.hidden = true; dduRegisterError.textContent = ''; }
+        showDduCnpjStatus_('');
+        statusCepContexto_('ddu', '');
+      }
+
+      async function preencherDduComHistorico_(identificador) {
+        const doc = digits(identificador || '');
+        if (!navigator.onLine || (doc.length !== 11 && doc.length !== 14)) return false;
+        try {
+          const r = await apiRequest('config', { consulta: 'estabelecimento_historico', filtros: { identificador: doc } }, 30000);
+          const item = Array.isArray(r?.resultados) ? r.resultados[0] : null;
+          if (!item) return false;
+          const setSeVazio = (id, valor) => {
+            const el = document.getElementById(id);
+            if (!el || !String(valor || '').trim() || String(el.value || '').trim()) return false;
+            el.value = String(valor);
+            return true;
+          };
+          let alterados = 0;
+          alterados += setSeVazio('dduNomeFantasia', item.nomeFantasia) ? 1 : 0;
+          alterados += setSeVazio('dduRazaoSocial', item.razaoSocial) ? 1 : 0;
+          alterados += setSeVazio('dduCidade', item.cidade) ? 1 : 0;
+          alterados += setSeVazio('dduCep', formatarCepCliente_(item.cep)) ? 1 : 0;
+          alterados += setSeVazio('dduEndereco', item.endereco) ? 1 : 0;
+          alterados += setSeVazio('dduEnderecoNumero', item.numero) ? 1 : 0;
+          alterados += setSeVazio('dduBairro', item.bairro) ? 1 : 0;
+          alterados += setSeVazio('dduArea', item.area) ? 1 : 0;
+          alterados += setSeVazio('dduPf', item.pf) ? 1 : 0;
+          const pscip = projetoPscipOperacional_(item.pscip || '');
+          const pscipEl = document.getElementById('dduPscip');
+          if (pscip && pscipEl && (!String(pscipEl.value || '').trim() || String(pscipEl.value || '').trim() === 'PRJ')) {
+            pscipEl.value = pscip;
+            alterados += 1;
+          }
+          if (alterados) showDduCnpjStatus_('Dados complementados pelo histórico do local. Confira antes de salvar.', 'success');
+          return alterados > 0;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function preencherDadosCnpjDdu_(resultado) {
+        const dados = resultado?.dados || resultado?.data || resultado?.resultado || resultado || {};
+        const primeiro = (...valores) => valores.map(v => String(v ?? '').trim()).find(Boolean) || '';
+        const mapa = {
+          dduRazaoSocial: primeiro(dados.razaoSocial, dados.razao_social, dados.nome, dados.nomeEmpresarial),
+          dduNomeFantasia: primeiro(dados.nomeFantasia, dados.nome_fantasia, dados.fantasia, dados.nome_fantasia_estabelecimento),
+          dduCep: formatarCepCliente_(primeiro(dados.cep, dados.codigo_postal, dados.codigoPostal)),
+          dduEndereco: primeiro(dados.endereco, dados.logradouro, dados.descricao_tipo_de_logradouro && dados.logradouro ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}` : ''),
+          dduEnderecoNumero: primeiro(dados.numero, dados.numeroEndereco),
+          dduBairro: primeiro(dados.bairro, dados.nome_bairro),
+          dduCidade: primeiro(dados.cidade, dados.municipio, dados.nome_municipio)
+        };
+        const camposEmpresa = new Set(['dduRazaoSocial','dduNomeFantasia']);
+        const localJaInformado = ['dduEndereco','dduEnderecoNumero','dduBairro'].some(id => String(document.getElementById(id)?.value || '').trim());
+        let alterados = 0;
+        Object.entries(mapa).forEach(([id, valor]) => {
+          const el = document.getElementById(id);
+          if (!el || !valor) return;
+          if (id === 'dduCep' && localJaInformado) return;
+          const atual = String(el.value || '').trim();
+          if (!camposEmpresa.has(id) && atual) return;
+          const padronizado = ['dduRazaoSocial','dduNomeFantasia','dduEndereco','dduBairro'].includes(id)
+            ? padronizarTextoCadastroCliente_(valor)
+            : String(valor);
+          if (atual !== padronizado) { el.value = padronizado; alterados += 1; }
+        });
+        return alterados;
+      }
+
+      async function consultarCnpjDdu_() {
+        const input = document.getElementById('dduCnpj');
+        const cnpj = digits(input?.value || '');
+        if (cnpj.length !== 14) {
+          if (cnpj.length === 11) await preencherDduComHistorico_(cnpj);
+          else showDduCnpjStatus_('');
+          return false;
+        }
+        if (!navigator.onLine) {
+          showDduCnpjStatus_('Sem internet. Continue o preenchimento manualmente.', 'info');
+          return false;
+        }
+        if (dduCnpjConsultaEmAndamento && dduCnpjConsultaNumero === cnpj) return dduCnpjConsultaEmAndamento;
+        const sequencia = ++dduCnpjConsultaSequencia;
+        dduCnpjConsultaNumero = cnpj;
+        showDduCnpjStatus_('Consultando CNPJ...', 'info');
+        const req = (async () => {
+          try {
+            const resultado = await apiRequest('cnpj', { cnpj }, 30000);
+            if (sequencia !== dduCnpjConsultaSequencia || digits(input?.value || '') !== cnpj) return false;
+            const alterados = preencherDadosCnpjDdu_(resultado);
+            showDduCnpjStatus_(alterados ? 'CNPJ localizado. Dados cadastrais preenchidos como sugestão.' : 'CNPJ localizado. Confira e complete os dados do local.', 'success');
+            await preencherDduComHistorico_(cnpj);
+            return true;
+          } catch (erro) {
+            const historico = await preencherDduComHistorico_(cnpj);
+            if (!historico) showDduCnpjStatus_(erro?.message || 'Não foi possível consultar o CNPJ. Continue manualmente.', 'error');
+            return historico;
+          } finally {
+            if (dduCnpjConsultaNumero === cnpj) {
+              dduCnpjConsultaEmAndamento = null;
+              dduCnpjConsultaNumero = '';
+            }
+          }
+        })();
+        dduCnpjConsultaEmAndamento = req;
+        return req;
+      }
+
       function abrirCadastroDdu_(){
         if(!dduRegisterModal) return;
-        const hoje=new Date(); const iso=new Date(hoje.getTime()-hoje.getTimezoneOffset()*60000).toISOString().slice(0,10);
-        document.getElementById('dduRecebimento').value=iso; if(dduRegisterError){dduRegisterError.hidden=true;dduRegisterError.textContent='';}
-        statusCepContexto_('ddu', '');
+        dduCadastroRetornarLista = false;
+        limparFormularioDdu_();
         dduRegisterModal.hidden=false;
+        document.body.classList.add('review-open');
       }
-      function fecharCadastroDdu_(){ if(dduRegisterModal) dduRegisterModal.hidden=true; }
+
+      function abrirEdicaoDdu_(item) {
+        if (!item?.id || !dduRegisterModal) return;
+        if (item.vistoriaIniciada) {
+          avisarGpv_('Este DDU já possui uma vistoria em andamento. Para evitar conflito com o preenchimento operacional, o cadastro não pode ser editado agora.', 'Vistoria em andamento', { tom: 'warning' });
+          return;
+        }
+        const status = normalize(item.status || '');
+        if ([normalize('Concluído'), normalize('Cancelado')].includes(status)) {
+          avisarGpv_('Um DDU concluído ou cancelado não pode ser editado por este cadastro.', 'Edição indisponível', { tom: 'warning' });
+          return;
+        }
+        dduCadastroRetornarLista = true;
+        limparFormularioDdu_();
+        dduEditandoId = String(item.id);
+        const set = (id, valor) => { const el = document.getElementById(id); if (el) el.value = String(valor ?? ''); };
+        set('dduNumero', item.numeroDdu);
+        set('dduRecebimento', item.dataRecebimento);
+        set('dduPrazo', item.dataLimite);
+        set('dduCnpj', item.cnpj || item.cpf);
+        set('dduPscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
+        set('dduPf', item.pf);
+        set('dduNomeFantasia', item.nomeFantasia);
+        set('dduRazaoSocial', item.razaoSocial);
+        set('dduArea', item.area);
+        set('dduCidade', item.cidade || 'Viçosa');
+        set('dduCep', formatarCepCliente_(item.cep || ''));
+        set('dduEndereco', item.endereco);
+        set('dduEnderecoNumero', item.numero);
+        set('dduBairro', item.bairro);
+        set('dduComplemento', item.complemento);
+        set('dduRotaUrl', item.rotaUrl);
+        set('dduObservacao', item.observacao);
+        const inputDoc = document.getElementById('dduCnpj');
+        if (inputDoc) {
+          const doc = digits(inputDoc.value || '').slice(0,14);
+          inputDoc.value = doc.length > 11 ? formatarCnpjTela_(doc) : (doc.length === 11 ? formatarCpfTela_(doc) : doc);
+        }
+        const titulo = document.getElementById('dduRegisterTitle'); if (titulo) titulo.textContent = 'Editar DDU';
+        const pdf = document.getElementById('dduPdfFile'); if (pdf) { pdf.value = ''; pdf.required = false; }
+        const pdfLabel = document.getElementById('dduPdfLabel'); pdfLabel?.classList.remove('required');
+        const pdfStatus = document.getElementById('dduPdfStatus');
+        if (pdfStatus) {
+          pdfStatus.className = 'lookup-status show info';
+          pdfStatus.textContent = item.arquivoNome ? `Arquivo atual: ${item.arquivoNome}. Selecione outro PDF somente para substituir.` : 'Nenhum PDF atual identificado.';
+        }
+        if (dduRegisterSaveBtn) dduRegisterSaveBtn.textContent = 'Salvar alterações';
+        if (registeredInspectionDetailModal) registeredInspectionDetailModal.hidden = true;
+        if (dduListModal) dduListModal.hidden = true;
+        dduRegisterModal.hidden = false;
+        document.body.classList.add('review-open');
+      }
+
+      function fecharCadastroDdu_(){
+        if(dduRegisterModal) dduRegisterModal.hidden=true;
+        document.body.classList.remove('review-open');
+        const retornar = dduCadastroRetornarLista;
+        dduCadastroRetornarLista = false;
+        if (retornar && dduListModal) dduListModal.hidden = false;
+      }
       function classificarPrazoDdu_(d){ const hoje=new Date(); hoje.setHours(0,0,0,0); const dt=new Date(String(d||'')+'T00:00:00'); if(Number.isNaN(dt.getTime())) return {c:'',r:'Sem prazo'}; const dias=Math.round((dt-hoje)/86400000); if(dias<0)return{c:'is-overdue',r:`Atrasado ${Math.abs(dias)} dia(s)`}; if(dias===0)return{c:'is-today',r:'Vence hoje'}; if(dias<=2)return{c:'is-today',r:`Faltam ${dias} dia(s)`}; return{c:'',r:`Prazo ${dt.toLocaleDateString('pt-BR')}`}; }
       function renderizarDdUs_(){
         const todos=Array.isArray(ddusAtivos)?ddusAtivos:[];
@@ -20851,13 +21118,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // V23.9.54 — o atalho DDU só existe visualmente quando há demanda pendente.
         // Registros concluídos/cancelados continuam disponíveis na janela DDU, mas não geram alerta na vistoria.
         if (dduSummaryCard) dduSummaryCard.hidden = ativos.length === 0;
+        if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = ativos.length === 0;
         if(dduSummaryCount)dduSummaryCount.textContent=String(ativos.length);
-        if(dduSummaryText){
-          const base=ativos.length===1?'1 DDU aguardando vistoria':`${ativos.length} DDUs aguardando vistoria`;
-          const prazo=vencidos?` • ${vencidos} atrasada(s)`:criticos?` • ${criticos} próxima(s) do prazo`:'';
-          dduSummaryText.textContent=ativos.length?`${base}${prazo}`:'Nenhuma DDU pendente';
-        }
-        dduSummaryCard?.classList.toggle('is-danger',vencidos>0); dduSummaryCard?.classList.toggle('is-warning',!vencidos&&criticos>0);
+        if(dduVistoriaSummaryCount)dduVistoriaSummaryCount.textContent=String(ativos.length);
+        const base=ativos.length===1?'1 DDU aguardando vistoria':`${ativos.length} DDUs aguardando vistoria`;
+        const prazo=vencidos?` • ${vencidos} atrasado(s)`:criticos?` • ${criticos} próximo(s) do prazo`:'';
+        if(dduSummaryText) dduSummaryText.textContent=ativos.length?`${base}${prazo}`:'Nenhum DDU pendente';
+        if(dduVistoriaSummaryText) dduVistoriaSummaryText.textContent=ativos.length?`${base}${prazo}`:'Nenhum DDU pendente';
+        [dduSummaryCard,dduVistoriaSummaryCard].forEach(card => {
+          card?.classList.toggle('is-danger',vencidos>0);
+          card?.classList.toggle('is-warning',!vencidos&&criticos>0);
+        });
         if(!dduList)return;
         const card=(x,concluido=false)=>{
           const p=classificarPrazoDdu_(x.dataLimite);
@@ -20869,8 +21140,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           const atendimento=concluido
             ? (x.vistoriadorResponsavel?`<b>Vistoriador:</b> ${escapeHtml(x.vistoriadorResponsavel)}`:'Vistoria concluída')
-            : '<b>Atendimento:</b> disponível para toda a equipe do GPV';
-          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3><p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O PDF será enviado automaticamente para a lixeira após 24 h.':'PDF disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver PDF</a>`:''}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
+            : (x.vistoriaIniciada
+              ? `<b>Em andamento:</b> ${escapeHtml(x.rascunhoAtualizadoPor || 'vistoria já iniciada')}`
+              : '<b>Atendimento:</b> disponível para toda a equipe do GPV');
+          const identificacaoLocal = String(x.nomeFantasia || x.razaoSocial || '').trim();
+          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O PDF será enviado automaticamente para a lixeira após 24 h.':'PDF disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver PDF</a>`:''}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
         };
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
@@ -20898,7 +21172,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const tinhaCache = aplicarCacheDdus_(navigator.onLine ? 'Última lista sincronizada — atualizando...' : 'Offline — exibindo a última lista sincronizada.');
 
         if (!navigator.onLine) {
-          if (!tinhaCache && dduSummaryCard) dduSummaryCard.hidden = true;
+          if (!tinhaCache) { if (dduSummaryCard) dduSummaryCard.hidden = true; if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true; }
           return;
         }
 
@@ -20906,6 +21180,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // Sem cache, usa o indicador tradicional de carregamento.
         if (!tinhaCache) {
           if (dduSummaryCard) dduSummaryCard.hidden = true;
+          if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
           dduSummaryCard?.classList.add('is-loading');
           if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
             dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
@@ -20937,33 +21212,132 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar';
             if(dduSummaryCount)dduSummaryCount.textContent='';
             if (dduSummaryCard) dduSummaryCard.hidden = true;
+            if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
             dduSummaryCard?.classList.remove('is-danger','is-warning');
+            dduVistoriaSummaryCard?.classList.remove('is-danger','is-warning');
             if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
           }
         }
       }
       async function salvarDdu_(){
-        if(!navigator.onLine){avisarGpv_('É necessário estar online para cadastrar o DDU e enviar o PDF.','Sem internet',{tom:'warning'});return;}
-        const prazo=document.getElementById('dduPrazo').value, endereco=document.getElementById('dduEndereco').value.trim(), cidade=document.getElementById('dduCidade').value.trim(); const file=document.getElementById('dduPdfFile').files?.[0];
-        if(!prazo||!endereco||!cidade||!file){if(dduRegisterError){dduRegisterError.textContent='Preencha Data Expiração, cidade, endereço e selecione o PDF.';dduRegisterError.hidden=false;}return;}
-        try{dduRegisterSaveBtn.disabled=true;dduRegisterSaveBtn.textContent='Enviando PDF...'; const arq=await lerArquivoBase64_(file,8*1024*1024,'.pdf');
-          await apiRequest('config',{consulta:'ddu_salvar',payload:{numeroDdu:document.getElementById('dduNumero').value,dataRecebimento:document.getElementById('dduRecebimento').value,dataLimite:prazo,vistoriadorResponsavel:'',cidade,cep:formatarCepCliente_(document.getElementById('dduCep').value),endereco,numero:document.getElementById('dduEnderecoNumero').value,bairro:document.getElementById('dduBairro').value,complemento:document.getElementById('dduComplemento').value,observacao:document.getElementById('dduObservacao').value,arquivo:arq}},120000);
-          fecharCadastroDdu_(); await carregarDdUs_(); if(dduListModal)dduListModal.hidden=false;
-        }catch(e){if(dduRegisterError){dduRegisterError.textContent=e?.message||'Não foi possível cadastrar o DDU.';dduRegisterError.hidden=false;}}
-        finally{dduRegisterSaveBtn.disabled=false;dduRegisterSaveBtn.textContent='Salvar DDU';}
+        if(!navigator.onLine){avisarGpv_('É necessário estar online para cadastrar ou editar o DDU.','Sem internet',{tom:'warning'});return;}
+        const prazo = String(document.getElementById('dduPrazo')?.value || '').trim();
+        const endereco = String(document.getElementById('dduEndereco')?.value || '').trim();
+        const cidade = String(document.getElementById('dduCidade')?.value || '').trim();
+        const file = document.getElementById('dduPdfFile')?.files?.[0] || null;
+        const eraEdicao = Boolean(dduEditandoId);
+        const pscipBruto = String(document.getElementById('dduPscip')?.value || '').trim();
+        const pscip = pscipBruto && pscipBruto !== 'PRJ' ? projetoPscipOperacional_(pscipBruto) : '';
+        const faltantes = [];
+        if (!prazo) faltantes.push('Data Expiração');
+        if (!cidade) faltantes.push('Cidade');
+        if (!endereco) faltantes.push('Endereço');
+        if (!eraEdicao && !file) faltantes.push('Arquivo PDF do DDU');
+        if (pscipBruto && pscipBruto !== 'PRJ' && !pscipProjetoValido_(pscip)) faltantes.push('Nº do PSCIP / Projeto válido');
+        if (faltantes.length) {
+          if(dduRegisterError){dduRegisterError.textContent=`Preencha: ${faltantes.join(', ')}.`;dduRegisterError.hidden=false;}
+          return;
+        }
+        try{
+          dduRegisterSaveBtn.disabled=true;
+          if(dduRegisterError){dduRegisterError.hidden=true;dduRegisterError.textContent='';}
+          const rotaUrl = validarLinkRotaMapsFormulario_(document.getElementById('dduRotaUrl')?.value || '');
+          let arq = null;
+          if (file) {
+            dduRegisterSaveBtn.textContent='Preparando PDF...';
+            arq=await lerArquivoBase64_(file,8*1024*1024,'.pdf');
+          }
+          const payload = {
+            id: eraEdicao ? dduEditandoId : '',
+            numeroDdu:document.getElementById('dduNumero')?.value || '',
+            dataRecebimento:document.getElementById('dduRecebimento')?.value || '',
+            dataLimite:prazo,
+            vistoriadorResponsavel:'',
+            cnpj:document.getElementById('dduCnpj')?.value || '',
+            pscip,
+            pf:document.getElementById('dduPf')?.value || '',
+            nomeFantasia:padronizarTextoCadastroCliente_(document.getElementById('dduNomeFantasia')?.value || ''),
+            razaoSocial:padronizarTextoCadastroCliente_(document.getElementById('dduRazaoSocial')?.value || ''),
+            area:document.getElementById('dduArea')?.value || '',
+            cidade,
+            cep:formatarCepCliente_(document.getElementById('dduCep')?.value || ''),
+            endereco:padronizarTextoCadastroCliente_(endereco),
+            numero:document.getElementById('dduEnderecoNumero')?.value || '',
+            bairro:padronizarTextoCadastroCliente_(document.getElementById('dduBairro')?.value || ''),
+            complemento:document.getElementById('dduComplemento')?.value || '',
+            rotaUrl,
+            observacao:document.getElementById('dduObservacao')?.value || '',
+            _appDispositivo:nomeDispositivo_(),
+            ...(arq ? {arquivo:arq} : {})
+          };
+          dduRegisterSaveBtn.textContent = eraEdicao ? 'Salvando alterações...' : 'Salvando DDU...';
+          await apiRequest('config',{consulta:eraEdicao?'ddu_editar':'ddu_salvar',payload},120000);
+          const retornar = dduCadastroRetornarLista;
+          dduCadastroRetornarLista = false;
+          if(dduRegisterModal)dduRegisterModal.hidden=true;
+          document.body.classList.remove('review-open');
+          dduEditandoId='';
+          await carregarDdUs_();
+          if(retornar && dduListModal)dduListModal.hidden=false;
+          appStatus.textContent = eraEdicao ? 'Cadastro do DDU atualizado com sucesso.' : 'DDU cadastrado e disponibilizado para toda a equipe.';
+        }catch(e){
+          if(dduRegisterError){dduRegisterError.textContent=e?.message||(eraEdicao?'Não foi possível editar o DDU.':'Não foi possível cadastrar o DDU.');dduRegisterError.hidden=false;}
+        } finally {
+          dduRegisterSaveBtn.disabled=false;
+          dduRegisterSaveBtn.textContent = dduEditandoId ? 'Salvar alterações' : 'Salvar DDU';
+        }
       }
+
       async function iniciarDdu_(item){
         if(!item)return;
         if(dduListModal)dduListModal.hidden=true;
+
+        if (item.vistoriaIniciada && item.rascunhoId && navigator.onLine) {
+          try {
+            if (rascunhoAtualEmAndamento_()) {
+              saveDraft();
+              await sincronizarRascunhoCompartilhado_('em_andamento', true);
+            }
+            const detalhe = await apiRequest('config', { consulta: 'rascunho', id: String(item.rascunhoId) }, 20000);
+            if (!detalhe?.payload) throw new Error('Rascunho compartilhado do DDU não encontrado.');
+            currentRecordId = String(item.rascunhoId || currentRecordId);
+            applyPayload(detalhe.payload, item.rascunhoId);
+            dduEmUsoId = String(item.id || dduEmUsoId || '');
+            dduEmUsoNumero = String(item.numeroDdu || detalhe.payload?._appDduNumero || detalhe.payload?.dduProtocol || '');
+            saveDraft();
+            await mostrarVistaFormulario_();
+            appStatus.textContent = `Vistoria do DDU em andamento carregada${detalhe.atualizadoPor ? ` — última atualização: ${detalhe.atualizadoPor}` : ''}.`;
+            return;
+          } catch (erro) {
+            appStatus.textContent = erro?.message || 'Não foi possível carregar a vistoria do DDU em andamento.';
+            return;
+          }
+        }
+
         await mostrarVistaFormulario_();
         if(!prepararFormularioNovaVistoria_('DDU')) return;
         dduEmUsoId=String(item.id||'');
         dduEmUsoNumero=String(item.numeroDdu||'').trim();
         aplicarFluxoVistoria_('fiscalizacao',{silencioso:true});
-        const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=v};
+        const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&String(v)!=='')el.value=String(v)};
         set('demandaPrincipal','DDU');
         set('dduProtocol',dduEmUsoNumero);
-        set('cep',item.cep);set('endereco',item.endereco);set('numero',item.numero);set('bairro',item.bairro);set('complemento',item.complemento);
+        set('cnpj',item.cnpj || item.cpf);
+        set('nomeFantasia',item.nomeFantasia);
+        set('razaoSocial',item.razaoSocial);
+        set('area',item.area);
+        set('cep',item.cep);
+        set('endereco',item.endereco);
+        set('numero',item.numero);
+        set('bairro',item.bairro);
+        set('complemento',item.complemento);
+        set('pf',item.pf);
+        set('rotaMapsUrl', item.rotaUrl || '');
+        if (item.pscip) {
+          if (possuiPscipSelect) possuiPscipSelect.value='sim';
+          set('pscip', projetoPscipOperacional_(item.pscip));
+          syncPscip_();
+        }
         set('vistoriadorResponsavel',authState.usuario?.nome || item.vistoriadorResponsavel);
         if(item.cidade){const op=Array.from(citySelect.options).find(o=>normalize(o.value)===normalize(item.cidade)); if(op)citySelect.value=op.value; else{citySelect.value='Outro';if(otherCity)otherCity.value=item.cidade;} syncOtherCity();}
         aplicarModoEventoDeclaratorio_({silencioso:true});
@@ -21008,6 +21382,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareEndereco', item.endereco || '');
         set('prepareNumero', item.numero || '');
         set('prepareBairro', item.bairro || '');
+        set('prepareRotaUrl', item.rotaUrl || '');
         set('prepareObservacao', item.observacaoPrevia || '');
         const cnpjInput = document.getElementById('prepareCnpj');
         if (cnpjInput) {
@@ -21074,6 +21449,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           endereco: padronizarTextoCadastroCliente_(g('prepareEndereco')),
           numero: g('prepareNumero'),
           bairro: padronizarTextoCadastroCliente_(g('prepareBairro')),
+          rotaUrl: validarLinkRotaMapsFormulario_(g('prepareRotaUrl')),
           observacaoPrevia: g('prepareObservacao'),
           _appUsuarioNome: String(authState.usuario?.nome || ''),
           _appDispositivo: nomeDispositivo_()
@@ -21275,9 +21651,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['nomeFantasia', 'nomeFantasia'],
           ['razaoSocial', 'razaoSocial'],
           ['area', 'area'],
+          ['cep', 'cep'],
           ['endereco', 'endereco'],
           ['numero', 'numero'],
           ['bairro', 'bairro'],
+          ['rotaUrl', 'rotaUrl'],
           ['demandaPrincipal', 'demandaPrincipal'],
           ['eventoDeclaracaoNumero', 'eventoDeclaracaoNumero'],
           ['dataRenovacaoAvcb', 'dataRenovacaoAvcb']
@@ -21315,7 +21693,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function salvarPreparacaoVistoria_() {
-        const p = dadosPreparacaoFormulario_();
+        let p;
+        try {
+          p = dadosPreparacaoFormulario_();
+        } catch (erro) {
+          if (prepareInspectionError) {
+            prepareInspectionError.hidden = false;
+            prepareInspectionError.textContent = erro?.message || 'Revise os dados informados.';
+          }
+          return;
+        }
         const faltantes = [];
         const eventoDeclaratorio = p.tipoPreparacao === 'fiscalizacao' && normalize(p.demandaPrincipal) === normalize('Eventos declaratórios');
         if (!['fiscalizacao','liberacao'].includes(p.tipoPreparacao)) faltantes.push('Tipo de vistoria');
@@ -22725,6 +23112,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('endereco', item.endereco);
         set('numero', item.numero);
         set('bairro', item.bairro);
+        set('rotaMapsUrl', item.rotaUrl || '');
         set('pf', item.pf);
         set('area', item.area);
         const preparacaoEventoDeclaratorio = normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero);
@@ -23038,7 +23426,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         abrirDetalheRegistro_(recordsState.chaveSelecionada, recordsState.linhaSelecionada || 0);
       });
 
-      dduSummaryCard?.addEventListener('click', async () => { if(dduListModal)dduListModal.hidden=false; await carregarDdUs_(); });
+      const abrirListaDdus_ = async () => {
+        if (dduListModal) dduListModal.hidden = false;
+        await carregarDdUs_();
+      };
+      dduSummaryCard?.addEventListener('click', abrirListaDdus_);
+      dduVistoriaSummaryCard?.addEventListener('click', abrirListaDdus_);
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
       inspectionSuggestionsCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       inspectionSuggestionsVistoriaCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
@@ -23062,10 +23455,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (event.key === 'Escape' && programmedListModal && !programmedListModal.hidden) fecharListaProgramadas_();
       });
       dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
+      let timerConsultaCnpjDdu = null;
+      const dduCnpjInput = document.getElementById('dduCnpj');
+      dduCnpjInput?.addEventListener('input', () => {
+        const numero = digits(dduCnpjInput.value || '').slice(0, 14);
+        dduCnpjInput.value = numero.length > 11 ? formatarCnpjTela_(numero) : numero;
+        if (timerConsultaCnpjDdu) {
+          window.clearTimeout(timerConsultaCnpjDdu);
+          timerConsultaCnpjDdu = null;
+        }
+        if (dduCnpjConsultaNumero && numero !== dduCnpjConsultaNumero) {
+          dduCnpjConsultaSequencia += 1;
+          dduCnpjConsultaEmAndamento = null;
+          dduCnpjConsultaNumero = '';
+        }
+        showDduCnpjStatus_('');
+        if (numero.length === 14) {
+          timerConsultaCnpjDdu = window.setTimeout(() => {
+            timerConsultaCnpjDdu = null;
+            consultarCnpjDdu_().catch(() => {});
+          }, 500);
+        }
+      });
+      dduCnpjInput?.addEventListener('blur', () => {
+        const numero = digits(dduCnpjInput.value || '');
+        if (timerConsultaCnpjDdu) {
+          window.clearTimeout(timerConsultaCnpjDdu);
+          timerConsultaCnpjDdu = null;
+        }
+        if (numero.length === 11 || numero.length === 14) consultarCnpjDdu_().catch(() => {});
+      });
+      instalarProtecaoPscip_(document.getElementById('dduPscip'));
+      document.getElementById('dduPscip')?.addEventListener('blur', event => {
+        event.target.value = normalizarIdentificadorProjetoAoSair_(event.target.value);
+      });
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
       registeredInspectionDetailCloseBtn?.addEventListener('click', fecharDetalheVistoriaCadastrada_);
       registeredInspectionDetailBackBtn?.addEventListener('click', fecharDetalheVistoriaCadastrada_);
       registeredInspectionDetailStartBtn?.addEventListener('click', () => { void iniciarVistoriaPeloDetalheCadastrado_(); });
+      registeredInspectionDetailEditBtn?.addEventListener('click', editarVistoriaPeloDetalheCadastrado_);
       registeredInspectionDetailModal?.addEventListener('click', e => { if (e.target === registeredInspectionDetailModal) fecharDetalheVistoriaCadastrada_(); });
       dduList?.addEventListener('click', e => {
         if (e.target.closest('a')) return;
@@ -24302,7 +24730,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ff', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fg', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

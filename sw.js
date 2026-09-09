@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260909-v23-9-99-fc-ddu-equipe';
-const VERSION = '23.9.99ff';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260909-v23-9-99-fg-ddu-edicao-rota';
+const VERSION = '23.9.99fg';
 
 const CORE_SHELL = [
   './',

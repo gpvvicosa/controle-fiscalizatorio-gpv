@@ -20549,7 +20549,7 @@ body.inspection-awaiting-first-edit #activeInspectionNotificationsBtn{
 
 
 /* ============================================================
-   V23.9.99ff — Traçar rota sem iniciar vistoria
+   V23.9.99fg — Traçar rota sem iniciar vistoria
    ============================================================ */
 .address-location-btn--route{
   text-decoration:none;
@@ -20568,4 +20568,23 @@ body.inspection-awaiting-first-edit #activeInspectionNotificationsBtn{
 }
 @media(max-width:680px){
   .registered-inspection-detail-actions #registeredInspectionDetailRouteBtn{width:100%;text-align:center}
+}
+
+/* ============================================================
+   V23.9.99fg — DDU na aba Vistoria + edição cadastral
+   ============================================================ */
+.ddu-vistoria-summary-row{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.vistoria-ddu-summary-card{
+  width:100%!important;
+  margin:0!important;
+}
+.registered-inspection-detail-actions #registeredInspectionDetailEditBtn{
+  font-weight:800;
+}
+@media(max-width:680px){
+  .registered-inspection-detail-actions #registeredInspectionDetailEditBtn{
+    width:100%;
+  }
 }
