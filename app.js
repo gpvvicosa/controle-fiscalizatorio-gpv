@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fg';
+      const APP_VERSION = '23.9.99fh';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1535,6 +1535,7 @@
         'pscip',
         'encerramento_fiscal',
         'processo_pf',
+        'cep',
         'rascunhos',
         'rascunho',
         'rascunho_estado',
@@ -1651,7 +1652,13 @@
               cancelledError.status = 499;
               throw cancelledError;
             }
-            const timeoutError = new Error('A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.');
+            const acaoNormalizada = String(action || '').trim().toLowerCase();
+            const consultaNormalizada = String(data?.consulta || '').trim().toLowerCase();
+            const ehLeitura = ['ping', 'cnpj', 'users', 'notifications'].includes(acaoNormalizada) ||
+              (acaoNormalizada === 'config' && API_CONFIG_READ_QUERIES.has(consultaNormalizada));
+            const timeoutError = new Error(ehLeitura
+              ? 'A consulta demorou mais que o esperado. Tente novamente ou continue preenchendo manualmente.'
+              : 'A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.');
             timeoutError.code = 'REQUEST_TIMEOUT';
             timeoutError.status = 408;
             throw timeoutError;
@@ -2492,7 +2499,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fg';
+      const APP_REVISION_UI_ = '23.9.99fh';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4525,7 +4532,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fg', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fh', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -15832,7 +15839,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : 'Dados sugeridos aplicados; altere livremente o que for necessário.';
           statusCepContexto_(contexto, `${sugestao || 'CEP localizado.'} ${complementoSucesso}`, 'success');
         } catch (erro) {
-          statusCepContexto_(contexto, `${erro?.message || 'Não foi possível consultar o CEP agora.'} Você pode continuar preenchendo manualmente.`, 'error');
+          const mensagem = String(erro?.code || '').toUpperCase() === 'REQUEST_TIMEOUT'
+            ? 'A consulta do CEP demorou mais que o esperado. Tente novamente ou continue preenchendo manualmente.'
+            : (erro?.message || 'Não foi possível consultar o CEP agora. Continue preenchendo manualmente.');
+          statusCepContexto_(contexto, mensagem, 'error');
         }
       }
 
@@ -16726,7 +16736,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           // Mantém a posição atual após validar o CNPJ. O usuário segue o formulário manualmente.
         } catch (error) {
           if (sequencia !== cnpjConsultaSequencia || digits(value('cnpj')) !== cnpj) return;
-          showCnpjStatus(error?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');
+          const mensagem = String(error?.code || '').toUpperCase() === 'REQUEST_TIMEOUT'
+            ? 'A consulta automática do CNPJ demorou mais que o esperado. Continue preenchendo manualmente ou tente novamente.'
+            : (error?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.');
+          showCnpjStatus(mensagem, 'error');
         }
       }
 
@@ -17848,6 +17861,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return {
             identificador: evento ? '' : digits(g('prepareCnpj')),
             pscip: evento ? '' : projetoPscipOperacional_(g('preparePscip')),
+            pf: evento ? '' : g('preparePf'),
             cidade: g('prepareCidade'),
             endereco: g('prepareEndereco'),
             numero: g('prepareNumero'),
@@ -17891,6 +17905,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function textoPrazoProcessoAnterior_(item) {
+        if (item?.historicoSomente) return 'Registro anterior a 02/07/2025: usado somente como referência histórica.';
         const alerta = String(item?.alertaPrazo || '').trim();
         if (alerta) return alerta;
         const acao = String(item?.acaoSugerida || '').trim();
@@ -18044,7 +18059,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             pscipHistorico && pscipProjetoValido_(pscipHistorico) ? `${rotuloProjetoPscip_(pscipHistorico)} ${pscipHistorico}` : ''
           ].filter(Boolean).join(' • ');
           const ref = [candidato.criterio, candidato.estabelecimento, candidato.sancao].filter(Boolean).join(' • ');
-          status.textContent = `${referencias || 'Processo'} localizado no histórico desde 02/07/2025${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}.`;
+          const escopoLocalizacao = candidato.pfLocalizadoDiretamente
+            ? (candidato.historicoSomente ? ' localizado na base da planilha — registro anterior a 02/07/2025 usado somente como referência histórica' : ' localizado diretamente na base da planilha')
+            : ' localizado no histórico desde 02/07/2025';
+          status.textContent = `${referencias || 'Processo'}${escopoLocalizacao}${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}.`;
           status.className = 'lookup-status show success';
         }
         const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
@@ -18133,7 +18151,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? 'Verificando histórico de eventos declaratórios pelo endereço do evento...'
             : (!prepare && ehVistoriaAcessoria_())
               ? 'Localizando processo fiscalizatório anterior de local já autuado...'
-              : 'Verificando processo anterior por CNPJ/CPF, PSCIP e endereço...';
+              : 'Verificando processo anterior por Nº do PF, CNPJ/CPF, PSCIP e endereço...';
           status.className = 'lookup-status show info';
         }
         try {
@@ -21029,7 +21047,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             return true;
           } catch (erro) {
             const historico = await preencherDduComHistorico_(cnpj);
-            if (!historico) showDduCnpjStatus_(erro?.message || 'Não foi possível consultar o CNPJ. Continue manualmente.', 'error');
+            if (!historico) {
+              const mensagem = String(erro?.code || '').toUpperCase() === 'REQUEST_TIMEOUT'
+                ? 'A consulta automática do CNPJ demorou mais que o esperado. Continue preenchendo manualmente ou tente novamente.'
+                : (erro?.message || 'Não foi possível consultar o CNPJ. Continue manualmente.');
+              showDduCnpjStatus_(mensagem, 'error');
+            }
             return historico;
           } finally {
             if (dduCnpjConsultaNumero === cnpj) {
@@ -21618,7 +21641,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (sequencia !== cnpjPreparacaoConsultaSequencia || digits(input?.value || '') !== cnpj) return false;
             const recuperouHistorico = await preencherPreparacaoComHistorico_(cnpj);
             if (!recuperouHistorico) {
-              showPrepareCnpjStatus_(erro?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.', 'error');
+              const mensagem = String(erro?.code || '').toUpperCase() === 'REQUEST_TIMEOUT'
+                ? 'A consulta automática do CNPJ demorou mais que o esperado. Continue preenchendo manualmente ou tente novamente.'
+                : (erro?.message || 'Não foi possível consultar o CNPJ. Continue o preenchimento manualmente.');
+              showPrepareCnpjStatus_(mensagem, 'error');
             }
             return recuperouHistorico;
           } finally {
@@ -23520,6 +23546,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       document.getElementById('prepareDemanda')?.addEventListener('input', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 180); });
       document.getElementById('prepareDemanda')?.addEventListener('change', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 100); });
       instalarProtecaoPscip_(document.getElementById('preparePscip'), () => agendarConsultaProcessoPf_('prepare'));
+      document.getElementById('preparePf')?.addEventListener('input', () => agendarConsultaProcessoPf_('prepare', 320));
+      document.getElementById('preparePf')?.addEventListener('blur', () => agendarConsultaProcessoPf_('prepare', 80));
       document.getElementById('preparePscip')?.addEventListener('blur', () => {
         const el = document.getElementById('preparePscip');
         if (el && !ehEventoDeclaratorioPreparacao_()) el.value = normalizarIdentificadorProjetoAoSair_(el.value);
@@ -24730,7 +24758,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fg', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fh', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
