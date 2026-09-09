@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fi';
+      const APP_VERSION = '23.9.99fj';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2499,7 +2499,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fi';
+      const APP_REVISION_UI_ = '23.9.99fj';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4532,7 +4532,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fi', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fj', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -20774,6 +20774,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return `<div class="registered-inspection-detail-field${opcoes.largo ? ' is-wide' : ''}"><span>${escapeHtml(rotulo)}</span><${tag}>${escapeHtml(texto)}</${tag}></div>`;
       }
 
+      // V23.9.99fj — link manual da rota visível e clicável na ficha cadastrada.
+      function campoLinkDetalheCadastrado_(rotulo, url, texto = 'Abrir rota cadastrada no Google Maps') {
+        const seguro = normalizarLinkRotaMaps_(url);
+        if (!seguro) return '';
+        return `<div class="registered-inspection-detail-field registered-inspection-detail-field--link"><span>${escapeHtml(rotulo)}</span><a class="registered-inspection-detail-link" href="${escapeAttr(seguro)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttr(texto)}">${escapeHtml(texto)} <span aria-hidden="true">↗</span></a></div>`;
+      }
+
       function fecharDetalheVistoriaCadastrada_(restaurarLista = true) {
         const origem = detalheVistoriaCadastradaAtual_?.tipo || '';
         if (registeredInspectionDetailModal) registeredInspectionDetailModal.hidden = true;
@@ -20831,7 +20838,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Endereço', [item.endereco, item.numero].filter(Boolean).join(', '), { largo: true }));
           campos.push(campoDetalheCadastrado_('Bairro', item.bairro));
           campos.push(campoDetalheCadastrado_('Complemento / referência', item.complemento));
-          if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoDetalheCadastrado_('Rota', 'Link manual do Google Maps cadastrado'));
+          if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoLinkDetalheCadastrado_('Rota', item.rotaUrl));
           campos.push(campoDetalheCadastrado_('Observações / teor da denúncia', item.observacao, { largo: true, paragrafo: true }));
           if (registeredInspectionDetailStatus) {
             const concluido = normalize(item.status) === normalize('Concluído');
@@ -20873,7 +20880,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Endereço', [item.endereco, item.numero].filter(Boolean).join(', '), { largo: true }));
           campos.push(campoDetalheCadastrado_('Bairro', item.bairro));
           campos.push(campoDetalheCadastrado_('Cidade', item.cidade));
-          if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoDetalheCadastrado_('Rota', 'Link manual do Google Maps cadastrado'));
+          if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoLinkDetalheCadastrado_('Rota', item.rotaUrl));
           campos.push(campoDetalheCadastrado_('Observação prévia', item.observacaoPrevia || item.observacao, { largo: true, paragrafo: true }));
           if (registeredInspectionDetailStatus) {
             registeredInspectionDetailStatus.textContent = item.vistoriaIniciada
