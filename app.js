@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fj';
+      const APP_VERSION = '23.9.99fk';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2499,7 +2499,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fj';
+      const APP_REVISION_UI_ = '23.9.99fk';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4532,7 +4532,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fj', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fk', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -17865,7 +17865,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             cidade: g('prepareCidade'),
             endereco: g('prepareEndereco'),
             numero: g('prepareNumero'),
-            eventoDeclaratorio: evento
+            eventoDeclaratorio: evento,
+            modoCadastro: !evento
           };
         }
         if (ehEventoDeclaratorio_()) {
@@ -17900,7 +17901,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const docOk = d.length === 11 || d.length === 14;
         const pscipOk = normalizarPscipTela_(f.pscip || '').length > 3;
         const pfOk = String(f.pf || '').trim().length >= 5;
-        const enderecoOk = !!(String(f.cidade || '').trim() && String(f.endereco || '').trim() && String(f.numero || '').trim());
+        const enderecoOk = f.modoCadastro
+          ? !!(String(f.cidade || '').trim() && String(f.endereco || '').trim())
+          : !!(String(f.cidade || '').trim() && String(f.endereco || '').trim() && String(f.numero || '').trim());
         return docOk || pscipOk || pfOk || enderecoOk;
       }
 
@@ -18004,6 +18007,31 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const inputPf = prepare ? preparePfInput : processPfInput;
         const pscipHistorico = candidato.pscip ? projetoPscipOperacional_(candidato.pscip) : '';
         let pscipAplicado = false;
+        let dadosCadastroAplicados = 0;
+
+        // V23.9.99fk — no cadastro prévio, qualquer identificador pode recuperar
+        // os demais dados já existentes na planilha. Preenche apenas campos vazios;
+        // valores já digitados pelo militar não são sobrescritos silenciosamente.
+        if (prepare && candidato.cadastroCruzado) {
+          const preencherSeVazio = (id, valor, formatador = null) => {
+            const el = document.getElementById(id);
+            const texto = String(valor == null ? '' : valor).trim();
+            if (!el || !texto || String(el.value || '').trim()) return false;
+            el.value = formatador ? formatador(texto) : texto;
+            dadosCadastroAplicados += 1;
+            return true;
+          };
+          const documento = String(candidato.cnpj || candidato.cpf || '').replace(/\D/g, '');
+          preencherSeVazio('prepareCnpj', documento, v => v.length === 14 ? formatarCnpjTela_(v) : (v.length === 11 ? formatarCpfTela_(v) : v));
+          preencherSeVazio('prepareNomeFantasia', candidato.nomeFantasia || candidato.estabelecimento, padronizarTextoCadastroCliente_);
+          preencherSeVazio('prepareRazaoSocial', candidato.razaoSocial, padronizarTextoCadastroCliente_);
+          preencherSeVazio('prepareArea', candidato.area);
+          preencherSeVazio('prepareCep', candidato.cep, formatarCepCliente_);
+          preencherSeVazio('prepareCidade', candidato.cidade, padronizarTextoCadastroCliente_);
+          preencherSeVazio('prepareEndereco', candidato.endereco, padronizarTextoCadastroCliente_);
+          preencherSeVazio('prepareNumero', candidato.numero);
+          preencherSeVazio('prepareBairro', candidato.bairro, padronizarTextoCadastroCliente_);
+        }
 
         if (pscipHistorico && pscipProjetoValido_(pscipHistorico)) {
           const petPreparacao = prepare && String(prepareTipo?.value || '') === 'pet';
@@ -18059,10 +18087,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             pscipHistorico && pscipProjetoValido_(pscipHistorico) ? `${rotuloProjetoPscip_(pscipHistorico)} ${pscipHistorico}` : ''
           ].filter(Boolean).join(' • ');
           const ref = [candidato.criterio, candidato.estabelecimento, candidato.sancao].filter(Boolean).join(' • ');
-          const escopoLocalizacao = candidato.pfLocalizadoDiretamente
-            ? (candidato.historicoSomente ? ' localizado na base da planilha — registro anterior a 02/07/2025 usado somente como referência histórica' : ' localizado diretamente na base da planilha')
-            : ' localizado no histórico desde 02/07/2025';
-          status.textContent = `${referencias || 'Processo'}${escopoLocalizacao}${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}.`;
+          const escopoLocalizacao = prepare && candidato.cadastroCruzado
+            ? ' localizado na base da planilha'
+            : (candidato.pfLocalizadoDiretamente
+              ? (candidato.historicoSomente ? ' localizado na base da planilha — registro anterior a 02/07/2025 usado somente como referência histórica' : ' localizado diretamente na base da planilha')
+              : ' localizado no histórico desde 02/07/2025');
+          const complementoCadastro = prepare && candidato.cadastroCruzado && dadosCadastroAplicados
+            ? ` — ${dadosCadastroAplicados} dado(s) cadastral(is) aproveitado(s)`
+            : '';
+          status.textContent = `${referencias || 'Processo'}${escopoLocalizacao}${ref ? ` — ${ref}` : ''}${pscipAplicado ? ' — PSCIP preenchido automaticamente' : ''}${complementoCadastro}.`;
           status.className = 'lookup-status show success';
         }
         const resultados = prepare ? preparePfLookupResults : processPfLookupResults;
@@ -18103,9 +18136,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const pfInformado = String((prepare ? preparePfInput : processPfInput)?.value || '').trim();
             status.textContent = (!prepare && ehVistoriaAcessoria_())
               ? 'Nenhum processo fiscalizatório anterior autuado e ainda aberto foi localizado pelos dados informados.'
-              : (pfInformado.length >= 5
-                ? `Nenhum processo localizado para o Nº do PF ${pfInformado}.`
-                : 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.');
+              : (prepare
+                ? (pfInformado.length >= 5
+                  ? `Nenhum cadastro localizado para o Nº do PF ${pfInformado}.`
+                  : 'Nenhum cadastro anterior localizado por CNPJ/CPF, PSCIP ou endereço.')
+                : (pfInformado.length >= 5
+                  ? `Nenhum processo localizado para o Nº do PF ${pfInformado}.`
+                  : 'Nenhum processo fiscalizatório anterior localizado pelos dados informados.'));
             status.className = 'lookup-status show info';
           }
           return;
@@ -18131,7 +18168,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (inputAtual && autoAtual && String(inputAtual.value || '').trim() === autoAtual && !candidatos.some(item => String(item.pf || '').trim() === autoAtual)) inputAtual.value = '';
         if (prepare) preparePfAutoAtual = ''; else processoPfAutoAtual = '';
         if (status) {
-          status.textContent = `${candidatos.length} processos compatíveis encontrados. Selecione o processo correto; PF e PSCIP serão aproveitados quando disponíveis.`;
+          status.textContent = prepare
+            ? `${candidatos.length} cadastros/processos compatíveis encontrados. Selecione o correto para aproveitar PF, CNPJ/CPF, PSCIP e endereço.`
+            : `${candidatos.length} processos compatíveis encontrados. Selecione o processo correto; PF e PSCIP serão aproveitados quando disponíveis.`;
           status.className = 'lookup-status show info';
         }
         resultados.innerHTML = candidatos.map((item,index) => {
@@ -18156,11 +18195,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const pfDigitado = String(filtros.pf || '').trim();
           status.textContent = ((!prepare && ehEventoDeclaratorio_()) || (prepare && ehEventoDeclaratorioPreparacao_()))
             ? 'Verificando histórico de eventos declaratórios pelo endereço do evento...'
-            : pfDigitado.length >= 5
-              ? `Buscando Nº do PF ${pfDigitado} na planilha...`
-              : (!prepare && ehVistoriaAcessoria_())
-                ? 'Localizando processo fiscalizatório anterior de local já autuado...'
-                : 'Verificando processo anterior por Nº do PF, CNPJ/CPF, PSCIP e endereço...';
+            : (prepare
+              ? (pfDigitado.length >= 5
+                ? `Buscando Nº do PF ${pfDigitado} e dados vinculados na planilha...`
+                : 'Buscando cadastro existente por CNPJ/CPF, PSCIP ou endereço...')
+              : (pfDigitado.length >= 5
+                ? `Buscando Nº do PF ${pfDigitado} na planilha...`
+                : ehVistoriaAcessoria_()
+                  ? 'Localizando processo fiscalizatório anterior de local já autuado...'
+                  : 'Verificando processo anterior por Nº do PF, CNPJ/CPF, PSCIP e endereço...'));
           status.className = 'lookup-status show info';
         }
         try {
@@ -20774,7 +20817,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return `<div class="registered-inspection-detail-field${opcoes.largo ? ' is-wide' : ''}"><span>${escapeHtml(rotulo)}</span><${tag}>${escapeHtml(texto)}</${tag}></div>`;
       }
 
-      // V23.9.99fj — link manual da rota visível e clicável na ficha cadastrada.
+      // V23.9.99fk — link manual da rota visível e clicável na ficha cadastrada.
       function campoLinkDetalheCadastrado_(rotulo, url, texto = 'Abrir rota cadastrada no Google Maps') {
         const seguro = normalizarLinkRotaMaps_(url);
         if (!seguro) return '';
@@ -20953,6 +20996,108 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         el.textContent = message || '';
       }
 
+      let dduCadastroCruzadoTimer_ = null;
+      let dduCadastroCruzadoSeq_ = 0;
+
+      function showDduCadastroCruzadoStatus_(message, type = 'info') {
+        const el = document.getElementById('dduCadastroLookupStatus');
+        if (!el) return;
+        el.className = message ? `lookup-status show ${type}` : 'lookup-status';
+        el.textContent = message || '';
+      }
+
+      function filtrosCadastroCruzadoDdu_() {
+        const g = id => String(document.getElementById(id)?.value || '').trim();
+        return {
+          identificador: digits(g('dduCnpj')),
+          pscip: projetoPscipOperacional_(g('dduPscip')),
+          pf: g('dduPf'),
+          cidade: g('dduCidade'),
+          endereco: g('dduEndereco'),
+          numero: g('dduEnderecoNumero'),
+          modoCadastro: true
+        };
+      }
+
+      function filtrosSuficientesCadastroCruzadoDdu_(f) {
+        const d = digits(f.identificador || '');
+        return d.length === 11 || d.length === 14 ||
+          normalizarPscipTela_(f.pscip || '').length > 3 ||
+          String(f.pf || '').trim().length >= 5 ||
+          !!(String(f.cidade || '').trim() && String(f.endereco || '').trim());
+      }
+
+      function preencherDduComCadastroCruzado_(item) {
+        if (!item) return 0;
+        const setSeVazio = (id, valor, formatador = null) => {
+          const el = document.getElementById(id);
+          const texto = String(valor == null ? '' : valor).trim();
+          if (!el || !texto || String(el.value || '').trim()) return 0;
+          el.value = formatador ? formatador(texto) : texto;
+          return 1;
+        };
+        let alterados = 0;
+        const documento = String(item.cnpj || item.cpf || '').replace(/\D/g, '');
+        alterados += setSeVazio('dduCnpj', documento, v => v.length === 14 ? formatarCnpjTela_(v) : (v.length === 11 ? formatarCpfTela_(v) : v));
+        alterados += setSeVazio('dduPf', item.pf);
+        const pscip = projetoPscipOperacional_(item.pscip || '');
+        const pscipEl = document.getElementById('dduPscip');
+        if (pscip && pscipEl && (!String(pscipEl.value || '').trim() || String(pscipEl.value || '').trim() === 'PRJ')) {
+          pscipEl.value = pscip;
+          alterados += 1;
+        }
+        alterados += setSeVazio('dduNomeFantasia', item.nomeFantasia || item.estabelecimento, padronizarTextoCadastroCliente_);
+        alterados += setSeVazio('dduRazaoSocial', item.razaoSocial, padronizarTextoCadastroCliente_);
+        alterados += setSeVazio('dduArea', item.area);
+        alterados += setSeVazio('dduCep', item.cep, formatarCepCliente_);
+        alterados += setSeVazio('dduCidade', item.cidade, padronizarTextoCadastroCliente_);
+        alterados += setSeVazio('dduEndereco', item.endereco, padronizarTextoCadastroCliente_);
+        alterados += setSeVazio('dduEnderecoNumero', item.numero);
+        alterados += setSeVazio('dduBairro', item.bairro, padronizarTextoCadastroCliente_);
+        alterados += setSeVazio('dduComplemento', item.complemento);
+        return alterados;
+      }
+
+      async function consultarCadastroCruzadoDdu_() {
+        if (!navigator.onLine) return false;
+        const filtros = filtrosCadastroCruzadoDdu_();
+        if (!filtrosSuficientesCadastroCruzadoDdu_(filtros)) { showDduCadastroCruzadoStatus_(''); return false; }
+        const seq = ++dduCadastroCruzadoSeq_;
+        const pfDigitado = String(filtros.pf || '').trim();
+        showDduCadastroCruzadoStatus_(pfDigitado.length >= 5
+          ? `Buscando Nº do PF ${pfDigitado} e dados vinculados na planilha...`
+          : 'Buscando cadastro existente por CNPJ/CPF, PSCIP ou endereço...', 'info');
+        try {
+          const resposta = await apiRequest('config', { consulta:'processo_pf', filtros }, 12000);
+          if (seq !== dduCadastroCruzadoSeq_) return false;
+          const candidatos = Array.isArray(resposta?.candidatos) ? resposta.candidatos : [];
+          if (!candidatos.length) {
+            showDduCadastroCruzadoStatus_(pfDigitado.length >= 5
+              ? `Nenhum cadastro localizado para o Nº do PF ${pfDigitado}.`
+              : 'Nenhum cadastro anterior localizado por CNPJ/CPF, PSCIP ou endereço.', 'info');
+            return false;
+          }
+          if (candidatos.length > 1) {
+            showDduCadastroCruzadoStatus_(`${candidatos.length} processos compatíveis encontrados. Informe o Nº do PF para definir o processo correto.`, 'info');
+            return false;
+          }
+          const alterados = preencherDduComCadastroCruzado_(candidatos[0]);
+          const referencia = [candidatos[0].pf ? `PF ${candidatos[0].pf}` : '', candidatos[0].criterio || 'Cadastro localizado'].filter(Boolean).join(' • ');
+          showDduCadastroCruzadoStatus_(`${referencia} localizado na base da planilha${alterados ? ` — ${alterados} dado(s) aproveitado(s)` : ''}.`, 'success');
+          return true;
+        } catch (erro) {
+          if (seq !== dduCadastroCruzadoSeq_) return false;
+          showDduCadastroCruzadoStatus_(erro?.message || 'Não foi possível consultar os dados cadastrados agora.', 'error');
+          return false;
+        }
+      }
+
+      function agendarConsultaCadastroCruzadoDdu_(atraso = 650) {
+        clearTimeout(dduCadastroCruzadoTimer_);
+        dduCadastroCruzadoSeq_ += 1;
+        dduCadastroCruzadoTimer_ = setTimeout(() => consultarCadastroCruzadoDdu_(), atraso);
+      }
+
       function limparFormularioDdu_() {
         dduEditandoId = '';
         const hoje = new Date();
@@ -20969,6 +21114,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (dduRegisterSaveBtn) dduRegisterSaveBtn.textContent = 'Salvar DDU';
         if (dduRegisterError) { dduRegisterError.hidden = true; dduRegisterError.textContent = ''; }
         showDduCnpjStatus_('');
+        showDduCadastroCruzadoStatus_('');
         statusCepContexto_('ddu', '');
       }
 
@@ -21060,9 +21206,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const alterados = preencherDadosCnpjDdu_(resultado);
             showDduCnpjStatus_(alterados ? 'CNPJ localizado. Dados cadastrais preenchidos como sugestão.' : 'CNPJ localizado. Confira e complete os dados do local.', 'success');
             await preencherDduComHistorico_(cnpj);
+            agendarConsultaCadastroCruzadoDdu_(80);
             return true;
           } catch (erro) {
             const historico = await preencherDduComHistorico_(cnpj);
+            agendarConsultaCadastroCruzadoDdu_(80);
             if (!historico) {
               const mensagem = String(erro?.code || '').toUpperCase() === 'REQUEST_TIMEOUT'
                 ? 'A consulta automática do CNPJ demorou mais que o esperado. Continue preenchendo manualmente ou tente novamente.'
@@ -23502,6 +23650,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       dduCnpjInput?.addEventListener('input', () => {
         const numero = digits(dduCnpjInput.value || '').slice(0, 14);
         dduCnpjInput.value = numero.length > 11 ? formatarCnpjTela_(numero) : numero;
+        agendarConsultaCadastroCruzadoDdu_();
         if (timerConsultaCnpjDdu) {
           window.clearTimeout(timerConsultaCnpjDdu);
           timerConsultaCnpjDdu = null;
@@ -23527,10 +23676,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (numero.length === 11 || numero.length === 14) consultarCnpjDdu_().catch(() => {});
       });
-      instalarProtecaoPscip_(document.getElementById('dduPscip'));
+      instalarProtecaoPscip_(document.getElementById('dduPscip'), () => agendarConsultaCadastroCruzadoDdu_());
       document.getElementById('dduPscip')?.addEventListener('blur', event => {
         event.target.value = normalizarIdentificadorProjetoAoSair_(event.target.value);
+        agendarConsultaCadastroCruzadoDdu_(80);
       });
+      document.getElementById('dduPf')?.addEventListener('input', () => agendarConsultaCadastroCruzadoDdu_(320));
+      document.getElementById('dduPf')?.addEventListener('blur', () => agendarConsultaCadastroCruzadoDdu_(80));
+      ['dduCidade','dduEndereco','dduEnderecoNumero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaCadastroCruzadoDdu_()));
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
       registeredInspectionDetailCloseBtn?.addEventListener('click', fecharDetalheVistoriaCadastrada_);
       registeredInspectionDetailBackBtn?.addEventListener('click', fecharDetalheVistoriaCadastrada_);
