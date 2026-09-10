@@ -20811,3 +20811,127 @@ body.records-mode .dashboard-programmed-summary-card.is-danger .programmed-summa
     border-radius:16px;
   }
 }
+
+/* ============================================================
+   V23.9.99fn — Painel desktop responsivo e proporcional
+   Ajusta largura útil, alinhamento e densidade sem alterar regras.
+   ============================================================ */
+@media (min-width:1181px){
+  body.records-mode{
+    --dashboard-content-max:1720px;
+  }
+
+  /* Mantém alertas operacionais e conteúdo principal no mesmo eixo visual. */
+  body.records-mode .dashboard-operational-alerts{
+    width:min(calc(100% - 56px),var(--dashboard-content-max))!important;
+    grid-template-columns:repeat(2,minmax(390px,460px))!important;
+    justify-content:start!important;
+    gap:14px!important;
+    margin:14px auto 0!important;
+  }
+  body.records-mode .dashboard-main-content{
+    width:min(calc(100% - 56px),var(--dashboard-content-max))!important;
+    min-width:0!important;
+    margin:0 auto!important;
+    padding:14px 0 18px!important;
+    background:transparent!important;
+  }
+
+  /* Os dois atalhos superiores passam a ter proporção e altura equivalentes. */
+  body.records-mode .dashboard-operational-alerts .dashboard-ddu-summary-card,
+  body.records-mode .dashboard-operational-alerts .dashboard-programmed-summary-card{
+    min-height:86px!important;
+    height:100%!important;
+    border-radius:18px!important;
+  }
+  body.records-mode .dashboard-operational-alerts .dashboard-ddu-summary-card{
+    grid-template-columns:150px minmax(0,1fr) 42px!important;
+    gap:12px!important;
+  }
+  body.records-mode .dashboard-operational-alerts .dashboard-ddu-summary-card .ddu-summary-brand{
+    width:150px!important;
+    height:54px!important;
+  }
+  body.records-mode .dashboard-operational-alerts .dashboard-ddu-summary-card .ddu-summary-copy strong{
+    font-size:clamp(.98rem,.82vw,1.08rem)!important;
+    line-height:1.18!important;
+  }
+  body.records-mode .dashboard-programmed-summary-card .programmed-summary-copy strong{
+    font-size:clamp(.98rem,.82vw,1.08rem)!important;
+    line-height:1.18!important;
+  }
+
+  /* Evita cartões excessivamente altos em monitores grandes. */
+  body.records-mode .dashboard-kpis{
+    margin-bottom:12px!important;
+  }
+  body.records-mode .kpi-total{
+    min-height:94px!important;
+    padding-top:11px!important;
+    padding-bottom:11px!important;
+  }
+  body.records-mode .dashboard-kpi:not(.kpi-total){
+    min-height:78px!important;
+    padding-top:10px!important;
+    padding-bottom:10px!important;
+  }
+  body.records-mode .dashboard-suggestions-card{
+    margin-bottom:12px!important;
+  }
+}
+
+/* Em telas realmente largas, os cinco indicadores cabem em uma única linha. */
+@media (min-width:1500px){
+  body.records-mode .dashboard-kpis{
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  }
+  body.records-mode .dashboard-kpis .kpi-total{
+    grid-column:1 / -1!important;
+  }
+  body.records-mode .dashboard-kpis .kpi-regularizado,
+  body.records-mode .dashboard-kpis .kpi-liberado,
+  body.records-mode .dashboard-kpis .kpi-advertencia,
+  body.records-mode .dashboard-kpis .kpi-multa1,
+  body.records-mode .dashboard-kpis .kpi-multa2{
+    grid-column:auto!important;
+    border-top:1px solid #edf0f4!important;
+    border-right:1px solid #edf0f4!important;
+  }
+  body.records-mode .dashboard-kpis .kpi-multa2{
+    border-right:0!important;
+  }
+}
+
+/* Monitores largos porém baixos: reduz espaços verticais sem apertar a leitura. */
+@media (min-width:1181px) and (max-height:800px){
+  body.records-mode .dashboard-operational-alerts{
+    margin-top:10px!important;
+    gap:12px!important;
+  }
+  body.records-mode .dashboard-main-content{
+    padding-top:10px!important;
+    padding-bottom:12px!important;
+  }
+  body.records-mode .dashboard-kpis,
+  body.records-mode .dashboard-suggestions-card{
+    margin-bottom:9px!important;
+  }
+  body.records-mode .dashboard-suggestions-card{
+    padding-top:12px!important;
+    padding-bottom:12px!important;
+  }
+  body.records-mode .dashboard-goals{
+    padding-top:10px!important;
+    padding-bottom:10px!important;
+  }
+  body.records-mode .dashboard-goals-head{
+    margin-bottom:9px!important;
+  }
+}
+
+/* Faixa intermediária: preserva a largura útil sem forçar cartões compactos demais. */
+@media (min-width:1181px) and (max-width:1499px){
+  body.records-mode .dashboard-operational-alerts{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
