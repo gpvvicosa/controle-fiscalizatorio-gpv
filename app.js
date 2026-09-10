@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fl';
+      const APP_VERSION = '23.9.99fm';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2248,6 +2248,9 @@
       const programmedSummaryCard = document.getElementById('programmedSummaryCard');
       const programmedSummaryText = document.getElementById('programmedSummaryText');
       const programmedSummaryCount = document.getElementById('programmedSummaryCount');
+      const dashboardProgrammedSummaryCard = document.getElementById('dashboardProgrammedSummaryCard');
+      const dashboardProgrammedSummaryText = document.getElementById('dashboardProgrammedSummaryText');
+      const dashboardProgrammedSummaryCount = document.getElementById('dashboardProgrammedSummaryCount');
       const inspectionSuggestionsCard = document.getElementById('inspectionSuggestionsCard');
       const inspectionSuggestionsText = document.getElementById('inspectionSuggestionsText');
       const inspectionSuggestionsCount = document.getElementById('inspectionSuggestionsCount');
@@ -2499,7 +2502,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fl';
+      const APP_REVISION_UI_ = '23.9.99fm';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4532,7 +4535,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fl', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fm', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -22060,6 +22063,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (programmedSummaryText) programmedSummaryText.textContent = total
           ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
           : 'Nenhuma vistoria programada';
+
+        // V23.9.99fm — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
+        // aparece somente quando há programação pendente e abre a lista para consulta.
+        if (dashboardProgrammedSummaryCard) {
+          dashboardProgrammedSummaryCard.hidden = total === 0;
+          dashboardProgrammedSummaryCard.classList.toggle('is-danger', criticas > 0);
+          dashboardProgrammedSummaryCard.setAttribute('aria-label', total
+            ? `Abrir Vistorias Programadas. ${total} programada${total === 1 ? '' : 's'}${minhas ? `, ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}.`
+            : 'Nenhuma vistoria programada pendente');
+        }
+        if (dashboardProgrammedSummaryCount) dashboardProgrammedSummaryCount.textContent = String(total);
+        if (dashboardProgrammedSummaryText) dashboardProgrammedSummaryText.textContent = total
+          ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
+          : 'Nenhuma vistoria programada';
         atualizarResumoOperacionalHome_();
       }
 
@@ -23623,6 +23640,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       dduSummaryCard?.addEventListener('click', abrirListaDdus_);
       dduVistoriaSummaryCard?.addEventListener('click', abrirListaDdus_);
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
+      dashboardProgrammedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
       inspectionSuggestionsCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       inspectionSuggestionsVistoriaCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       inspectionSuggestionsRefreshBtn?.addEventListener('click', () => carregarSugestoesFiscalizacao_(true));
@@ -24932,7 +24950,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fl', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fm', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
