@@ -20710,3 +20710,25 @@ body.inspection-awaiting-first-edit #activeInspectionNotificationsBtn{
     text-align:center;
   }
 }
+
+
+/* ============================================================
+   V23.9.99fl — nova logo DDU + cartão centralizado no Painel mobile
+   ============================================================ */
+@media(max-width:680px){
+  body.records-mode .dashboard-ddu-summary-card{
+    width:min(430px,calc(100% - 24px))!important;
+    margin:10px auto 0!important;
+    justify-self:center!important;
+  }
+  body.records-mode .dashboard-ddu-summary-card .ddu-summary-brand{
+    width:min(210px,82%)!important;
+    height:70px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  body.records-mode .dashboard-ddu-summary-card .ddu-summary-copy{
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+}

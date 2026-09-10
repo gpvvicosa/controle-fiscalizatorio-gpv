@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260909-v23-9-99-fk-busca-cruzada-cadastro';
-const VERSION = '23.9.99fk';
+const VERSION = '23.9.99fl';
 
 const CORE_SHELL = [
   './',
