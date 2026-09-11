@@ -21015,3 +21015,76 @@ button.semantic-action-green:disabled,
   background:linear-gradient(180deg,#c83228,#a61b15)!important;
   color:#fff!important;
 }
+
+
+/* =============================================================================
+   V23.9.99fu — edição por aba + destaque operacional da cidade na Ficha
+   ============================================================================= */
+body.records-mode .record-detail-section-tools{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  margin:-4px 0 10px;
+  padding:0 2px;
+}
+body.records-mode .record-detail-section-tools[hidden],
+body.records-mode .record-detail-section-edit-btn[hidden]{display:none!important}
+body.records-mode .record-detail-section-edit-btn{
+  min-height:36px;
+  padding:0 13px;
+  border:1px solid #d97706;
+  border-radius:11px;
+  background:linear-gradient(180deg,#fff8eb,#ffefd1);
+  color:#8a4b08;
+  font:850 10px/1 inherit;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(217,119,6,.08);
+  transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+}
+body.records-mode .record-detail-section-edit-btn::before{content:'✎';margin-right:6px;font-size:12px}
+body.records-mode .record-detail-section-edit-btn:hover{
+  transform:translateY(-1px);
+  background:#fff3d8;
+  box-shadow:0 7px 16px rgba(217,119,6,.12);
+}
+body.records-mode .record-detail-section-edit-btn:focus-visible{
+  outline:3px solid rgba(217,119,6,.22);
+  outline-offset:2px;
+}
+body.records-mode .record-detail-field.field-city-prominent{
+  grid-column:1/-1!important;
+  border:1px solid #f0c56f!important;
+  border-left:5px solid #d97706!important;
+  background:linear-gradient(90deg,#fff8e8 0%,#fffdf8 100%)!important;
+  min-height:74px!important;
+  padding:13px 15px!important;
+}
+body.records-mode .record-detail-field.field-city-prominent label{
+  color:#9a5b08!important;
+  font-size:9px!important;
+  letter-spacing:.08em!important;
+}
+body.records-mode .record-detail-field.field-city-prominent .record-detail-copy-value{
+  color:#7a3307!important;
+  font-size:18px!important;
+  line-height:1.2!important;
+  font-weight:950!important;
+  letter-spacing:.035em!important;
+  text-transform:uppercase!important;
+}
+body.records-mode .record-detail-field.field-city-prominent .record-detail-copy-row::before{
+  content:'📍';
+  flex:0 0 auto;
+  font-size:17px;
+  line-height:1;
+}
+body.records-mode .record-detail-field.field-city-prominent .record-copy-value-btn{margin-left:auto!important}
+@media(max-width:620px){
+  body.records-mode .record-detail-section-tools{justify-content:stretch;margin-top:-2px}
+  body.records-mode .record-detail-section-edit-btn{width:100%;min-height:40px;font-size:10px}
+  body.records-mode .record-detail-field.field-city-prominent{min-height:68px!important;padding:12px!important}
+  body.records-mode .record-detail-field.field-city-prominent .record-detail-copy-value{font-size:16px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  body.records-mode .record-detail-section-edit-btn{transition:none!important;transform:none!important}
+}

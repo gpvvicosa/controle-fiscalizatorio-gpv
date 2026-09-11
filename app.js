@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ft';
+      const APP_VERSION = '23.9.99fu';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2060,6 +2060,8 @@
       const recordDetailGroups = document.getElementById('recordDetailGroups');
       const recordDetailSectionNav = document.getElementById('recordDetailSectionNav');
       const recordDetailSectionHint = document.getElementById('recordDetailSectionHint');
+      const recordDetailSectionTools = document.getElementById('recordDetailSectionTools');
+      const recordDetailSectionEditBtn = document.getElementById('recordDetailSectionEditBtn');
       const recordDetailSectionLocalBtn = document.getElementById('recordDetailSectionLocalBtn');
       const recordDetailSectionLocalLabel = document.getElementById('recordDetailSectionLocalLabel');
       const recordDetailSheetLink = document.getElementById('recordDetailSheetLink');
@@ -2607,7 +2609,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ft';
+      const APP_REVISION_UI_ = '23.9.99fu';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -8337,6 +8339,7 @@
         if (chave.includes('telefone') || chave.includes('e-mail') || chave === 'origem') classes.push('field-contact');
         if (chave.includes('data') || chave.includes('validade') || chave.includes('inicio') || chave.includes('termino') || chave === 'capturada em') classes.push('field-date');
         if (chave.includes('endereco') || chave.includes('cep') || ['cidade', 'bairro', 'numero', 'complemento', 'coordenadas'].includes(chave) || chave.includes('local do evento')) classes.push('field-address');
+        if (chave === 'cidade') classes.push('field-city-prominent', 'is-wide');
         if (chave.includes('cep')) classes.push('field-mono');
         if (chave.includes('area') || chave.includes('altura') || chave.includes('pavimentos') || chave.includes('publico') || chave === 'precisao gps') classes.push('field-metric');
         if (chave.includes('situacao') || chave.includes('demanda') || chave.includes('ocupacao') || chave.includes('divisao') || chave.includes('pendencia') || chave.includes('multa') || chave === 'tipo de vistoria' || chave === 'proxima acao') classes.push('field-status');
@@ -10349,9 +10352,40 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         </details>`;
       }
 
-      function renderizarCamposCorrecao_(registro) {
+      const RECORD_CORRECTION_SECTION_CONFIG_ = Object.freeze({
+        local: {
+          titulo: 'Editar dados do Local',
+          descricao: 'Altere somente os dados de identificação, endereço, cidade e características do local exibidos nesta aba.',
+          grupos: ['estabelecimento', 'local', 'pet', 'evento'],
+          ids: ['cidade']
+        },
+        processo: {
+          titulo: 'Editar dados do Processo',
+          descricao: 'Altere somente os dados processuais e operacionais exibidos nesta aba.',
+          grupos: ['processo'],
+          ids: ['dataHora', 'tipoVistoria', 'demanda', 'vistoriadorResponsavel', 'enviadoPor', 'reds', 'natureza']
+        },
+        responsavel: {
+          titulo: 'Editar dados do Responsável',
+          descricao: 'Altere somente os dados de identificação, contato e endereço do responsável exibidos nesta aba.',
+          grupos: ['responsavel'],
+          ids: []
+        }
+      });
+
+      function campoPermitidoCorrecaoSecao_(campo, secao) {
+        const cfg = RECORD_CORRECTION_SECTION_CONFIG_[String(secao || '')];
+        if (!cfg) return true;
+        return cfg.grupos.includes(campo.grupo) || cfg.ids.includes(campo.id);
+      }
+
+      function renderizarCamposCorrecao_(registro, opcoes = {}) {
         if (!recordCorrectionFields) return;
-        const campos = camposCorrecaoRegistro_(registro);
+        const secao = String(opcoes?.secao || '');
+        const todos = camposCorrecaoRegistro_(registro);
+        const campos = secao
+          ? todos.filter(campo => campoPermitidoCorrecaoSecao_(campo, secao)).map(campo => (secao === 'local' && campo.id === 'cidade') ? { ...campo, grupo: 'local' } : campo)
+          : todos;
         recordCorrectionOriginal = new Map();
         const grupos = new Map();
         campos.forEach(campo => {
@@ -10372,7 +10406,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           </details>`;
         }).join('');
 
-        recordCorrectionFields.innerHTML = htmlGrupos + htmlGrupoFotosCorrecao_(registro);
+        recordCorrectionFields.innerHTML = htmlGrupos + (secao ? '' : htmlGrupoFotosCorrecao_(registro));
       }
 
       function atualizarListaFotosCorrecao_() {
@@ -10509,16 +10543,28 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordCorrectionBtn.disabled = !permitido;
       }
 
-      function abrirCorrecaoRegistro_() {
+      function abrirCorrecaoRegistro_(opcoes = {}) {
         if (!recordCorrectionRegistroAtual || !recordCorrectionModal || !usuarioPodeOperar_()) return;
         const historico = Boolean(recordCorrectionRegistroAtual?.origemHistorica) || String(recordCorrectionRegistroAtual?.chave || '').startsWith('HIST:');
         if (historico) {
           avisarGpv_('Registros da base histórica 2024-2025 são somente para consulta e não podem ser corrigidos por esta tela.', 'Registro histórico');
           return;
         }
-        renderizarCamposCorrecao_(recordCorrectionRegistroAtual);
+        const secao = String(opcoes?.secao || '');
+        const configSecao = RECORD_CORRECTION_SECTION_CONFIG_[secao] || null;
+        renderizarCamposCorrecao_(recordCorrectionRegistroAtual, { secao });
+        const titulo = document.getElementById('recordCorrectionTitle');
+        const intro = document.getElementById('recordCorrectionIntro');
+        if (titulo) titulo.textContent = configSecao?.titulo || 'Correção completa da vistoria';
+        if (intro) intro.textContent = configSecao?.descricao || 'Escolha apenas os cards necessários e altere o que estiver incorreto. As mudanças salvas ficam registradas na auditoria.';
+        recordCorrectionModal.dataset.correctionSection = secao;
         recordCorrectionPendingOperation_ = null;
-        if (recordCorrectionReason) recordCorrectionReason.value = '';
+        if (recordCorrectionReason) {
+          recordCorrectionReason.value = '';
+          recordCorrectionReason.placeholder = configSecao
+            ? `Ex.: Correção dos dados da aba ${secao === 'local' ? 'Local' : (secao === 'processo' ? 'Processo' : 'Responsável')} após conferência.`
+            : 'Ex.: Correção após conferência do PSCIP e dos dados apresentados pelo responsável.';
+        }
         if (recordCorrectionMessage) { recordCorrectionMessage.textContent = ''; recordCorrectionMessage.className = 'record-correction-message'; }
         if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = false;
         recordCorrectionModal.hidden = false;
@@ -11135,6 +11181,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           Boolean(valorCampoFicha_(registro, 'Nº do AVCB do PET') || valorCampoFicha_(registro, 'Validade do AVCB do PET'));
       }
 
+      function atualizarEdicaoRapidaSecaoFicha_() {
+        if (!recordDetailSectionTools || !recordDetailSectionEditBtn) return;
+        const secao = String(recordDetailSectionActive_ || '');
+        const cfg = RECORD_CORRECTION_SECTION_CONFIG_[secao] || null;
+        const registro = recordDetailRegistroAtual;
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        const permitido = Boolean(cfg && registro && usuarioPodeOperar_() && !historico);
+        recordDetailSectionTools.hidden = !permitido;
+        recordDetailSectionEditBtn.hidden = !permitido;
+        if (!permitido) return;
+        recordDetailSectionEditBtn.textContent = secao === 'local'
+          ? 'Editar dados do local'
+          : (secao === 'processo' ? 'Editar dados do processo' : 'Editar dados do responsável');
+        recordDetailSectionEditBtn.setAttribute('aria-label', `${recordDetailSectionEditBtn.textContent}. As alterações serão registradas na auditoria.`);
+      }
+
       function selecionarSecaoFicha_(secao = 'local', opcoes = {}) {
         if (!recordDetailScreen) return;
         const alvo = String(secao || 'local');
@@ -11155,6 +11217,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (alvo === 'local' && registroEhPetFicha_(recordDetailRegistroAtual)) hint = 'Dados próprios do PET, organizador e local real do evento temporário.';
           recordDetailSectionHint.textContent = hint;
         }
+        atualizarEdicaoRapidaSecaoFicha_();
         if (alvo === 'localizacao') hidratarMapaFichaSeNecessario_();
       }
 
@@ -11225,6 +11288,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           [rotuloIdentificador, identificadorRegistro],
           ['CEP', valorCampoFicha_(registro, 'CEP')],
           ['Endereço da edificação', enderecoFicha_(registro)],
+          ['Cidade', valorCampoFicha_(registro, 'Cidade')],
           ['CEP para correspondência', valorCampoFicha_(registro, 'CEP para correspondência')],
           ['Endereço para correspondência', valorCampoFicha_(registro, 'Endereço para correspondência')],
           ['Área (m²)', valorCampoFicha_(registro, 'Área m²', 'Área')],
@@ -25203,6 +25267,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!botao || botao.hidden) return;
         selecionarSecaoFicha_(botao.dataset.recordDetailSection || 'local', { focar: false });
       });
+      recordDetailSectionEditBtn?.addEventListener('click', () => {
+        const secao = String(recordDetailSectionActive_ || '');
+        if (!RECORD_CORRECTION_SECTION_CONFIG_[secao]) return;
+        abrirCorrecaoRegistro_({ secao });
+      });
+
       recordDetailSectionNav?.addEventListener('keydown', event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         const botoes = Array.from(recordDetailSectionNav.querySelectorAll('[data-record-detail-section]')).filter(botao => !botao.hidden);
@@ -25222,7 +25292,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordQuickScheduleBtn?.addEventListener('click', programarNovaVistoriaDaFicha_);
       recordQuickNewPetBtn?.addEventListener('click', () => { void iniciarNovaVistoriaDaFicha_({ pet: true }); });
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
-      recordCorrectionBtn?.addEventListener('click', abrirCorrecaoRegistro_);
+      recordCorrectionBtn?.addEventListener('click', () => abrirCorrecaoRegistro_());
       recordResultCorrectionBtn?.addEventListener('click', abrirCorrecaoResultadoVistoria_);
       recordResultCorrectionCloseBtn?.addEventListener('click', fecharCorrecaoResultadoVistoria_);
       recordResultCorrectionCancelBtn?.addEventListener('click', fecharCorrecaoResultadoVistoria_);
