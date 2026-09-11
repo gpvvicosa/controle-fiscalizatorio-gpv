@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fr';
+      const APP_VERSION = '23.9.99fs';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2100,6 +2100,7 @@
       const cityCheckText = document.getElementById('cityCheckText');
       const cityCheckChangeBtn = document.getElementById('cityCheckChangeBtn');
       const cityCheckKeepBtn = document.getElementById('cityCheckKeepBtn');
+      const cidadeSuggestionStatus = document.getElementById('cidadeSuggestionStatus');
       const licenciamentoSelect = document.getElementById('licenciamento');
       const possuiPscipSelect = document.getElementById('possuiPscip');
       const pscipLicenciamentoWrap = document.getElementById('pscipLicenciamentoWrap');
@@ -2502,7 +2503,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fr';
+      const APP_REVISION_UI_ = '23.9.99fs';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4535,7 +4536,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fr', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fs', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -11268,6 +11269,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('bairro', dados.bairro);
         set('area', dados.area);
         preencherCidadeNovaAcao_(dados.cidade);
+        agendarConferenciaCidadePorCep_(250);
+        agendarConferenciaCidadePorEndereco_(650);
       }
 
       async function iniciarNovaVistoriaDaFicha_(opcoes = {}) {
@@ -14957,6 +14960,230 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!isOther) otherCity.classList.remove('invalid');
       }
 
+      // V23.9.99fs — conferência assistiva do município.
+      // A cidade nunca é trocada silenciosamente: CEP, GPS, cadastro anterior e
+      // endereço apenas geram uma sugestão. O militar pode continuar digitando
+      // normalmente e confirmar a divergência antes de registrar.
+      const CIDADE_EVIDENCIA_PRIORIDADE_ = Object.freeze({
+        endereco: 20,
+        cadastro: 30,
+        cnpj: 32,
+        cep: 35,
+        gps: 40
+      });
+      let cidadeUltimaEvidencia_ = null;
+      let cidadeSugestaoAtual_ = null;
+      let cidadeSugestaoConfirmadaChave_ = '';
+      let cidadeSugestaoCepTimer_ = 0;
+      let cidadeSugestaoEnderecoTimer_ = 0;
+      let cidadeSugestaoConsultaSeq_ = 0;
+      let cidadeSugestaoGpsSeq_ = 0;
+
+      function rotuloFonteCidade_(fonte) {
+        const chave = String(fonte || '').toLowerCase();
+        if (chave === 'gps') return 'GPS da vistoria';
+        if (chave === 'cep') return 'CEP informado';
+        if (chave === 'cadastro') return 'cadastro anterior';
+        if (chave === 'cnpj') return 'cadastro do CNPJ';
+        if (chave === 'endereco') return 'endereço informado';
+        return 'conferência automática';
+      }
+
+      function chaveConfirmacaoCidade_(atual, sugerida, prioridade = 0) {
+        return [normalize(atual || ''), normalize(sugerida || ''), String(Number(prioridade) || 0)].join('|');
+      }
+
+      function esconderSugestaoCidade_() {
+        cidadeSugestaoAtual_ = null;
+        if (!cidadeSuggestionStatus) return;
+        cidadeSuggestionStatus.hidden = true;
+        cidadeSuggestionStatus.innerHTML = '';
+      }
+
+      function renderizarSugestaoCidade_() {
+        if (!cidadeSuggestionStatus || !cidadeSugestaoAtual_) {
+          esconderSugestaoCidade_();
+          return;
+        }
+        const s = cidadeSugestaoAtual_;
+        const atual = padronizarCidadeCadastroCliente_(cityValue());
+        if (!atual || normalize(atual) === normalize(s.cidade)) {
+          esconderSugestaoCidade_();
+          return;
+        }
+        cidadeSuggestionStatus.hidden = false;
+        cidadeSuggestionStatus.innerHTML =
+          `<strong>Conferência automática:</strong> ${escapeHtml(rotuloFonteCidade_(s.fonte))} indica <strong>${escapeHtml(s.cidade)}</strong>, ` +
+          `enquanto a cidade selecionada é <strong>${escapeHtml(atual)}</strong>. ` +
+          `O preenchimento pode continuar normalmente.<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">` +
+          `<button type="button" class="btn btn-secondary" data-city-suggestion-use style="padding:7px 10px">Usar ${escapeHtml(s.cidade)}</button>` +
+          `<button type="button" class="btn btn-secondary" data-city-suggestion-keep style="padding:7px 10px">Manter ${escapeHtml(atual)}</button>` +
+          `</div>`;
+      }
+
+      function reavaliarSugestaoCidade_() {
+        const evidencia = cidadeUltimaEvidencia_;
+        if (!evidencia?.cidade) {
+          esconderSugestaoCidade_();
+          return;
+        }
+        const atual = padronizarCidadeCadastroCliente_(cityValue());
+        const sugerida = padronizarCidadeCadastroCliente_(evidencia.cidade);
+        if (!atual || !sugerida || normalize(atual) === normalize(sugerida)) {
+          esconderSugestaoCidade_();
+          return;
+        }
+        const chave = chaveConfirmacaoCidade_(atual, sugerida, evidencia.prioridade);
+        if (cidadeSugestaoConfirmadaChave_ === chave) {
+          esconderSugestaoCidade_();
+          return;
+        }
+        cidadeSugestaoAtual_ = { ...evidencia, cidade: sugerida, atual, chave };
+        renderizarSugestaoCidade_();
+      }
+
+      function registrarEvidenciaCidade_(cidade, fonte = 'endereco', detalhe = '') {
+        const sugerida = padronizarCidadeCadastroCliente_(cidade);
+        if (!sugerida) return false;
+        const prioridade = Number(CIDADE_EVIDENCIA_PRIORIDADE_[fonte] || 10);
+        const anterior = cidadeUltimaEvidencia_;
+        if (anterior?.cidade &&
+            normalize(anterior.cidade) !== normalize(sugerida) &&
+            Number(anterior.prioridade || 0) > prioridade) {
+          return false;
+        }
+        cidadeUltimaEvidencia_ = {
+          cidade: sugerida,
+          fonte,
+          detalhe: String(detalhe || ''),
+          prioridade,
+          verificadaEm: Date.now()
+        };
+        reavaliarSugestaoCidade_();
+        return true;
+      }
+
+      function limparConferenciaCidade_() {
+        clearTimeout(cidadeSugestaoCepTimer_);
+        clearTimeout(cidadeSugestaoEnderecoTimer_);
+        cidadeSugestaoConsultaSeq_ += 1;
+        cidadeSugestaoGpsSeq_ += 1;
+        cidadeUltimaEvidencia_ = null;
+        cidadeSugestaoAtual_ = null;
+        cidadeSugestaoConfirmadaChave_ = '';
+        esconderSugestaoCidade_();
+      }
+
+      async function consultarCidadePorCepSilencioso_() {
+        const cep = normalizarCepCliente_(value('cep'));
+        if (cep.length !== 8 || !navigator.onLine) return null;
+        const sequencia = ++cidadeSugestaoConsultaSeq_;
+        try {
+          const resultado = await apiRequest('config', { consulta: 'cep', cep }, 9000);
+          if (sequencia !== cidadeSugestaoConsultaSeq_) return null;
+          if (normalizarCepCliente_(value('cep')) !== cep) return null;
+          if (resultado?.ok && String(resultado?.cidade || '').trim()) {
+            registrarEvidenciaCidade_(resultado.cidade, 'cep', `CEP ${formatarCepCliente_(cep)}`);
+          }
+          return resultado;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function agendarConferenciaCidadePorCep_(delay = 650) {
+        clearTimeout(cidadeSugestaoCepTimer_);
+        cidadeSugestaoCepTimer_ = setTimeout(() => { void consultarCidadePorCepSilencioso_(); }, Math.max(0, Number(delay || 0)));
+      }
+
+      async function consultarCidadePorEnderecoSilencioso_() {
+        if (!navigator.onLine) return null;
+        if (normalizarCepCliente_(value('cep')).length === 8) return null;
+        const endereco = String(value('endereco') || '').trim();
+        const numero = String(value('numero') || '').trim();
+        const bairro = String(value('bairro') || '').trim();
+        if (endereco.length < 4) return null;
+        const assinatura = normalize([endereco, numero, bairro].join('|'));
+        const sequencia = ++cidadeSugestaoConsultaSeq_;
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'geocodificar_localizacao',
+            endereco,
+            numero,
+            bairro,
+            cidade: '',
+            uf: 'MG'
+          }, 10000);
+          if (sequencia !== cidadeSugestaoConsultaSeq_) return null;
+          const atual = normalize([
+            String(value('endereco') || '').trim(),
+            String(value('numero') || '').trim(),
+            String(value('bairro') || '').trim()
+          ].join('|'));
+          if (assinatura !== atual) return null;
+          if (resposta?.encontrada && String(resposta?.cidade || '').trim()) {
+            registrarEvidenciaCidade_(resposta.cidade, 'endereco', resposta.enderecoIdentificado || '');
+          }
+          return resposta;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function agendarConferenciaCidadePorEndereco_(delay = 950) {
+        clearTimeout(cidadeSugestaoEnderecoTimer_);
+        cidadeSugestaoEnderecoTimer_ = setTimeout(() => { void consultarCidadePorEnderecoSilencioso_(); }, Math.max(0, Number(delay || 0)));
+      }
+
+      async function conferirCidadePorGpsSilencioso_() {
+        if (!navigator.onLine || !localizacaoValidaFormulario_()) return null;
+        const coords = extrairCoordenadasMapa_(
+          localizacaoLatitudeInput?.value,
+          localizacaoLongitudeInput?.value,
+          localizacaoCoordenadasInput?.value
+        );
+        if (!coords) return null;
+        const sequencia = ++cidadeSugestaoGpsSeq_;
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'geocodificar_localizacao',
+            latitude: coords.lat,
+            longitude: coords.lon
+          }, 10000);
+          if (sequencia !== cidadeSugestaoGpsSeq_) return null;
+          if (resposta?.ok && String(resposta?.cidade || '').trim()) {
+            registrarEvidenciaCidade_(resposta.cidade, 'gps', resposta.enderecoIdentificado || '');
+          }
+          return resposta;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      async function confirmarCidadePendenteAntesRegistro_() {
+        reavaliarSugestaoCidade_();
+        const s = cidadeSugestaoAtual_;
+        if (!s?.cidade) return true;
+        const atual = padronizarCidadeCadastroCliente_(cityValue());
+        if (!atual || normalize(atual) === normalize(s.cidade)) {
+          esconderSugestaoCidade_();
+          return true;
+        }
+        const resultado = await confirmarCidadeSugerida_(
+          s.cidade,
+          rotuloFonteCidade_(s.fonte),
+          { contextoFinal: true }
+        );
+        if (resultado?.alterada) {
+          cidadeSugestaoConfirmadaChave_ = '';
+          esconderSugestaoCidade_();
+          return true;
+        }
+        cidadeSugestaoConfirmadaChave_ = chaveConfirmacaoCidade_(cityValue(), s.cidade, s.prioridade);
+        esconderSugestaoCidade_();
+        return true;
+      }
+
       function syncLicenciamento() {
         const situacao = value('licenciamento');
         const naoPossui = situacao === 'nao_possui';
@@ -15937,6 +16164,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try {
           const resultado = await apiRequest('config', { consulta: 'cep', cep }, 18000);
           if (!resultado?.ok) throw new Error(resultado?.error || 'CEP não localizado.');
+          if (contexto === 'vistoria' && String(resultado?.cidade || '').trim()) {
+            registrarEvidenciaCidade_(resultado.cidade, 'cep', `CEP ${formatarCepCliente_(resultado.cep || cep)}`);
+          }
           const usar = await confirmarAplicacaoCepSeNecessario_(contexto, cfg, resultado);
           if (!usar) {
             statusCepContexto_(contexto, `CEP ${formatarCepCliente_(resultado.cep)} localizado. Os dados atuais foram mantidos e continuam editáveis.`, 'info');
@@ -16037,6 +16267,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (sequencia !== localizacaoConsultaSequencia_) return null;
 
           if (!resposta?.ok) throw new Error(resposta?.error || 'Endereço não identificado.');
+          if (String(resposta?.cidade || '').trim()) {
+            registrarEvidenciaCidade_(resposta.cidade, 'gps', resposta.enderecoIdentificado || '');
+          }
 
           const temEndereco = [
             resposta.logradouro,
@@ -16540,6 +16773,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             atualizarLinkRotaVistoria_();
             ultimoErroCapturaLocalizacaoAutomatica_ = '';
             scheduleDraftSave();
+            if (navigator.onLine) setTimeout(() => { void conferirCidadePorGpsSilencioso_(); }, 120);
             resolve(true);
           }, erro => {
             if (erro?.code === 1) ultimoErroCapturaLocalizacaoAutomatica_ = 'A permissão de localização foi negada ou está bloqueada.';
@@ -16674,16 +16908,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         scheduleDraftSave();
       }
 
-      function confirmarCidadeRetornadaCnpj_(cidadeRetornada) {
-        const retornada = String(cidadeRetornada || '').trim();
-        const atual = cityValue();
+      function confirmarCidadeSugerida_(cidadeRetornada, fonte = 'conferência automática', opcoes = {}) {
+        const retornada = padronizarCidadeCadastroCliente_(cidadeRetornada);
+        const atual = padronizarCidadeCadastroCliente_(cityValue());
         if (!retornada || !atual || normalize(retornada) === normalize(atual)) {
           return Promise.resolve({ alterada: false, divergencia: false });
         }
 
+        const origem = String(fonte || 'conferência automática').trim();
+        const contextoFinal = Boolean(opcoes?.contextoFinal);
+        const mensagemBase = `${origem} indica ${retornada}, mas a cidade selecionada é ${atual}.`;
+        const complemento = contextoFinal
+          ? ' Confirme o município antes de registrar a vistoria.'
+          : ` Deseja alterar a cidade da vistoria para ${retornada}?`;
+
         if (!cityCheckModal || !cityCheckText || !cityCheckChangeBtn || !cityCheckKeepBtn) {
           return confirmarGpv_(
-            `O CNPJ consultado está cadastrado em ${retornada}, mas a cidade selecionada é ${atual}.`,
+            mensagemBase + complemento,
             'Cidade divergente',
             { rotuloConfirmar: `Usar ${retornada}`, rotuloCancelar: `Manter ${atual}` }
           ).then(alterar => {
@@ -16692,8 +16933,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           });
         }
 
-        cityCheckText.textContent = `O CNPJ consultado está cadastrado em ${retornada}, mas a cidade selecionada é ${atual}. Deseja alterar a cidade da vistoria para ${retornada}?`;
-        // V23.9.4: a divergência é resolvida em popup; a página permanece na posição atual.
+        cityCheckText.textContent = mensagemBase + complemento;
+        cityCheckChangeBtn.textContent = `Usar ${retornada}`;
+        cityCheckKeepBtn.textContent = `Manter ${atual}`;
         cityCheckModal.hidden = false;
         document.body.classList.add('city-check-open');
 
@@ -16721,6 +16963,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           cityCheckKeepBtn.addEventListener('click', onManter);
           document.addEventListener('keydown', onKeydown);
           setTimeout(() => cityCheckChangeBtn.focus(), 30);
+        });
+      }
+
+      function confirmarCidadeRetornadaCnpj_(cidadeRetornada) {
+        const retornada = String(cidadeRetornada || '').trim();
+        if (retornada) registrarEvidenciaCidade_(retornada, 'cnpj');
+        return confirmarCidadeSugerida_(retornada, 'O cadastro do CNPJ').then(resultado => {
+          if (resultado?.divergencia) {
+            if (resultado.alterada) {
+              cidadeSugestaoConfirmadaChave_ = '';
+            } else if (cidadeUltimaEvidencia_?.cidade) {
+              cidadeSugestaoConfirmadaChave_ = chaveConfirmacaoCidade_(
+                cityValue(),
+                cidadeUltimaEvidencia_.cidade,
+                cidadeUltimaEvidencia_.prioridade
+              );
+            }
+            esconderSugestaoCidade_();
+          }
+          return resultado;
         });
       }
 
@@ -17034,9 +17296,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (setFieldHistoricoSeVazio_('cpf', item.cpfResponsavel, formatarCpfTela_)) alterados += 1;
         if (setFieldHistoricoSeVazio_('email', item.email)) alterados += 1;
 
-        if (!cityValue() && item.cidade) {
-          aplicarCidadeRetornadaCnpj_(item.cidade);
-          alterados += 1;
+        if (item.cidade) {
+          registrarEvidenciaCidade_(item.cidade, 'cadastro', 'Registro anterior do estabelecimento');
+          if (!cityValue()) {
+            aplicarCidadeRetornadaCnpj_(item.cidade);
+            alterados += 1;
+          }
         }
         if (document.getElementById('mesmoEnderecoResponsavel')?.checked) syncResponsibleAddress();
         scheduleDraftSave();
@@ -18813,6 +19078,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         clearTimeout(estabelecimentoLookupTimer);
         clearTimeout(pscipLookupTimer);
         clearTimeout(encerramentoFiscalTimer);
+        clearTimeout(cidadeSugestaoCepTimer_);
+        clearTimeout(cidadeSugestaoEnderecoTimer_);
 
         // Invalida respostas assíncronas iniciadas pelo formulário que acabou de ser encerrado.
         cnpjConsultaSequencia += 1;
@@ -18823,6 +19090,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         estabelecimentoLookupSequencia += 1;
         pscipLookupSequencia += 1;
         encerramentoFiscalSequencia += 1;
+        cidadeSugestaoConsultaSeq_ += 1;
+        cidadeSugestaoGpsSeq_ += 1;
 
         removerRascunhosLocaisRelacionados_(payloadFinal || { _appRegistroId: rid }, rid);
       }
@@ -18863,6 +19132,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         currentRecordId = criarIdRegistro();
         citySelect.value = appConfig?.padroes?.cidade || 'Viçosa';
         otherCity.value = '';
+        limparConferenciaCidade_();
         sancaoDefinidaAutomaticamente = false;
         sancaoAntesDoAutomatico = '';
         if (licenciamentoSelect) licenciamentoSelect.value = '';
@@ -19412,6 +19682,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         }
         if (!validateRequired(true)) return;
+        if (!(await confirmarCidadePendenteAntesRegistro_())) return;
 
         const nascimentoAtual = document.getElementById('nascimento');
         if (nascimentoAtual && !dataNascimentoValida_(nascimentoAtual.value)) {
@@ -21755,6 +22026,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         sincronizarDemandasEspeciais_();
         atualizarLinkRotaVistoria_();
         agendarConsultaProcessoPf_('form',180);
+        agendarConferenciaCidadePorCep_(300);
+        agendarConferenciaCidadePorEndereco_(700);
         if (draftStatus) draftStatus.textContent = 'Aguardando primeiro preenchimento';
         appStatus.textContent=`DDU ${dduEmUsoNumero||'181'} carregado para consulta/preenchimento. A vistoria só será iniciada quando houver a primeira alteração operacional.`;
       }
@@ -23582,6 +23855,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarVerificacaoMetasFiscalizacao_();
         atualizarLinkRotaVistoria_();
         agendarConsultaProcessoPf_('form', 180);
+        agendarConferenciaCidadePorCep_(300);
+        agendarConferenciaCidadePorEndereco_(700);
         rolarParaFormularioProgramado_();
         if (draftStatus) draftStatus.textContent = 'Aguardando primeiro preenchimento';
         appStatus.textContent = `Vistoria cadastrada carregada para consulta/preenchimento${item.vistoriadorResponsavel ? ` — responsável previsto: ${item.vistoriadorResponsavel}` : ''}. O rascunho só será criado após a primeira alteração operacional.`;
@@ -24211,7 +24486,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (eventoResponsavelEhOrganizadorCheck.checked) sincronizarResponsavelComOrganizadorEvento_();
         scheduleDraftSave();
       });
-      citySelect.addEventListener('change', () => { syncOtherCity(); scheduleDraftSave(); });
+      citySelect.addEventListener('change', () => {
+        syncOtherCity();
+        reavaliarSugestaoCidade_();
+        scheduleDraftSave();
+      });
+      otherCity?.addEventListener('input', () => {
+        reavaliarSugestaoCidade_();
+        scheduleDraftSave();
+      });
+      document.getElementById('cep')?.addEventListener('input', () => agendarConferenciaCidadePorCep_(700));
+      ['endereco','numero','bairro'].forEach(id => {
+        const campo = document.getElementById(id);
+        campo?.addEventListener('input', () => agendarConferenciaCidadePorEndereco_(1100));
+        campo?.addEventListener('blur', () => agendarConferenciaCidadePorEndereco_(180));
+      });
+      document.addEventListener('click', event => {
+        const usar = event.target.closest?.('[data-city-suggestion-use]');
+        if (usar && cidadeSugestaoAtual_) {
+          event.preventDefault();
+          const cidade = cidadeSugestaoAtual_.cidade;
+          aplicarCidadeRetornadaCnpj_(cidade);
+          cidadeSugestaoConfirmadaChave_ = '';
+          esconderSugestaoCidade_();
+          appStatus.textContent = `Cidade alterada para ${cidade} após conferência automática. Continue o preenchimento normalmente.`;
+          return;
+        }
+        const manter = event.target.closest?.('[data-city-suggestion-keep]');
+        if (manter && cidadeSugestaoAtual_) {
+          event.preventDefault();
+          cidadeSugestaoConfirmadaChave_ = chaveConfirmacaoCidade_(
+            cityValue(),
+            cidadeSugestaoAtual_.cidade,
+            cidadeSugestaoAtual_.prioridade
+          );
+          const atual = padronizarCidadeCadastroCliente_(cityValue());
+          esconderSugestaoCidade_();
+          appStatus.textContent = `Cidade ${atual || 'atual'} mantida após conferência.`;
+        }
+      });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
       tipoLiberacaoSelect?.addEventListener('change', () => { sincronizarTipoLiberacao_(); scheduleDraftSave(); });
@@ -25144,6 +25457,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (localizacaoValidaFormulario_() && !String(localizacaoEnderecoIdentificadoInput?.value || '').trim()) {
           setTimeout(() => { void identificarEnderecoPorLocalizacao_(true); }, 200);
         }
+        setTimeout(() => {
+          if (localizacaoValidaFormulario_()) void conferirCidadePorGpsSilencioso_();
+          else {
+            agendarConferenciaCidadePorCep_(0);
+            agendarConferenciaCidadePorEndereco_(350);
+          }
+        }, 260);
         if (ehFluxoLiberacao_()) setTimeout(() => { void consultarRetornoLiberacao_(); }, 450);
         appStatus.textContent = 'Internet restabelecida — verificando registros pendentes.';
         if (usuarioPodeOperar_()) {
@@ -25192,7 +25512,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fr', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fs', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
