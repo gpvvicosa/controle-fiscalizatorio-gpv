@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fv';
+      const APP_VERSION = '23.9.99fw';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1550,7 +1550,8 @@
         'retorno_liberacao_documento',
         'geocodificar_localizacao',
         'ufemg',
-        'ddus'
+        'ddus',
+        'ddu_atribuicao'
       ]);
 
       function requisicaoLeituraPodeRepetir_(action, data = {}) {
@@ -1603,6 +1604,7 @@
         ['programada_excluir', '✓ Vistoria programada excluída com sucesso.'],
         ['ddu_salvar', '✓ DDU salvo com sucesso.'],
         ['ddu_editar', '✓ DDU atualizado com sucesso.'],
+        ['ddu_atribuir', '✓ Atribuição do DDU concluída com sucesso.'],
         ['foto_irregularidade_salvar', '✓ Fotografia salva com sucesso.'],
         ['foto_irregularidade_manter', '✓ Retenção da fotografia atualizada com sucesso.'],
         ['foto_irregularidade_excluir', '✓ Fotografia excluída com sucesso.'],
@@ -1815,8 +1817,12 @@
         const toast = document.createElement('div');
         toast.className = `premium-feedback-toast is-${tipo}`;
         const simbolo = tipo === 'success' ? '✓' : (tipo === 'error' ? '!' : '•');
-        toast.innerHTML = `<span class="premium-feedback-icon" aria-hidden="true">${simbolo}</span><span class="premium-feedback-copy">${escapeHtml(texto)}</span><button class="premium-feedback-close" type="button" aria-label="Fechar aviso">×</button>`;
+        const rotuloFechar = tipo === 'success' ? 'OK' : '×';
+        const ariaFechar = tipo === 'success' ? 'Confirmar aviso de conclusão' : 'Fechar aviso';
+        toast.innerHTML = `<span class="premium-feedback-icon" aria-hidden="true">${simbolo}</span><span class="premium-feedback-copy">${escapeHtml(texto)}</span><button class="premium-feedback-close${tipo === 'success' ? ' is-ack' : ''}" type="button" aria-label="${ariaFechar}">${rotuloFechar}</button>`;
         toast.querySelector('.premium-feedback-close')?.addEventListener('click', () => {
+          premiumFeedbackLastText_ = '';
+          clearTimeout(premiumFeedbackTimer_);
           toast.classList.add('is-leaving');
           setTimeout(() => { if (toast.isConnected) toast.remove(); }, 180);
         });
@@ -1826,7 +1832,7 @@
           toast.classList.add('is-leaving');
           setTimeout(() => { if (toast.isConnected) toast.remove(); }, 200);
           premiumFeedbackLastText_ = '';
-        }, tipo === 'error' ? 5200 : 3600);
+        }, tipo === 'success' ? 7000 : (tipo === 'error' ? 6200 : 4800));
       }
 
       function instalarFeedbackPremiumAppStatus_() {
@@ -2344,6 +2350,19 @@
       const dduAssignmentCurrent = document.getElementById('dduAssignmentCurrent');
       const dduAssignmentError = document.getElementById('dduAssignmentError');
       const dduAssignmentNote = document.getElementById('dduAssignmentNote');
+      const dduAssignmentEditStep = document.getElementById('dduAssignmentEditStep');
+      const dduAssignmentEditActions = document.getElementById('dduAssignmentEditActions');
+      const dduAssignmentPreview = document.getElementById('dduAssignmentPreview');
+      const dduAssignmentPreviewName = document.getElementById('dduAssignmentPreviewName');
+      const dduAssignmentConfirmStep = document.getElementById('dduAssignmentConfirmStep');
+      const dduAssignmentConfirmActions = document.getElementById('dduAssignmentConfirmActions');
+      const dduAssignmentConfirmCancelBtn = document.getElementById('dduAssignmentConfirmCancelBtn');
+      const dduAssignmentBackBtn = document.getElementById('dduAssignmentBackBtn');
+      const dduAssignmentConfirmBtn = document.getElementById('dduAssignmentConfirmBtn');
+      const dduAssignmentConfirmDdu = document.getElementById('dduAssignmentConfirmDdu');
+      const dduAssignmentConfirmLocal = document.getElementById('dduAssignmentConfirmLocal');
+      const dduAssignmentConfirmCurrent = document.getElementById('dduAssignmentConfirmCurrent');
+      const dduAssignmentConfirmName = document.getElementById('dduAssignmentConfirmName');
       const registeredInspectionDetailModal = document.getElementById('registeredInspectionDetailModal');
       const registeredInspectionDetailBrand = document.getElementById('registeredInspectionDetailBrand');
       const registeredInspectionDetailKicker = document.getElementById('registeredInspectionDetailKicker');
@@ -2579,6 +2598,8 @@
       let dduEmUsoNumero = '';
       let dduEditandoId = '';
       let dduAtribuicaoId = '';
+      let dduAtribuicaoSalvando_ = false;
+      let dduAtribuicaoOperacaoId_ = '';
       let dduCadastroRetornarLista = false;
       let dduCnpjConsultaSequencia = 0;
       let dduCnpjConsultaEmAndamento = null;
@@ -2621,7 +2642,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fv';
+      const APP_REVISION_UI_ = '23.9.99fw';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -22100,17 +22121,49 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
       function classificarPrazoDdu_(d){ const hoje=new Date(); hoje.setHours(0,0,0,0); const dt=new Date(String(d||'')+'T00:00:00'); if(Number.isNaN(dt.getTime())) return {c:'',r:'Sem prazo'}; const dias=Math.round((dt-hoje)/86400000); if(dias<0)return{c:'is-overdue',r:`Atrasado ${Math.abs(dias)} dia(s)`}; if(dias===0)return{c:'is-today',r:'Vence hoje'}; if(dias<=2)return{c:'is-today',r:`Faltam ${dias} dia(s)`}; return{c:'',r:`Prazo ${dt.toLocaleDateString('pt-BR')}`}; }
 
+      function itemAtribuicaoDduAtual_() {
+        const id = String(dduAtribuicaoId || '').trim();
+        return ddusAtivos.find(x => String(x?.id || '').trim() === id) || null;
+      }
+
+      function usuarioSelecionadoAtribuicaoDdu_() {
+        const vistoriadorId = String(dduAssignmentSelect?.value || '').trim();
+        if (!vistoriadorId) return null;
+        return (usuariosAtivosApp || []).find(u => String(u?.id || '').trim() === vistoriadorId) || null;
+      }
+
+      function mostrarEtapaEdicaoAtribuicaoDdu_() {
+        if (dduAssignmentEditStep) dduAssignmentEditStep.hidden = false;
+        if (dduAssignmentEditActions) dduAssignmentEditActions.hidden = false;
+        if (dduAssignmentConfirmStep) dduAssignmentConfirmStep.hidden = true;
+        if (dduAssignmentConfirmActions) dduAssignmentConfirmActions.hidden = true;
+        if (dduAssignmentConfirmBtn) {
+          dduAssignmentConfirmBtn.disabled = false;
+          dduAssignmentConfirmBtn.textContent = 'Confirmar atribuição';
+        }
+        atualizarPreviewAtribuicaoDdu_();
+        window.setTimeout(() => dduAssignmentSelect?.focus(), 30);
+      }
+
       function fecharAtribuicaoDdu_() {
+        if (dduAtribuicaoSalvando_) return;
         dduAtribuicaoId = '';
+        dduAtribuicaoOperacaoId_ = '';
         if (dduAssignmentModal) dduAssignmentModal.hidden = true;
         if (dduAssignmentError) {
           dduAssignmentError.hidden = true;
           dduAssignmentError.textContent = '';
         }
+        if (dduAssignmentSelect) dduAssignmentSelect.value = '';
+        if (dduAssignmentPreview) dduAssignmentPreview.hidden = true;
         if (dduAssignmentSaveBtn) {
-          dduAssignmentSaveBtn.disabled = false;
-          dduAssignmentSaveBtn.textContent = 'Salvar atribuição';
+          dduAssignmentSaveBtn.disabled = true;
+          dduAssignmentSaveBtn.textContent = 'Revisar atribuição';
         }
+        if (dduAssignmentEditStep) dduAssignmentEditStep.hidden = false;
+        if (dduAssignmentEditActions) dduAssignmentEditActions.hidden = false;
+        if (dduAssignmentConfirmStep) dduAssignmentConfirmStep.hidden = true;
+        if (dduAssignmentConfirmActions) dduAssignmentConfirmActions.hidden = true;
       }
 
       function preencherVistoriadoresAtribuicaoDdu_(item) {
@@ -22120,15 +22173,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           String(u?.nome || '').trim() &&
           String(u?.perfil || 'GPV').trim().toUpperCase() !== 'GERAL'
         );
-        dduAssignmentSelect.innerHTML = '<option value="">Selecione</option>' + usuarios.map(u =>
-          `<option value="${escapeAttr(String(u?.id || ''))}" data-user-name="${escapeAttr(String(u?.nome || ''))}">${escapeHtml(String(u?.nome || ''))}</option>`
-        ).join('');
+        const idLogado = String(authState?.usuario?.id || '').trim();
+        const nomeLogado = normalize(authState?.usuario?.nome || '');
+        dduAssignmentSelect.innerHTML = '<option value="">Selecione um militar do GPV</option>' + usuarios.map(u => {
+          const proprio = (idLogado && String(u?.id || '').trim() === idLogado) || (!idLogado && nomeLogado && normalize(u?.nome || '') === nomeLogado);
+          const nome = `${String(u?.nome || '').trim()}${proprio ? ' — Você' : ''}`;
+          return `<option value="${escapeAttr(String(u?.id || ''))}" data-user-name="${escapeAttr(String(u?.nome || ''))}">${escapeHtml(nome)}</option>`;
+        }).join('');
         const atual = String(item?.vistoriadorResponsavel || '').trim();
         if (atual) {
           const correspondente = usuarios.find(u => normalize(u?.nome || '') === normalize(atual));
           if (correspondente?.id) dduAssignmentSelect.value = String(correspondente.id);
         }
         return usuarios.length;
+      }
+
+      function atualizarPreviewAtribuicaoDdu_() {
+        const item = itemAtribuicaoDduAtual_();
+        const selecionado = usuarioSelecionadoAtribuicaoDdu_();
+        const nomeSelecionado = String(selecionado?.nome || '').trim();
+        const atual = String(item?.vistoriadorResponsavel || '').trim();
+        const igualAtual = Boolean(nomeSelecionado && atual && normalize(nomeSelecionado) === normalize(atual));
+
+        if (dduAssignmentPreview) dduAssignmentPreview.hidden = !nomeSelecionado;
+        if (dduAssignmentPreviewName) dduAssignmentPreviewName.textContent = nomeSelecionado || '—';
+        if (dduAssignmentSaveBtn) {
+          dduAssignmentSaveBtn.disabled = !nomeSelecionado || igualAtual || dduAtribuicaoSalvando_;
+          dduAssignmentSaveBtn.textContent = igualAtual ? 'Responsável já selecionado' : 'Revisar atribuição';
+        }
+        if (dduAssignmentError && nomeSelecionado) {
+          dduAssignmentError.hidden = true;
+          dduAssignmentError.textContent = '';
+        }
       }
 
       async function abrirAtribuicaoDdu_(item) {
@@ -22148,19 +22224,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         dduAtribuicaoId = String(item.id);
+        dduAtribuicaoOperacaoId_ = '';
+        dduAtribuicaoSalvando_ = false;
         if (dduAssignmentError) {
           dduAssignmentError.hidden = true;
+          dduAssignmentError.className = 'lookup-status error';
           dduAssignmentError.textContent = '';
         }
         if (dduAssignmentTitle) dduAssignmentTitle.textContent = item.vistoriadorResponsavel ? 'Alterar vistoriador' : 'Atribuir vistoriador';
         const identificacao = String(item.nomeFantasia || item.razaoSocial || '').trim();
         if (dduAssignmentContext) {
-          dduAssignmentContext.textContent = `${item.numeroDdu || 'DDU 181'}${identificacao ? ` · ${identificacao}` : ''}`;
+          dduAssignmentContext.textContent = `DDU ${item.numeroDdu || '181'}${identificacao ? ` · ${identificacao}` : ''}`;
         }
         if (dduAssignmentCurrent) {
           dduAssignmentCurrent.innerHTML = item.vistoriadorResponsavel
-            ? `<span>Responsável atual</span><strong>${escapeHtml(item.vistoriadorResponsavel)}</strong>`
-            : '<span>Responsável atual</span><strong>Ainda não atribuído</strong>';
+            ? `<span>Responsável atual</span><strong class="is-assigned">${escapeHtml(item.vistoriadorResponsavel)}</strong>`
+            : '<span>Responsável atual</span><strong class="is-unassigned">Não atribuído</strong>';
         }
         if (dduAssignmentNote) {
           dduAssignmentNote.textContent = item.vistoriaIniciada
@@ -22173,42 +22252,112 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const temUsuariosValidos = (usuariosAtivosApp || []).some(u => String(u?.id || '').trim() && String(u?.nome || '').trim());
         if (!temUsuariosValidos) await carregarUsuariosVistoriadores_();
         const total = preencherVistoriadoresAtribuicaoDdu_(item);
-        if (dduAssignmentSaveBtn) dduAssignmentSaveBtn.disabled = total === 0;
+        mostrarEtapaEdicaoAtribuicaoDdu_();
         if (!total && dduAssignmentError) {
           dduAssignmentError.hidden = false;
           dduAssignmentError.textContent = 'Não foi possível carregar os usuários GPV ativos. Tente novamente.';
         }
       }
 
-      async function salvarAtribuicaoDdu_() {
-        const id = String(dduAtribuicaoId || '').trim();
-        const vistoriadorId = String(dduAssignmentSelect?.value || '').trim();
-        if (!id) return;
-        if (!vistoriadorId) {
+      function prepararConfirmacaoAtribuicaoDdu_() {
+        const item = itemAtribuicaoDduAtual_();
+        const selecionado = usuarioSelecionadoAtribuicaoDdu_();
+        const nome = String(selecionado?.nome || '').trim();
+        if (!item?.id || !nome) {
           if (dduAssignmentError) {
             dduAssignmentError.hidden = false;
-            dduAssignmentError.textContent = 'Selecione o vistoriador responsável.';
+            dduAssignmentError.className = 'lookup-status show error';
+            dduAssignmentError.textContent = 'Selecione o vistoriador responsável antes de continuar.';
           }
           dduAssignmentSelect?.focus();
           return;
         }
-        const selecionado = (usuariosAtivosApp || []).find(u => String(u?.id || '') === vistoriadorId);
-        if (!selecionado?.nome) {
+        if (normalize(item.vistoriadorResponsavel || '') === normalize(nome)) {
           if (dduAssignmentError) {
             dduAssignmentError.hidden = false;
-            dduAssignmentError.textContent = 'O usuário selecionado não está mais disponível. Atualize a lista e tente novamente.';
+            dduAssignmentError.className = 'lookup-status show info';
+            dduAssignmentError.textContent = `${nome} já é o vistoriador responsável por este DDU.`;
           }
           return;
         }
 
+        if (dduAssignmentConfirmDdu) dduAssignmentConfirmDdu.textContent = String(item.numeroDdu || '181');
+        if (dduAssignmentConfirmLocal) dduAssignmentConfirmLocal.textContent = String(item.nomeFantasia || item.razaoSocial || 'Não informado');
+        if (dduAssignmentConfirmCurrent) dduAssignmentConfirmCurrent.textContent = String(item.vistoriadorResponsavel || 'Não atribuído');
+        if (dduAssignmentConfirmName) dduAssignmentConfirmName.textContent = nome;
+        if (dduAssignmentEditStep) dduAssignmentEditStep.hidden = true;
+        if (dduAssignmentEditActions) dduAssignmentEditActions.hidden = true;
+        if (dduAssignmentConfirmStep) dduAssignmentConfirmStep.hidden = false;
+        if (dduAssignmentConfirmActions) dduAssignmentConfirmActions.hidden = false;
+        window.setTimeout(() => dduAssignmentConfirmBtn?.focus(), 30);
+      }
+
+      async function confirmarAtribuicaoDduNoServidor_(id, nomeEsperado) {
+        const chave = String(id || '').trim();
+        const esperado = String(nomeEsperado || '').trim();
+        if (!chave || !esperado || !navigator.onLine) return null;
+        const esperas = [0, 800, 1600];
+        for (const espera of esperas) {
+          if (espera) await new Promise(resolve => window.setTimeout(resolve, espera));
+          try {
+            const resposta = await apiRequest('config', { consulta: 'ddu_atribuicao', id: chave }, 5000, { silentSuccess:true });
+            const nomeServidor = String(resposta?.vistoriadorResponsavel || '').trim();
+            if (resposta?.encontrado !== false && normalize(nomeServidor) === normalize(esperado)) return resposta;
+          } catch (erro) {
+            if (!navigator.onLine) return null;
+          }
+        }
+        return null;
+      }
+
+      async function concluirAtribuicaoDduSucesso_(id, nome, resposta = {}) {
+        const item = ddusAtivos.find(x => String(x?.id || '') === String(id || ''));
+        if (item) item.vistoriadorResponsavel = String(nome || '').trim();
+        try { localStorage.setItem(DDU_CACHE_STORAGE, JSON.stringify({ salvoEm: Date.now(), itens: ddusAtivos })); } catch (_) {}
+        renderizarDdUs_();
+
+        const detalheAberto = detalheVistoriaCadastradaAtual_?.tipo === 'ddu' && String(detalheVistoriaCadastradaAtual_?.id || '') === String(id || '');
+        dduAtribuicaoSalvando_ = false;
+        fecharAtribuicaoDdu_();
+        if (detalheAberto && item) abrirDetalheVistoriaCadastrada_('ddu', item);
+        void carregarDdUs_().catch(() => {});
+        mostrarFeedbackPremium_(`✓ DDU atribuído a ${nome} com sucesso.`, 'success');
+        await avisarGpv_(
+          `A atribuição foi concluída e confirmada no servidor.\n\nVistoriador responsável: ${nome}`,
+          '✓ Atribuição efetivada',
+          { tom:'success', rotuloConfirmar:'OK' }
+        );
+      }
+
+      async function salvarAtribuicaoDdu_() {
+        if (dduAtribuicaoSalvando_) return;
+        const id = String(dduAtribuicaoId || '').trim();
+        const selecionado = usuarioSelecionadoAtribuicaoDdu_();
+        const vistoriadorId = String(selecionado?.id || '').trim();
+        const nomeEsperado = String(selecionado?.nome || '').trim();
+        if (!id || !vistoriadorId || !nomeEsperado) {
+          mostrarEtapaEdicaoAtribuicaoDdu_();
+          if (dduAssignmentError) {
+            dduAssignmentError.hidden = false;
+            dduAssignmentError.className = 'lookup-status show error';
+            dduAssignmentError.textContent = 'Selecione o vistoriador responsável.';
+          }
+          return;
+        }
+
+        dduAtribuicaoSalvando_ = true;
+        dduAtribuicaoOperacaoId_ = dduAtribuicaoOperacaoId_ || `ddu_assign_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
         if (dduAssignmentError) {
-          dduAssignmentError.hidden = true;
-          dduAssignmentError.textContent = '';
+          dduAssignmentError.hidden = false;
+          dduAssignmentError.className = 'lookup-status show info';
+          dduAssignmentError.textContent = 'Salvando atribuição...';
         }
-        if (dduAssignmentSaveBtn) {
-          dduAssignmentSaveBtn.disabled = true;
-          dduAssignmentSaveBtn.textContent = 'Salvando...';
+        if (dduAssignmentConfirmBtn) {
+          dduAssignmentConfirmBtn.disabled = true;
+          dduAssignmentConfirmBtn.textContent = 'Salvando...';
         }
+        if (dduAssignmentBackBtn) dduAssignmentBackBtn.disabled = true;
+        if (dduAssignmentConfirmCancelBtn) dduAssignmentConfirmCancelBtn.disabled = true;
 
         try {
           const resposta = await apiRequest('config', {
@@ -22216,28 +22365,44 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             payload: {
               id,
               vistoriadorId,
+              operacaoId: dduAtribuicaoOperacaoId_,
               _appDispositivo: nomeDispositivo_()
             }
-          }, 20000);
-          const nome = String(resposta?.vistoriadorResponsavel || selecionado.nome || '').trim();
-          const item = ddusAtivos.find(x => String(x?.id || '') === id);
-          if (item) item.vistoriadorResponsavel = nome;
-          try { localStorage.setItem(DDU_CACHE_STORAGE, JSON.stringify({ salvoEm: Date.now(), itens: ddusAtivos })); } catch (_) {}
-          renderizarDdUs_();
-
-          const detalheAberto = detalheVistoriaCadastradaAtual_?.tipo === 'ddu' && String(detalheVistoriaCadastradaAtual_?.id || '') === id;
-          fecharAtribuicaoDdu_();
-          if (detalheAberto && item) abrirDetalheVistoriaCadastrada_('ddu', item);
-          avisarGpv_(`✓ DDU atribuído a ${nome} com sucesso.`, 'Atribuição efetivada', { tom: 'success' });
+          }, 20000, { silentSuccess:true, timeoutMessage:'A atribuição está demorando para responder.' });
+          const nome = String(resposta?.vistoriadorResponsavel || nomeEsperado).trim();
+          await concluirAtribuicaoDduSucesso_(id, nome, resposta);
+          return;
         } catch (erro) {
+          const transitorio = ['REQUEST_TIMEOUT','NETWORK_ERROR','RESPONSE_FORMAT','UPSTREAM_FORMAT'].includes(String(erro?.code || '').toUpperCase())
+            || [408, 502, 503, 504, 520, 522, 524].includes(Number(erro?.upstreamStatus || erro?.status || 0));
+          if (transitorio && navigator.onLine) {
+            if (dduAssignmentError) {
+              dduAssignmentError.hidden = false;
+              dduAssignmentError.className = 'lookup-status show info';
+              dduAssignmentError.textContent = 'A resposta demorou. Verificando se a atribuição já foi efetivada...';
+            }
+            if (dduAssignmentConfirmBtn) dduAssignmentConfirmBtn.textContent = 'Verificando...';
+            const confirmado = await confirmarAtribuicaoDduNoServidor_(id, nomeEsperado);
+            if (confirmado) {
+              await concluirAtribuicaoDduSucesso_(id, nomeEsperado, confirmado);
+              return;
+            }
+          }
+
+          dduAtribuicaoSalvando_ = false;
           if (dduAssignmentError) {
             dduAssignmentError.hidden = false;
-            dduAssignmentError.textContent = erro?.message || 'Não foi possível salvar a atribuição.';
+            dduAssignmentError.className = 'lookup-status show error';
+            dduAssignmentError.textContent = transitorio
+              ? 'A atribuição ainda não foi confirmada. Sua seleção foi preservada; toque em “Tentar novamente” sem selecionar o militar outra vez.'
+              : (erro?.message || 'Não foi possível salvar a atribuição.');
           }
-          if (dduAssignmentSaveBtn) {
-            dduAssignmentSaveBtn.disabled = false;
-            dduAssignmentSaveBtn.textContent = 'Salvar atribuição';
+          if (dduAssignmentConfirmBtn) {
+            dduAssignmentConfirmBtn.disabled = false;
+            dduAssignmentConfirmBtn.textContent = 'Tentar novamente';
           }
+          if (dduAssignmentBackBtn) dduAssignmentBackBtn.disabled = false;
+          if (dduAssignmentConfirmCancelBtn) dduAssignmentConfirmCancelBtn.disabled = false;
         }
       }
 
@@ -24655,7 +24820,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       dduListCloseBtn?.addEventListener('click', () => { if(dduListModal)dduListModal.hidden=true; });
       dduAssignmentCloseBtn?.addEventListener('click', fecharAtribuicaoDdu_);
       dduAssignmentCancelBtn?.addEventListener('click', fecharAtribuicaoDdu_);
-      dduAssignmentSaveBtn?.addEventListener('click', () => { void salvarAtribuicaoDdu_(); });
+      dduAssignmentConfirmCancelBtn?.addEventListener('click', fecharAtribuicaoDdu_);
+      dduAssignmentSelect?.addEventListener('change', atualizarPreviewAtribuicaoDdu_);
+      dduAssignmentSaveBtn?.addEventListener('click', prepararConfirmacaoAtribuicaoDdu_);
+      dduAssignmentBackBtn?.addEventListener('click', mostrarEtapaEdicaoAtribuicaoDdu_);
+      dduAssignmentConfirmBtn?.addEventListener('click', () => { void salvarAtribuicaoDdu_(); });
       dduAssignmentModal?.addEventListener('click', e => { if (e.target === dduAssignmentModal) fecharAtribuicaoDdu_(); });
       registeredInspectionDetailCloseBtn?.addEventListener('click', fecharDetalheVistoriaCadastrada_);
       registeredInspectionDetailBackBtn?.addEventListener('click', fecharDetalheVistoriaCadastrada_);

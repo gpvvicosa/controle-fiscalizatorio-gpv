@@ -21241,3 +21241,162 @@ body.records-mode .record-detail-field.field-city-prominent .record-copy-value-b
   }
   .ddu-assignment-current strong{text-align:left}
 }
+
+
+/* V23.9.99fw — atribuição DDU com revisão explícita e confirmação operacional */
+.ddu-assignment-head{
+  position:relative;
+  align-items:flex-start!important;
+  padding-right:64px!important;
+}
+.ddu-assignment-heading-copy{min-width:0}
+.ddu-assignment-close{
+  position:absolute!important;
+  top:16px!important;
+  right:16px!important;
+  margin:0!important;
+}
+.ddu-assignment-body{padding-top:14px!important}
+#dduAssignmentEditStep{
+  display:grid;
+  gap:13px;
+}
+.ddu-assignment-select-field{margin:0!important}
+.ddu-assignment-current{
+  border-color:#dde4ec!important;
+  background:linear-gradient(180deg,#fbfcfe,#f5f8fb)!important;
+}
+.ddu-assignment-current strong.is-assigned{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:5px 10px;
+  border:1px solid #a7ddbd;
+  border-radius:999px;
+  background:#eaf9f0;
+  color:#176b3a;
+}
+.ddu-assignment-current strong.is-unassigned{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:5px 10px;
+  border:1px solid #f1c67d;
+  border-radius:999px;
+  background:#fff6e5;
+  color:#9b5c08;
+}
+.ddu-assignment-preview{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  border:1px solid #a8dabd;
+  border-radius:12px;
+  background:linear-gradient(180deg,#f3fcf6,#eaf8ef);
+}
+.ddu-assignment-preview span{
+  color:#52705e;
+  font-size:.74rem;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.035em;
+}
+.ddu-assignment-preview strong{
+  color:#146a38;
+  font-size:.92rem;
+  text-align:right;
+}
+.ddu-assignment-confirm-step{display:grid;gap:13px}
+.ddu-assignment-confirm-card{
+  padding:15px;
+  border:1px solid #dbe3eb;
+  border-radius:15px;
+  background:linear-gradient(180deg,#fff,#f8fafc);
+  box-shadow:0 8px 22px rgba(15,23,42,.055);
+}
+.ddu-assignment-confirm-kicker{
+  display:block;
+  margin-bottom:4px;
+  color:#9b5c08;
+  font-size:.7rem;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.ddu-assignment-confirm-card h3{
+  margin:0 0 13px;
+  color:#172033;
+  font-size:1.05rem;
+}
+.ddu-assignment-confirm-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+.ddu-assignment-confirm-grid>div{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  padding:10px 11px;
+  border:1px solid #e5e9ef;
+  border-radius:11px;
+  background:#fff;
+}
+.ddu-assignment-confirm-grid span{
+  color:#667085;
+  font-size:.68rem;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.ddu-assignment-confirm-grid strong{
+  min-width:0;
+  overflow-wrap:anywhere;
+  color:#172033;
+  font-size:.84rem;
+}
+.ddu-assignment-confirm-grid .is-target{
+  border-color:#a9ddbd;
+  background:#effaf3;
+}
+.ddu-assignment-confirm-grid .is-target strong{color:#146a38}
+.ddu-assignment-confirm-actions{
+  flex-wrap:wrap;
+}
+.ddu-assignment-confirm-actions .btn{min-width:132px}
+.ddu-assignment-card .lookup-status.show.info{
+  border-color:#b9d6f4!important;
+  background:#eff7ff!important;
+  color:#245a8b!important;
+}
+.premium-feedback-close.is-ack{
+  width:auto!important;
+  min-width:42px!important;
+  flex:0 0 auto!important;
+  padding:0 11px!important;
+  border:1px solid #a8d8b9!important;
+  background:#e4f6ea!important;
+  color:#176b3a!important;
+  font-size:11px!important;
+  font-weight:950!important;
+  letter-spacing:.02em;
+}
+@media(max-width:680px){
+  .ddu-assignment-head{padding-right:58px!important}
+  .ddu-assignment-confirm-grid{grid-template-columns:1fr}
+  .ddu-assignment-preview{align-items:flex-start;flex-direction:column}
+  .ddu-assignment-preview strong{text-align:left}
+  .ddu-assignment-confirm-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+  }
+  .ddu-assignment-confirm-actions .btn{min-width:0!important;width:100%!important}
+  .ddu-assignment-confirm-actions #dduAssignmentConfirmBtn{grid-column:1/-1}
+}
+
+#dduAssignmentEditStep[hidden],
+.ddu-assignment-confirm-step[hidden],
+#dduAssignmentEditActions[hidden],
+#dduAssignmentConfirmActions[hidden]{display:none!important}
