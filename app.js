@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fq';
+      const APP_VERSION = '23.9.99fp';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -965,10 +965,6 @@
           '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
         ];
         if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
-        const irregularidades = Array.isArray(p.irregularidadesConstatadas)
-          ? p.irregularidadesConstatadas
-          : [];
-        if (irregularidades.some(item => String(item || '').trim())) return true;
         const notificacoes = String(p.notificacoesLiberacao || '').trim();
         if (notificacoes && notificacoes !== '[]') return true;
         const fotosGerais = String(p.fotosGerais || '').trim();
@@ -2309,10 +2305,6 @@
       const acessoriaTipoLicencaSelect = document.getElementById('acessoriaTipoLicenca');
       const dduProtocolWrap = document.getElementById('dduProtocolWrap');
       const dduProtocolInput = document.getElementById('dduProtocol');
-      const irregularidadesConstatadasSecao = document.getElementById('irregularidadesConstatadasSecao');
-      const irregularidadesConstatadasLista = document.getElementById('irregularidadesConstatadasLista');
-      const adicionarIrregularidadeConstatadaBtn = document.getElementById('adicionarIrregularidadeConstatadaBtn');
-      const irregularidadesConstatadasResumo = document.getElementById('irregularidadesConstatadasResumo');
       const priorProcessAlert = document.getElementById('priorProcessAlert');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const limparResponsavelBtn = document.getElementById('limparResponsavelBtn');
@@ -2467,7 +2459,6 @@
       let preparacaoEmUsoId = '';
       let dduEmUsoId = '';
       let dduEmUsoNumero = '';
-      let irregularidadesConstatadasDraft_ = [];
       let dduEditandoId = '';
       let dduCadastroRetornarLista = false;
       let dduCnpjConsultaSequencia = 0;
@@ -2511,7 +2502,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fq';
+      const APP_REVISION_UI_ = '23.9.99fp';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4544,7 +4535,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4598,6 +4589,10 @@
       let responsavelLookupAplicacaoId_ = 0;
       let responsavelCpfLookupTimer = null;
       let responsavelCpfLookupSequencia = 0;
+      let responsavelBuscaCruzadaTimer_ = null;
+      let responsavelBuscaCruzadaSequencia_ = 0;
+      let responsavelBuscaCruzadaAssinatura_ = '';
+      const RESPONSAVEL_LOOKUP_FIELDS_ = new Set(['telefone','cpf','rg','email','nomeResponsavel','mae','nascimento']);
       let cpfResponsavelAssociado = '';
       let responsaveisLookupAtual = [];
       let responsaveisCpfLookupAtual = [];
@@ -8280,10 +8275,6 @@
           String(item?.demanda || '').trim(),
           autor ? `Responsável: ${autor}` : ''
         ].filter(Boolean);
-        const irregularidadesHistorico = normalizarListaIrregularidadesConstatadas_(item?.irregularidadesConstatadas || '');
-        const irregularidadesHistoricoHtml = irregularidadesHistorico.length
-          ? `<div class="history-copy-grid">${irregularidadesHistorico.map((texto, idx) => `<div class="history-copy-item"><span>Irregularidade ${idx + 1}</span><strong>${escapeHtml(texto)}</strong></div>`).join('')}</div>`
-          : '';
         return {
           tipo: 'vistoria',
           ordem: indice,
@@ -8295,7 +8286,6 @@
               <strong>${escapeHtml(titulo)}</strong>
               ${metadados.length ? `<div class="history-event-meta">${escapeHtml(metadados.join(' • '))}</div>` : ''}
               <p>${escapeHtml(descricaoHistorico_(item))}</p>
-              ${irregularidadesHistoricoHtml}
               ${atalhos}
             </div>
           </article>`
@@ -10872,20 +10862,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         selecionarSecaoFicha_(recordDetailSectionActive_);
       }
 
-      function irregularidadesConstatadasFicha_(registro) {
-        return normalizarListaIrregularidadesConstatadas_(valorCampoFicha_(registro, 'Irregularidades constatadas'));
-      }
-
-      function montarBlocoIrregularidadesConstatadasFicha_(registro) {
-        const itens = irregularidadesConstatadasFicha_(registro);
-        if (!itens.length) return '';
-        return montarGrupoFicha_(
-          'Irregularidades constatadas',
-          itens.map((texto, indice) => [`Irregularidade ${indice + 1}`, texto]),
-          'record-detail-group--wide record-irregularities-observed-group'
-        );
-      }
-
       function renderizarFichaRegistro_(registro) {
         recordDetailRegistroAtual = registro || null;
         recordFineEstimateRegistroAtual = registro || null;
@@ -11083,7 +11059,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             montarEstimativaMultaFicha_(registro)
           }</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="processo">${montarGrupoFicha_('Processo', processo, 'record-process-group record-detail-group--wide')}</div>` +
-          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}${montarBlocoIrregularidadesConstatadasFicha_(registro)}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="responsavel">${montarGrupoFicha_(eventoFicha || petFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide')}${blocoRecuperacaoEnderecoResponsavel}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="localizacao">${montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group record-detail-group--wide')}${mapaLocalizacaoFicha}</div>`;
 
@@ -12094,76 +12070,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarVinculoAcessoria_();
       }
 
-      function novaIrregularidadeConstatada_(texto = '') {
-        return { id: `ic_${Date.now()}_${Math.random().toString(36).slice(2,8)}`, texto: String(texto || '') };
-      }
-
-      function normalizarListaIrregularidadesConstatadas_(entrada) {
-        if (Array.isArray(entrada)) {
-          return entrada
-            .map(item => typeof item === 'string' ? item : String(item?.texto || item?.descricao || ''))
-            .map(texto => texto.trim())
-            .filter(Boolean)
-            .slice(0, 200);
-        }
-        const bruto = String(entrada == null ? '' : entrada).trim();
-        if (!bruto) return [];
-        try {
-          const parsed = JSON.parse(bruto);
-          if (Array.isArray(parsed)) return normalizarListaIrregularidadesConstatadas_(parsed);
-        } catch (_) {}
-        return bruto.split(/\r?\n+/)
-          .map(linha => linha.replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim())
-          .filter(Boolean)
-          .slice(0, 200);
-      }
-
-      function serializarIrregularidadesConstatadas_() {
-        return irregularidadesConstatadasDraft_
-          .map(item => String(item?.texto || '').trim())
-          .filter(Boolean)
-          .slice(0, 200);
-      }
-
-      function renderizarIrregularidadesConstatadas_() {
-        if (!irregularidadesConstatadasLista) return;
-        if (!irregularidadesConstatadasDraft_.length) irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
-        irregularidadesConstatadasLista.innerHTML = irregularidadesConstatadasDraft_.map((item, indice) => `
-          <div class="field wide" data-irregularidade-constatada-id="${escapeAttr(item.id)}">
-            <label for="irregularidadeConstatada_${escapeAttr(item.id)}">Irregularidade ${indice + 1}</label>
-            <textarea id="irregularidadeConstatada_${escapeAttr(item.id)}" rows="3" data-irregularidade-constatada-texto="${escapeAttr(item.id)}" placeholder="Descreva objetivamente a irregularidade constatada">${escapeHtml(item.texto || '')}</textarea>
-            <div><button class="btn btn-secondary" type="button" data-remover-irregularidade-constatada="${escapeAttr(item.id)}">Excluir irregularidade</button></div>
-          </div>`).join('');
-        const preenchidas = serializarIrregularidadesConstatadas_().length;
-        if (irregularidadesConstatadasResumo) {
-          irregularidadesConstatadasResumo.textContent = preenchidas
-            ? `${preenchidas} irregularidade${preenchidas === 1 ? '' : 's'} informada${preenchidas === 1 ? '' : 's'}.`
-            : 'Nenhuma irregularidade informada.';
-        }
-      }
-
-      function restaurarIrregularidadesConstatadas_(entrada) {
-        const textos = normalizarListaIrregularidadesConstatadas_(entrada);
-        irregularidadesConstatadasDraft_ = textos.length
-          ? textos.map(texto => novaIrregularidadeConstatada_(texto))
-          : [novaIrregularidadeConstatada_()];
-        renderizarIrregularidadesConstatadas_();
-      }
-
-      function sincronizarIrregularidadesConstatadas_() {
-        const fiscalizacao = fluxoVistoriaAtual_() === 'fiscalizacao';
-        if (irregularidadesConstatadasSecao) irregularidadesConstatadasSecao.hidden = !fiscalizacao;
-        if (fiscalizacao && !irregularidadesConstatadasDraft_.length) {
-          irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
-          renderizarIrregularidadesConstatadas_();
-        }
-      }
-
       function sincronizarDemandasEspeciais_() {
         const ddu = ehDemandaDdu_();
         if (dduProtocolWrap) dduProtocolWrap.hidden = !ddu;
         if (ddu && dduProtocolInput && !dduProtocolInput.value && dduEmUsoNumero) dduProtocolInput.value = dduEmUsoNumero;
-        sincronizarIrregularidadesConstatadas_();
         sincronizarVistoriaAcessoria_();
         sincronizarTipoLiberacao_();
       }
@@ -12195,7 +12105,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } finally {
           preenchendoResponsavelLookup = false;
         }
-        if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
+        agendarConsultaResponsavelCruzada_(650);
         scheduleDraftSave();
       }
 
@@ -14521,7 +14431,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           acessoriaTipoLicenca: acessoria ? value('acessoriaTipoLicenca') : '',
           acessoriaSituacaoAnterior: acessoria ? String(processoAcessoriaVinculado?.sancao || '') : '',
           dduProtocol: ehDemandaDdu_() ? (value('dduProtocol') || dduEmUsoNumero) : '',
-          irregularidadesConstatadas: fluxoVistoriaAtual_() === 'fiscalizacao' ? serializarIrregularidadesConstatadas_() : [],
           pscip: eventoDeclaratorio ? '' : (value('possuiPscip') === 'sim' ? projetoPscipOperacional_(value('pscip')) : ''),
           pf: value('pf'),
           tipoVistoria: value('tipoVistoria'),
@@ -16864,7 +16773,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } finally {
           preenchendoResponsavelLookup = false;
         }
-        if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
+        agendarConsultaResponsavelCruzada_(650);
       }
 
       function limparCpfCopiadoSeVirouCnpj_() {
@@ -16936,7 +16845,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
              .replace(/\.(\d{3})(\d)/, '.$1-$2');
         event.target.value = v;
         if (cpfCopiadoDoIdentificador && digits(v) !== cpfCopiadoDoIdentificador) cpfCopiadoDoIdentificador = '';
-        if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
+        agendarConsultaResponsavelCruzada_(650);
       }
 
 
@@ -17193,8 +17102,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function invalidarConsultasResponsavel_() {
         clearTimeout(responsavelLookupTimer);
         clearTimeout(responsavelCpfLookupTimer);
+        clearTimeout(responsavelBuscaCruzadaTimer_);
         responsavelLookupSequencia += 1;
         responsavelCpfLookupSequencia += 1;
+        responsavelBuscaCruzadaSequencia_ += 1;
+        responsavelBuscaCruzadaAssinatura_ = '';
       }
 
       function limparTodosDadosResponsavel_() {
@@ -17311,18 +17223,132 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const nome = document.createElement('strong');
           nome.textContent = item.nomeResponsavel || 'Responsável sem nome';
           const detalhes = document.createElement('small');
-          detalhes.textContent = [item.cpf ? `CPF ${formatarCpfTela_(item.cpf)}` : '', item.responsavel || ''].filter(Boolean).join(' • ') || 'Dados existentes na planilha';
+          detalhes.textContent = [item.criterio || '', item.cpf ? `CPF ${formatarCpfTela_(item.cpf)}` : '', item.rg ? `RG ${item.rg}` : '', item.telefone ? formatarTelefoneTela_(item.telefone) : '', item.responsavel || ''].filter(Boolean).join(' • ') || 'Dados existentes na planilha';
           info.append(nome, detalhes);
 
           const acao = document.createElement('span');
           acao.className = 'lookup-select-label';
-          acao.textContent = 'Selecionar';
+          acao.textContent = 'Usar dados';
 
           btn.append(info, acao);
           responsavelLookupResultados.appendChild(btn);
         });
 
         responsavelLookupResultados.classList.toggle('show', responsaveisLookupAtual.length > 0);
+      }
+
+      function dadosBuscaCruzadaResponsavel_() {
+        return {
+          telefone: digits(value('telefone')),
+          cpf: digits(value('cpf')),
+          rg: String(value('rg') || '').trim(),
+          email: String(value('email') || '').trim(),
+          nomeResponsavel: String(value('nomeResponsavel') || '').trim(),
+          mae: String(value('mae') || '').trim(),
+          nascimento: String(value('nascimento') || '').trim(),
+          responsavel: String(value('responsavel') || '').trim()
+        };
+      }
+
+      function assinaturaBuscaCruzadaResponsavel_(dados) {
+        const d = dados || dadosBuscaCruzadaResponsavel_();
+        return [d.telefone, d.cpf, d.rg, d.email.toLowerCase(), d.nomeResponsavel.toLowerCase(), d.mae.toLowerCase(), d.nascimento, d.responsavel.toLowerCase()].join('|');
+      }
+
+      function buscaCruzadaResponsavelTemChave_(dados) {
+        const d = dados || {};
+        const telefone = digits(d.telefone || '');
+        const cpf = digits(d.cpf || '');
+        const rg = String(d.rg || '').replace(/[^a-z0-9]/gi, '');
+        const email = String(d.email || '').trim();
+        const nome = String(d.nomeResponsavel || '').trim();
+        const mae = String(d.mae || '').trim();
+        const nascimento = digits(d.nascimento || '');
+        return [10,11].includes(telefone.length) || cpf.length === 11 || rg.length >= 4 ||
+          (email.length >= 5 && email.includes('@')) || nome.length >= 4 || (mae.length >= 5 && nascimento.length === 8);
+      }
+
+      function esconderSugestoesBuscaCruzadaResponsavel_() {
+        esconderResponsavelLookupResultados_();
+        esconderResponsavelCpfLookupResultados_();
+      }
+
+      function mostrarStatusBuscaCruzadaResponsavel_(mensagem, tipo = 'info') {
+        if (ehEventoDeclaratorio_()) {
+          showResponsavelCpfLookupStatus_(mensagem, tipo);
+        } else {
+          showResponsavelLookupStatus_(mensagem, tipo);
+        }
+      }
+
+      function limparStatusBuscaCruzadaResponsavel_() {
+        if (ehEventoDeclaratorio_()) clearResponsavelCpfLookupStatus_();
+        else clearResponsavelLookupStatus_();
+      }
+
+      function renderizarSugestoesBuscaCruzadaResponsavel_(itens) {
+        if (ehEventoDeclaratorio_()) renderizarResponsaveisEncontradosCpf_(itens);
+        else renderizarResponsaveisEncontrados_(itens);
+      }
+
+      async function consultarResponsavelBuscaCruzada_() {
+        if (preenchendoResponsavelLookup) return;
+        const dados = dadosBuscaCruzadaResponsavel_();
+        const assinatura = assinaturaBuscaCruzadaResponsavel_(dados);
+        if (!buscaCruzadaResponsavelTemChave_(dados)) {
+          esconderSugestoesBuscaCruzadaResponsavel_();
+          limparStatusBuscaCruzadaResponsavel_();
+          return;
+        }
+        if (!navigator.onLine) return;
+
+        const sequencia = ++responsavelBuscaCruzadaSequencia_;
+        responsavelBuscaCruzadaAssinatura_ = assinatura;
+        try {
+          const result = await apiRequest('config', { consulta: 'responsavel_busca', filtros: dados }, 30000);
+          if (sequencia !== responsavelBuscaCruzadaSequencia_) return;
+          if (assinatura !== assinaturaBuscaCruzadaResponsavel_()) return;
+
+          const itens = Array.isArray(result?.itens) ? result.itens : [];
+          esconderSugestoesBuscaCruzadaResponsavel_();
+          if (!itens.length) {
+            // Sem resultado, o preenchimento segue em silêncio. Só mostra uma nota
+            // discreta quando já existe identificador forte e completo.
+            const forte = digits(dados.cpf).length === 11 || [10,11].includes(digits(dados.telefone).length) ||
+              String(dados.rg || '').replace(/[^a-z0-9]/gi, '').length >= 4 ||
+              (String(dados.email || '').includes('@') && String(dados.email || '').length >= 5);
+            if (forte) mostrarStatusBuscaCruzadaResponsavel_('Nenhum cadastro anterior localizado. Continue preenchendo normalmente.', 'info');
+            else limparStatusBuscaCruzadaResponsavel_();
+            return;
+          }
+
+          renderizarSugestoesBuscaCruzadaResponsavel_(itens);
+          mostrarStatusBuscaCruzadaResponsavel_(
+            itens.length === 1
+              ? 'Responsável localizado nos registros anteriores. Continue preenchendo normalmente ou toque em “Usar dados” para aproveitar os campos disponíveis.'
+              : `${itens.length} cadastros compatíveis foram localizados. Continue preenchendo normalmente ou escolha uma sugestão.`,
+            'success'
+          );
+        } catch (error) {
+          if (sequencia !== responsavelBuscaCruzadaSequencia_ || assinatura !== assinaturaBuscaCruzadaResponsavel_()) return;
+          // Falha de consulta não interrompe, não bloqueia e não limpa nenhum campo.
+          limparStatusBuscaCruzadaResponsavel_();
+        }
+      }
+
+      function agendarConsultaResponsavelCruzada_(delay = 750) {
+        if (preenchendoResponsavelLookup) return;
+        clearTimeout(responsavelBuscaCruzadaTimer_);
+        responsavelBuscaCruzadaSequencia_ += 1;
+        esconderSugestoesBuscaCruzadaResponsavel_();
+        limparStatusBuscaCruzadaResponsavel_();
+        const dados = dadosBuscaCruzadaResponsavel_();
+        if (!buscaCruzadaResponsavelTemChave_(dados)) {
+          esconderSugestoesBuscaCruzadaResponsavel_();
+          limparStatusBuscaCruzadaResponsavel_();
+          return;
+        }
+        responsavelBuscaCruzadaTimer_ = setTimeout(() => consultarResponsavelBuscaCruzada_(), Math.max(120, Number(delay || 750)));
       }
 
       async function consultarResponsavelPorTelefone_() {
@@ -17370,26 +17396,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function agendarConsultaResponsavelPorTelefone_() {
-        if (ehEventoDeclaratorio_()) return;
-        if (preenchendoResponsavelLookup) return;
-        clearTimeout(responsavelLookupTimer);
-        responsavelLookupSequencia += 1;
-        const telefone = digits(telefoneInput?.value || '');
-
-        if (![10, 11].includes(telefone.length)) {
-          esconderResponsavelLookupResultados_();
-          clearResponsavelLookupStatus_();
-          return;
-        }
-
-        if (telefoneResponsavelAssociado && telefoneResponsavelAssociado !== telefone) {
-          telefoneResponsavelAssociado = '';
-          cpfResponsavelAssociado = '';
-          // O novo telefone pode representar outra pessoa, mas campos já alterados
-          // manualmente continuam protegidos contra respostas atrasadas ou automáticas.
-        }
-
-        responsavelLookupTimer = setTimeout(consultarResponsavelPorTelefone_, 550);
+        agendarConsultaResponsavelCruzada_(650);
       }
 
 
@@ -17447,11 +17454,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const nome = document.createElement('strong');
           nome.textContent = item.nomeResponsavel || 'Responsável sem nome';
           const detalhes = document.createElement('small');
-          detalhes.textContent = [item.telefone ? formatarTelefoneTela_(item.telefone) : '', item.responsavel || ''].filter(Boolean).join(' • ') || 'Dados existentes na planilha';
+          detalhes.textContent = [item.criterio || '', item.telefone ? formatarTelefoneTela_(item.telefone) : '', item.rg ? `RG ${item.rg}` : '', item.responsavel || ''].filter(Boolean).join(' • ') || 'Dados existentes na planilha';
           info.append(nome, detalhes);
           const acao = document.createElement('span');
           acao.className = 'lookup-select-label';
-          acao.textContent = 'Selecionar';
+          acao.textContent = 'Usar dados';
           btn.append(info, acao);
           responsavelCpfLookupResultados.appendChild(btn);
         });
@@ -17497,21 +17504,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function agendarConsultaResponsavelPorCpf_() {
-        if (!ehEventoDeclaratorio_() || preenchendoResponsavelLookup) return;
-        clearTimeout(responsavelCpfLookupTimer);
-        responsavelCpfLookupSequencia += 1;
-        const cpf = digits(cpfInput?.value || '');
-        if (cpf.length !== 11) {
-          esconderResponsavelCpfLookupResultados_();
-          clearResponsavelCpfLookupStatus_();
-          return;
-        }
-        if (cpfResponsavelAssociado && cpfResponsavelAssociado !== cpf) {
-          cpfResponsavelAssociado = '';
-          telefoneResponsavelAssociado = '';
-          // Mantém a proteção dos demais campos já conferidos/alterados pelo militar.
-        }
-        responsavelCpfLookupTimer = setTimeout(consultarResponsavelPorCpf_, 500);
+        agendarConsultaResponsavelCruzada_(650);
       }
 
 
@@ -18633,12 +18626,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (cityOptions.includes(p.cidade)) citySelect.value = p.cidade;
         else if (p.cidade) { citySelect.value = 'Outro'; otherCity.value = p.cidade; }
         Object.entries(p).forEach(([key, val]) => {
-          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key === 'irregularidadesConstatadas' || key.startsWith('_app')) return;
+          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
         protegerCamposResponsavelPreenchidos_();
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
-        restaurarIrregularidadesConstatadas_(p.irregularidadesConstatadas);
         restaurarFotosGerais_(p.fotosGerais);
         restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
@@ -18714,6 +18706,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         clearTimeout(cnpjTimer);
         clearTimeout(responsavelLookupTimer);
         clearTimeout(responsavelCpfLookupTimer);
+        clearTimeout(responsavelBuscaCruzadaTimer_);
         clearTimeout(estabelecimentoLookupTimer);
         clearTimeout(pscipLookupTimer);
         clearTimeout(encerramentoFiscalTimer);
@@ -18722,6 +18715,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         cnpjConsultaSequencia += 1;
         responsavelLookupSequencia += 1;
         responsavelCpfLookupSequencia += 1;
+        responsavelBuscaCruzadaSequencia_ += 1;
+        responsavelBuscaCruzadaAssinatura_ = '';
         estabelecimentoLookupSequencia += 1;
         pscipLookupSequencia += 1;
         encerramentoFiscalSequencia += 1;
@@ -18800,7 +18795,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         RESPONSAVEL_EDITABLE_FIELDS_.forEach(id => document.getElementById(id)?.classList.remove('responsible-manual-edited'));
         esconderResponsavelLookupResultados_();
         clearTimeout(responsavelCpfLookupTimer);
+        clearTimeout(responsavelBuscaCruzadaTimer_);
         responsavelCpfLookupSequencia += 1;
+        responsavelBuscaCruzadaSequencia_ += 1;
+        responsavelBuscaCruzadaAssinatura_ = '';
         cpfResponsavelAssociado = '';
         esconderResponsavelCpfLookupResultados_();
         clearResponsavelCpfLookupStatus_();
@@ -18821,9 +18819,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacoesSelecionadas = [];
         notificacoesLiberacaoDraft = [];
         renderizarNotificacoesLiberacao_();
-        irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
-        renderizarIrregularidadesConstatadas_();
-        sincronizarIrregularidadesConstatadas_();
         fotosGeraisDraft_ = [];
         renderizarFotosGerais_();
         if (generalPhotoStatus) generalPhotoStatus.textContent = '';
@@ -21433,7 +21428,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ? `<b>Em andamento:</b> ${escapeHtml(x.rascunhoAtualizadoPor || 'vistoria já iniciada')}`
               : '<b>Atendimento:</b> disponível para toda a equipe do GPV');
           const identificacaoLocal = String(x.nomeFantasia || x.razaoSocial || '').trim();
-          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O arquivo da denúncia será enviado automaticamente para a lixeira após 24 h.':'Denúncia disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver denúncia</a>`:''}<button class="btn btn-secondary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button>${!concluido?`<button class="btn btn-primary ddu-start-btn" type="button" data-ddu-start="${escapeAttr(x.id)}">${x.vistoriaIniciada?'Continuar vistoria':'Iniciar vistoria'}</button>`:''}</div></article>`;
+          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O arquivo da denúncia será enviado automaticamente para a lixeira após 24 h.':'Denúncia disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver denúncia</a>`:''}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
         };
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — denúncia disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
@@ -21580,25 +21575,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function iniciarDdu_(item){
         if(!item)return;
         if(dduListModal)dduListModal.hidden=true;
-
-        if (item.vistoriaIniciada && !item.rascunhoId) {
-          if (!navigator.onLine) {
-            avisarGpv_('Esta demanda já possui uma vistoria em andamento. Conecte o aparelho à internet para localizar o preenchimento compartilhado.', 'Vistoria já iniciada', { tom: 'warning' });
-            return;
-          }
-          try {
-            await carregarDdUs_();
-            const atualizado = ddusAtivos.find(x => String(x.id) === String(item.id));
-            if (atualizado?.rascunhoId) return iniciarDdu_(atualizado);
-          } catch (_) {}
-          avisarGpv_('A vistoria deste DDU aparece como iniciada, mas o rascunho ainda não pôde ser localizado. Atualize a lista e tente novamente.', 'Não foi possível continuar', { tom: 'warning' });
-          return;
-        }
-
-        if (item.vistoriaIniciada && item.rascunhoId && !navigator.onLine) {
-          avisarGpv_('Esta demanda já possui uma vistoria em andamento. Conecte o aparelho à internet para carregar o rascunho compartilhado e evitar duplicidade.', 'Vistoria já iniciada', { tom: 'warning' });
-          return;
-        }
 
         if (item.vistoriaIniciada && item.rascunhoId && navigator.onLine) {
           try {
@@ -23391,13 +23367,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return false;
         }
 
-        // V23.9.99fp — a programação pode ser aberta a partir do Painel.
-        // Depois de carregar o cadastro/rascunho, força a navegação para a vista
-        // Vistoria antes de fechar os modais; sem isso, o formulário ficava pronto
-        // em segundo plano e o usuário retornava visualmente ao Painel/tela inicial.
-        await mostrarVistaFormulario_();
-        rolarParaFormularioProgramado_();
-
         if (escolha === 'notificacoes') {
           setTimeout(rolarParaNotificacoesProgramadas_, 140);
         }
@@ -23835,14 +23804,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       registeredInspectionDetailModal?.addEventListener('click', e => { if (e.target === registeredInspectionDetailModal) fecharDetalheVistoriaCadastrada_(); });
       dduList?.addEventListener('click', e => {
         if (e.target.closest('a')) return;
-        const iniciar = e.target.closest('[data-ddu-start]');
-        if (iniciar) {
-          e.preventDefault();
-          e.stopPropagation();
-          const item = ddusAtivos.find(x => String(x.id) === String(iniciar.dataset.dduStart || ''));
-          if (item) void iniciarDdu_(item);
-          return;
-        }
         const alvo = e.target.closest('[data-ddu-details], [data-ddu-id]');
         if (!alvo) return;
         const id = String(alvo.dataset.dduDetails || alvo.dataset.dduId || alvo.closest('[data-ddu-id]')?.dataset.dduId || '');
@@ -23856,32 +23817,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         e.preventDefault();
         const item = ddusAtivos.find(x => String(x.id) === String(alvo.dataset.dduId || ''));
         if (item) abrirDetalheVistoriaCadastrada_('ddu', item);
-      });
-      adicionarIrregularidadeConstatadaBtn?.addEventListener('click', () => {
-        irregularidadesConstatadasDraft_.push(novaIrregularidadeConstatada_());
-        renderizarIrregularidadesConstatadas_();
-        const camposIrregularidade = irregularidadesConstatadasLista?.querySelectorAll('[data-irregularidade-constatada-texto]');
-        camposIrregularidade?.[camposIrregularidade.length - 1]?.focus();
-      });
-      irregularidadesConstatadasLista?.addEventListener('input', event => {
-        const campo = event.target.closest('[data-irregularidade-constatada-texto]');
-        if (!campo) return;
-        const item = irregularidadesConstatadasDraft_.find(x => String(x.id) === String(campo.dataset.irregularidadeConstatadaTexto || ''));
-        if (!item) return;
-        item.texto = String(campo.value || '');
-        const preenchidas = serializarIrregularidadesConstatadas_().length;
-        if (irregularidadesConstatadasResumo) irregularidadesConstatadasResumo.textContent = preenchidas
-          ? `${preenchidas} irregularidade${preenchidas === 1 ? '' : 's'} informada${preenchidas === 1 ? '' : 's'}.`
-          : 'Nenhuma irregularidade informada.';
-      });
-      irregularidadesConstatadasLista?.addEventListener('click', event => {
-        const botao = event.target.closest('[data-remover-irregularidade-constatada]');
-        if (!botao) return;
-        event.preventDefault();
-        irregularidadesConstatadasDraft_ = irregularidadesConstatadasDraft_.filter(item => String(item.id) !== String(botao.dataset.removerIrregularidadeConstatada || ''));
-        if (!irregularidadesConstatadasDraft_.length) irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
-        renderizarIrregularidadesConstatadas_();
-        scheduleDraftSave();
       });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
       desktopPrepareInspectionBtn?.addEventListener('click', () => { fecharListaProgramadas_(); abrirModalPreparacao_({ retornarProgramadas: true }); });
@@ -24096,8 +24031,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const mesmoEndereco = document.getElementById('mesmoEnderecoResponsavel');
             if (mesmoEndereco?.checked) mesmoEndereco.checked = false;
           }
-          // Qualquer edição manual invalida respostas antigas ainda em trânsito.
-          if (event.target.id !== 'telefone' && event.target.id !== 'cpf') invalidarConsultasResponsavel_();
+          // A busca é assistiva e silenciosa: nunca move foco, nunca bloqueia e
+          // nunca aplica dados enquanto o militar apenas digita.
+          if (RESPONSAVEL_LOOKUP_FIELDS_.has(event.target.id)) agendarConsultaResponsavelCruzada_(780);
         }
         if (event.target.classList.contains('invalid') && String(event.target.value || '').trim() && (!validacaoGuiadaAtiva_ || event.target !== validacaoGuiadaAtual_)) event.target.classList.remove('invalid');
         if (document.getElementById('mesmoEnderecoResponsavel').checked && ['endereco','numero','complemento','bairro'].includes(event.target.id)) syncResponsibleAddress();
@@ -24376,6 +24312,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         event.target.classList.toggle('invalid', !valido);
         if (!valido) appStatus.textContent = 'Confira a data de nascimento do responsável.';
       });
+      RESPONSAVEL_LOOKUP_FIELDS_.forEach(id => {
+        document.getElementById(id)?.addEventListener('blur', () => {
+          if (!preenchendoResponsavelLookup) agendarConsultaResponsavelCruzada_(140);
+        });
+      });
+
       ['cnpj','endereco','numero','pf','demandaPrincipal'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', agendarConsultaEncerramentoFiscal_);
       });
@@ -24423,16 +24365,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!botao) return;
         const indice = Number(botao.dataset.responsavelIndex);
         if (!Number.isInteger(indice) || !responsaveisLookupAtual[indice]) return;
-        limparProtecaoEdicaoResponsavel_();
-        aplicarResponsavelEncontrado_(responsaveisLookupAtual[indice], { forcar: true });
+        ativarInicioEfetivoVistoria_('uso de dados históricos do responsável');
+        aplicarResponsavelEncontrado_(responsaveisLookupAtual[indice], { forcar: false });
       });
       responsavelCpfLookupResultados?.addEventListener('click', event => {
         const botao = event.target.closest('[data-responsavel-cpf-index]');
         if (!botao) return;
         const indice = Number(botao.dataset.responsavelCpfIndex);
         if (!Number.isInteger(indice) || !responsaveisCpfLookupAtual[indice]) return;
-        limparProtecaoEdicaoResponsavel_();
-        aplicarResponsavelEncontrado_(responsaveisCpfLookupAtual[indice], { forcar: true });
+        ativarInicioEfetivoVistoria_('uso de dados históricos do responsável');
+        aplicarResponsavelEncontrado_(responsaveisCpfLookupAtual[indice], { forcar: false });
       });
       ocupacaoInput.addEventListener('focus', () => pesquisarOcupacoes(ocupacaoInput.value));
       ocupacaoInput.addEventListener('input', () => {
@@ -24876,6 +24818,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           cnpjTimer,
           responsavelLookupTimer,
           responsavelCpfLookupTimer,
+          responsavelBuscaCruzadaTimer_,
           estabelecimentoLookupTimer,
           pscipLookupTimer,
           encerramentoFiscalTimer,
@@ -24888,6 +24831,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         cnpjConsultaSequencia += 1;
         responsavelLookupSequencia += 1;
         responsavelCpfLookupSequencia += 1;
+        responsavelBuscaCruzadaSequencia_ += 1;
+        responsavelBuscaCruzadaAssinatura_ = '';
         estabelecimentoLookupSequencia += 1;
         pscipLookupSequencia += 1;
         encerramentoFiscalSequencia += 1;
@@ -24907,8 +24852,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (tipoIdentificador_(value('cnpj')) === 'cnpj') {
               cnpjTimer = setTimeout(() => consultarCnpj(true), 250);
             }
-            if (ehEventoDeclaratorio_()) agendarConsultaResponsavelPorCpf_();
-            else agendarConsultaResponsavelPorTelefone_();
+            agendarConsultaResponsavelCruzada_(650);
             agendarConsultaPscip_();
             agendarConsultaProcessoPf_('form', 350);
             agendarConsultaEncerramentoFiscal_();
@@ -25109,7 +25053,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
