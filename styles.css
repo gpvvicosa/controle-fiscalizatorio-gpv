@@ -20935,3 +20935,83 @@ body.records-mode .dashboard-programmed-summary-card.is-danger .programmed-summa
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
   }
 }
+
+
+/* =============================================================================
+   V23.9.99ft — Padrão global de ações e confirmações
+   Vermelho = cancelar/destruir · Laranja = revisar/editar · Verde = salvar/confirmar
+   ============================================================================= */
+button.semantic-action-red,
+a.btn.semantic-action-red,
+.btn.semantic-action-red{
+  border-color:#a61b15!important;
+  background:linear-gradient(180deg,#c83228,#a61b15)!important;
+  color:#fff!important;
+  box-shadow:0 6px 16px rgba(166,27,21,.15)!important;
+}
+button.semantic-action-orange,
+a.btn.semantic-action-orange,
+.btn.semantic-action-orange{
+  border-color:#c86d08!important;
+  background:linear-gradient(180deg,#e58a16,#c96d08)!important;
+  color:#fff!important;
+  box-shadow:0 6px 16px rgba(201,109,8,.15)!important;
+}
+button.semantic-action-green,
+a.btn.semantic-action-green,
+.btn.semantic-action-green{
+  border-color:#147a45!important;
+  background:linear-gradient(180deg,#239357,#147a45)!important;
+  color:#fff!important;
+  box-shadow:0 6px 16px rgba(20,122,69,.15)!important;
+}
+button.semantic-action-red:hover,
+a.btn.semantic-action-red:hover,
+.btn.semantic-action-red:hover{filter:brightness(.96)}
+button.semantic-action-orange:hover,
+a.btn.semantic-action-orange:hover,
+.btn.semantic-action-orange:hover{filter:brightness(.97)}
+button.semantic-action-green:hover,
+a.btn.semantic-action-green:hover,
+.btn.semantic-action-green:hover{filter:brightness(.97)}
+button.semantic-action-red:focus-visible,
+a.btn.semantic-action-red:focus-visible,
+button.semantic-action-orange:focus-visible,
+a.btn.semantic-action-orange:focus-visible,
+button.semantic-action-green:focus-visible,
+a.btn.semantic-action-green:focus-visible{
+  outline:3px solid rgba(31,41,55,.16)!important;
+  outline-offset:2px!important;
+}
+button.semantic-action-red:disabled,
+button.semantic-action-orange:disabled,
+button.semantic-action-green:disabled,
+.btn.semantic-action-red[aria-disabled="true"],
+.btn.semantic-action-orange[aria-disabled="true"],
+.btn.semantic-action-green[aria-disabled="true"]{
+  opacity:.58!important;
+  cursor:wait!important;
+}
+.record-correction-message.warning{color:#9a5b0a!important}
+
+/* Nos diálogos centrais, Cancelar permanece vermelho e a ação positiva segue a semântica global. */
+.gpv-dialog-btn-secondary.semantic-action-red{
+  border-color:#b42318!important;
+  background:linear-gradient(180deg,#c83228,#a61b15)!important;
+  color:#fff!important;
+}
+.gpv-dialog-btn-primary.semantic-action-green{
+  border-color:#147a45!important;
+  background:linear-gradient(180deg,#239357,#147a45)!important;
+  color:#fff!important;
+}
+.gpv-dialog-btn-primary.semantic-action-orange{
+  border-color:#c86d08!important;
+  background:linear-gradient(180deg,#e58a16,#c96d08)!important;
+  color:#fff!important;
+}
+.gpv-dialog-btn-primary.semantic-action-red{
+  border-color:#a61b15!important;
+  background:linear-gradient(180deg,#c83228,#a61b15)!important;
+  color:#fff!important;
+}

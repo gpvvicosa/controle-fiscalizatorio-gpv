@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fs';
+      const APP_VERSION = '23.9.99ft';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1526,10 +1526,12 @@
       const API_CONFIG_READ_QUERIES = new Set([
         '',
         'registros',
+        'registros_sync',
         'registro',
         'registro_extras',
         'responsavel_telefone',
         'responsavel_cpf',
+        'responsavel_busca',
         'duplicidade',
         'estabelecimento_historico',
         'pscip',
@@ -1586,6 +1588,51 @@
             consulta: String(data?.consulta || '')
           }));
         } catch (e) {}
+      }
+
+      // V23.9.99ft — confirmação global das principais gravações do app.
+      // O aviso genérico só aparece quando a própria tela não tiver mostrado uma
+      // confirmação específica logo após a resposta do servidor.
+      const API_CONFIG_SUCCESS_FEEDBACK_ = new Map([
+        ['auto_salvar', '✓ Nº do Auto salvo com sucesso.'],
+        ['situacao_atualizar', '✓ Situação atualizada com sucesso.'],
+        ['multa_atualizar', '✓ Conferência da multa atualizada com sucesso.'],
+        ['resultado_corrigir', '✓ Resultado da vistoria corrigido com sucesso.'],
+        ['registro_corrigir', '✓ Correção efetivada com sucesso.'],
+        ['programada_editar', '✓ Vistoria programada atualizada com sucesso.'],
+        ['programada_excluir', '✓ Vistoria programada excluída com sucesso.'],
+        ['ddu_salvar', '✓ DDU salvo com sucesso.'],
+        ['ddu_editar', '✓ DDU atualizado com sucesso.'],
+        ['foto_irregularidade_salvar', '✓ Fotografia salva com sucesso.'],
+        ['foto_irregularidade_manter', '✓ Retenção da fotografia atualizada com sucesso.'],
+        ['foto_irregularidade_excluir', '✓ Fotografia excluída com sucesso.'],
+        ['retorno_liberacao_documento_salvar', '✓ Documento salvo com sucesso.'],
+        ['reds_modelo_salvar', '✓ Modelo REDS salvo com sucesso.'],
+        ['reds_modelo_restaurar', '✓ Modelo REDS restaurado com sucesso.'],
+        ['sugestao_regularizar', '✓ Situação atualizada com sucesso.'],
+        ['sugestao_reabrir', '✓ Situação reaberta com sucesso.'],
+        ['sugestao_observacao', '✓ Observação registrada com sucesso.']
+      ]);
+
+      const API_ACTION_SUCCESS_FEEDBACK_ = new Map([
+        ['user_update', '✓ Alteração do usuário efetivada com sucesso.'],
+        ['user_delete', '✓ Usuário excluído com sucesso.'],
+        ['notify_send', '✓ Notificação registrada com sucesso.']
+      ]);
+
+      function agendarFeedbackSucessoApi_(action, data = {}, opcoes = {}) {
+        if (opcoes?.silentSuccess === true) return;
+        const custom = String(opcoes?.feedbackSucesso || '').trim();
+        const acao = String(action || '').trim().toLowerCase();
+        const consulta = String(data?.consulta || '').trim().toLowerCase();
+        const mensagem = custom || (acao === 'config' ? API_CONFIG_SUCCESS_FEEDBACK_.get(consulta) : API_ACTION_SUCCESS_FEEDBACK_.get(acao));
+        if (!mensagem) return;
+        const iniciadoEm = Date.now();
+        window.setTimeout(() => {
+          // Se a tela já exibiu uma confirmação própria, evita dois avisos para a mesma ação.
+          if (premiumFeedbackLastSuccessAt_ && premiumFeedbackLastSuccessAt_ >= iniciadoEm) return;
+          mostrarFeedbackPremium_(mensagem, 'success');
+        }, 320);
       }
 
       async function gatewayRequest_(action, data = {}, timeoutMs = 30000, opcoes = {}) {
@@ -1656,9 +1703,10 @@
             const consultaNormalizada = String(data?.consulta || '').trim().toLowerCase();
             const ehLeitura = ['ping', 'cnpj', 'users', 'notifications'].includes(acaoNormalizada) ||
               (acaoNormalizada === 'config' && API_CONFIG_READ_QUERIES.has(consultaNormalizada));
-            const timeoutError = new Error(ehLeitura
+            const mensagemTimeoutPersonalizada = String(opcoes?.timeoutMessage || '').trim();
+            const timeoutError = new Error(mensagemTimeoutPersonalizada || (ehLeitura
               ? 'A consulta demorou mais que o esperado. Tente novamente ou continue preenchendo manualmente.'
-              : 'A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.');
+              : 'A comunicação demorou mais que o esperado. O registro continua seguro neste aparelho.'));
             timeoutError.code = 'REQUEST_TIMEOUT';
             timeoutError.status = 408;
             throw timeoutError;
@@ -1701,6 +1749,7 @@
             const result = await gatewayRequest_(action, { ...data, sessionToken }, timeoutMs, opcoes);
             atualizarPerfilLocalPorResposta_(result);
             registrarRespostaApiValida_(action, data);
+            agendarFeedbackSucessoApi_(action, data, opcoes);
             return result;
           } catch (error) {
             ultimoErro = error;
@@ -1739,6 +1788,7 @@
       const premiumFeedbackStack = document.getElementById('premiumFeedbackStack');
       let premiumFeedbackTimer_ = 0;
       let premiumFeedbackLastText_ = '';
+      let premiumFeedbackLastSuccessAt_ = 0;
 
       // V23.9.99fd — feedback operacional não bloqueante. Mantém os diálogos
       // de confirmação existentes e apenas espelha conclusões/alertas relevantes.
@@ -1746,9 +1796,9 @@
         const texto = String(mensagem || '').trim();
         if (!texto) return '';
         const n = texto.toLocaleLowerCase('pt-BR');
-        if (/não foi possível|falha|erro ao|verifique os campos obrigatórios|não conseguiu/.test(n)) return 'error';
-        if (/sem internet|aguardando internet|aguardando sincronização|aguardando envio|continua salvo neste aparelho|não respondeu|demorou mais/.test(n)) return 'warning';
-        if (/^✓|salva e vinculada|salva\(s\)|salvo\(s\)|salva no aparelho|situação atualizada|resultado da vistoria corrigido|sincronizada|sincronizado|correção|corrigido|programação excluída|link copiado|fotografia salva|concluída|concluído/.test(n)) return 'success';
+        if (/não foi possível|falha|erro ao|verifique os campos obrigatórios|não conseguiu|não foi salvo|não foi salva|não confirmad|não efetivad/.test(n)) return 'error';
+        if (/sem internet|aguardando internet|aguardando sincronização|aguardando envio|aguardando confirmação|continua salvo neste aparelho|não respondeu|demorou mais|salvando|enviando|atualizando|processando|verificando/.test(n)) return 'warning';
+        if (/^✓|com sucesso|salva e vinculada|salva\(s\)|salvo\(s\)|salva no aparelho|situação atualizada|resultado da vistoria corrigido|sincronizada|sincronizado|correção efetivada|corrigido|corrigida|programação excluída|link copiado|fotografia salva|concluída|concluído|registrada|registrado|aplicada|aplicado|atualizada|atualizado|excluída|excluído/.test(n)) return 'success';
         return '';
       }
 
@@ -1759,6 +1809,7 @@
         const tipo = tom || classificarFeedbackPremium_(texto);
         if (!tipo || texto === premiumFeedbackLastText_) return;
         premiumFeedbackLastText_ = texto;
+        if (tipo === 'success') premiumFeedbackLastSuccessAt_ = Date.now();
         clearTimeout(premiumFeedbackTimer_);
         premiumFeedbackStack.innerHTML = '';
         const toast = document.createElement('div');
@@ -1788,6 +1839,59 @@
         new MutationObserver(observar).observe(appStatus, { childList:true, subtree:true, characterData:true });
       }
       instalarFeedbackPremiumAppStatus_();
+
+      // V23.9.99ft — padrão semântico global dos botões de ação:
+      // vermelho = cancelar/destruir; laranja = revisar/editar/corrigir; verde = confirmar/salvar/concluir.
+      const SEMANTIC_BUTTON_CLASSES_ = ['semantic-action-red','semantic-action-orange','semantic-action-green'];
+
+      function tomSemanticoBotao_(botao) {
+        if (!botao) return '';
+        const explicito = String(botao.dataset?.semanticTone || '').trim().toLowerCase();
+        if (['red','orange','green'].includes(explicito)) return explicito;
+        const rotulo = String(botao.textContent || botao.getAttribute?.('aria-label') || '').replace(/\s+/g,' ').trim();
+        if (!rotulo) return '';
+        const n = normalize(rotulo).replace(/^[^a-z0-9]+/i,'');
+        if (/^(cancelar|excluir|remover|apagar|encerrar|descartar|revogar|desvincular|bloquear|rejeitar)(\b|$)/.test(n)) return 'red';
+        if (/^limpar(\b|$)/.test(n) && /(dados|responsavel|formulario|registro|rascunho)/.test(n)) return 'red';
+        if (/^(revisar|editar|corrigir|alterar|ajustar|conferir|verificar|tentar novamente|substituir|redefinir|voltar e revisar)(\b|$)/.test(n)) return 'orange';
+        if (/^(salvar|confirmar|registrar|concluir|aplicar|enviar|sincronizar|usar|aprovar|liberar|regularizar|atualizar|adicionar|criar|finalizar)(\b|$)/.test(n)) return 'green';
+        return '';
+      }
+
+      function aplicarTomSemanticoBotao_(botao) {
+        if (!(botao instanceof Element)) return;
+        if (!botao.matches('button,.btn,a.btn')) return;
+        SEMANTIC_BUTTON_CLASSES_.forEach(classe => botao.classList.remove(classe));
+        const tom = tomSemanticoBotao_(botao);
+        if (tom) botao.classList.add(`semantic-action-${tom}`);
+      }
+
+      function instalarPadraoSemanticoBotoes_() {
+        document.querySelectorAll('button,.btn,a.btn').forEach(aplicarTomSemanticoBotao_);
+        if (typeof MutationObserver === 'undefined' || !document.body) return;
+        new MutationObserver(mutacoes => {
+          const revisar = new Set();
+          mutacoes.forEach(m => {
+            if (m.type === 'characterData') {
+              const pai = m.target?.parentElement?.closest?.('button,.btn,a.btn');
+              if (pai) revisar.add(pai);
+              return;
+            }
+            if (m.target instanceof Element) {
+              const alvo = m.target.closest?.('button,.btn,a.btn');
+              if (alvo) revisar.add(alvo);
+            }
+            (m.addedNodes || []).forEach(no => {
+              if (!(no instanceof Element)) return;
+              if (no.matches?.('button,.btn,a.btn')) revisar.add(no);
+              no.querySelectorAll?.('button,.btn,a.btn').forEach(el => revisar.add(el));
+            });
+          });
+          revisar.forEach(aplicarTomSemanticoBotao_);
+        }).observe(document.body, { childList:true, subtree:true, characterData:true });
+      }
+      instalarPadraoSemanticoBotoes_();
+
       const authGate = document.getElementById('authGate');
       const authForm = document.getElementById('authForm');
       const authBmInput = document.getElementById('authBmInput');
@@ -2503,7 +2607,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fs';
+      const APP_REVISION_UI_ = '23.9.99ft';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4809,6 +4913,10 @@
         confirmarBtn.hidden = ehChoices;
         confirmarBtn.textContent = String(o.rotuloConfirmar || (ehAlert ? 'Entendi' : (ehPrompt ? 'Salvar' : 'Confirmar')));
         confirmarBtn.classList.toggle('is-danger', tom === 'danger');
+        cancelarBtn.dataset.semanticTone = '';
+        confirmarBtn.dataset.semanticTone = tom === 'danger' ? 'red' : '';
+        aplicarTomSemanticoBotao_(cancelarBtn);
+        aplicarTomSemanticoBotao_(confirmarBtn);
 
         let encerrado = false;
         const onKeydown = event => {
@@ -10409,6 +10517,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         renderizarCamposCorrecao_(recordCorrectionRegistroAtual);
+        recordCorrectionPendingOperation_ = null;
         if (recordCorrectionReason) recordCorrectionReason.value = '';
         if (recordCorrectionMessage) { recordCorrectionMessage.textContent = ''; recordCorrectionMessage.className = 'record-correction-message'; }
         if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = false;
@@ -10540,6 +10649,78 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return linhas.join('\n');
       }
 
+      let recordCorrectionPendingOperation_ = null;
+
+      function assinaturaCorrecaoRegistro_(chave, motivo, alteracoes) {
+        return JSON.stringify({
+          chave: String(chave || ''),
+          motivo: String(motivo || ''),
+          alteracoes: Object.fromEntries((alteracoes || []).map(item => [item.id, String(item.novo ?? '')]))
+        });
+      }
+
+      function operacaoIdCorrecaoRegistro_(assinatura) {
+        if (recordCorrectionPendingOperation_?.assinatura === assinatura && recordCorrectionPendingOperation_.id) {
+          return recordCorrectionPendingOperation_.id;
+        }
+        const id = `corr-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+        recordCorrectionPendingOperation_ = { id, assinatura };
+        return id;
+      }
+
+      function alteracoesConfirmadasNoRegistro_(registro, alteracoes) {
+        if (!registro || !Array.isArray(alteracoes) || !alteracoes.length) return false;
+        const campos = new Map(camposCorrecaoRegistro_(registro).map(campo => [campo.id, campo]));
+        return alteracoes.every(item => {
+          const campo = campos.get(item.id);
+          if (!campo) return false;
+          const atual = valorCampoCorrecao_(registro, campo);
+          return normalizarComparacaoCorrecao_(item.id, atual) === normalizarComparacaoCorrecao_(item.id, item.novo);
+        });
+      }
+
+      async function verificarCorrecaoAplicadaAposDemora_(chave, linhaHint, alteracoes) {
+        let ultimoRegistro = null;
+        for (let tentativa = 0; tentativa < 2; tentativa += 1) {
+          try {
+            if (tentativa) await esperarApi_(850);
+            ultimoRegistro = await apiRequest('config', {
+              consulta: 'registro',
+              chave,
+              linhaHint: Number(linhaHint || 0),
+              modoRapido: true
+            }, 9000, { noRetry:true });
+            if (alteracoesConfirmadasNoRegistro_(ultimoRegistro, alteracoes)) {
+              return { confirmada:true, registro:ultimoRegistro };
+            }
+          } catch (e) {}
+        }
+        return { confirmada:false, registro:ultimoRegistro };
+      }
+
+      function mensagemSucessoCorrecao_(alteracoes) {
+        if (alteracoes.length === 1) {
+          const item = alteracoes[0];
+          return `✓ Correção efetivada com sucesso: ${item.rotulo} — ${item.anterior || '—'} → ${item.novo || '—'}.`;
+        }
+        return `✓ Correção efetivada com sucesso: ${alteracoes.length} campos atualizados.`;
+      }
+
+      async function concluirCorrecaoRegistroSucesso_(resposta, chaveAnterior, linhaHint, alteracoes) {
+        recordCorrectionPendingOperation_ = null;
+        fecharCorrecaoRegistro_();
+        limparCachesConsulta_();
+        const novaChave = String(resposta?.chave || chaveAnterior);
+        const novaLinha = Number(resposta?.linha || resposta?.linhaAtual || linhaHint || 0);
+        const mensagem = mensagemSucessoCorrecao_(alteracoes);
+        appStatus.textContent = mensagem;
+        mostrarFeedbackPremium_(mensagem, 'success');
+        await abrirDetalheRegistro_(novaChave, novaLinha);
+        if (document.body.classList.contains('records-mode')) {
+          void carregarRegistros_(false, { forcar:true, motivo:'registro corrigido' });
+        }
+      }
+
       async function salvarCorrecaoRegistro_() {
         if (!recordCorrectionRegistroAtual || !recordsState.chaveSelecionada) return;
         const motivo = String(recordCorrectionReason?.value || '').replace(/\s+/g, ' ').trim();
@@ -10582,36 +10763,70 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         );
         if (!confirmar) return;
 
-        if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = true;
+        if (recordCorrectionSaveBtn) {
+          recordCorrectionSaveBtn.disabled = true;
+          recordCorrectionSaveBtn.dataset.originalLabel = recordCorrectionSaveBtn.dataset.originalLabel || recordCorrectionSaveBtn.textContent || 'Revisar e salvar';
+          recordCorrectionSaveBtn.textContent = 'Salvando...';
+          aplicarTomSemanticoBotao_(recordCorrectionSaveBtn);
+        }
         if (recordCorrectionMessage) {
           recordCorrectionMessage.textContent = 'Salvando correções e registrando auditoria...';
-          recordCorrectionMessage.className = 'record-correction-message';
+          recordCorrectionMessage.className = 'record-correction-message warning';
         }
 
         const chaveAnterior = recordsState.chaveSelecionada;
         const linhaHint = Number(recordsState.linhaSelecionada || recordCorrectionRegistroAtual?.linhaAtual || 0);
+        const assinatura = assinaturaCorrecaoRegistro_(chaveAnterior, motivo, alteracoes);
+        const operacaoId = operacaoIdCorrecaoRegistro_(assinatura);
         try {
           const resposta = await apiRequest('config', {
             consulta: 'registro_corrigir',
             chave: chaveAnterior,
             linhaHint,
             motivo,
+            operacaoId,
             dispositivo: nomeDispositivo_(),
             alteracoes: Object.fromEntries(alteracoes.map(item => [item.id, item.novo]))
-          }, 65000);
-          fecharCorrecaoRegistro_();
-          limparCachesConsulta_();
-          const novaChave = String(resposta?.chave || chaveAnterior);
-          appStatus.textContent = `${Number(resposta?.alteracoes || alteracoes.length)} correção(ões) salva(s) na vistoria e registrada(s) na auditoria.`;
-          await abrirDetalheRegistro_(novaChave, Number(resposta?.linha || linhaHint));
-          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'registro corrigido' });
+          }, 30000, {
+            noRetry:true,
+            silentSuccess:true,
+            timeoutMessage:'A confirmação da correção está demorando. Verificando se a alteração foi efetivada...'
+          });
+          await concluirCorrecaoRegistroSucesso_(resposta, chaveAnterior, linhaHint, alteracoes);
         } catch (erro) {
-          if (recordCorrectionMessage) {
-            recordCorrectionMessage.textContent = erro?.message || 'Não foi possível salvar as correções.';
-            recordCorrectionMessage.className = 'record-correction-message error';
+          const mensagemErro = String(erro?.message || '');
+          const demoraOuRede = ['REQUEST_TIMEOUT','NETWORK_ERROR','RESPONSE_FORMAT'].includes(String(erro?.code || '')) || [408,502,503,504].includes(Number(erro?.status || 0));
+          const possivelmenteJaAplicada = /nenhuma alteração efetiva foi identificada/i.test(mensagemErro);
+          if ((demoraOuRede || possivelmenteJaAplicada) && navigator.onLine) {
+            if (recordCorrectionMessage) {
+              recordCorrectionMessage.textContent = 'A resposta demorou. Conferindo no servidor se a correção foi efetivada...';
+              recordCorrectionMessage.className = 'record-correction-message warning';
+            }
+            mostrarFeedbackPremium_('A resposta demorou. Conferindo se a correção foi efetivada...', 'warning');
+            const verificacao = await verificarCorrecaoAplicadaAposDemora_(chaveAnterior, linhaHint, alteracoes);
+            if (verificacao.confirmada) {
+              await concluirCorrecaoRegistroSucesso_(verificacao.registro || {}, chaveAnterior, linhaHint, alteracoes);
+              return;
+            }
+            if (recordCorrectionMessage) {
+              recordCorrectionMessage.textContent = 'A correção ainda não foi confirmada pelo servidor. Os valores permanecem nesta tela. Toque em “Revisar e salvar” para tentar novamente.';
+              recordCorrectionMessage.className = 'record-correction-message warning';
+            }
+            mostrarFeedbackPremium_('Correção ainda não confirmada. Os dados continuam preenchidos para uma nova tentativa.', 'warning');
+          } else {
+            const mensagem = erro?.message || 'Não foi possível salvar as correções.';
+            if (recordCorrectionMessage) {
+              recordCorrectionMessage.textContent = mensagem;
+              recordCorrectionMessage.className = 'record-correction-message error';
+            }
+            mostrarFeedbackPremium_(mensagem, 'error');
           }
         } finally {
-          if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = false;
+          if (recordCorrectionSaveBtn) {
+            recordCorrectionSaveBtn.disabled = false;
+            recordCorrectionSaveBtn.textContent = recordCorrectionSaveBtn.dataset.originalLabel || 'Revisar e salvar';
+            aplicarTomSemanticoBotao_(recordCorrectionSaveBtn);
+          }
         }
       }
 
