@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fp';
+      const APP_VERSION = '23.9.99fq';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -1692,7 +1692,7 @@
           throw error;
         }
 
-        const podeRepetir = requisicaoLeituraPodeRepetir_(action, data);
+        const podeRepetir = opcoes?.noRetry === true ? false : requisicaoLeituraPodeRepetir_(action, data);
         const tentativas = podeRepetir ? 2 : 1;
         let ultimoErro = null;
 
@@ -2502,7 +2502,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fp';
+      const APP_REVISION_UI_ = '23.9.99fq';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4535,7 +4535,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5701,7 +5701,10 @@
 
       function agendarAtualizacoesPainelAposEnvio_() {
         recordsPostSyncTimers_.forEach(timer => clearTimeout(timer));
-        recordsPostSyncTimers_ = [900, 3500, 8000].map(atraso => setTimeout(() => {
+        // V23.9.99fq — assim que o servidor confirma a gravação, o Painel é
+        // consultado quase imediatamente. As tentativas seguintes cobrem a atualização
+        // secundária da planilha sem obrigar o militar a atualizar manualmente.
+        recordsPostSyncTimers_ = [120, 1200, 4000].map(atraso => setTimeout(() => {
           if (!navigator.onLine || !document.body.classList.contains('records-mode')) return;
           void carregarRegistros_(true, { substituirSeAntiga: true, motivo: 'vistoria enviada' });
         }, atraso));
@@ -6916,6 +6919,7 @@
       // V23.9.68 — concentra prazo e próxima providência e respeita a conferência manual do INFOSCIP.
       // Prioriza textos já gravados pelo sistema/planilha e só usa descrições neutras como contingência.
       function proximaAcaoPainel_(item) {
+        if (item?.sincronizacaoPendente) return { principal: 'Sincronizando com a planilha', detalhe: 'Registro já salvo neste aparelho' };
         const acaoSugerida = String(item?.acaoSugerida || '').trim();
         const alertaPrazo = String(item?.alertaPrazo || '').trim();
         const pendenciaDocumental = String(item?.pendenciaDocumental || '').trim();
@@ -7103,7 +7107,7 @@
           const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
           const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
           const proximaAcao = proximaAcaoPainel_(item);
-          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" tabindex="0" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" data-record-pending="${item.sincronizacaoPendente ? 'true' : 'false'}" tabindex="0" aria-label="${item.sincronizacaoPendente ? 'Registro salvo no aparelho e aguardando sincronização' : `Abrir ficha de ${escapeAttr(titulo)}`}">
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
             <td><strong>${destacarBuscaPainelHtml_(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? `<small>${destacarBuscaPainelHtml_(padronizarTextoCadastroCliente_(item.razaoSocial))}</small>` : ''}</td>
             <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${destacarBuscaPainelHtml_(formatarEnderecoPainel_(item))}</td>
@@ -7114,7 +7118,7 @@
             <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
             <td class="records-mono">${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
-            <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}">
+            <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" ${item.sincronizacaoPendente ? 'disabled title="Sincronizando com a planilha" aria-label="Aguardando sincronização"' : `data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}"`}>
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5"/></svg>
             </button></td>
           </tr>`;
@@ -7127,7 +7131,7 @@
           const endereco = formatarEnderecoPainel_(item);
           const proximaAcao = proximaAcaoPainel_(item);
           const classesCard = classesCardPainel_(item);
-          return `<article class="${escapeAttr(classesCard)}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}">
+          return `<article class="${escapeAttr(classesCard)}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" data-record-pending="${item.sincronizacaoPendente ? 'true' : 'false'}">
             <div class="records-card-accent" aria-hidden="true"></div>
             <div class="records-card-top"><div class="records-card-title">${destacarBuscaPainelHtml_(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${destacarBuscaPainelHtml_(razao)}</div>` : ''}
@@ -7141,7 +7145,7 @@
             ${endereco && endereco !== '—' ? `<div class="records-card-address"><span class="records-card-address-icon" aria-hidden="true">⌖</span><span>${destacarBuscaPainelHtml_(endereco)}</span></div>` : ''}
             ${atalhosCardPainelHtml_(item)}
             <div class="records-card-action"><span>Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
-            <button type="button" class="records-card-cta" data-record-open aria-label="Abrir ficha de ${escapeAttr(titulo)}"><span>Ver ficha completa</span><span class="records-card-cta-icon" aria-hidden="true">→</span></button>
+            <button type="button" class="records-card-cta" ${item.sincronizacaoPendente ? 'disabled aria-label="Aguardando sincronização"' : `data-record-open aria-label="Abrir ficha de ${escapeAttr(titulo)}"`}><span>${item.sincronizacaoPendente ? 'Sincronizando...' : 'Ver ficha completa'}</span><span class="records-card-cta-icon" aria-hidden="true">${item.sincronizacaoPendente ? '↻' : '→'}</span></button>
           </article>`;
         }).join('');
       }
@@ -7798,22 +7802,107 @@
         }, PANEL_PERIODIC_REFRESH_MS);
       }
 
+      // V23.9.99fq — Painel local-first após concluir uma vistoria.
+      // Enquanto a fila ainda aguarda a confirmação do servidor, a vistoria já aparece
+      // no Painel deste aparelho com estado "Sincronizando". Assim que o backend confirma,
+      // o item local desaparece e a linha oficial da planilha assume o lugar.
+      function itemPainelPendenteLocal_(item) {
+        const p = item?.payload && typeof item.payload === 'object' ? item.payload : {};
+        const criadoEm = Number(item?.criadoEm || 0) || Date.now();
+        const carimbo = new Date(criadoEm).toLocaleString('pt-BR', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        const identificador = digits(p.cnpj || p.cpf || '');
+        return {
+          linha: 0,
+          carimbo,
+          cidade: String(p.cidade || '').trim(),
+          nomeFantasia: String(p.nomeFantasia || p.eventoNome || '').trim(),
+          razaoSocial: String(p.razaoSocial || '').trim(),
+          cnpj: identificador.length === 14 ? identificador : '',
+          cpf: identificador.length === 11 ? identificador : '',
+          demanda: String(p.demandaPrincipal || p.demanda || '').trim(),
+          sancao: String(p.sancao || p._appSancaoPretendida || '').trim(),
+          projeto: String(p.pscip || p.projeto || '').trim(),
+          pf: String(p.pf || '').trim(),
+          tipoVistoria: String(p.tipoVistoria || '').trim(),
+          vistoriadorResponsavel: String(p.vistoriadorResponsavel || p.enviadoPor || '').trim(),
+          reds: String(p.reds || '').trim(),
+          natureza: String(p.natureza || '').trim(),
+          endereco: String(p.endereco || '').trim(),
+          numero: String(p.numero || '').trim(),
+          bairro: String(p.bairro || '').trim(),
+          diasAutuacao: '',
+          alertaPrazo: '',
+          acaoSugerida: '',
+          pendenciaDocumental: String(p.pendenciaDocumental || '').trim(),
+          numeroAuto: String(p.numeroAuto || '').trim(),
+          origemHistorica: false,
+          origem: 'Aguardando sincronização',
+          chave: `LOCAL:${String(item?.id || p._appRegistroId || criarIdRegistro())}`,
+          sincronizacaoPendente: true
+        };
+      }
+
+      function resumoPainelComPendentesLocais_(resumoBase, pendentes) {
+        const resumo = {
+          total: Number(resumoBase?.total || 0),
+          autuado: Number(resumoBase?.autuado || 0),
+          advertencia: Number(resumoBase?.advertencia || 0),
+          notificado: Number(resumoBase?.notificado || 0),
+          regularizado: Number(resumoBase?.regularizado || 0),
+          liberado: Number(resumoBase?.liberado || 0),
+          outros: Number(resumoBase?.outros || 0),
+          primeiraMulta: Number(resumoBase?.primeiraMulta || 0),
+          segundaMulta: Number(resumoBase?.segundaMulta || 0)
+        };
+        (pendentes || []).forEach(item => {
+          resumo.total += 1;
+          const n = normalize(item?.sancao || '');
+          if (n === normalize('Autuado')) resumo.autuado += 1;
+          else if (n === normalize('Advertência')) resumo.advertencia += 1;
+          else if (n === normalize('Notificado')) resumo.notificado += 1;
+          else if (n === normalize('Regularizado')) resumo.regularizado += 1;
+          else if (n === normalize('Liberado')) resumo.liberado += 1;
+          else resumo.outros += 1;
+        });
+        return resumo;
+      }
+
+      function respostaPainelComPendenciasLocais_(resposta) {
+        const base = resposta && typeof resposta === 'object' ? resposta : {};
+        const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(valor => Boolean(String(valor || '').trim()));
+        if (filtrosAtivos || Number(recordsState.pagina || 1) !== 1) return base;
+        const fila = [...obterPendentes()].sort((a, b) => Number(b?.criadoEm || 0) - Number(a?.criadoEm || 0));
+        if (!fila.length) return base;
+        const locais = fila.map(itemPainelPendenteLocal_);
+        const servidor = Array.isArray(base.itens) ? base.itens : [];
+        return {
+          ...base,
+          itens: [...locais, ...servidor].slice(0, recordsState.limite),
+          total: Number(base.total || 0) + locais.length,
+          resumo: resumoPainelComPendentesLocais_(base.resumo || {}, locais),
+          _pendentesLocais: locais.length
+        };
+      }
+
       function aplicarRespostaPainel_(resposta, opcoes = {}) {
-        recordsState.itens = (Array.isArray(resposta?.itens) ? resposta.itens : []).slice(0, recordsState.limite);
-        recordsState.total = Number(resposta?.total || 0);
+        const respostaComLocal = respostaPainelComPendenciasLocais_(resposta || {});
+        recordsState.itens = (Array.isArray(respostaComLocal?.itens) ? respostaComLocal.itens : []).slice(0, recordsState.limite);
+        recordsState.total = Number(respostaComLocal?.total || 0);
         recordsState.totalPaginas = Math.max(1, Math.ceil(recordsState.total / recordsState.limite));
-        recordsState.resumo = resposta?.resumo || null;
+        recordsState.resumo = respostaComLocal?.resumo || null;
         if (recordsState.pagina > recordsState.totalPaginas) recordsState.pagina = recordsState.totalPaginas;
 
-        const disponiveis = resposta?.filtrosDisponiveis || {};
+        const disponiveis = respostaComLocal?.filtrosDisponiveis || {};
         preencherSelectConsulta_(recordsCityFilter, disponiveis.cidades, 'Todos');
         preencherSelectConsulta_(recordsDemandFilter, disponiveis.demandas, 'Todas');
         preencherSelectConsulta_(recordsSanctionFilter, disponiveis.sancoes, 'Todas');
         preencherSelectConsulta_(recordsTypeFilter, disponiveis.tipos, 'Todas');
         preencherSelectConsulta_(recordsInspectorFilter, disponiveis.vistoriadores, 'Todos');
         preencherPeriodosConsulta_(disponiveis.anos);
-        atualizarLinkPlanilha_(resposta?.planilhaUrl || '');
-        atualizarKpis_(resposta?.resumo || {});
+        atualizarLinkPlanilha_(respostaComLocal?.planilhaUrl || '');
+        atualizarKpis_(respostaComLocal?.resumo || {});
         agendarTarefaOciosa_(() => void carregarMetas_(false), 900);
         const chaveAindaVisivel = recordsState.itens.some(item => item.chave === recordsState.chaveSelecionada);
         if (!chaveAindaVisivel) recordsState.chaveSelecionada = '';
@@ -7826,7 +7915,13 @@
           ? 'sujeito à 1ª multa'
           : (recordsState.prazoMulta === 'segunda' ? 'sujeito à 2ª multa' : '');
         const origemCache = opcoes.cache === true;
-        recordsStatus.className = origemCache ? 'records-status cached' : 'records-status';
+        const somenteLocal = opcoes.localOnly === true;
+        recordsStatus.className = (origemCache || somenteLocal) ? 'records-status cached' : 'records-status';
+        if (somenteLocal) {
+          const qtd = Number(respostaComLocal?._pendentesLocais || 0);
+          recordsStatus.innerHTML = `<strong>${qtd === 1 ? 'Vistoria salva neste aparelho.' : `${qtd} vistorias salvas neste aparelho.`}</strong> ${navigator.onLine ? 'Sincronizando com a planilha...' : 'Aguardando internet para sincronizar...'} <span class="records-freshness is-cached">Dados locais</span>`;
+          return;
+        }
         if (origemCache) {
           const momentoCache = formatarMomentoPainel_(opcoes.salvoEm);
           recordsStatus.innerHTML = navigator.onLine
@@ -7872,10 +7967,14 @@
         const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
         const cache = lerCachePainel_(chaveCache);
         if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true, salvoEm: cache.salvoEm });
+        else if (obterPendentes().length && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1) {
+          aplicarRespostaPainel_({ itens: [], total: 0, resumo: {}, filtrosDisponiveis: {} }, { localOnly: true });
+        }
 
         if (!navigator.onLine) {
           definirBuscaPainelEmAndamento_(false);
-          if (!cache?.resposta) {
+          const temPendenciasLocais = obterPendentes().length > 0 && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1;
+          if (!cache?.resposta && !temPendenciasLocais) {
             recordsStatus.className = 'records-status error';
             recordsStatus.textContent = 'Sem internet e sem consulta recente salva neste aparelho.';
           }
@@ -11469,7 +11568,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ultimoRegistroParaOrientacoes = { ...payload };
         registrarHistoricoOperacionalLocal_(payload);
         const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
+        if (submitBtn) submitBtn.textContent = 'Salvando no aparelho...';
+        appStatus.textContent = 'Salvando a vistoria neste aparelho...';
         enfileirarRegistro(payload);
+        atualizarResumoOperacionalHome_();
         if (navigator.onLine) {
           apiRequest('config', {
             consulta: 'rascunho_encerrar',
@@ -18383,7 +18485,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         const sequencia = ++encerramentoFiscalSequencia;
         try {
-          const resposta = await apiRequest('config', { consulta: 'encerramento_fiscal', payload: dados }, 7000);
+          const resposta = await apiRequest('config', { consulta: 'encerramento_fiscal', payload: dados }, 3500, { noRetry: true });
           if (sequencia !== encerramentoFiscalSequencia) return null;
           renderizarAvisoEncerramentoFiscal_(resposta);
           return resposta;
@@ -18836,7 +18938,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function consultarDuplicidadeAntesEnvio_(payload) {
         if (!navigator.onLine) return null;
         try {
-          return await apiRequest('config', { consulta: 'duplicidade', payload }, 7000);
+          return await apiRequest('config', { consulta: 'duplicidade', payload }, 3500, { noRetry: true });
         } catch (erro) {
           appStatus.textContent = 'Não foi possível conferir duplicidade agora; o registro poderá ser enviado normalmente.';
           return null;
@@ -19281,12 +19383,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
 
+        submitting = true;
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.setAttribute('aria-busy', 'true');
+          submitBtn.textContent = 'Preparando registro...';
+        }
+        appStatus.textContent = 'Preparando registro e conferindo os dados finais...';
+
+        try {
         // Última tentativa curta: somente quando a permissão já estiver concedida,
         // para não interromper o registro com um prompt inesperado. Se não houver
         // coordenadas, a vistoria segue normalmente com as regras já existentes.
         if (usuarioPodeOperar_() && !localizacaoValidaFormulario_()) {
+          appStatus.textContent = 'Preparando registro — conferindo localização...';
           const gpsObtidoNoEnvio = await capturarLocalizacaoAutomatica_({
-            timeout: 3500,
+            timeout: 1400,
             maximumAge: 180000,
             somenteSeAutorizada: true,
             naoSolicitarSemPermissionsApi: true
@@ -19347,8 +19459,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         payload._appRegistroId = currentRecordId;
         payload._appCriadoEm = payload._appCriadoEm || new Date().toISOString();
 
+        if (submitBtn) submitBtn.textContent = 'Preparando revisão...';
         if (navigator.onLine) appStatus.textContent = usuarioPodeOperar_()
-          ? 'Conferindo duplicidade e processos anteriores antes do envio...'
+          ? 'Conferindo histórico e preparando a revisão...'
           : 'Conferindo dados e processos anteriores para concluir o treinamento...';
         const [duplicidade, encerramentoFiscal] = await Promise.all([
           consultarDuplicidadeAntesEnvio_(payload),
@@ -19384,7 +19497,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // entra na fila do aparelho. Isso torna o botão praticamente imediato e
         // evita perda de dados caso a conexão oscile durante o envio.
         const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
+        if (submitBtn) submitBtn.textContent = 'Salvando no aparelho...';
+        appStatus.textContent = 'Salvando a vistoria neste aparelho...';
         enfileirarRegistro(payload);
+        atualizarResumoOperacionalHome_();
         if (navigator.onLine) {
           apiRequest('config', {
             consulta: 'rascunho_encerrar',
@@ -19409,7 +19525,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           'O registro já está seguro neste aparelho e está sendo enviado para a planilha. Você pode iniciar a próxima vistoria agora.'
         );
         appStatus.textContent = 'Vistoria salva no aparelho — sincronizando com a planilha.';
-        setTimeout(() => { void sincronizarTudoPendente_(true); }, 80);
+        setTimeout(() => { void sincronizarTudoPendente_(true); }, 30);
+        } finally {
+          submitting = false;
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.removeAttribute('aria-busy');
+            submitBtn.textContent = usuarioPodeOperar_()
+              ? (navigator.onLine ? 'Registrar vistoria' : 'Salvar no aparelho')
+              : 'Finalizar treinamento';
+          }
+        }
       }
 
       function fecharMenuMais_() {
@@ -22158,7 +22284,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
           : 'Nenhuma vistoria programada';
 
-        // V23.9.99fp — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
+        // V23.9.99fq — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
         // aparece somente quando há programação pendente e abre a lista para consulta.
         if (dashboardProgrammedSummaryCard) {
           dashboardProgrammedSummaryCard.hidden = total === 0;
@@ -24510,6 +24636,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         const card = event.target.closest('.records-card');
+        if (card?.dataset.recordPending === 'true') {
+          avisarGpv_('A vistoria já está salva neste aparelho e está sendo sincronizada com a planilha. A Ficha ficará disponível assim que o servidor confirmar o registro.', 'Sincronização em andamento', { tom: 'info' });
+          return;
+        }
         if (card) abrirDetalheRegistro_(card.dataset.recordKey || '', Number(card.dataset.recordLine || 0));
       });
       recordsTableBody?.addEventListener('click', event => {
@@ -24521,6 +24651,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (event.target.closest('a, button, input, select, textarea')) return;
         const linha = event.target.closest('.records-table-row');
+        if (linha?.dataset.recordPending === 'true') {
+          avisarGpv_('A vistoria já está salva neste aparelho e está sendo sincronizada com a planilha.', 'Sincronização em andamento', { tom: 'info' });
+          return;
+        }
         if (linha) abrirDetalheRegistro_(linha.dataset.recordKey || '', Number(linha.dataset.recordLine || 0));
       });
       recordsTableBody?.addEventListener('keydown', event => {
@@ -24529,6 +24663,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const linha = event.target.closest('.records-table-row');
         if (!linha) return;
         event.preventDefault();
+        if (linha.dataset.recordPending === 'true') {
+          avisarGpv_('A vistoria já está salva neste aparelho e está sendo sincronizada com a planilha.', 'Sincronização em andamento', { tom: 'info' });
+          return;
+        }
         abrirDetalheRegistro_(linha.dataset.recordKey || '', Number(linha.dataset.recordLine || 0));
       });
       recordDetailSectionNav?.addEventListener('click', event => {
@@ -25053,7 +25191,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
