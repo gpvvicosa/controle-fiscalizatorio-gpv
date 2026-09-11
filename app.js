@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fq';
+      const APP_VERSION = '23.9.99fr';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2502,7 +2502,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fq';
+      const APP_REVISION_UI_ = '23.9.99fr';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4535,7 +4535,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fr', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5064,7 +5064,8 @@
         const lon = coordenadas.lon.toFixed(6);
         const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
         const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lon}`)}`;
-        const abrirUrl = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}#map=18/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
+        // V23.9.99fr — o atalho externo abre a coordenada diretamente no Google Maps, sem chave de API.
+        const abrirUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
         // Esri World Imagery: imagem de satélite sem necessidade de chave no PWA.
         // O marcador permanece no centro porque o bbox é construído ao redor da coordenada registrada.
         const sateliteUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=4326&size=1200%2C600&format=png32&transparent=false&f=image`;
@@ -5117,7 +5118,7 @@
               : (origemMapa === 'endereco'
                 ? 'Referência cartográfica aproximada pelo endereço; não representa GPS capturado na vistoria. Mapa: OpenStreetMap · Satélite: Esri World Imagery.'
                 : 'Mapa: OpenStreetMap · Satélite: Esri World Imagery. Requer conexão com a internet.')}</small>
-            <a href="${escapeAttr(abrirUrl)}" target="_blank" rel="noopener noreferrer">Abrir localização no mapa ↗</a>
+            <a href="${escapeAttr(abrirUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir localização registrada no Google Maps">Abrir no Google Maps ↗</a>
           </div>
         </section>`;
       }
@@ -25191,7 +25192,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fr', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
