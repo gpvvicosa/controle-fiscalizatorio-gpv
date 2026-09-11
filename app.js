@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fn';
+      const APP_VERSION = '23.9.99fo';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2502,7 +2502,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fn';
+      const APP_REVISION_UI_ = '23.9.99fo';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4535,7 +4535,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fn', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fo', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -20906,7 +20906,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (registeredInspectionDetailFileBtn) {
             registeredInspectionDetailFileBtn.hidden = !item.arquivoUrl;
             registeredInspectionDetailFileBtn.href = item.arquivoUrl || '#';
-            registeredInspectionDetailFileBtn.textContent = 'Abrir PDF do DDU';
+            registeredInspectionDetailFileBtn.textContent = 'Ver denúncia';
           }
         } else {
           const tipoTexto = pet ? 'PET — Projeto de Evento Temporário' : (liberacao ? 'Vistoria de Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Vistoria de Fiscalização'));
@@ -21334,9 +21334,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ? `<b>Em andamento:</b> ${escapeHtml(x.rascunhoAtualizadoPor || 'vistoria já iniciada')}`
               : '<b>Atendimento:</b> disponível para toda a equipe do GPV');
           const identificacaoLocal = String(x.nomeFantasia || x.razaoSocial || '').trim();
-          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O PDF será enviado automaticamente para a lixeira após 24 h.':'PDF disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver PDF</a>`:''}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
+          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O arquivo da denúncia será enviado automaticamente para a lixeira após 24 h.':'Denúncia disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver denúncia</a>`:''}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
         };
-        const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — PDF disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
+        const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — denúncia disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
       function lerCacheDdus_() {
         try {
@@ -22064,7 +22064,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
           : 'Nenhuma vistoria programada';
 
-        // V23.9.99fn — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
+        // V23.9.99fo — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
         // aparece somente quando há programação pendente e abre a lista para consulta.
         if (dashboardProgrammedSummaryCard) {
           dashboardProgrammedSummaryCard.hidden = total === 0;
@@ -24950,7 +24950,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fn', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fo', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

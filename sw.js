@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260910-v23-9-99-fn-painel-responsivo';
-const VERSION = '23.9.99fn';
+const VERSION = '23.9.99fo';
 
 const CORE_SHELL = [
   './',
