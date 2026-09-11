@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fp';
+      const APP_VERSION = '23.9.99fq';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -965,6 +965,10 @@
           '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
         ];
         if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
+        const irregularidades = Array.isArray(p.irregularidadesConstatadas)
+          ? p.irregularidadesConstatadas
+          : [];
+        if (irregularidades.some(item => String(item || '').trim())) return true;
         const notificacoes = String(p.notificacoesLiberacao || '').trim();
         if (notificacoes && notificacoes !== '[]') return true;
         const fotosGerais = String(p.fotosGerais || '').trim();
@@ -2305,6 +2309,10 @@
       const acessoriaTipoLicencaSelect = document.getElementById('acessoriaTipoLicenca');
       const dduProtocolWrap = document.getElementById('dduProtocolWrap');
       const dduProtocolInput = document.getElementById('dduProtocol');
+      const irregularidadesConstatadasSecao = document.getElementById('irregularidadesConstatadasSecao');
+      const irregularidadesConstatadasLista = document.getElementById('irregularidadesConstatadasLista');
+      const adicionarIrregularidadeConstatadaBtn = document.getElementById('adicionarIrregularidadeConstatadaBtn');
+      const irregularidadesConstatadasResumo = document.getElementById('irregularidadesConstatadasResumo');
       const priorProcessAlert = document.getElementById('priorProcessAlert');
       const cnpjStatus = document.getElementById('cnpjStatus');
       const limparResponsavelBtn = document.getElementById('limparResponsavelBtn');
@@ -2459,6 +2467,7 @@
       let preparacaoEmUsoId = '';
       let dduEmUsoId = '';
       let dduEmUsoNumero = '';
+      let irregularidadesConstatadasDraft_ = [];
       let dduEditandoId = '';
       let dduCadastroRetornarLista = false;
       let dduCnpjConsultaSequencia = 0;
@@ -2502,7 +2511,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fp';
+      const APP_REVISION_UI_ = '23.9.99fq';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4535,7 +4544,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8271,6 +8280,10 @@
           String(item?.demanda || '').trim(),
           autor ? `Responsável: ${autor}` : ''
         ].filter(Boolean);
+        const irregularidadesHistorico = normalizarListaIrregularidadesConstatadas_(item?.irregularidadesConstatadas || '');
+        const irregularidadesHistoricoHtml = irregularidadesHistorico.length
+          ? `<div class="history-copy-grid">${irregularidadesHistorico.map((texto, idx) => `<div class="history-copy-item"><span>Irregularidade ${idx + 1}</span><strong>${escapeHtml(texto)}</strong></div>`).join('')}</div>`
+          : '';
         return {
           tipo: 'vistoria',
           ordem: indice,
@@ -8282,6 +8295,7 @@
               <strong>${escapeHtml(titulo)}</strong>
               ${metadados.length ? `<div class="history-event-meta">${escapeHtml(metadados.join(' • '))}</div>` : ''}
               <p>${escapeHtml(descricaoHistorico_(item))}</p>
+              ${irregularidadesHistoricoHtml}
               ${atalhos}
             </div>
           </article>`
@@ -10858,6 +10872,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         selecionarSecaoFicha_(recordDetailSectionActive_);
       }
 
+      function irregularidadesConstatadasFicha_(registro) {
+        return normalizarListaIrregularidadesConstatadas_(valorCampoFicha_(registro, 'Irregularidades constatadas'));
+      }
+
+      function montarBlocoIrregularidadesConstatadasFicha_(registro) {
+        const itens = irregularidadesConstatadasFicha_(registro);
+        if (!itens.length) return '';
+        return montarGrupoFicha_(
+          'Irregularidades constatadas',
+          itens.map((texto, indice) => [`Irregularidade ${indice + 1}`, texto]),
+          'record-detail-group--wide record-irregularities-observed-group'
+        );
+      }
+
       function renderizarFichaRegistro_(registro) {
         recordDetailRegistroAtual = registro || null;
         recordFineEstimateRegistroAtual = registro || null;
@@ -11055,7 +11083,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             montarEstimativaMultaFicha_(registro)
           }</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="processo">${montarGrupoFicha_('Processo', processo, 'record-process-group record-detail-group--wide')}</div>` +
-          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}${montarBlocoIrregularidadesConstatadasFicha_(registro)}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="responsavel">${montarGrupoFicha_(eventoFicha || petFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide')}${blocoRecuperacaoEnderecoResponsavel}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="localizacao">${montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group record-detail-group--wide')}${mapaLocalizacaoFicha}</div>`;
 
@@ -12066,10 +12094,76 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         atualizarVinculoAcessoria_();
       }
 
+      function novaIrregularidadeConstatada_(texto = '') {
+        return { id: `ic_${Date.now()}_${Math.random().toString(36).slice(2,8)}`, texto: String(texto || '') };
+      }
+
+      function normalizarListaIrregularidadesConstatadas_(entrada) {
+        if (Array.isArray(entrada)) {
+          return entrada
+            .map(item => typeof item === 'string' ? item : String(item?.texto || item?.descricao || ''))
+            .map(texto => texto.trim())
+            .filter(Boolean)
+            .slice(0, 200);
+        }
+        const bruto = String(entrada == null ? '' : entrada).trim();
+        if (!bruto) return [];
+        try {
+          const parsed = JSON.parse(bruto);
+          if (Array.isArray(parsed)) return normalizarListaIrregularidadesConstatadas_(parsed);
+        } catch (_) {}
+        return bruto.split(/\r?\n+/)
+          .map(linha => linha.replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim())
+          .filter(Boolean)
+          .slice(0, 200);
+      }
+
+      function serializarIrregularidadesConstatadas_() {
+        return irregularidadesConstatadasDraft_
+          .map(item => String(item?.texto || '').trim())
+          .filter(Boolean)
+          .slice(0, 200);
+      }
+
+      function renderizarIrregularidadesConstatadas_() {
+        if (!irregularidadesConstatadasLista) return;
+        if (!irregularidadesConstatadasDraft_.length) irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
+        irregularidadesConstatadasLista.innerHTML = irregularidadesConstatadasDraft_.map((item, indice) => `
+          <div class="field wide" data-irregularidade-constatada-id="${escapeAttr(item.id)}">
+            <label for="irregularidadeConstatada_${escapeAttr(item.id)}">Irregularidade ${indice + 1}</label>
+            <textarea id="irregularidadeConstatada_${escapeAttr(item.id)}" rows="3" data-irregularidade-constatada-texto="${escapeAttr(item.id)}" placeholder="Descreva objetivamente a irregularidade constatada">${escapeHtml(item.texto || '')}</textarea>
+            <div><button class="btn btn-secondary" type="button" data-remover-irregularidade-constatada="${escapeAttr(item.id)}">Excluir irregularidade</button></div>
+          </div>`).join('');
+        const preenchidas = serializarIrregularidadesConstatadas_().length;
+        if (irregularidadesConstatadasResumo) {
+          irregularidadesConstatadasResumo.textContent = preenchidas
+            ? `${preenchidas} irregularidade${preenchidas === 1 ? '' : 's'} informada${preenchidas === 1 ? '' : 's'}.`
+            : 'Nenhuma irregularidade informada.';
+        }
+      }
+
+      function restaurarIrregularidadesConstatadas_(entrada) {
+        const textos = normalizarListaIrregularidadesConstatadas_(entrada);
+        irregularidadesConstatadasDraft_ = textos.length
+          ? textos.map(texto => novaIrregularidadeConstatada_(texto))
+          : [novaIrregularidadeConstatada_()];
+        renderizarIrregularidadesConstatadas_();
+      }
+
+      function sincronizarIrregularidadesConstatadas_() {
+        const fiscalizacao = fluxoVistoriaAtual_() === 'fiscalizacao';
+        if (irregularidadesConstatadasSecao) irregularidadesConstatadasSecao.hidden = !fiscalizacao;
+        if (fiscalizacao && !irregularidadesConstatadasDraft_.length) {
+          irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
+          renderizarIrregularidadesConstatadas_();
+        }
+      }
+
       function sincronizarDemandasEspeciais_() {
         const ddu = ehDemandaDdu_();
         if (dduProtocolWrap) dduProtocolWrap.hidden = !ddu;
         if (ddu && dduProtocolInput && !dduProtocolInput.value && dduEmUsoNumero) dduProtocolInput.value = dduEmUsoNumero;
+        sincronizarIrregularidadesConstatadas_();
         sincronizarVistoriaAcessoria_();
         sincronizarTipoLiberacao_();
       }
@@ -14427,6 +14521,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           acessoriaTipoLicenca: acessoria ? value('acessoriaTipoLicenca') : '',
           acessoriaSituacaoAnterior: acessoria ? String(processoAcessoriaVinculado?.sancao || '') : '',
           dduProtocol: ehDemandaDdu_() ? (value('dduProtocol') || dduEmUsoNumero) : '',
+          irregularidadesConstatadas: fluxoVistoriaAtual_() === 'fiscalizacao' ? serializarIrregularidadesConstatadas_() : [],
           pscip: eventoDeclaratorio ? '' : (value('possuiPscip') === 'sim' ? projetoPscipOperacional_(value('pscip')) : ''),
           pf: value('pf'),
           tipoVistoria: value('tipoVistoria'),
@@ -18538,11 +18633,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (cityOptions.includes(p.cidade)) citySelect.value = p.cidade;
         else if (p.cidade) { citySelect.value = 'Outro'; otherCity.value = p.cidade; }
         Object.entries(p).forEach(([key, val]) => {
-          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key.startsWith('_app')) return;
+          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key === 'irregularidadesConstatadas' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
         protegerCamposResponsavelPreenchidos_();
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
+        restaurarIrregularidadesConstatadas_(p.irregularidadesConstatadas);
         restaurarFotosGerais_(p.fotosGerais);
         restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
@@ -18725,6 +18821,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacoesSelecionadas = [];
         notificacoesLiberacaoDraft = [];
         renderizarNotificacoesLiberacao_();
+        irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
+        renderizarIrregularidadesConstatadas_();
+        sincronizarIrregularidadesConstatadas_();
         fotosGeraisDraft_ = [];
         renderizarFotosGerais_();
         if (generalPhotoStatus) generalPhotoStatus.textContent = '';
@@ -21334,7 +21433,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ? `<b>Em andamento:</b> ${escapeHtml(x.rascunhoAtualizadoPor || 'vistoria já iniciada')}`
               : '<b>Atendimento:</b> disponível para toda a equipe do GPV');
           const identificacaoLocal = String(x.nomeFantasia || x.razaoSocial || '').trim();
-          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O arquivo da denúncia será enviado automaticamente para a lixeira após 24 h.':'Denúncia disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver denúncia</a>`:''}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
+          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p><p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O arquivo da denúncia será enviado automaticamente para a lixeira após 24 h.':'Denúncia disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver denúncia</a>`:''}<button class="btn btn-secondary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button>${!concluido?`<button class="btn btn-primary ddu-start-btn" type="button" data-ddu-start="${escapeAttr(x.id)}">${x.vistoriaIniciada?'Continuar vistoria':'Iniciar vistoria'}</button>`:''}</div></article>`;
         };
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — denúncia disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
@@ -21481,6 +21580,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function iniciarDdu_(item){
         if(!item)return;
         if(dduListModal)dduListModal.hidden=true;
+
+        if (item.vistoriaIniciada && !item.rascunhoId) {
+          if (!navigator.onLine) {
+            avisarGpv_('Esta demanda já possui uma vistoria em andamento. Conecte o aparelho à internet para localizar o preenchimento compartilhado.', 'Vistoria já iniciada', { tom: 'warning' });
+            return;
+          }
+          try {
+            await carregarDdUs_();
+            const atualizado = ddusAtivos.find(x => String(x.id) === String(item.id));
+            if (atualizado?.rascunhoId) return iniciarDdu_(atualizado);
+          } catch (_) {}
+          avisarGpv_('A vistoria deste DDU aparece como iniciada, mas o rascunho ainda não pôde ser localizado. Atualize a lista e tente novamente.', 'Não foi possível continuar', { tom: 'warning' });
+          return;
+        }
+
+        if (item.vistoriaIniciada && item.rascunhoId && !navigator.onLine) {
+          avisarGpv_('Esta demanda já possui uma vistoria em andamento. Conecte o aparelho à internet para carregar o rascunho compartilhado e evitar duplicidade.', 'Vistoria já iniciada', { tom: 'warning' });
+          return;
+        }
 
         if (item.vistoriaIniciada && item.rascunhoId && navigator.onLine) {
           try {
@@ -23717,6 +23835,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       registeredInspectionDetailModal?.addEventListener('click', e => { if (e.target === registeredInspectionDetailModal) fecharDetalheVistoriaCadastrada_(); });
       dduList?.addEventListener('click', e => {
         if (e.target.closest('a')) return;
+        const iniciar = e.target.closest('[data-ddu-start]');
+        if (iniciar) {
+          e.preventDefault();
+          e.stopPropagation();
+          const item = ddusAtivos.find(x => String(x.id) === String(iniciar.dataset.dduStart || ''));
+          if (item) void iniciarDdu_(item);
+          return;
+        }
         const alvo = e.target.closest('[data-ddu-details], [data-ddu-id]');
         if (!alvo) return;
         const id = String(alvo.dataset.dduDetails || alvo.dataset.dduId || alvo.closest('[data-ddu-id]')?.dataset.dduId || '');
@@ -23730,6 +23856,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         e.preventDefault();
         const item = ddusAtivos.find(x => String(x.id) === String(alvo.dataset.dduId || ''));
         if (item) abrirDetalheVistoriaCadastrada_('ddu', item);
+      });
+      adicionarIrregularidadeConstatadaBtn?.addEventListener('click', () => {
+        irregularidadesConstatadasDraft_.push(novaIrregularidadeConstatada_());
+        renderizarIrregularidadesConstatadas_();
+        const camposIrregularidade = irregularidadesConstatadasLista?.querySelectorAll('[data-irregularidade-constatada-texto]');
+        camposIrregularidade?.[camposIrregularidade.length - 1]?.focus();
+      });
+      irregularidadesConstatadasLista?.addEventListener('input', event => {
+        const campo = event.target.closest('[data-irregularidade-constatada-texto]');
+        if (!campo) return;
+        const item = irregularidadesConstatadasDraft_.find(x => String(x.id) === String(campo.dataset.irregularidadeConstatadaTexto || ''));
+        if (!item) return;
+        item.texto = String(campo.value || '');
+        const preenchidas = serializarIrregularidadesConstatadas_().length;
+        if (irregularidadesConstatadasResumo) irregularidadesConstatadasResumo.textContent = preenchidas
+          ? `${preenchidas} irregularidade${preenchidas === 1 ? '' : 's'} informada${preenchidas === 1 ? '' : 's'}.`
+          : 'Nenhuma irregularidade informada.';
+      });
+      irregularidadesConstatadasLista?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-remover-irregularidade-constatada]');
+        if (!botao) return;
+        event.preventDefault();
+        irregularidadesConstatadasDraft_ = irregularidadesConstatadasDraft_.filter(item => String(item.id) !== String(botao.dataset.removerIrregularidadeConstatada || ''));
+        if (!irregularidadesConstatadasDraft_.length) irregularidadesConstatadasDraft_ = [novaIrregularidadeConstatada_()];
+        renderizarIrregularidadesConstatadas_();
+        scheduleDraftSave();
       });
       prepareInspectionBtn?.addEventListener('click', abrirModalPreparacao_);
       desktopPrepareInspectionBtn?.addEventListener('click', () => { fecharListaProgramadas_(); abrirModalPreparacao_({ retornarProgramadas: true }); });
@@ -24957,7 +25109,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

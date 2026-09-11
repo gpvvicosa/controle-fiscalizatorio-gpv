@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260911-v23-9-99-fp-programadas-navegacao';
-const VERSION = '23.9.99fp';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260911-v23-9-99-fq-ddu-irregularidades';
+const VERSION = '23.9.99fq';
 
 const CORE_SHELL = [
   './',
