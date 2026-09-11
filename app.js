@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fo';
+      const APP_VERSION = '23.9.99fp';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2502,7 +2502,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fo';
+      const APP_REVISION_UI_ = '23.9.99fp';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4535,7 +4535,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fo', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -22064,7 +22064,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
           : 'Nenhuma vistoria programada';
 
-        // V23.9.99fo — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
+        // V23.9.99fp — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
         // aparece somente quando há programação pendente e abre a lista para consulta.
         if (dashboardProgrammedSummaryCard) {
           dashboardProgrammedSummaryCard.hidden = total === 0;
@@ -23272,6 +23272,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (programmedListModal) programmedListModal.hidden = false;
           return false;
         }
+
+        // V23.9.99fp — a programação pode ser aberta a partir do Painel.
+        // Depois de carregar o cadastro/rascunho, força a navegação para a vista
+        // Vistoria antes de fechar os modais; sem isso, o formulário ficava pronto
+        // em segundo plano e o usuário retornava visualmente ao Painel/tela inicial.
+        await mostrarVistaFormulario_();
+        rolarParaFormularioProgramado_();
 
         if (escolha === 'notificacoes') {
           setTimeout(rolarParaNotificacoesProgramadas_, 140);
@@ -24950,7 +24957,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fo', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fp', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

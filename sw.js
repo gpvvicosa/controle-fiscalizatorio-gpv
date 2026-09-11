@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260910-v23-9-99-fn-painel-responsivo';
-const VERSION = '23.9.99fo';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260911-v23-9-99-fp-programadas-navegacao';
+const VERSION = '23.9.99fp';
 
 const CORE_SHELL = [
   './',
