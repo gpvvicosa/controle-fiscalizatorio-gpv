@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fx';
+      const APP_VERSION = '23.9.99fy';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2644,7 +2644,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fx';
+      const APP_REVISION_UI_ = '23.9.99fy';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -11402,6 +11402,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             (normalize(origemFicha) === normalize('mapa') ? 'Ponto selecionado no mapa' :
               (origemFicha ? 'GPS do aparelho' : '')));
         const capturadaEmFicha = String(registro?.localizacao?.capturadaEm || '').trim();
+        // V23.9.99fy — a localização agora possui estado próprio. A Ficha não depende mais
+        // do pacote pesado de complementos para sair de "Carregando localização...".
+        const localizacaoCarregadaFicha = Boolean(coordenadasFicha) || registro?.localizacaoCarregada === true || registro?.parcial === false;
+        const localizacaoErroFicha = Boolean(registro?.localizacaoErro);
         const localizacao = coordenadasFicha
           ? [
               ['Coordenadas', formatarCoordenadasMapa_(coordenadasFicha)],
@@ -11409,7 +11413,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ...(origemFichaRotulo ? [['Origem', origemFichaRotulo]] : []),
               ...(capturadaEmFicha ? [['Capturada em', capturadaEmFicha]] : [])
             ]
-          : [['Situação', registro?.parcial ? 'Carregando localização...' : 'GPS não capturado nesta vistoria']];
+          : [['Situação', localizacaoErroFicha
+              ? 'Não foi possível carregar a localização.'
+              : (localizacaoCarregadaFicha ? 'GPS não registrado nesta vistoria' : 'Carregando localização...')]];
         const mapaLocalizacaoFicha = coordenadasFicha
           ? montarMapaLocalizacao_({
               latitude: coordenadasFicha.lat,
@@ -11420,7 +11426,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               endereco: enderecoFicha_(registro),
               contexto: 'ficha'
             })
-          : (registro?.parcial ? '<section class="location-map-card location-map-card--record record-progress-placeholder"><strong>Localização e mapa</strong><span>Carregando em segundo plano...</span></section>' : montarReferenciaEnderecoPendenteFicha_(registro, addressMapRequestToken));
+          : (localizacaoErroFicha
+              ? '<section class="location-map-card location-map-card--record record-location-load-error"><div class="record-location-load-error-copy"><strong>Não foi possível carregar a localização.</strong><span>A Ficha continua disponível. Tente novamente sem precisar reabrir o processo.</span></div><button type="button" class="record-detail-retry-btn" data-retry-record-location>Tentar novamente</button></section>'
+              : (!localizacaoCarregadaFicha
+                  ? '<section class="location-map-card location-map-card--record record-progress-placeholder"><strong>Localização e mapa</strong><span>Carregando em segundo plano...</span></section>'
+                  : montarReferenciaEnderecoPendenteFicha_(registro, addressMapRequestToken)));
+        const resumoLocalizacaoLocalFicha = coordenadasFicha
+          ? [
+              ['Coordenadas', formatarCoordenadasMapa_(coordenadasFicha)],
+              ...(precisaoFicha ? [['Precisão GPS', precisaoFicha]] : []),
+              ...(origemFichaRotulo ? [['Origem', origemFichaRotulo]] : []),
+              ...(capturadaEmFicha ? [['Capturada em', capturadaEmFicha]] : [])
+            ]
+          : [['Situação', localizacaoErroFicha
+              ? 'Localização temporariamente indisponível — tente novamente na aba Localização e Fotos'
+              : (localizacaoCarregadaFicha ? 'GPS não registrado nesta vistoria' : 'Carregando localização...')]];
+        const abrirGoogleMapsResumoFicha = coordenadasFicha
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coordenadasFicha.lat.toFixed(6)},${coordenadasFicha.lon.toFixed(6)}`)}`
+          : '';
+        const blocoResumoLocalizacaoLocalFicha = `${montarGrupoFicha_('Localização da vistoria', resumoLocalizacaoLocalFicha, 'record-location-captured record-location-group record-location-summary-group record-detail-group--wide')}${abrirGoogleMapsResumoFicha ? `<div class="record-location-summary-actions"><span>Coordenadas capturadas durante esta vistoria.</span><a href="${escapeAttr(abrirGoogleMapsResumoFicha)}" target="_blank" rel="noopener noreferrer">Abrir no Google Maps ↗</a></div>` : ''}`;
         const naoInformadoResponsavel_ = valor => {
           const texto = String(valor == null ? '' : valor).trim();
           return texto || 'Não informado';
@@ -11532,7 +11556,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             montarEstimativaMultaFicha_(registro)
           }</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="processo">${montarGrupoFicha_('Processo', processo, 'record-process-group record-detail-group--wide')}</div>` +
-          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}${blocoResumoLocalizacaoLocalFicha}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="responsavel">${montarGrupoFicha_(eventoFicha || petFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide')}${blocoRecuperacaoEnderecoResponsavel}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="localizacao">${montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group record-detail-group--wide')}${mapaLocalizacaoFicha}</div>`;
 
@@ -11789,6 +11813,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         throw ultimoErro || new Error('Não foi possível consultar o processo.');
       }
 
+      async function carregarLocalizacaoFichaRapida_(chave, linhaHint = 0) {
+        if (!navigator.onLine || !chave) return;
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'registro_localizacao',
+            chave,
+            linhaHint: Number(linhaHint || 0)
+          }, 12000);
+          if (recordsState.chaveSelecionada !== chave || !recordDetailScreen?.classList.contains('show')) return;
+          const atual = recordDetailRegistroAtual || {};
+          // Se os complementos completos já chegaram, nunca rebaixa o estado da Ficha.
+          if (atual.parcial === false && atual.localizacaoCarregada === true) return;
+          const atualizado = {
+            ...atual,
+            localizacao: resposta?.localizacao || atual.localizacao || null,
+            localizacaoCarregada: true,
+            localizacaoErro: false
+          };
+          renderizarFichaRegistro_(atualizado);
+          salvarCacheFicha_(chave, atualizado, { servidorEm: resposta?.servidorEm || new Date().toISOString() });
+        } catch (erro) {
+          console.warn('Localização rápida da ficha não carregada:', erro?.message || erro);
+          if (recordsState.chaveSelecionada !== chave || !recordDetailScreen?.classList.contains('show')) return;
+          const atual = recordDetailRegistroAtual || {};
+          if (atual.localizacao || atual.parcial === false) return;
+          const atualizado = { ...atual, localizacaoCarregada: false, localizacaoErro: true };
+          renderizarFichaRegistro_(atualizado);
+        }
+      }
+
       async function carregarComplementosFicha_(chave, linhaHint, registroBase) {
         if (!navigator.onLine || !chave) return;
         try {
@@ -11799,12 +11853,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }, 45000);
           if (!extras) return;
           if (recordsState.chaveSelecionada !== chave || !recordDetailScreen?.classList.contains('show')) return;
+          const atualFicha = recordDetailRegistroAtual || registroBase || {};
           const completo = {
             ...(registroBase || {}),
+            ...atualFicha,
             notificacoesTemporarias: String(extras.notificacoesTemporarias || ''),
             notificacoesDisponiveisAte: String(extras.notificacoesDisponiveisAte || ''),
             fotosGerais: Array.isArray(extras.fotosGerais) ? extras.fotosGerais : [],
-            localizacao: extras.localizacao || null,
+            localizacao: extras.localizacao || atualFicha.localizacao || registroBase?.localizacao || null,
+            localizacaoCarregada: true,
+            localizacaoErro: false,
             retornoLiberacao: extras.retornoLiberacao || null,
             retornosPosterioresLiberacao: Array.isArray(extras.retornosPosterioresLiberacao) ? extras.retornosPosterioresLiberacao : [],
             historico: Array.isArray(extras.historico) ? extras.historico : [],
@@ -11887,6 +11945,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 notificacoesDisponiveisAte: cache.registro.notificacoesDisponiveisAte || registro.notificacoesDisponiveisAte || '',
                 fotosGerais: Array.isArray(cache.registro.fotosGerais) ? cache.registro.fotosGerais : [],
                 localizacao: cache.registro.localizacao || registro.localizacao || null,
+                localizacaoCarregada: cache.registro.localizacaoCarregada === true || Boolean(cache.registro.localizacao),
+                localizacaoErro: false,
                 retornoLiberacao: cache.registro.retornoLiberacao || registro.retornoLiberacao || null,
                 retornosPosterioresLiberacao: Array.isArray(cache.registro.retornosPosterioresLiberacao) ? cache.registro.retornosPosterioresLiberacao : [],
                 sugestaoFiscalizacao: cache.registro.sugestaoFiscalizacao || registro.sugestaoFiscalizacao || null,
@@ -11900,6 +11960,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           recordDetailLoading.hidden = true;
           renderizarFichaRegistro_(registroParaRender);
           salvarCacheFicha_(chave, registroParaRender, { servidorEm: registro?.servidorEm || new Date().toISOString() });
+          // V23.9.99fy — GPS/coordenadas têm consulta própria e independente dos complementos pesados.
+          void carregarLocalizacaoFichaRapida_(chave, registro?.linhaAtual || linhaHint);
           void carregarComplementosFicha_(chave, registro?.linhaAtual || linhaHint, registroParaRender);
         } catch (erro) {
           if (cache?.registro) {
@@ -25102,6 +25164,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (item) abrirDetalheVistoriaCadastrada_('programada', item);
       });
       recordDetailGroups?.addEventListener('click', event => {
+        const tentarLocalizacao = event.target.closest('[data-retry-record-location]');
+        if (tentarLocalizacao) {
+          event.preventDefault();
+          if (recordsState.chaveSelecionada) {
+            tentarLocalizacao.disabled = true;
+            tentarLocalizacao.textContent = 'Carregando...';
+            void carregarLocalizacaoFichaRapida_(recordsState.chaveSelecionada, recordsState.linhaSelecionada || recordDetailRegistroAtual?.linhaAtual || 0);
+          }
+          return;
+        }
         const abrirRegistroRetorno = event.target.closest('[data-return-open-record]');
         if (abrirRegistroRetorno) {
           event.preventDefault();
