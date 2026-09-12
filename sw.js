@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-fz-reds-sem-mascara';
-const VERSION = '23.9.99fz';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-ga-manuais-infoscip-fiscalizacao';
+const VERSION = '23.9.99ga';
 
 const CORE_SHELL = [
   './',
@@ -26,6 +26,7 @@ const OPTIONAL_SHELL = [
   `./assets/miniatura-app-vistoriador-ch.jpg?v=${VERSION}`,
   `./assets/app-vistoriador-icon-maskable-512-ck.png?v=${VERSION}`,
   './assets/manual-do-autuado-infoscip-fiscalizacao.pdf',
+  './assets/manual-do-militar-infoscip-fiscalizacao.pdf',
   './manual/',
   './instrucoes-tecnicas/assets/app.js',
   './instrucoes-tecnicas/assets/its.js',

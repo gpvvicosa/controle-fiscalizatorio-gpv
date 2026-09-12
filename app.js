@@ -17,7 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fz';
+      const APP_VERSION = '23.9.99ga';
+      // V23.9.99ga — Manuais INFOSCIP Fiscalização: Manual do Militar e Manual do Autuado no PWA, com visualização interna, atalhos e cache offline.
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2191,6 +2192,7 @@
       const dashboardSheetHeaderLink = document.getElementById('dashboardSheetHeaderLink');
       const tutorialMenuBtn = document.getElementById('tutorialMenuBtn');
       const usefulLinksBtn = document.getElementById('usefulLinksBtn');
+      const infoscipFiscalizacaoManualsBtn = document.getElementById('infoscipFiscalizacaoManualsBtn');
       const ufemgMenuBtn = document.getElementById('ufemgMenuBtn');
       const updateAppBtn = document.getElementById('updateAppBtn');
       const aboutSystemBtn = document.getElementById('aboutSystemBtn');
@@ -2556,6 +2558,16 @@
       const reviewConfirmBtn = document.getElementById('reviewConfirmBtn');
       const usefulLinksModal = document.getElementById('usefulLinksModal');
       const usefulLinksCloseBtn = document.getElementById('usefulLinksCloseBtn');
+      const infoscipFiscalizacaoManualsModal = document.getElementById('infoscipFiscalizacaoManualsModal');
+      const infoscipFiscalizacaoManualsCloseBtn = document.getElementById('infoscipFiscalizacaoManualsCloseBtn');
+      const infoscipManualPdfModal = document.getElementById('infoscipManualPdfModal');
+      const infoscipManualPdfCloseBtn = document.getElementById('infoscipManualPdfCloseBtn');
+      const infoscipManualPdfDoneBtn = document.getElementById('infoscipManualPdfDoneBtn');
+      const infoscipManualPdfExternalBtn = document.getElementById('infoscipManualPdfExternalBtn');
+      const infoscipManualPdfTitle = document.getElementById('infoscipManualPdfTitle');
+      const infoscipManualPdfSubtitle = document.getElementById('infoscipManualPdfSubtitle');
+      const infoscipManualPdfLoading = document.getElementById('infoscipManualPdfLoading');
+      const infoscipManualPdfFrame = document.getElementById('infoscipManualPdfFrame');
       const redsMobileAppLink = document.getElementById('redsMobileAppLink');
       const ufemgUsefulLinkBtn = document.getElementById('ufemgUsefulLinkBtn');
       const ufemgModal = document.getElementById('ufemgModal');
@@ -2644,7 +2656,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fz';
+      const APP_REVISION_UI_ = '23.9.99ga';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2672,6 +2684,8 @@
         ['system-manual-open', () => systemManualModal && !systemManualModal.hidden],
         ['tutorial-open', () => tutorialModal && !tutorialModal.hidden],
         ['useful-links-open', () => usefulLinksModal && !usefulLinksModal.hidden],
+        ['infoscip-manuals-open', () => infoscipFiscalizacaoManualsModal && !infoscipFiscalizacaoManualsModal.hidden],
+        ['infoscip-manual-pdf-open', () => infoscipManualPdfModal && !infoscipManualPdfModal.hidden],
         ['user-manager-open', () => userManagerModal && !userManagerModal.hidden],
         ['about-open', () => aboutSystemModal && !aboutSystemModal.hidden],
         ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden],
@@ -4677,7 +4691,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fz', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ga', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6648,6 +6662,8 @@
         if (elementoVisivelNavegacao_(syncCenterModal)) return { id: 'sync-center', fechar: () => fecharCentralSincronizacao_() };
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
         if (elementoVisivelNavegacao_(ufemgModal)) return { id: 'ufemg', fechar: () => fecharUfemg_() };
+        if (elementoVisivelNavegacao_(infoscipManualPdfModal)) return { id: 'infoscip-manual-pdf', fechar: () => fecharPdfManualInfoscip_() };
+        if (elementoVisivelNavegacao_(infoscipFiscalizacaoManualsModal)) return { id: 'infoscip-manuals', fechar: () => fecharManuaisInfoscipFiscalizacao_() };
         if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
         if (elementoVisivelNavegacao_(tutorialModal)) return { id: 'tutorial', fechar: () => fecharTutorial_() };
         if (elementoVisivelNavegacao_(recordDetailScreen, 'show')) return { id: 'record-detail', fechar: () => fecharDetalheRegistro_() };
@@ -21562,6 +21578,59 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (redsMobileAppLink) redsMobileAppLink.hidden = !ehAndroid_();
       }
 
+      let infoscipManualPdfUrlAtual_ = '';
+
+      function abrirManuaisInfoscipFiscalizacao_() {
+        fecharMenuMais_();
+        if (!infoscipFiscalizacaoManualsModal) return;
+        infoscipFiscalizacaoManualsModal.hidden = false;
+        document.body.classList.add('useful-links-open');
+        setTimeout(() => infoscipFiscalizacaoManualsCloseBtn?.focus(), 0);
+      }
+
+      function fecharManuaisInfoscipFiscalizacao_() {
+        if (infoscipManualPdfModal && !infoscipManualPdfModal.hidden) fecharPdfManualInfoscip_();
+        if (infoscipFiscalizacaoManualsModal) infoscipFiscalizacaoManualsModal.hidden = true;
+        if (!usefulLinksModal || usefulLinksModal.hidden) document.body.classList.remove('useful-links-open');
+      }
+
+      function abrirPdfManualInfoscip_(caminho, titulo, pagina = 0) {
+        if (!infoscipManualPdfModal || !infoscipManualPdfFrame) return;
+        const base = String(caminho || '').trim();
+        if (!base) return;
+        const numPagina = Math.max(0, Number(pagina || 0));
+        const url = `${base}${numPagina ? `#page=${numPagina}` : ''}`;
+        infoscipManualPdfUrlAtual_ = url;
+        if (infoscipManualPdfTitle) infoscipManualPdfTitle.textContent = String(titulo || 'Manual INFOSCIP Fiscalização');
+        if (infoscipManualPdfSubtitle) infoscipManualPdfSubtitle.textContent = numPagina
+          ? `Consulta rápida • página ${numPagina}. O documento também pode ser aberto fora do app.`
+          : 'Documento completo armazenado no aplicativo para consulta operacional.';
+        if (infoscipManualPdfLoading) {
+          infoscipManualPdfLoading.hidden = false;
+          infoscipManualPdfLoading.textContent = 'Carregando manual...';
+        }
+        infoscipManualPdfFrame.src = url;
+        infoscipManualPdfModal.hidden = false;
+        document.body.classList.add('return-pdf-open');
+        setTimeout(() => infoscipManualPdfCloseBtn?.focus(), 0);
+      }
+
+      function fecharPdfManualInfoscip_() {
+        if (infoscipManualPdfModal) infoscipManualPdfModal.hidden = true;
+        if (infoscipManualPdfFrame) infoscipManualPdfFrame.src = 'about:blank';
+        if (infoscipManualPdfLoading) infoscipManualPdfLoading.hidden = false;
+        document.body.classList.remove('return-pdf-open');
+        infoscipManualPdfUrlAtual_ = '';
+        if (infoscipFiscalizacaoManualsModal && !infoscipFiscalizacaoManualsModal.hidden) {
+          setTimeout(() => infoscipFiscalizacaoManualsCloseBtn?.focus(), 0);
+        }
+      }
+
+      function abrirPdfManualInfoscipFora_() {
+        if (!infoscipManualPdfUrlAtual_) return;
+        window.open(infoscipManualPdfUrlAtual_, '_blank', 'noopener,noreferrer');
+      }
+
       function abrirLinksUteis_() {
         fecharMenuMais_();
         atualizarVisibilidadeRedsMobile_();
@@ -26039,6 +26108,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           else appAlertsOpenAfterLogin_ = true;
         }
       });
+      infoscipFiscalizacaoManualsBtn?.addEventListener('click', abrirManuaisInfoscipFiscalizacao_);
+      infoscipFiscalizacaoManualsCloseBtn?.addEventListener('click', fecharManuaisInfoscipFiscalizacao_);
+      infoscipFiscalizacaoManualsModal?.addEventListener('click', event => {
+        if (event.target === infoscipFiscalizacaoManualsModal) { fecharManuaisInfoscipFiscalizacao_(); return; }
+        const botao = event.target.closest('[data-infoscip-manual-pdf]');
+        if (!botao) return;
+        abrirPdfManualInfoscip_(
+          botao.dataset.infoscipManualPdf || '',
+          botao.dataset.infoscipManualTitle || '',
+          Number(botao.dataset.infoscipManualPage || 0)
+        );
+      });
+      infoscipManualPdfCloseBtn?.addEventListener('click', fecharPdfManualInfoscip_);
+      infoscipManualPdfDoneBtn?.addEventListener('click', fecharPdfManualInfoscip_);
+      infoscipManualPdfExternalBtn?.addEventListener('click', abrirPdfManualInfoscipFora_);
+      infoscipManualPdfModal?.addEventListener('click', event => { if (event.target === infoscipManualPdfModal) fecharPdfManualInfoscip_(); });
+      infoscipManualPdfFrame?.addEventListener('load', () => { if (infoscipManualPdfLoading) infoscipManualPdfLoading.hidden = true; });
+
       usefulLinksBtn?.addEventListener('click', abrirLinksUteis_);
       usefulLinksCloseBtn?.addEventListener('click', fecharLinksUteis_);
       usefulLinksModal?.addEventListener('click', event => { if (event.target === usefulLinksModal) fecharLinksUteis_(); });
@@ -26333,7 +26420,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fz', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ga', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
