@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gf';
-      // V23.9.99gf — Refinamento dos resultados da Pesquisa Técnica no PC: cards legíveis, coluna ampliada e resumo compacto.
+      const APP_VERSION = '23.9.99gg';
+      // V23.9.99gg — Correção do salto exato para páginas no visualizador contínuo dos Manuais INFOSCIP.
       // V23.9.99ge — Pesquisa Técnica com split-view real no PC, manuais em rolagem contínua, busca interna refinada e Painel sem status redundante.
       // V23.9.99gc — Visualizador responsivo dos Manuais INFOSCIP: páginas renderizadas no próprio app, navegação/zoom e retorno contextual.
       // V23.9.99gb — Pesquisa Técnica Unificada: ITs + Manuais INFOSCIP Fiscalização no Painel e durante a Vistoria.
@@ -2704,7 +2704,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gf';
+      const APP_REVISION_UI_ = '23.9.99gg';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4740,7 +4740,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gf', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gg', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21645,7 +21645,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gf';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gg';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -21965,6 +21965,58 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
       }
 
+      let manualPageJumpToken_ = 0;
+
+      function topoPaginaManualNoStage_(paginaEl) {
+        if (!paginaEl || !infoscipManualPageStage) return 0;
+        const stageRect = infoscipManualPageStage.getBoundingClientRect();
+        const paginaRect = paginaEl.getBoundingClientRect();
+        // Calcula a posição dentro do próprio painel rolável. Não depende do scroll da página/modal.
+        return Math.max(0, infoscipManualPageStage.scrollTop + (paginaRect.top - stageRect.top) - 6);
+      }
+
+      function posicionarPaginaManualNoStage_(pagina, { behavior='auto', revalidar=true } = {}) {
+        if (!infoscipManualPageStage || !infoscipManualContinuousPages) return false;
+        const prox = Math.max(1, Math.min(Number(infoscipManualViewerState_.total || 1), Number(pagina || 1)));
+        const destino = infoscipManualContinuousPages.querySelector(`[data-manual-page="${prox}"]`);
+        if (!destino) return false;
+        const token = ++manualPageJumpToken_;
+
+        const aplicar = (modo='auto') => {
+          if (token !== manualPageJumpToken_) return;
+          const top = topoPaginaManualNoStage_(destino);
+          const scrollAnterior = infoscipManualPageStage.style.scrollBehavior;
+          if (modo === 'auto') infoscipManualPageStage.style.scrollBehavior = 'auto';
+          try {
+            infoscipManualPageStage.scrollTo({ top, left:0, behavior:modo });
+          } catch (_) {
+            infoscipManualPageStage.scrollTop = top;
+            infoscipManualPageStage.scrollLeft = 0;
+          }
+          if (modo === 'auto') requestAnimationFrame(() => {
+            if (infoscipManualPageStage) infoscipManualPageStage.style.scrollBehavior = scrollAnterior;
+          });
+          infoscipManualViewerState_.page = prox;
+          atualizarControlesManualInfoscip_();
+        };
+
+        // Espera duas pinturas para o split-view/modal assumir sua largura definitiva.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          aplicar(behavior);
+          if (!revalidar) return;
+          // Imagens, fontes e mudança de largura do split-view podem recalcular alturas após a primeira pintura.
+          // Reconfere a posição rapidamente e corrige somente se a página alvo não estiver no topo do painel.
+          [90, 260, 620].forEach(ms => setTimeout(() => {
+            if (token !== manualPageJumpToken_ || !infoscipManualPageStage || !destino.isConnected) return;
+            const stageRect = infoscipManualPageStage.getBoundingClientRect();
+            const paginaRect = destino.getBoundingClientRect();
+            const distancia = paginaRect.top - stageRect.top;
+            if (distancia < -12 || distancia > 32) aplicar('auto');
+          }, ms));
+        }));
+        return true;
+      }
+
       function renderizarDocumentoContinuoManualInfoscip_(paginaInicial = 1) {
         const st = infoscipManualViewerState_;
         if (!infoscipManualContinuousPages || !infoscipManualPageStage) return;
@@ -21980,6 +22032,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           htmlPaginas.push(`<figure class="infoscip-manual-continuous-page" data-manual-page="${p}" style="width:${Math.round((st.zoom||1)*100)}%"><span class="infoscip-manual-continuous-label">Página ${p}</span><img src="${escapeAttr(urlImagemPaginaManualInfoscip_(p))}" loading="${eager}" decoding="async" alt="Página ${p} do Manual INFOSCIP Fiscalização" draggable="false"></figure>`);
         }
         infoscipManualContinuousPages.innerHTML = htmlPaginas.join('');
+        infoscipManualPageStage.scrollTop = 0;
+        infoscipManualPageStage.scrollLeft = 0;
         const imgs = [...infoscipManualContinuousPages.querySelectorAll('img')];
         imgs.forEach(img => {
           img.addEventListener('error', () => {
@@ -21990,23 +22044,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const paginaEl = infoscipManualContinuousPages.querySelector(`[data-manual-page="${alvo}"]`);
         const concluir = () => {
           if (infoscipManualPdfLoading) infoscipManualPdfLoading.hidden = true;
-          paginaEl?.scrollIntoView({ block:'start', behavior:'auto' });
-          infoscipManualPageStage.scrollLeft = 0;
           st.page = alvo;
           atualizarControlesManualInfoscip_();
+          posicionarPaginaManualNoStage_(alvo, { behavior:'auto', revalidar:true });
         };
         const imgAlvo = paginaEl?.querySelector('img');
         if (imgAlvo?.complete) requestAnimationFrame(concluir);
-        else if (imgAlvo) imgAlvo.addEventListener('load', () => requestAnimationFrame(concluir), { once:true });
-        else requestAnimationFrame(concluir);
+        else if (imgAlvo) {
+          imgAlvo.addEventListener('load', () => requestAnimationFrame(concluir), { once:true });
+          imgAlvo.addEventListener('error', () => requestAnimationFrame(concluir), { once:true });
+        } else requestAnimationFrame(concluir);
       }
 
       function navegarPaginaManualInfoscip_(pagina) {
         const prox = Math.max(1, Math.min(Number(infoscipManualViewerState_.total || 1), Number(pagina || 1)));
         infoscipManualViewerState_.page = prox;
         atualizarControlesManualInfoscip_();
-        const destino = infoscipManualContinuousPages?.querySelector(`[data-manual-page="${prox}"]`);
-        destino?.scrollIntoView({ block:'start', behavior:'smooth' });
+        posicionarPaginaManualNoStage_(prox, { behavior:'smooth', revalidar:true });
       }
 
       function ajustarZoomManualInfoscip_(delta = 0) {
@@ -26950,7 +27004,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gf', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gg', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
