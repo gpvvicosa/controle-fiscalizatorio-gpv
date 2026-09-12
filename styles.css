@@ -21822,3 +21822,88 @@ body.records-mode .dashboard-technical-search{max-width:1700px;margin-left:auto;
   .infoscip-manual-fit-btn { display: none; }
 }
 
+
+
+/* =============================================================================
+   V23.9.99gd — Consulta Técnica split-view + Painel mobile operacional
+   ============================================================================= */
+.dashboard-technical-search-compact{display:none}
+.records-card-city-warning{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border:1px solid #f1c46f;border-radius:11px;background:#fff8e8;color:#74430b}
+.records-card-city-warning>span:first-child{flex:0 0 auto;font-size:15px}.records-card-city-warning>span:last-child{display:grid;gap:2px}.records-card-city-warning strong{font-size:9.5px}.records-card-city-warning small{font-size:8.5px;color:#8a5b16}
+
+.technical-search-workspace{display:grid;grid-template-columns:minmax(0,1fr);min-height:0;flex:1 1 auto;overflow:hidden}
+.technical-search-left{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.technical-search-left .technical-search-modal-body{flex:1 1 auto}
+.technical-it-preview{min-width:0;min-height:0;overflow:auto;background:#f8fafc;border-left:1px solid #dfe5e2;padding:14px;display:flex;flex-direction:column;gap:11px}
+.technical-it-preview[hidden]{display:none!important}
+.technical-it-preview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid #e1e6e3}
+.technical-it-preview-head>div:first-child{min-width:0}.technical-it-preview-head span{display:block;color:#8f1b22;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.technical-it-preview-head h3{margin:3px 0 2px;color:#162234;font-size:20px}.technical-it-preview-head small{color:#667085;font-size:10px}.technical-it-preview-actions{display:flex;gap:7px;align-items:center;flex:0 0 auto}.technical-it-preview-actions .btn{font-size:10px;min-height:38px;padding:7px 10px}
+.technical-it-internal-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.technical-it-internal-search input{min-height:42px;border:1px solid #cdd8d1;border-radius:10px;padding:0 11px;background:#fff}.technical-it-internal-status{font-size:10px;color:#667085}.technical-it-selected-content{padding:14px;border:1px solid #dbe4df;border-radius:14px;background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.035)}.technical-it-selected-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#fde9e7;color:#9f1c16;font-size:9px;font-weight:900}.technical-it-selected-content h4{margin:8px 0 7px;font-size:15px;color:#1f2937}.technical-it-selected-content p{margin:0;white-space:pre-wrap;font-size:12px;line-height:1.55;color:#39483f}.technical-it-internal-results{display:grid;gap:7px}.technical-it-search-result{width:100%;display:grid;gap:4px;padding:9px 10px;text-align:left;border:1px solid #dce5df;border-radius:10px;background:#fff;color:#2e4035;cursor:pointer}.technical-it-search-result strong{font-size:10.5px}.technical-it-search-result small{font-size:9px;line-height:1.35;color:#6c7770}.technical-it-search-result.is-current{border-color:#3a8757;background:#f2fbf6}.technical-it-search-empty{padding:16px;text-align:center;color:#667085;font-size:11px}
+.technical-search-card.has-it-preview{width:min(1760px,97vw);height:min(960px,95vh);max-height:95vh}.technical-search-card.has-it-preview .technical-search-workspace{grid-template-columns:minmax(360px,.42fr) minmax(560px,.58fr)}
+
+.infoscip-manual-viewer-content{position:relative;display:flex;flex:1 1 auto;min-height:0;overflow:hidden}
+.infoscip-manual-document-search{width:360px;flex:0 0 360px;min-height:0;overflow:auto;padding:12px;border-right:1px solid #dfe4ea;background:#fff;display:flex;flex-direction:column;gap:10px}
+.infoscip-manual-document-search[hidden]{display:none!important}.infoscip-manual-document-search header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.infoscip-manual-document-search header>div{display:grid;gap:2px}.infoscip-manual-document-search header strong{font-size:13px;color:#1f2937}.infoscip-manual-document-search header small{font-size:9.5px;color:#667085}.infoscip-manual-document-search form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.infoscip-manual-document-search input{min-height:40px;border:1px solid #cfd7df;border-radius:10px;padding:0 10px}.infoscip-manual-document-search .btn{min-height:40px;padding:7px 10px;font-size:10px}.infoscip-manual-search-status{font-size:9.5px;color:#667085}.infoscip-manual-search-results{display:grid;gap:7px}.infoscip-manual-search-result{width:100%;display:grid;gap:3px;padding:9px 10px;border:1px solid #dde4ea;border-radius:10px;background:#fff;text-align:left;cursor:pointer}.infoscip-manual-search-result:hover{border-color:#7ca88d;background:#f8fcf9}.infoscip-manual-search-result span{font-size:8.5px;font-weight:900;color:#8f1b22}.infoscip-manual-search-result strong{font-size:10.5px;color:#25342b;line-height:1.3}.infoscip-manual-search-result small{font-size:8.8px;color:#6c7770;line-height:1.35}.infoscip-manual-search-empty{padding:14px;border:1px dashed #d6dde3;border-radius:10px;color:#667085;font-size:10px;text-align:center}.infoscip-manual-search-toggle{height:38px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;color:#344054;padding:0 11px;font-size:11px;font-weight:850;cursor:pointer;white-space:nowrap}
+
+/* Pesquisa aberta + manual: no desktop, resultados ficam à esquerda e documento à direita. */
+@media(min-width:901px){
+  body.technical-search-document-open .technical-search-overlay{justify-content:flex-start!important;align-items:center!important;padding:2vh 1.25vw!important;background:rgba(19,24,31,.72)!important}
+  body.technical-search-document-open .technical-search-card{width:38.5vw!important;max-width:720px!important;height:94vh!important;max-height:94vh!important;margin:0!important;border-radius:18px!important}
+  body.technical-search-document-open .infoscip-manual-viewer-overlay{z-index:13220!important;pointer-events:none!important;padding:2vh 1.25vw!important;background:transparent!important;justify-content:flex-end!important;align-items:center!important}
+  body.technical-search-document-open .infoscip-manual-viewer-card{pointer-events:auto!important;width:58.5vw!important;height:94vh!important;max-height:94vh!important;margin-left:auto!important;border-radius:18px!important;box-shadow:0 24px 60px rgba(0,0,0,.22)!important}
+  body.technical-search-document-open .infoscip-manual-viewer-actions{padding-bottom:9px!important}
+}
+/* O visualizador precisa ficar acima da pesquisa também no mobile. */
+.infoscip-manual-viewer-overlay{z-index:13220!important}
+
+@media(max-width:760px){
+  /* Topo menos alto. */
+  body.records-mode .hero{width:calc(100% - 20px)!important;margin:5px 10px 7px!important;padding:5px!important;border-radius:17px!important}
+  body.records-mode .hero-banner{border-radius:12px!important}
+  body.records-mode .app-view-nav{width:calc(100% - 20px)!important;margin:0 10px 8px!important;padding:8px 9px 9px!important;border-radius:18px!important}
+  body.records-mode .app-user-status-row{min-height:58px!important;grid-template-columns:44px minmax(0,1fr) 40px!important;padding:6px 8px!important;border-radius:17px!important}
+  body.records-mode .app-user-avatar{width:40px!important;height:40px!important}
+  body.records-mode .logged-user-badge{font-size:13px!important;min-height:30px!important;padding:4px 8px!important}.app-user-welcome{font-size:9px!important}
+  body.records-mode .app-alerts-bell{width:38px!important;height:38px!important}
+  body.records-mode .app-view-btn{min-height:58px!important;padding:6px!important;font-size:10.5px!important;border-radius:14px!important}
+  body.records-mode .app-view-btn .app-view-icon{width:36px!important;height:36px!important;flex-basis:36px!important;border-radius:11px!important}
+
+  /* Alertas operacionais mais compactos. */
+  body.records-mode .dashboard-operational-alerts{padding:0 10px!important;margin-top:7px!important;gap:7px!important}
+  body.records-mode .dashboard-ddu-summary-card{display:grid!important;grid-template-columns:105px minmax(0,1fr)!important;min-height:68px!important;width:100%!important;padding:8px 10px!important;gap:10px!important;text-align:left!important;border-radius:15px!important}
+  body.records-mode .dashboard-ddu-summary-card .ddu-summary-brand{width:105px!important;height:42px!important;margin:0!important}
+  body.records-mode .dashboard-ddu-summary-card .ddu-summary-copy{align-items:flex-start!important;text-align:left!important;margin:0!important}.dashboard-ddu-summary-card .ddu-summary-copy strong,.dashboard-ddu-summary-card .ddu-summary-copy small{text-align:left!important}
+  body.records-mode .dashboard-programmed-summary-card{min-height:68px!important;padding:8px 10px!important;border-radius:15px!important}
+
+  /* Reordenação operacional do Painel mobile. */
+  body.records-mode .dashboard-main-content{display:flex!important;flex-direction:column!important;padding:8px 10px 14px!important}
+  body.records-mode #recordsFiltersPanel{order:1!important;margin-bottom:10px!important}
+  body.records-mode .dashboard-kpis{order:2!important}
+  body.records-mode #dashboardGoalsPanel{order:3!important}
+  body.records-mode #inspectionSuggestionsCard{order:4!important}
+  body.records-mode .dashboard-technical-search-compact{order:5!important}
+  body.records-mode #recordsStatus{order:6!important}
+  body.records-mode .dashboard-results{order:7!important}
+  body.records-mode #recordsPagination{order:8!important}
+  body.records-mode .dashboard-technical-search{display:none!important}
+  .dashboard-technical-search-compact{display:grid;grid-template-columns:42px minmax(0,1fr) 26px;align-items:center;gap:9px;width:100%;margin:0 0 10px;padding:9px 10px;border:1px solid #cfe0d7;border-radius:15px;background:linear-gradient(135deg,#f7fcf9,#fff);text-align:left;color:#254934;box-shadow:0 5px 14px rgba(15,23,42,.035)}.dashboard-technical-search-compact-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#e8f4ed;font-size:19px}.dashboard-technical-search-compact span:nth-child(2){display:grid;gap:2px}.dashboard-technical-search-compact strong{font-size:12px}.dashboard-technical-search-compact small{font-size:9px;color:#6a776f}.dashboard-technical-search-compact b{font-size:24px;color:#28704a;text-align:center}
+
+  body.records-mode .dashboard-filters{margin-top:0!important}
+  body.records-mode .dashboard-filter-head{padding-bottom:7px!important}.dashboard-filter-head-copy>strong{font-size:13px!important}.dashboard-filter-kicker{font-size:8px!important}.dashboard-filter-result-count{font-size:8.5px!important}.dashboard-filter-toggle{min-height:34px!important}
+  body.records-mode .dashboard-search{min-height:56px!important}.dashboard-search-icon-wrap{width:40px!important;height:40px!important;flex-basis:40px!important}.dashboard-search input{font-size:13px!important}
+  /* Metas resumidas: detalhes permanecem no botão Ver detalhes. */
+  body.records-mode #dashboardGoalsPanel .dashboard-goals-grid{display:none!important}
+  body.records-mode #dashboardGoalsPanel{margin-bottom:10px!important}.dashboard-goals-overall{margin-bottom:0!important}
+
+  /* Cards de processo mais densos. */
+  body.records-mode .records-card{padding:11px 11px 10px 14px!important;border-radius:17px!important}.records-card-title{font-size:14.5px!important}.records-card-meta{gap:5px!important}.records-meta-item{min-height:47px!important;padding:7px!important}.records-card-quick-btn{min-height:34px!important;padding:6px 9px!important;font-size:9px!important}.records-card-cta{min-height:36px!important}
+
+  /* Pesquisa Técnica: mobile em tela cheia; preview da IT substitui a lista sem perder o estado. */
+  .technical-search-card{height:100dvh!important;max-height:100dvh!important}
+  .technical-search-header{padding-top:max(10px,env(safe-area-inset-top))!important}
+  .technical-search-workspace{position:relative;display:block!important;overflow:hidden}.technical-search-left{height:100%;}.technical-search-modal-body{overflow:auto!important}
+  .technical-search-card.has-it-preview .technical-search-workspace{display:block!important}.technical-it-preview{position:absolute;inset:0;z-index:5;border:0;padding:10px;background:#f8fafc}.technical-it-preview-head{position:sticky;top:0;z-index:2;background:#f8fafc;padding-top:2px}.technical-it-preview-actions .btn{display:none}.technical-it-internal-search{grid-template-columns:1fr}.technical-it-internal-search .btn{width:100%}
+
+  /* Pesquisa no manual vira painel de tela cheia sobre a página. */
+  .infoscip-manual-viewer-content{position:relative}.infoscip-manual-document-search{position:absolute;inset:0;z-index:8;width:100%;height:100%;padding:12px;background:#fff;border:0}.infoscip-manual-document-search form{grid-template-columns:1fr}.infoscip-manual-document-search form .btn{width:100%}.infoscip-manual-search-toggle{width:36px;padding:0;color:transparent;overflow:hidden;position:relative}.infoscip-manual-search-toggle::after{content:'🔎';position:absolute;inset:0;display:grid;place-items:center;color:#344054;font-size:16px}.infoscip-manual-search-toggle span{display:none}
+}

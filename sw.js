@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-gc-visualizador-manuais-responsivo';
-const VERSION = '23.9.99gc';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-gd-consulta-tecnica-painel-mobile';
+const VERSION = '23.9.99gd';
 
 const CORE_SHELL = [
   './',
