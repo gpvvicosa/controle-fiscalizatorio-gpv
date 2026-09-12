@@ -21907,3 +21907,65 @@ body.records-mode .dashboard-technical-search{max-width:1700px;margin-left:auto;
   /* Pesquisa no manual vira painel de tela cheia sobre a página. */
   .infoscip-manual-viewer-content{position:relative}.infoscip-manual-document-search{position:absolute;inset:0;z-index:8;width:100%;height:100%;padding:12px;background:#fff;border:0}.infoscip-manual-document-search form{grid-template-columns:1fr}.infoscip-manual-document-search form .btn{width:100%}.infoscip-manual-search-toggle{width:36px;padding:0;color:transparent;overflow:hidden;position:relative}.infoscip-manual-search-toggle::after{content:'🔎';position:absolute;inset:0;display:grid;place-items:center;color:#344054;font-size:16px}.infoscip-manual-search-toggle span{display:none}
 }
+
+
+/* =============================================================================
+   V23.9.99ge — Split-view real + manuais em rolagem contínua + Painel enxuto
+   ============================================================================= */
+
+/* O status normal de registros é redundante: total já aparece na busca/indicadores. */
+body.records-mode .records-status:not(.loading):not(.error):not(.searching){display:none!important}
+
+/* Recentes ficam discretos depois que uma busca já foi executada. */
+.technical-search-recent.is-collapsed{padding:7px 9px!important;display:flex!important;align-items:center;gap:8px;overflow:hidden}
+.technical-search-recent.is-collapsed>strong{font-size:9px;white-space:nowrap;margin:0!important;color:#667085}
+.technical-search-recent.is-collapsed>div{display:flex!important;gap:5px;overflow:auto;white-space:nowrap;scrollbar-width:none}
+.technical-search-recent.is-collapsed>div::-webkit-scrollbar{display:none}
+.technical-search-recent.is-collapsed button{min-height:27px!important;padding:4px 8px!important;font-size:8.5px!important;white-space:nowrap}
+
+/* Documento completo: todas as páginas ficam disponíveis em uma única rolagem. */
+.infoscip-manual-page-stage{scroll-behavior:smooth;text-align:initial!important}
+.infoscip-manual-continuous-pages{display:flex;flex-direction:column;align-items:center;gap:18px;min-width:100%;width:max-content;min-height:100%;padding-bottom:20px}
+.infoscip-manual-continuous-page{position:relative;flex:0 0 auto;aspect-ratio:1500/2122;margin:0 auto;background:#fff;box-shadow:0 7px 24px rgba(16,24,40,.20);transition:width .15s ease;border-radius:2px;overflow:hidden}
+.infoscip-manual-continuous-page img{display:block;width:100%;height:100%;object-fit:contain;background:#fff;user-select:none;-webkit-user-drag:none}
+.infoscip-manual-continuous-label{position:absolute;top:8px;left:8px;z-index:2;padding:4px 7px;border-radius:999px;background:rgba(17,24,39,.76);color:#fff;font-size:9px;font-weight:850;letter-spacing:.01em;opacity:.68;pointer-events:none}
+.infoscip-manual-continuous-page.is-error{display:grid;place-items:center;background:#f8fafc;border:1px dashed #efb3b6;box-shadow:none}
+.infoscip-manual-continuous-page.is-error::after{content:'Página indisponível. Use “Abrir PDF” se precisar consultar esta página.';max-width:70%;text-align:center;color:#8f1b22;font-size:12px;font-weight:800;line-height:1.4}
+.infoscip-manual-continuous-page.is-error img{display:none}
+
+/* PC: pesquisa e documento ficam realmente lado a lado e ambos permanecem nítidos/ativos. */
+@media(min-width:901px){
+  body.technical-search-document-open .technical-search-overlay{padding:2vh 1vw!important;background:rgba(19,24,31,.72)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;justify-content:flex-start!important}
+  body.technical-search-document-open .technical-search-card{width:39vw!important;max-width:none!important;height:96vh!important;max-height:96vh!important;border-radius:18px 0 0 18px!important;box-shadow:0 22px 55px rgba(0,0,0,.24)!important}
+  body.technical-search-document-open .infoscip-manual-viewer-overlay{padding:2vh 1vw 2vh 40vw!important;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none!important;justify-content:flex-end!important;align-items:center!important}
+  body.technical-search-document-open .infoscip-manual-viewer-card{pointer-events:auto!important;width:59vw!important;max-width:none!important;height:96vh!important;max-height:96vh!important;border-radius:0 18px 18px 0!important;box-shadow:0 22px 55px rgba(0,0,0,.24)!important}
+  body.technical-search-document-open .technical-search-header{padding:15px 17px 12px!important}
+  body.technical-search-document-open .technical-search-modal-body{padding:12px 14px 14px!important}
+  body.technical-search-document-open .technical-search-result{padding:9px 10px!important;gap:8px!important}
+  body.technical-search-document-open .technical-search-result-main small{font-size:9px!important;line-height:1.35!important}
+  body.technical-search-document-open .technical-search-footer{padding:7px 12px!important;font-size:8.5px!important}
+  body.technical-search-document-open .infoscip-manual-viewer-header{padding:10px 14px 9px!important}
+  body.technical-search-document-open .infoscip-manual-viewer-toolbar{padding:6px 10px!important}
+  body.technical-search-document-open .infoscip-manual-page-stage{padding:14px clamp(24px,3vw,60px)!important}
+}
+
+/* Mobile: mais área para documento e controles com rótulo de pesquisa claro. */
+@media(max-width:680px){
+  .infoscip-manual-viewer-header{padding:max(7px,env(safe-area-inset-top)) 10px 7px!important}
+  .infoscip-manual-viewer-heading h2{font-size:16px!important;line-height:1.12!important}
+  .infoscip-manual-viewer-heading p{font-size:9px!important;margin-top:2px!important}
+  .infoscip-manual-viewer-toolbar{padding:5px 6px!important;gap:4px!important}
+  .infoscip-manual-page-controls,.infoscip-manual-zoom-controls{gap:3px!important}
+  .infoscip-manual-tool-btn,.infoscip-manual-fit-btn{width:31px!important;min-width:31px!important;height:31px!important}
+  .infoscip-manual-page-field input{width:44px!important;height:31px!important}
+  #infoscipManualZoomLabel{font-size:9px!important;min-width:33px!important}
+  .infoscip-manual-search-toggle{width:auto!important;min-width:39px!important;height:31px!important;padding:0 8px!important;color:#344054!important;font-size:9px!important;display:inline-flex!important;align-items:center!important;gap:4px!important}
+  .infoscip-manual-search-toggle::after{display:none!important}.infoscip-manual-search-toggle span{display:inline!important}
+  .infoscip-manual-page-stage{padding:6px!important}
+  .infoscip-manual-continuous-pages{gap:10px!important;padding-bottom:10px!important}
+  .infoscip-manual-continuous-label{top:5px;left:5px;font-size:7px;padding:3px 5px}
+  .infoscip-manual-viewer-actions{padding:6px 8px max(6px,env(safe-area-inset-bottom))!important}
+  .infoscip-manual-viewer-actions .btn{min-height:38px!important;font-size:10px!important}
+  .technical-search-footer{padding:7px 10px!important;gap:5px!important;font-size:8.5px!important}
+  .technical-search-footer span{display:none!important}
+}

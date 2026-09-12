@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gd';
-      // V23.9.99gd — Consulta Técnica responsiva: split-view no PC, retorno preservado no mobile, pesquisa interna em manuais/ITs e Painel mobile reorganizado.
+      const APP_VERSION = '23.9.99ge';
+      // V23.9.99ge — Pesquisa Técnica com split-view real no PC, manuais em rolagem contínua, busca interna refinada e Painel sem status redundante.
       // V23.9.99gc — Visualizador responsivo dos Manuais INFOSCIP: páginas renderizadas no próprio app, navegação/zoom e retorno contextual.
       // V23.9.99gb — Pesquisa Técnica Unificada: ITs + Manuais INFOSCIP Fiscalização no Painel e durante a Vistoria.
       // V23.9.99ga — Manuais INFOSCIP Fiscalização: Manual do Militar e Manual do Autuado no PWA, com visualização interna, atalhos e cache offline.
@@ -2572,7 +2572,7 @@
       const infoscipManualPdfSubtitle = document.getElementById('infoscipManualPdfSubtitle');
       const infoscipManualPdfLoading = document.getElementById('infoscipManualPdfLoading');
       const infoscipManualPageStage = document.getElementById('infoscipManualPageStage');
-      const infoscipManualPageImage = document.getElementById('infoscipManualPageImage');
+      const infoscipManualContinuousPages = document.getElementById('infoscipManualContinuousPages');
       const infoscipManualPageInput = document.getElementById('infoscipManualPageInput');
       const infoscipManualPageTotal = document.getElementById('infoscipManualPageTotal');
       const infoscipManualPrevBtn = document.getElementById('infoscipManualPrevBtn');
@@ -2703,7 +2703,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gd';
+      const APP_REVISION_UI_ = '23.9.99ge';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4739,7 +4739,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gd', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ge', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21644,7 +21644,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gd';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99ge';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -21682,7 +21682,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function renderizarRecentesPesquisaTecnica_() {
         if (!technicalUnifiedSearchRecent || !technicalUnifiedSearchRecentList) return;
         const recentes = recentesPesquisaTecnica_();
+        const pesquisaAtiva = String(technicalSearchLastQuery_ || '').trim().length >= 2;
         technicalUnifiedSearchRecent.hidden = !recentes.length;
+        technicalUnifiedSearchRecent.classList.toggle('is-collapsed', pesquisaAtiva);
         technicalUnifiedSearchRecentList.innerHTML = recentes.map(q => `<button type="button" data-technical-recent="${escapeAttr(q)}">${escapeHtml(q)}</button>`).join('');
       }
 
@@ -21815,6 +21817,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         document.body.classList.add('technical-search-open');
         renderizarRecentesPesquisaTecnica_();
         const termo=String(query || '').trim();
+        technicalSearchLastQuery_ = termo;
         if (technicalUnifiedSearchInput) technicalUnifiedSearchInput.value=termo;
         if (technicalUnifiedSearchResults) technicalUnifiedSearchResults.innerHTML='';
         if (technicalUnifiedSearchStatus) technicalUnifiedSearchStatus.textContent=termo ? 'Preparando pesquisa...' : 'Digite um assunto para pesquisar.';
@@ -21936,45 +21939,73 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (infoscipManualPrevBtn) infoscipManualPrevBtn.disabled = st.page <= 1;
         if (infoscipManualNextBtn) infoscipManualNextBtn.disabled = st.page >= st.total;
         if (infoscipManualZoomLabel) infoscipManualZoomLabel.textContent = `${Math.round((st.zoom || 1) * 100)}%`;
-        if (infoscipManualPageImage) infoscipManualPageImage.style.width = `${Math.round((st.zoom || 1) * 100)}%`;
-        if (infoscipManualPdfSubtitle) infoscipManualPdfSubtitle.textContent = `Página ${st.page} de ${st.total} • consulta interna do documento oficial`;
+        infoscipManualContinuousPages?.querySelectorAll('.infoscip-manual-continuous-page').forEach(el => {
+          el.style.width = `${Math.round((st.zoom || 1) * 100)}%`;
+        });
+        if (infoscipManualPdfSubtitle) infoscipManualPdfSubtitle.textContent = `Página ${st.page} de ${st.total} • documento completo disponível para rolagem`;
       }
 
-      function renderizarPaginaManualInfoscip_(opcoes = {}) {
+      let manualScrollRaf_ = 0;
+      function atualizarPaginaAtualPeloScrollManual_() {
+        if (!infoscipManualPageStage || !infoscipManualContinuousPages) return;
+        cancelAnimationFrame(manualScrollRaf_);
+        manualScrollRaf_ = requestAnimationFrame(() => {
+          const alvo = infoscipManualPageStage.scrollTop + Math.max(20, infoscipManualPageStage.clientHeight * .22);
+          let pagina = 1;
+          const paginas = [...infoscipManualContinuousPages.querySelectorAll('[data-manual-page]')];
+          for (const el of paginas) {
+            if (el.offsetTop <= alvo) pagina = Number(el.dataset.manualPage || pagina);
+            else break;
+          }
+          if (pagina !== infoscipManualViewerState_.page) {
+            infoscipManualViewerState_.page = pagina;
+            atualizarControlesManualInfoscip_();
+          }
+        });
+      }
+
+      function renderizarDocumentoContinuoManualInfoscip_(paginaInicial = 1) {
         const st = infoscipManualViewerState_;
-        st.page = Math.max(1, Math.min(Number(st.total || 1), Number(st.page || 1)));
-        st.zoom = Math.max(0.75, Math.min(2.25, Number(st.zoom || 1)));
-        atualizarControlesManualInfoscip_();
-        if (!infoscipManualPageImage) return;
+        if (!infoscipManualContinuousPages || !infoscipManualPageStage) return;
+        const alvo = Math.max(1, Math.min(Number(st.total || 1), Number(paginaInicial || 1)));
         if (infoscipManualPdfLoading) {
           infoscipManualPdfLoading.hidden = false;
-          infoscipManualPdfLoading.textContent = `Carregando página ${st.page}...`;
+          infoscipManualPdfLoading.textContent = `Preparando manual na página ${alvo}...`;
         }
         if (infoscipManualPageError) infoscipManualPageError.hidden = true;
-        infoscipManualPageImage.hidden = true;
-        const url = urlImagemPaginaManualInfoscip_(st.page);
-        infoscipManualPageImage.onload = () => {
+        const htmlPaginas=[];
+        for (let p=1; p<=Number(st.total||1); p++) {
+          const eager = Math.abs(p-alvo) <= 1 ? 'eager' : 'lazy';
+          htmlPaginas.push(`<figure class="infoscip-manual-continuous-page" data-manual-page="${p}" style="width:${Math.round((st.zoom||1)*100)}%"><span class="infoscip-manual-continuous-label">Página ${p}</span><img src="${escapeAttr(urlImagemPaginaManualInfoscip_(p))}" loading="${eager}" decoding="async" alt="Página ${p} do Manual INFOSCIP Fiscalização" draggable="false"></figure>`);
+        }
+        infoscipManualContinuousPages.innerHTML = htmlPaginas.join('');
+        const imgs = [...infoscipManualContinuousPages.querySelectorAll('img')];
+        imgs.forEach(img => {
+          img.addEventListener('error', () => {
+            img.closest('.infoscip-manual-continuous-page')?.classList.add('is-error');
+            img.alt = 'Página temporariamente indisponível';
+          }, { once:true });
+        });
+        const paginaEl = infoscipManualContinuousPages.querySelector(`[data-manual-page="${alvo}"]`);
+        const concluir = () => {
           if (infoscipManualPdfLoading) infoscipManualPdfLoading.hidden = true;
-          if (infoscipManualPageError) infoscipManualPageError.hidden = true;
-          infoscipManualPageImage.hidden = false;
-          if (!opcoes.preservarScroll && infoscipManualPageStage) {
-            infoscipManualPageStage.scrollTop = 0;
-            infoscipManualPageStage.scrollLeft = 0;
-          }
+          paginaEl?.scrollIntoView({ block:'start', behavior:'auto' });
+          infoscipManualPageStage.scrollLeft = 0;
+          st.page = alvo;
+          atualizarControlesManualInfoscip_();
         };
-        infoscipManualPageImage.onerror = () => {
-          if (infoscipManualPdfLoading) infoscipManualPdfLoading.hidden = true;
-          infoscipManualPageImage.hidden = true;
-          if (infoscipManualPageError) infoscipManualPageError.hidden = false;
-        };
-        infoscipManualPageImage.src = url;
+        const imgAlvo = paginaEl?.querySelector('img');
+        if (imgAlvo?.complete) requestAnimationFrame(concluir);
+        else if (imgAlvo) imgAlvo.addEventListener('load', () => requestAnimationFrame(concluir), { once:true });
+        else requestAnimationFrame(concluir);
       }
 
       function navegarPaginaManualInfoscip_(pagina) {
         const prox = Math.max(1, Math.min(Number(infoscipManualViewerState_.total || 1), Number(pagina || 1)));
-        if (prox === infoscipManualViewerState_.page && !infoscipManualPageImage?.hidden) return;
         infoscipManualViewerState_.page = prox;
-        renderizarPaginaManualInfoscip_();
+        atualizarControlesManualInfoscip_();
+        const destino = infoscipManualContinuousPages?.querySelector(`[data-manual-page="${prox}"]`);
+        destino?.scrollIntoView({ block:'start', behavior:'smooth' });
       }
 
       function ajustarZoomManualInfoscip_(delta = 0) {
@@ -22031,7 +22062,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function abrirPdfManualInfoscip_(caminho, titulo, pagina = 0) {
-        if (!infoscipManualPdfModal || !infoscipManualPageImage) return;
+        if (!infoscipManualPdfModal || !infoscipManualContinuousPages) return;
         const base = String(caminho || '').trim();
         if (!base) return;
         const cfg = configuracaoManualInfoscip_(base);
@@ -22055,18 +22086,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         fecharPesquisaNoManualInfoscip_();
         infoscipManualPdfModal.hidden = false;
         document.body.classList.add('return-pdf-open');
-        renderizarPaginaManualInfoscip_();
+        renderizarDocumentoContinuoManualInfoscip_(numPagina);
         setTimeout(() => infoscipManualPdfCloseBtn?.focus(), 0);
       }
 
       function fecharPdfManualInfoscip_() {
         if (infoscipManualPdfModal) infoscipManualPdfModal.hidden = true;
-        if (infoscipManualPageImage) {
-          infoscipManualPageImage.onload = null;
-          infoscipManualPageImage.onerror = null;
-          infoscipManualPageImage.removeAttribute('src');
-          infoscipManualPageImage.hidden = true;
-        }
+        if (infoscipManualContinuousPages) infoscipManualContinuousPages.innerHTML = '';
         if (infoscipManualPdfLoading) infoscipManualPdfLoading.hidden = false;
         if (infoscipManualPageError) infoscipManualPageError.hidden = true;
         document.body.classList.remove('return-pdf-open');
@@ -26621,11 +26647,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       infoscipManualZoomOutBtn?.addEventListener('click', () => ajustarZoomManualInfoscip_(-0.25));
       infoscipManualZoomInBtn?.addEventListener('click', () => ajustarZoomManualInfoscip_(0.25));
       infoscipManualFitBtn?.addEventListener('click', () => { infoscipManualViewerState_.zoom = 1; atualizarControlesManualInfoscip_(); if (infoscipManualPageStage) infoscipManualPageStage.scrollLeft = 0; });
+      infoscipManualPageStage?.addEventListener('scroll', atualizarPaginaAtualPeloScrollManual_, { passive:true });
       infoscipManualSearchToggleBtn?.addEventListener('click', () => infoscipManualSearchPanel?.hidden ? abrirPesquisaNoManualInfoscip_() : fecharPesquisaNoManualInfoscip_());
       infoscipManualSearchCloseBtn?.addEventListener('click', fecharPesquisaNoManualInfoscip_);
       infoscipManualSearchForm?.addEventListener('submit', event => { event.preventDefault(); void pesquisarNoManualInfoscip_(); });
       infoscipManualSearchResults?.addEventListener('click', event => { const btn=event.target.closest('[data-manual-search-page]'); if (!btn) return; navegarPaginaManualInfoscip_(Number(btn.dataset.manualSearchPage||1)); if (window.matchMedia('(max-width:680px)').matches) fecharPesquisaNoManualInfoscip_(); });
-      infoscipManualPageRetryBtn?.addEventListener('click', () => renderizarPaginaManualInfoscip_());
+      infoscipManualPageRetryBtn?.addEventListener('click', () => renderizarDocumentoContinuoManualInfoscip_(infoscipManualViewerState_.page));
       infoscipManualPageOpenPdfBtn?.addEventListener('click', abrirPdfManualInfoscipFora_);
 
       usefulLinksBtn?.addEventListener('click', abrirLinksUteis_);
@@ -26922,7 +26949,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gd', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ge', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
