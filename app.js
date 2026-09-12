@@ -17,7 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ga';
+      const APP_VERSION = '23.9.99gb';
+      // V23.9.99gb — Pesquisa Técnica Unificada: ITs + Manuais INFOSCIP Fiscalização no Painel e durante a Vistoria.
       // V23.9.99ga — Manuais INFOSCIP Fiscalização: Manual do Militar e Manual do Autuado no PWA, com visualização interna, atalhos e cache offline.
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
@@ -2568,6 +2569,19 @@
       const infoscipManualPdfSubtitle = document.getElementById('infoscipManualPdfSubtitle');
       const infoscipManualPdfLoading = document.getElementById('infoscipManualPdfLoading');
       const infoscipManualPdfFrame = document.getElementById('infoscipManualPdfFrame');
+      const technicalUnifiedSearchModal = document.getElementById('technicalUnifiedSearchModal');
+      const technicalUnifiedSearchCloseBtn = document.getElementById('technicalUnifiedSearchCloseBtn');
+      const technicalUnifiedSearchForm = document.getElementById('technicalUnifiedSearchForm');
+      const technicalUnifiedSearchInput = document.getElementById('technicalUnifiedSearchInput');
+      const technicalUnifiedSearchFilters = document.getElementById('technicalUnifiedSearchFilters');
+      const technicalUnifiedSearchRecent = document.getElementById('technicalUnifiedSearchRecent');
+      const technicalUnifiedSearchRecentList = document.getElementById('technicalUnifiedSearchRecentList');
+      const technicalUnifiedSearchStatus = document.getElementById('technicalUnifiedSearchStatus');
+      const technicalUnifiedSearchResults = document.getElementById('technicalUnifiedSearchResults');
+      const dashboardTechnicalSearchForm = document.getElementById('dashboardTechnicalSearchForm');
+      const dashboardTechnicalSearchInput = document.getElementById('dashboardTechnicalSearchInput');
+      const vistoriaTechnicalSearchForm = document.getElementById('vistoriaTechnicalSearchForm');
+      const vistoriaTechnicalSearchInput = document.getElementById('vistoriaTechnicalSearchInput');
       const redsMobileAppLink = document.getElementById('redsMobileAppLink');
       const ufemgUsefulLinkBtn = document.getElementById('ufemgUsefulLinkBtn');
       const ufemgModal = document.getElementById('ufemgModal');
@@ -2656,7 +2670,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ga';
+      const APP_REVISION_UI_ = '23.9.99gb';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2686,6 +2700,7 @@
         ['useful-links-open', () => usefulLinksModal && !usefulLinksModal.hidden],
         ['infoscip-manuals-open', () => infoscipFiscalizacaoManualsModal && !infoscipFiscalizacaoManualsModal.hidden],
         ['infoscip-manual-pdf-open', () => infoscipManualPdfModal && !infoscipManualPdfModal.hidden],
+        ['technical-search-open', () => technicalUnifiedSearchModal && !technicalUnifiedSearchModal.hidden],
         ['user-manager-open', () => userManagerModal && !userManagerModal.hidden],
         ['about-open', () => aboutSystemModal && !aboutSystemModal.hidden],
         ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden],
@@ -4691,7 +4706,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ga', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gb', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6663,6 +6678,7 @@
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
         if (elementoVisivelNavegacao_(ufemgModal)) return { id: 'ufemg', fechar: () => fecharUfemg_() };
         if (elementoVisivelNavegacao_(infoscipManualPdfModal)) return { id: 'infoscip-manual-pdf', fechar: () => fecharPdfManualInfoscip_() };
+        if (elementoVisivelNavegacao_(technicalUnifiedSearchModal)) return { id: 'technical-search', fechar: () => fecharPesquisaTecnicaUnificada_() };
         if (elementoVisivelNavegacao_(infoscipFiscalizacaoManualsModal)) return { id: 'infoscip-manuals', fechar: () => fecharManuaisInfoscipFiscalizacao_() };
         if (elementoVisivelNavegacao_(usefulLinksModal)) return { id: 'useful-links', fechar: () => fecharLinksUteis_() };
         if (elementoVisivelNavegacao_(tutorialModal)) return { id: 'tutorial', fechar: () => fecharTutorial_() };
@@ -21578,6 +21594,199 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (redsMobileAppLink) redsMobileAppLink.hidden = !ehAndroid_();
       }
 
+      const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gb';
+      let technicalManualIndex_ = [];
+      let technicalManualIndexPromise_ = null;
+      let technicalSearchFilter_ = 'todos';
+      let technicalSearchLastQuery_ = '';
+
+      async function carregarIndiceManuaisTecnicos_() {
+        if (technicalManualIndex_.length) return technicalManualIndex_;
+        if (technicalManualIndexPromise_) return technicalManualIndexPromise_;
+        technicalManualIndexPromise_ = fetch(TECHNICAL_MANUAL_INDEX_URL_, { cache:'force-cache' })
+          .then(r => r.ok ? r.json() : Promise.reject(new Error('Índice dos manuais indisponível.')))
+          .then(d => {
+            technicalManualIndex_ = Array.isArray(d?.items) ? d.items : [];
+            return technicalManualIndex_;
+          })
+          .catch(() => []);
+        return technicalManualIndexPromise_;
+      }
+
+      function recentesPesquisaTecnica_() {
+        try {
+          const arr = JSON.parse(localStorage.getItem(TECHNICAL_SEARCH_RECENT_KEY_) || '[]');
+          return Array.isArray(arr) ? arr.filter(Boolean).slice(0,6) : [];
+        } catch (e) { return []; }
+      }
+
+      function gravarRecentePesquisaTecnica_(q) {
+        const termo = String(q || '').trim();
+        if (termo.length < 2) return;
+        const norm = normalizarConsultaDuvidas_(termo);
+        const atuais = recentesPesquisaTecnica_().filter(x => normalizarConsultaDuvidas_(x) !== norm);
+        atuais.unshift(termo);
+        try { localStorage.setItem(TECHNICAL_SEARCH_RECENT_KEY_, JSON.stringify(atuais.slice(0,6))); } catch (e) {}
+      }
+
+      function renderizarRecentesPesquisaTecnica_() {
+        if (!technicalUnifiedSearchRecent || !technicalUnifiedSearchRecentList) return;
+        const recentes = recentesPesquisaTecnica_();
+        technicalUnifiedSearchRecent.hidden = !recentes.length;
+        technicalUnifiedSearchRecentList.innerHTML = recentes.map(q => `<button type="button" data-technical-recent="${escapeAttr(q)}">${escapeHtml(q)}</button>`).join('');
+      }
+
+      function scorePesquisaTecnica_(query, title, text, keywords='') {
+        const consulta = normalizarConsultaDuvidas_(query);
+        const titulo = normalizarConsultaDuvidas_(title);
+        const corpo = normalizarConsultaDuvidas_(`${text} ${keywords}`);
+        const tokens = tokensConsultaDuvidas_(query);
+        let score = 0;
+        if (consulta && titulo.includes(consulta)) score += 42;
+        if (consulta.length > 5 && corpo.includes(consulta)) score += 25;
+        tokens.forEach(t => {
+          if (titulo.includes(t)) score += 9;
+          if (corpo.includes(t)) score += 3;
+        });
+        return score;
+      }
+
+      async function buscarItsPesquisaTecnica_(query, limite=18) {
+        const base = await carregarBaseNormativaITS_().catch(() => []);
+        if (!Array.isArray(base) || !base.length) return [];
+        const consulta = normalizarConsultaDuvidas_(query);
+        const itExplicita = consulta.match(/\bit\s*0*(\d{1,2})\b/i);
+        const itemExplicito = consulta.match(/\b(?:item\s*)?([a-z]?\.?\d+(?:\.\d+){1,6})\b/i);
+        const itNumero = itExplicita ? Number(itExplicita[1]) : 0;
+        const itemNumero = itemExplicito ? normalizarConsultaDuvidas_(itemExplicito[1]) : '';
+        const encontrados = [];
+        for (const ref of base) {
+          const it = Number(ref?.it || 0);
+          if (!it || (itNumero && it !== itNumero)) continue;
+          const item = String(ref?.section || '').trim();
+          const texto = String(ref?.text || '').trim();
+          let score = scorePesquisaTecnica_(query, item, texto, `IT ${it}`);
+          if (itNumero && it === itNumero) score += 45;
+          if (itemNumero && normalizarConsultaDuvidas_(item).includes(itemNumero)) score += 50;
+          if (score > 0) encontrados.push({ tipo:'it', it, item, texto, score });
+        }
+        encontrados.sort((a,b) => b.score - a.score);
+        const unicos=[]; const chaves=new Set();
+        for (const r of encontrados) {
+          const c=`${r.it}|${r.item}`; if (chaves.has(c)) continue; chaves.add(c); unicos.push(r);
+          if (unicos.length >= limite) break;
+        }
+        return unicos;
+      }
+
+      async function buscarManuaisPesquisaTecnica_(query, fonte='todos', limite=18) {
+        const base = await carregarIndiceManuaisTecnicos_();
+        const encontrados=[];
+        for (const ref of base) {
+          if (fonte !== 'todos' && ref?.source !== fonte) continue;
+          const score=scorePesquisaTecnica_(query, ref?.title || '', ref?.text || '', ref?.keywords || '');
+          if (score > 0) encontrados.push({ tipo:'manual', ...ref, score });
+        }
+        encontrados.sort((a,b) => b.score - a.score || Number(a.page||0)-Number(b.page||0));
+        return encontrados.slice(0, limite);
+      }
+
+      function trechoPesquisaTecnica_(texto, query, max=310) {
+        const bruto=String(texto || '').replace(/\s+/g,' ').trim();
+        if (!bruto) return '';
+        const toks=tokensConsultaDuvidas_(query);
+        const canon=normalizarConsultaDuvidas_(bruto);
+        let pos=-1;
+        for (const t of toks) { const p=canon.indexOf(t); if (p>=0 && (pos<0 || p<pos)) pos=p; }
+        const ini=Math.max(0, pos>0 ? pos-85 : 0);
+        const fatia=bruto.slice(ini, ini+max);
+        return `${ini>0?'…':''}${fatia}${ini+max<bruto.length?'…':''}`;
+      }
+
+      function renderizarResultadoPesquisaTecnica_(r, query) {
+        if (r.tipo === 'it') {
+          const numero=String(r.it || '').padStart(2,'0');
+          const subtitulo=r.item ? `Item ${escapeHtml(r.item)}` : 'Trecho normativo';
+          const trecho=trechoPesquisaTecnica_(r.texto, query);
+          return `<button class="technical-search-result" type="button" data-technical-open-it="${numero}">
+            <span class="technical-search-source source-it">IT ${numero}</span>
+            <span class="technical-search-result-main"><strong>${subtitulo}</strong>${trecho?`<small>${escapeHtml(trecho)}</small>`:''}</span>
+            <span class="technical-search-open-link">Abrir IT →</span>
+          </button>`;
+        }
+        const militar=r.source === 'militar';
+        const fonte=militar ? 'Manual do Militar' : 'Manual do Autuado';
+        const trecho=trechoPesquisaTecnica_(r.text || '', query);
+        return `<button class="technical-search-result" type="button" data-technical-open-manual="${escapeAttr(r.path || '')}" data-technical-open-page="${Number(r.page||0)}" data-technical-open-title="${escapeAttr(r.sourceTitle || fonte)}">
+          <span class="technical-search-source ${militar?'source-militar':'source-autuado'}">${fonte}</span>
+          <span class="technical-search-result-main"><strong>${escapeHtml(r.title || fonte)}</strong><em>Página ${Number(r.page||0)}</em>${trecho?`<small>${escapeHtml(trecho)}</small>`:''}</span>
+          <span class="technical-search-open-link">Abrir página →</span>
+        </button>`;
+      }
+
+      async function executarPesquisaTecnicaUnificada_(query = technicalUnifiedSearchInput?.value || '') {
+        const termo=String(query || '').trim();
+        technicalSearchLastQuery_=termo;
+        if (technicalUnifiedSearchInput && technicalUnifiedSearchInput.value !== termo) technicalUnifiedSearchInput.value=termo;
+        if (termo.length < 2) {
+          if (technicalUnifiedSearchStatus) technicalUnifiedSearchStatus.textContent='Digite pelo menos 2 caracteres para pesquisar.';
+          if (technicalUnifiedSearchResults) technicalUnifiedSearchResults.innerHTML='';
+          renderizarRecentesPesquisaTecnica_();
+          return;
+        }
+        if (technicalUnifiedSearchStatus) technicalUnifiedSearchStatus.textContent='Pesquisando ITs e manuais...';
+        if (technicalUnifiedSearchResults) technicalUnifiedSearchResults.innerHTML='<div class="technical-search-loading">Consultando o acervo local...</div>';
+        gravarRecentePesquisaTecnica_(termo);
+        renderizarRecentesPesquisaTecnica_();
+        try {
+          let resultados=[];
+          if (technicalSearchFilter_ === 'todos' || technicalSearchFilter_ === 'its') resultados.push(...await buscarItsPesquisaTecnica_(termo));
+          if (technicalSearchFilter_ === 'todos' || technicalSearchFilter_ === 'militar' || technicalSearchFilter_ === 'autuado') {
+            const fonte = ['militar','autuado'].includes(technicalSearchFilter_) ? technicalSearchFilter_ : 'todos';
+            resultados.push(...await buscarManuaisPesquisaTecnica_(termo, fonte));
+          }
+          resultados.sort((a,b)=>b.score-a.score);
+          resultados=resultados.slice(0,28);
+          if (technicalUnifiedSearchStatus) technicalUnifiedSearchStatus.textContent=resultados.length
+            ? `${resultados.length} resultado${resultados.length===1?'':'s'} localizado${resultados.length===1?'':'s'} para “${termo}”.`
+            : `Nenhum resultado localizado para “${termo}”. Tente outro termo ou altere o filtro.`;
+          if (technicalUnifiedSearchResults) technicalUnifiedSearchResults.innerHTML=resultados.length
+            ? resultados.map(r=>renderizarResultadoPesquisaTecnica_(r,termo)).join('')
+            : '<div class="technical-search-empty"><strong>Nenhum resultado</strong><span>Você pode pesquisar por assunto, número da IT, item ou procedimento.</span></div>';
+        } catch (e) {
+          if (technicalUnifiedSearchStatus) technicalUnifiedSearchStatus.textContent='Não foi possível concluir a pesquisa agora.';
+          if (technicalUnifiedSearchResults) technicalUnifiedSearchResults.innerHTML='<div class="technical-search-empty"><strong>Falha na consulta</strong><span>Tente novamente. Os documentos continuam disponíveis nos menus de Manuais e Instruções Técnicas.</span></div>';
+        }
+      }
+
+      function abrirPesquisaTecnicaUnificada_(query='') {
+        if (!technicalUnifiedSearchModal) return;
+        technicalUnifiedSearchModal.hidden=false;
+        document.body.classList.add('technical-search-open');
+        renderizarRecentesPesquisaTecnica_();
+        const termo=String(query || '').trim();
+        if (technicalUnifiedSearchInput) technicalUnifiedSearchInput.value=termo;
+        if (technicalUnifiedSearchResults) technicalUnifiedSearchResults.innerHTML='';
+        if (technicalUnifiedSearchStatus) technicalUnifiedSearchStatus.textContent=termo ? 'Preparando pesquisa...' : 'Digite um assunto para pesquisar.';
+        setTimeout(()=>technicalUnifiedSearchInput?.focus(),0);
+        void carregarIndiceManuaisTecnicos_();
+        void carregarBaseNormativaITS_();
+        if (termo) void executarPesquisaTecnicaUnificada_(termo);
+      }
+
+      function fecharPesquisaTecnicaUnificada_() {
+        if (technicalUnifiedSearchModal) technicalUnifiedSearchModal.hidden=true;
+        document.body.classList.remove('technical-search-open');
+      }
+
+      function abrirItDaPesquisaTecnica_(numero) {
+        const n=String(numero || '').replace(/\D/g,'').padStart(2,'0');
+        if (!n) return;
+        try { if (form && recordsPanel?.hidden) saveDraft(); } catch (e) {}
+        window.location.href=`instrucoes-tecnicas/its/it-${n}.html`;
+      }
+
       let infoscipManualPdfUrlAtual_ = '';
 
       function abrirManuaisInfoscipFiscalizacao_() {
@@ -26109,6 +26318,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       });
       infoscipFiscalizacaoManualsBtn?.addEventListener('click', abrirManuaisInfoscipFiscalizacao_);
+      dashboardTechnicalSearchForm?.addEventListener('submit', event => { event.preventDefault(); abrirPesquisaTecnicaUnificada_(dashboardTechnicalSearchInput?.value || ''); });
+      vistoriaTechnicalSearchForm?.addEventListener('submit', event => { event.preventDefault(); try { saveDraft(); } catch (e) {} abrirPesquisaTecnicaUnificada_(vistoriaTechnicalSearchInput?.value || ''); });
+      technicalUnifiedSearchCloseBtn?.addEventListener('click', fecharPesquisaTecnicaUnificada_);
+      technicalUnifiedSearchModal?.addEventListener('click', event => {
+        if (event.target === technicalUnifiedSearchModal) { fecharPesquisaTecnicaUnificada_(); return; }
+        const recent=event.target.closest('[data-technical-recent]');
+        if (recent) { const q=recent.dataset.technicalRecent || ''; if (technicalUnifiedSearchInput) technicalUnifiedSearchInput.value=q; void executarPesquisaTecnicaUnificada_(q); return; }
+        const filtro=event.target.closest('[data-technical-filter]');
+        if (filtro) {
+          technicalSearchFilter_=String(filtro.dataset.technicalFilter || 'todos');
+          technicalUnifiedSearchFilters?.querySelectorAll('[data-technical-filter]').forEach(btn => { const on=btn===filtro; btn.classList.toggle('is-active',on); btn.setAttribute('aria-pressed',on?'true':'false'); });
+          if (technicalSearchLastQuery_) void executarPesquisaTecnicaUnificada_(technicalSearchLastQuery_);
+          return;
+        }
+        const it=event.target.closest('[data-technical-open-it]');
+        if (it) { abrirItDaPesquisaTecnica_(it.dataset.technicalOpenIt); return; }
+        const manual=event.target.closest('[data-technical-open-manual]');
+        if (manual) {
+          const caminho=manual.dataset.technicalOpenManual || '';
+          const pagina=Number(manual.dataset.technicalOpenPage || 0);
+          const titulo=manual.dataset.technicalOpenTitle || 'Manual INFOSCIP Fiscalização';
+          fecharPesquisaTecnicaUnificada_();
+          abrirPdfManualInfoscip_(caminho,titulo,pagina);
+        }
+      });
+      technicalUnifiedSearchForm?.addEventListener('submit', event => { event.preventDefault(); void executarPesquisaTecnicaUnificada_(); });
       infoscipFiscalizacaoManualsCloseBtn?.addEventListener('click', fecharManuaisInfoscipFiscalizacao_);
       infoscipFiscalizacaoManualsModal?.addEventListener('click', event => {
         if (event.target === infoscipFiscalizacaoManualsModal) { fecharManuaisInfoscipFiscalizacao_(); return; }
@@ -26420,7 +26655,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ga', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
