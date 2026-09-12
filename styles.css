@@ -21493,3 +21493,332 @@ body.technical-search-open{overflow:hidden}
 body.records-mode .dashboard-technical-search{max-width:1700px;margin-left:auto;margin-right:auto}
 @media(max-width:900px){.technical-search-launcher{grid-template-columns:1fr}.dashboard-technical-search{margin:10px 14px 0}.technical-search-result{grid-template-columns:auto minmax(0,1fr)}.technical-search-open-link{grid-column:2}.technical-search-footer{align-items:flex-start;flex-direction:column}.technical-search-footer a{white-space:normal}}
 @media(max-width:650px){.technical-search-inline,.technical-search-main-form{grid-template-columns:1fr}.technical-search-inline-btn,.technical-search-main-form .btn{width:100%}.technical-search-card{width:100vw;max-height:100dvh;height:100dvh;border-radius:0}.technical-search-modal-body{padding:12px}.technical-search-result{grid-template-columns:1fr;gap:7px}.technical-search-source{justify-self:start}.technical-search-open-link{grid-column:1;padding-top:0}.technical-search-footer{padding:9px 12px}.technical-search-launcher-copy small{font-size:.72rem}}
+
+
+/* ========================================================================== 
+   V23.9.99gc — Visualizador responsivo dos Manuais INFOSCIP Fiscalização
+   ========================================================================== */
+.infoscip-manual-viewer-overlay {
+  z-index: 11340;
+  padding: 12px;
+  background: rgba(21, 24, 31, .78);
+}
+.infoscip-manual-viewer-card {
+  width: min(1680px, 98vw);
+  height: min(1000px, 96vh);
+  max-width: none;
+  max-height: 96vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: #f8fafc;
+}
+.infoscip-manual-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e3e7ec;
+  flex: 0 0 auto;
+}
+.infoscip-manual-viewer-heading {
+  min-width: 0;
+}
+.infoscip-manual-viewer-heading > span {
+  display: block;
+  margin-bottom: 3px;
+  color: #8f1b22;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.infoscip-manual-viewer-heading h2 {
+  margin: 0;
+  color: #1d2939;
+  font-size: clamp(18px, 2vw, 26px);
+  line-height: 1.15;
+}
+.infoscip-manual-viewer-heading p {
+  margin: 5px 0 0;
+  color: #667085;
+  font-size: 12px;
+}
+.infoscip-manual-viewer-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.infoscip-manual-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #f5f7fa;
+  border-bottom: 1px solid #dfe4ea;
+  flex: 0 0 auto;
+}
+.infoscip-manual-page-controls,
+.infoscip-manual-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.infoscip-manual-tool-btn,
+.infoscip-manual-fit-btn {
+  min-width: 38px;
+  height: 38px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #fff;
+  color: #344054;
+  font-weight: 900;
+  cursor: pointer;
+}
+.infoscip-manual-tool-btn {
+  font-size: 22px;
+  line-height: 1;
+}
+.infoscip-manual-tool-btn:disabled {
+  opacity: .35;
+  cursor: default;
+}
+.infoscip-manual-fit-btn {
+  padding: 0 12px;
+  font-size: 12px;
+}
+.infoscip-manual-page-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475467;
+  font-size: 12px;
+  font-weight: 800;
+}
+.infoscip-manual-page-field input {
+  width: 62px;
+  height: 36px;
+  padding: 0 7px;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  background: #fff;
+  color: #101828;
+  font-weight: 900;
+  text-align: center;
+}
+.infoscip-manual-page-field small,
+#infoscipManualZoomLabel {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.infoscip-manual-page-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  background: #d8dde4;
+  text-align: center;
+  -webkit-overflow-scrolling: touch;
+}
+#infoscipManualPageImage {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 7px 24px rgba(16, 24, 40, .20);
+  transform-origin: top center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#infoscipManualPageImage[hidden] {
+  display: none;
+}
+.infoscip-manual-page-stage .return-pdf-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 3;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 900;
+  background: #eef1f5;
+}
+.infoscip-manual-page-stage .return-pdf-loading[hidden] {
+  display: none;
+}
+.infoscip-manual-page-error {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px;
+  color: #475467;
+  text-align: center;
+}
+.infoscip-manual-page-error[hidden] {
+  display: none;
+}
+.infoscip-manual-page-error strong {
+  color: #7f1d1d;
+  font-size: 16px;
+}
+.infoscip-manual-page-error span {
+  max-width: 620px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.infoscip-manual-page-error > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.infoscip-manual-viewer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px 11px;
+  flex: 0 0 auto;
+}
+.infoscip-manual-viewer-actions small {
+  color: #667085;
+  font-size: 11px;
+}
+
+.infoscip-manual-viewer-footer-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.infoscip-manual-external-mobile {
+  display: none;
+}
+@media (min-width: 900px) {
+  .infoscip-manual-page-stage {
+    padding: 18px clamp(40px, 8vw, 150px);
+  }
+}
+@media (max-width: 680px) {
+  .infoscip-manual-viewer-overlay {
+    padding: 0;
+  }
+  .infoscip-manual-viewer-card {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .infoscip-manual-viewer-header {
+    padding: max(10px, env(safe-area-inset-top)) 12px 9px;
+    gap: 8px;
+  }
+  .infoscip-manual-viewer-heading > span {
+    font-size: 9px;
+  }
+  .infoscip-manual-viewer-heading h2 {
+    font-size: 18px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .infoscip-manual-viewer-heading p {
+    margin-top: 3px;
+    font-size: 10px;
+  }
+  .infoscip-manual-external-top {
+    display: none;
+  }
+  .infoscip-manual-viewer-toolbar {
+    padding: 7px 8px;
+    gap: 7px;
+    flex-wrap: nowrap;
+  }
+  .infoscip-manual-page-controls,
+  .infoscip-manual-zoom-controls {
+    gap: 4px;
+  }
+  .infoscip-manual-tool-btn {
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    font-size: 20px;
+  }
+  .infoscip-manual-page-field > span {
+    display: none;
+  }
+  .infoscip-manual-page-field input {
+    width: 48px;
+    height: 34px;
+  }
+  .infoscip-manual-fit-btn {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    overflow: hidden;
+    color: transparent;
+    position: relative;
+  }
+  .infoscip-manual-fit-btn::after {
+    content: '↔';
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #344054;
+    font-size: 18px;
+  }
+  #infoscipManualZoomLabel {
+    min-width: 38px;
+    text-align: center;
+    font-size: 10px;
+  }
+  .infoscip-manual-page-stage {
+    padding: 8px;
+    background: #cdd3db;
+  }
+  .infoscip-manual-viewer-actions {
+    padding: 8px max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    background: #fff;
+    border-top: 1px solid #e4e7ec;
+  }
+  .infoscip-manual-viewer-actions small {
+    display: none;
+  }
+  .infoscip-manual-viewer-footer-buttons {
+    display: grid;
+    grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr);
+    width: 100%;
+  }
+  .infoscip-manual-external-mobile {
+    display: inline-flex;
+  }
+  .infoscip-manual-viewer-actions .btn {
+    width: 100%;
+    min-height: 42px;
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+}
+@media (max-width: 350px) {
+  #infoscipManualZoomLabel { display: none; }
+  .infoscip-manual-fit-btn { display: none; }
+}
+

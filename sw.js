@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-gb-pesquisa-tecnica-unificada';
-const VERSION = '23.9.99gb';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-gc-visualizador-manuais-responsivo';
+const VERSION = '23.9.99gc';
 
 const CORE_SHELL = [
   './',
@@ -28,6 +28,14 @@ const OPTIONAL_SHELL = [
   './assets/manual-do-autuado-infoscip-fiscalizacao.pdf',
   './assets/manual-do-militar-infoscip-fiscalizacao.pdf',
   './assets/infoscip-fiscalizacao-search-index.json',
+  './assets/manual-pages/autuado/p001.webp',
+  './assets/manual-pages/autuado/p032.webp',
+  './assets/manual-pages/autuado/p034.webp',
+  './assets/manual-pages/autuado/p045.webp',
+  './assets/manual-pages/militar/p001.webp',
+  './assets/manual-pages/militar/p017.webp',
+  './assets/manual-pages/militar/p049.webp',
+  './assets/manual-pages/militar/p051.webp',
   './manual/',
   './instrucoes-tecnicas/assets/app.js',
   './instrucoes-tecnicas/assets/its.js',
