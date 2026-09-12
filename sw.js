@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-gd-consulta-tecnica-painel-mobile';
-const VERSION = '23.9.99ge';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260912-v23-9-99-gf-resultados-pesquisa-tecnica';
+const VERSION = '23.9.99gf';
 
 const CORE_SHELL = [
   './',
