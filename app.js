@@ -17,7 +17,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99fy';
+      const APP_VERSION = '23.9.99fz';
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
@@ -2644,7 +2644,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99fy';
+      const APP_REVISION_UI_ = '23.9.99fz';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4677,7 +4677,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99fs', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99fz', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8295,11 +8295,32 @@
         </button>`;
       }
 
+      // V23.9.99fz — cópia compatível com REDS. A Ficha continua exibindo os
+      // documentos formatados, mas CPF, CNPJ, RG, CEP e telefone são enviados à
+      // área de transferência sem máscara, evitando pontos, traços, barras e parênteses.
+      function valorCopiaRedsFicha_(rotulo, valor) {
+        const original = String(valor == null ? '' : valor).trim();
+        const chave = normalize(rotulo || '');
+        const somenteDigitos = /(cpf|cnpj|cep|telefone|celular)/.test(chave);
+        const rg = /(^|\s)rg($|\s)|registro geral/.test(chave);
+        if (somenteDigitos) {
+          const limpo = original.replace(/\D+/g, '');
+          return { valor: limpo || original, semMascara: Boolean(limpo && limpo !== original) };
+        }
+        if (rg) {
+          const limpo = original.replace(/[^0-9a-z]/gi, '').toUpperCase();
+          return { valor: limpo || original, semMascara: Boolean(limpo && limpo !== original) };
+        }
+        return { valor: original, semMascara: false };
+      }
+
       async function copiarValorFicha_(botao) {
         if (!botao) return;
-        const texto = String(botao.dataset.copyFieldValue || '').trim();
+        const textoOriginal = String(botao.dataset.copyFieldValue || '').trim();
         const rotulo = String(botao.dataset.copyFieldLabel || 'Valor').trim();
-        if (!texto) return;
+        if (!textoOriginal) return;
+        const copia = valorCopiaRedsFicha_(rotulo, textoOriginal);
+        const texto = String(copia.valor || textoOriginal).trim();
 
         const copiarFallback = () => {
           const area = document.createElement('textarea');
@@ -8331,6 +8352,7 @@
           botao.setAttribute('title', `${rotulo} copiado`);
           const label = botao.querySelector('.record-copy-value-label');
           if (label) label.textContent = 'Copiado';
+          if (copia.semMascara) mostrarFeedbackPremium_(`✓ ${rotulo} copiado sem máscara para uso no REDS.`, 'success');
           botao._copyFeedbackTimer = setTimeout(() => {
             botao.classList.remove('is-copied');
             botao.setAttribute('aria-label', `Copiar ${rotulo}`);
@@ -26311,7 +26333,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fs', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99fz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
