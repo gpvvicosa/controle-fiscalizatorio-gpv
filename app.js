@@ -17,7 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gq';
+      const APP_VERSION = '23.9.99gr';
+      // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
       // V23.9.99gq — Histórico INFOSCIP de anulação do CLCB usa somente o modelo com fato consumado: FOI ANULADO.
       // V23.9.99gl — Painel não bloqueante com confirmação leve por revisão, DDU com contador/lista unificados e proteção contra falso 'vistoria não iniciada'.
       // V23.9.99gk — Pesquisa Técnica em duas áreas no PC, documento ativo único, resultados destacados e visualizador ajustado à largura.
@@ -8932,12 +8933,12 @@ DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO FUNCIONA SEM AVCB VÁLIDO JU
 O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
         },
         clcbSeraAnulado: {
-          titulo: 'Fiscalização — CLCB será anulado por irregularidade documental',
+          titulo: 'Fiscalização — CLCB anulado por irregularidade documental',
           texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
 DURANTE A VISTORIA VINCULADA AO PROCESSO FISCALIZATÓRIO Nº {{PF}}, FOI CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO CLCB, CONSISTENTE EM {{CLCB_MOTIVO_IRREGULARIDADE}}. EM RAZÃO DAS IRREGULARIDADES APURADAS NO CURSO DA AÇÃO FISCALIZATÓRIA, FOI EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
 
-OBS.: EM RAZÃO DA IRREGULARIDADE DOCUMENTAL CONSTATADA, O CLCB SERÁ ANULADO NO SISTEMA INFOSCIP, NOS TERMOS DO ART. 4º, INCISO V, E DO ART. 11 DO DECRETO ESTADUAL Nº 47.998/2020, OBSERVADOS OS PROCEDIMENTOS PREVISTOS NO ITEM 6.7 DA INSTRUÇÃO TÉCNICA Nº 01 DO CBMMG.
+OBS.: EM RAZÃO DA IRREGULARIDADE DOCUMENTAL CONSTATADA, O CLCB FOI ANULADO NO SISTEMA INFOSCIP, NOS TERMOS DO ART. 4º, INCISO V, E DO ART. 11 DO DECRETO ESTADUAL Nº 47.998/2020, OBSERVADOS OS PROCEDIMENTOS PREVISTOS NO ITEM 6.7 DA INSTRUÇÃO TÉCNICA Nº 01 DO CBMMG.
 
 O RESPONSÁVEL FOI CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA COM AVISO DE RECEBIMENTO (AR), ENVIADA AO ENDEREÇO DA EDIFICAÇÃO.`
         },
@@ -8970,10 +8971,10 @@ DURANTE A VISTORIA, CONSTATOU-SE QUE AS IRREGULARIDADES APONTADAS NO PROCESSO FI
 DURANTE A VISTORIA, CONSTATOU-SE QUE AS IRREGULARIDADES APONTADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}} PERSISTEM, NÃO TENDO SIDO SANADAS. O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DAS PENDÊNCIAS IDENTIFICADAS.`
         },
         acessoriaClcbSeraAnulado: {
-          titulo: 'Vistoria Acessória — CLCB será anulado',
+          titulo: 'Vistoria Acessória — CLCB anulado',
           texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA ACESSÓRIA, CONFORME PREVISTO NO ITEM 6.4.2 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
-DURANTE A VISTORIA, CONSTATOU-SE A PERSISTÊNCIA DE IRREGULARIDADES DOCUMENTAIS RELACIONADAS AO PROCEDIMENTO DECLARATÓRIO, REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}. EM RAZÃO DAS IRREGULARIDADES CONSTATADAS, {{CLCB_IDENTIFICACAO}} SERÁ ANULADO NO SISTEMA INFOSCIP FISCALIZAÇÃO.
+DURANTE A VISTORIA, CONSTATOU-SE A PERSISTÊNCIA DE IRREGULARIDADES DOCUMENTAIS RELACIONADAS AO PROCEDIMENTO DECLARATÓRIO, REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}. EM RAZÃO DAS IRREGULARIDADES CONSTATADAS, {{CLCB_IDENTIFICACAO}} FOI ANULADO NO SISTEMA INFOSCIP FISCALIZAÇÃO.
 
 AS IRREGULARIDADES PERMANECEM PENDENTES DE REGULARIZAÇÃO, DEVENDO O RESPONSÁVEL ADOTAR AS PROVIDÊNCIAS NECESSÁRIAS PARA NOVA REGULARIZAÇÃO DA EDIFICAÇÃO.`
         },
@@ -9562,7 +9563,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             normalize(valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')) === normalize('Sim');
           if (resultado === normalize('Irregularidades persistem')) {
             if (tipoLicenca === 'CLCB' && clcbFoiAnulado) return 'acessoriaClcbAnulado';
-            if (tipoLicenca === 'CLCB' && clcbSeraAnulado) return 'acessoriaClcbSeraAnulado';
+            if (tipoLicenca === 'CLCB' && clcbSeraAnulado) return 'acessoriaClcbAnulado';
             return 'acessoriaPersistem';
           }
           if (resultado === normalize('Irregularidades sanadas')) {
@@ -9577,7 +9578,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const clcbSeraAnulado = normalize(valorCampoFicha_(registro, 'CLCB será anulado no INFOSCIP')) === normalize('Sim');
         const clcbFoiAnulado = normalize(valorCampoFicha_(registro, 'CLCB foi anulado no INFOSCIP')) === normalize('Sim');
         if (tipoLicenciamentoFiscalizacao === 'CLCB' && clcbIrregularidadeDocumental && clcbFoiAnulado) return 'clcbFoiAnulado';
-        if (tipoLicenciamentoFiscalizacao === 'CLCB' && clcbIrregularidadeDocumental && clcbSeraAnulado) return 'clcbSeraAnulado';
+        if (tipoLicenciamentoFiscalizacao === 'CLCB' && clcbIrregularidadeDocumental && clcbSeraAnulado) return 'clcbFoiAnulado';
         if (demanda.includes(normalize('Eventos declaratórios')) && n === normalize('Regularizado')) return 'eventoDeclaratorioConforme';
         if (demanda.includes(normalize('Renovação AVCB')) && n === normalize('Regularizado')) return 'renovacaoAvcb';
         if (n === normalize('Autuado')) {
@@ -9616,7 +9617,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               normalize(valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')) === normalize('Sim');
             if (resultado === normalize('Irregularidades persistem')) {
               if (tipoLicenca === 'CLCB' && clcbFoiAnulado) return [['acessoriaClcbAnulado', 'Vistoria Acessória — CLCB anulado']];
-              if (tipoLicenca === 'CLCB' && clcbSeraAnulado) return [['acessoriaClcbSeraAnulado', 'Vistoria Acessória — CLCB será anulado']];
+              if (tipoLicenca === 'CLCB' && clcbSeraAnulado) return [['acessoriaClcbAnulado', 'Vistoria Acessória — CLCB anulado']];
               return [['acessoriaPersistem', 'Vistoria Acessória — irregularidades persistem']];
             }
             if (resultado === normalize('Irregularidades sanadas')) {
@@ -9626,7 +9627,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
             return [
               ['acessoriaPersistem', 'Vistoria Acessória — irregularidades persistem'],
-              ['acessoriaClcbSeraAnulado', 'Vistoria Acessória — CLCB será anulado'],
               ['acessoriaClcbAnulado', 'Vistoria Acessória — CLCB anulado'],
               ['acessoriaLicenciado', 'Vistoria Acessória — regularizada — com licenciamento'],
               ['acessoriaDispensado', 'Vistoria Acessória — regularizada — dispensado de licenciamento']
@@ -9634,7 +9634,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           })() : []),
           ...(ehEventoDeclaratorio ? [['eventoDeclaratorioConforme', 'Fiscalização — evento declaratório conforme']] : []),
           ...(!ehAcessoria ? [
-            ['clcbSeraAnulado', 'Fiscalização — CLCB será anulado por irregularidade documental'],
             ['clcbFoiAnulado', 'Fiscalização — CLCB anulado por irregularidade documental'],
             ['ddu', 'DDU — fiscalização autuada'],
             ['brigadaVencida', 'Fiscalização — brigada vencida'],
