@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-go-clcb-relatorio-documental';
-const VERSION = '23.9.99go';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gq-historico-infoscip-clcb-unico';
+const VERSION = '23.9.99gq';
 
 const CORE_SHELL = [
   './',

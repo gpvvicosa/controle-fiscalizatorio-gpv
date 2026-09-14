@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99go';
-      // V23.9.99go — CLCB: motivo documental registrado e relatório REDS de anulação com fundamentação específica.
+      const APP_VERSION = '23.9.99gq';
+      // V23.9.99gq — Histórico INFOSCIP de anulação do CLCB usa somente o modelo com fato consumado: FOI ANULADO.
       // V23.9.99gl — Painel não bloqueante com confirmação leve por revisão, DDU com contador/lista unificados e proteção contra falso 'vistoria não iniciada'.
       // V23.9.99gk — Pesquisa Técnica em duas áreas no PC, documento ativo único, resultados destacados e visualizador ajustado à largura.
       // V23.9.99gj — Listas operacionais e Painel usam cache somente offline; online aguarda confirmação do servidor e remove encerrados do navegador.
@@ -2733,7 +2733,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99go';
+      const APP_REVISION_UI_ = '23.9.99gq';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4776,7 +4776,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99go', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gq', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -9072,13 +9072,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           titulo: 'Fiscalização — AVCB vencido',
           texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO FUNCIONA COM AVCB/CLCB VENCIDO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À RENOVAÇÃO DO LICENCIAMENTO.`
         },
-        clcbSeraAnulado: {
-          titulo: 'Fiscalização — CLCB será anulado',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO CLCB. EM RAZÃO DA IRREGULARIDADE CONSTATADA, O CLCB SERÁ ANULADO NO INFOSCIP FISCALIZAÇÃO. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
-        },
         clcbFoiAnulado: {
           titulo: 'Fiscalização — CLCB anulado',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO CLCB. O CLCB FOI ANULADO NO INFOSCIP FISCALIZAÇÃO. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
+          texto: `DURANTE A VISTORIA, FOI CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO CLCB, CONSISTENTE EM {{CLCB_MOTIVO_IRREGULARIDADE}}. EM RAZÃO DA IRREGULARIDADE CONSTATADA, O CLCB FOI ANULADO, NOS TERMOS DO ART. 4º, INCISO V, E DO ART. 11 DO DECRETO ESTADUAL Nº 47.998/2020, OBSERVADOS OS PROCEDIMENTOS PREVISTOS NO ITEM 6.7 DA INSTRUÇÃO TÉCNICA Nº 01 DO CBMMG.`
         },
         acessoriaLicenciado: {
           titulo: 'Vistoria Acessória — regularizada — com licenciamento',
@@ -9668,6 +9664,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function preencherSelectModelosInfoscipFiscalizacao_(chaveInicial = '') {
         if (!recordInfoscipModelSelect || !recordRedsModelSelect) return '';
+        const chaveInfoscipInicial = chaveInicial === 'clcbSeraAnulado' ? 'clcbFoiAnulado' : chaveInicial;
         const opcoes = Array.from(recordRedsModelSelect.options)
           .filter(option => HISTORICOS_INFOSCIP_FISCALIZACAO[option.value]);
 
@@ -9680,8 +9677,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         if (!opcoes.length) return '';
-        const selecionada = HISTORICOS_INFOSCIP_FISCALIZACAO[chaveInicial]
-          ? chaveInicial
+        const selecionada = HISTORICOS_INFOSCIP_FISCALIZACAO[chaveInfoscipInicial]
+          ? chaveInfoscipInicial
           : opcoes[0].value;
         recordInfoscipModelSelect.value = selecionada;
         return recordInfoscipModelSelect.value;
@@ -19854,7 +19851,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
-        // V23.9.99go — o campo visual da acessória mantém o id histórico para não
+        // V23.9.99gp — o campo visual da acessória mantém o id histórico para não
         // quebrar a interface, mas os novos rascunhos gravam a semântica futura em
         // acessoriaClcbSeraAnulado. Rascunhos antigos continuam compatíveis.
         if (acessoriaClcbAnuladoSelect) {
@@ -22001,7 +21998,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99go';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gq';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -26812,8 +26809,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordRedsCopyBtn?.addEventListener('click', copiarRelatorioReds_);
       recordRedsModelSelect?.addEventListener('change', () => {
         atualizarTextoRelatorioRedsFiscalizacao_();
-        if (recordInfoscipModelSelect && HISTORICOS_INFOSCIP_FISCALIZACAO[recordRedsModelSelect.value]) {
-          recordInfoscipModelSelect.value = recordRedsModelSelect.value;
+        const chaveInfoscip = recordRedsModelSelect.value === 'clcbSeraAnulado'
+          ? 'clcbFoiAnulado'
+          : recordRedsModelSelect.value;
+        if (recordInfoscipModelSelect && HISTORICOS_INFOSCIP_FISCALIZACAO[chaveInfoscip]) {
+          recordInfoscipModelSelect.value = chaveInfoscip;
           atualizarTextoHistoricoInfoscipFiscalizacao_();
         }
       });
@@ -27834,7 +27834,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99go', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
