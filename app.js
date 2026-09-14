@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gs';
-      // V23.9.99gs — abertura rápida do Painel e cards operacionais, detalhes sob demanda e skeleton/shimmer durante carregamento.
+      const APP_VERSION = '23.9.99gt';
+      // V23.9.99gt — Painel progressivo: últimos 30 dias primeiro, histórico sob demanda e cards DDU/Programadas apenas quando houver pendência.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
       // V23.9.99gq — Histórico INFOSCIP de anulação do CLCB usa somente o modelo com fato consumado: FOI ANULADO.
       // V23.9.99gl — Painel não bloqueante com confirmação leve por revisão, DDU com contador/lista unificados e proteção contra falso 'vistoria não iniciada'.
@@ -1253,14 +1253,13 @@
         homeOperationalServidor_.carregando = true;
         try {
           const resposta = await apiRequest('config', {
-            consulta: 'registros',
-            filtros: {
-              busca: '', cidade: '', demanda: '', sancao: '', tipo: '',
-              vistoriador: String(authState.usuario.nome || '').trim(),
-              periodo: '30d', prazoMulta: '', offset: 0, limite: 100
-            }
-          }, 30000);
-          const itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
+            consulta: 'inicio_rapido',
+            limite: 100,
+            dias: 30,
+            incluirOperacional: false
+          }, 12000, { noRetry:true });
+          const itens = (Array.isArray(resposta?.recentes?.itens) ? resposta.recentes.itens : [])
+            .filter(item => !authState.usuario?.nome || normalize(item?.vistoriadorResponsavel || '') === normalize(authState.usuario.nome));
           const hoje = new Date();
           let totalHoje = 0;
           itens.forEach(item => {
@@ -2057,6 +2056,9 @@
       const recordsPaginationSummary = document.getElementById('recordsPaginationSummary');
       const recordsPageButtons = document.getElementById('recordsPageButtons');
       const recordsPageSize = document.getElementById('recordsPageSize');
+      const recordsProgressiveMore = document.getElementById('recordsProgressiveMore');
+      const recordsLoadOlderBtn = document.getElementById('recordsLoadOlderBtn');
+      const recordsProgressiveNote = document.getElementById('recordsProgressiveNote');
       const dashboardNewInspectionBtn = document.getElementById('dashboardNewInspectionBtn');
       const kpiTotal = document.getElementById('kpiTotal');
       const kpiAutuado = document.getElementById('kpiAutuado');
@@ -2673,6 +2675,9 @@
       let inicioRapidoPromise_ = null;
       let inicioRapidoUltimaResposta_ = null;
       let inicioRapidoAtualizadoEm_ = 0;
+      let painelResumoLevePromise_ = null;
+      let painelResumoLeveAtualizadoEm_ = 0;
+      let painelResumoLeveUltimaResposta_ = null;
       let resumoOperacionalRapido_ = { ddu: null, programadas: null, atualizadoEm: 0 };
       let sugestoesFiscalizacao = [];
       let resumoSugestoesFiscalizacao = { total: 0, alta: 0, media: 0, acompanhamento: 0 };
@@ -2740,7 +2745,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gs';
+      const APP_REVISION_UI_ = '23.9.99gt';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2813,7 +2818,14 @@
         resumo: null,
         chaveSelecionada: '',
         linhaSelecionada: 0,
-        prazoMulta: ''
+        prazoMulta: '',
+        modoProgressivo: false,
+        temAnteriores: false,
+        cursorAnterior: 0,
+        periodoInicialDias: 30,
+        totalBase: 0,
+        carregandoAnteriores: false,
+        historicoAnteriorCarregado: false
       };
 
       // Respostas confirmadas nesta abertura do app podem ser reutilizadas por poucos
@@ -4783,7 +4795,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gs', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gt', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6907,7 +6919,7 @@
         atualizarVistaNaUrl_('form');
         atualizarResumoRascunhosLocais_();
         atualizarResumoOperacionalHome_();
-        // V23.9.99gs — o resumo pessoal do servidor é secundário e não compete
+        // V23.9.99gt — o resumo pessoal do servidor é secundário e não compete
         // com a confirmação rápida de DDU/Programadas na entrada da Vistoria.
         if (navigator.onLine) setTimeout(() => { void carregarResumoOperacionalServidor_(); }, 4200);
         if (navigator.onLine && usuarioPodeOperar_()) agendarAtualizacaoListasOperacionaisAoRetornar_('abertura da Vistoria', 90);
@@ -7433,9 +7445,41 @@
       }
 
       function atualizarPaginacao_() {
+        const progressivo = recordsState.modoProgressivo === true;
         const total = recordsState.total || 0;
         const pagina = recordsState.pagina || 1;
         const totalPaginas = Math.max(1, recordsState.totalPaginas || 1);
+        const centro = recordsPrevBtn?.parentElement || null;
+        const tamanhoWrap = recordsPageSize?.closest('label') || null;
+
+        if (progressivo) {
+          if (recordsPaginationSummary) {
+            const periodo = Number(recordsState.periodoInicialDias || 30);
+            const periodoTexto = recordsState.historicoAnteriorCarregado ? `período recente + histórico anterior` : `últimos ${periodo} dias`;
+            const sufixo = recordsState.temAnteriores ? ' · há mais registros anteriores disponíveis' : ' · histórico carregado até o início da base';
+            recordsPaginationSummary.textContent = `${total} registro${total === 1 ? '' : 's'} carregado${total === 1 ? '' : 's'} · ${periodoTexto}${sufixo}`;
+          }
+          if (recordsPageLabel) recordsPageLabel.textContent = 'Carregamento progressivo de registros';
+          if (centro) centro.hidden = true;
+          if (tamanhoWrap) tamanhoWrap.hidden = true;
+          if (recordsProgressiveMore) recordsProgressiveMore.hidden = !recordsState.temAnteriores;
+          if (recordsLoadOlderBtn) {
+            recordsLoadOlderBtn.disabled = recordsState.carregandoAnteriores || recordsState.carregando;
+            recordsLoadOlderBtn.classList.toggle('is-loading', recordsState.carregandoAnteriores);
+            const texto = recordsLoadOlderBtn.querySelector('span:last-child');
+            if (texto) texto.textContent = recordsState.carregandoAnteriores ? 'Carregando registros anteriores...' : 'Carregar registros anteriores';
+          }
+          if (recordsProgressiveNote) {
+            recordsProgressiveNote.textContent = recordsState.temAnteriores
+              ? 'O app abriu primeiro os registros recentes. Toque para buscar o histórico anterior sem recarregar todo o Painel.'
+              : 'Todos os registros disponíveis neste intervalo já foram carregados.';
+          }
+          return;
+        }
+
+        if (centro) centro.hidden = false;
+        if (tamanhoWrap) tamanhoWrap.hidden = false;
+        if (recordsProgressiveMore) recordsProgressiveMore.hidden = true;
         const inicio = total ? ((pagina - 1) * recordsState.limite) + 1 : 0;
         const fim = Math.min(total, pagina * recordsState.limite);
         if (recordsPaginationSummary) recordsPaginationSummary.textContent = total ? `Mostrando ${inicio} a ${fim} de ${total} registros` : 'Nenhum registro';
@@ -8005,14 +8049,23 @@
       function aplicarRegistrosRapidosPainel_(resposta) {
         if (!document.body.classList.contains('records-mode') || !filtrosPainelPadraoSemBusca_()) return false;
         const itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
-        if (!itens.length) return false;
-        const comLocais = respostaPainelComPendenciasLocais_({ itens, total: itens.length, resumo:{}, filtrosDisponiveis:{} });
-        recordsState.itens = (Array.isArray(comLocais?.itens) ? comLocais.itens : []).slice(0, recordsState.limite);
+        recordsState.modoProgressivo = true;
+        recordsState.periodoInicialDias = Math.max(1, Number(resposta?.periodoDias || 30));
+        recordsState.temAnteriores = Boolean(resposta?.temAnteriores);
+        recordsState.cursorAnterior = Math.max(0, Number(resposta?.cursorAnterior || 0));
+        recordsState.historicoAnteriorCarregado = false;
+        recordsState.pagina = 1;
+        recordsState.totalPaginas = 1;
+
+        const comLocais = respostaPainelComPendenciasLocais_({ itens, total: itens.length, resumo:recordsState.resumo || {}, filtrosDisponiveis:{} });
+        recordsState.itens = Array.isArray(comLocais?.itens) ? comLocais.itens : [];
+        recordsState.total = recordsState.itens.length;
         renderizarRegistros_();
-        if (recordsPaginationSummary) recordsPaginationSummary.textContent = 'Registros recentes exibidos · confirmando total...';
+        atualizarPaginacao_();
+        atualizarPainelFiltrosPremium_();
         if (recordsStatus) {
-          recordsStatus.className = 'records-status loading records-status--quick';
-          recordsStatus.innerHTML = '<strong>Registros recentes disponíveis.</strong> Atualizando indicadores, filtros e situação completa da base em segundo plano.';
+          recordsStatus.className = 'records-status records-status--quick';
+          recordsStatus.innerHTML = `<strong>${recordsState.total} registro${recordsState.total === 1 ? '' : 's'} recente${recordsState.total === 1 ? '' : 's'} carregado${recordsState.total === 1 ? '' : 's'}.</strong> Exibindo primeiro os últimos ${recordsState.periodoInicialDias} dias. Indicadores gerais são atualizados separadamente, sem bloquear a lista.`;
         }
         return true;
       }
@@ -8045,7 +8098,8 @@
           try {
             const resposta = await apiRequest('config', {
               consulta:'inicio_rapido',
-              limite: Math.max(10, Number(recordsState.limite || 25)),
+              limite: 100,
+              dias: 30,
               incluirOperacional: usuarioPodeOperar_()
             }, 12000, { noRetry:true });
             inicioRapidoAtualizadoEm_ = Date.now();
@@ -8068,6 +8122,99 @@
         return inicioRapidoPromise_;
       }
 
+      async function carregarResumoPainelLeve_(opcoes = {}) {
+        if (!navigator.onLine || !authState.sessionToken) return null;
+        const forcar = opcoes.forcar === true;
+        if (!forcar && painelResumoLeveAtualizadoEm_ && Date.now() - painelResumoLeveAtualizadoEm_ < 2 * 60 * 1000 && painelResumoLeveUltimaResposta_) {
+          const r = painelResumoLeveUltimaResposta_;
+          recordsState.resumo = r?.resumo || recordsState.resumo;
+          recordsState.totalBase = Number(r?.totalBase || recordsState.totalBase || 0);
+          const d = r?.filtrosDisponiveis || {};
+          preencherSelectConsulta_(recordsCityFilter, d.cidades, 'Todos');
+          preencherSelectConsulta_(recordsDemandFilter, d.demandas, 'Todas');
+          preencherSelectConsulta_(recordsSanctionFilter, d.sancoes, 'Todas');
+          preencherSelectConsulta_(recordsTypeFilter, d.tipos, 'Todas');
+          preencherSelectConsulta_(recordsInspectorFilter, d.vistoriadores, 'Todos');
+          preencherPeriodosConsulta_(d.anos);
+          atualizarLinkPlanilha_(r?.planilhaUrl || '');
+          atualizarKpis_(r?.resumo || {});
+          return r;
+        }
+        if (painelResumoLevePromise_) return painelResumoLevePromise_;
+        painelResumoLevePromise_ = (async () => {
+          try {
+            const r = await apiRequest('config', { consulta:'painel_resumo' }, 16000, { noRetry:true });
+            painelResumoLeveUltimaResposta_ = r || null;
+            painelResumoLeveAtualizadoEm_ = Date.now();
+            if (r && document.body.classList.contains('records-mode')) {
+              recordsState.resumo = r?.resumo || recordsState.resumo;
+              recordsState.totalBase = Number(r?.totalBase || 0);
+              const d = r?.filtrosDisponiveis || {};
+              preencherSelectConsulta_(recordsCityFilter, d.cidades, 'Todos');
+              preencherSelectConsulta_(recordsDemandFilter, d.demandas, 'Todas');
+              preencherSelectConsulta_(recordsSanctionFilter, d.sancoes, 'Todas');
+              preencherSelectConsulta_(recordsTypeFilter, d.tipos, 'Todas');
+              preencherSelectConsulta_(recordsInspectorFilter, d.vistoriadores, 'Todos');
+              preencherPeriodosConsulta_(d.anos);
+              atualizarLinkPlanilha_(r?.planilhaUrl || '');
+              atualizarKpis_(r?.resumo || {});
+              atualizarPainelFiltrosPremium_();
+              if (recordsStatus && recordsState.modoProgressivo) {
+                const geral = Number(r?.totalBase || 0);
+                recordsStatus.className = 'records-status records-status--quick';
+                recordsStatus.innerHTML = `<strong>${recordsState.total} registro${recordsState.total === 1 ? '' : 's'} recente${recordsState.total === 1 ? '' : 's'} na tela.</strong> Total geral da base: ${geral}. O histórico anterior é carregado somente quando solicitado.`;
+              }
+            }
+            return r;
+          } catch (erro) {
+            console.warn('Resumo leve do Painel não concluído:', erro?.message || erro);
+            return null;
+          } finally {
+            painelResumoLevePromise_ = null;
+          }
+        })();
+        return painelResumoLevePromise_;
+      }
+
+      async function carregarRegistrosAnteriores_() {
+        if (!recordsState.modoProgressivo || !recordsState.temAnteriores || recordsState.carregandoAnteriores || !navigator.onLine) return;
+        recordsState.carregandoAnteriores = true;
+        atualizarPaginacao_();
+        try {
+          const resposta = await apiRequest('config', {
+            consulta:'registros_progressivos',
+            antesDaLinha: Math.max(0, Number(recordsState.cursorAnterior || 0)),
+            limite: 50
+          }, 16000, { noRetry:true });
+          const novos = Array.isArray(resposta?.itens) ? resposta.itens : [];
+          const existentes = new Set((recordsState.itens || []).map(item => String(item?.chave || `linha:${item?.linha || ''}`)));
+          novos.forEach(item => {
+            const chave = String(item?.chave || `linha:${item?.linha || ''}`);
+            if (!existentes.has(chave)) {
+              recordsState.itens.push(item);
+              existentes.add(chave);
+            }
+          });
+          recordsState.cursorAnterior = Math.max(0, Number(resposta?.cursorAnterior || recordsState.cursorAnterior || 0));
+          recordsState.temAnteriores = Boolean(resposta?.temAnteriores);
+          if (novos.length) recordsState.historicoAnteriorCarregado = true;
+          recordsState.total = recordsState.itens.length;
+          renderizarRegistros_();
+          if (recordsStatus) {
+            recordsStatus.className = 'records-status records-status--quick';
+            recordsStatus.innerHTML = `<strong>${recordsState.total} registros carregados.</strong> ${recordsState.temAnteriores ? 'Você pode carregar mais registros anteriores quando precisar.' : 'Todo o histórico atual disponível foi carregado.'}`;
+          }
+        } catch (erro) {
+          if (recordsStatus) {
+            recordsStatus.className = 'records-status error';
+            recordsStatus.textContent = erro?.message || 'Não foi possível carregar os registros anteriores agora.';
+          }
+        } finally {
+          recordsState.carregandoAnteriores = false;
+          atualizarPaginacao_();
+        }
+      }
+
       function resumoDduDaListaAtual_() {
         const ativos = (Array.isArray(ddusAtivos) ? ddusAtivos : []).filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado'));
         let vencidos=0, criticos=0;
@@ -8088,19 +8235,9 @@
 
       async function preaquecerPainel_() {
         if (!navigator.onLine || recordsState.carregando || document.body.classList.contains('records-mode')) return;
-        const filtros = { busca:'', cidade:'', demanda:'', sancao:'', tipo:'', vistoriador:'', periodo:'', prazoMulta:'' };
-        const limite = 25;
-        const chaveCache = chaveCachePainel_(filtros, 0, limite);
-        const sessao = lerCachePainelSessao_(chaveCache);
-        if (sessao && sessao.idade <= PANEL_SESSION_FRESH_MS) return;
-        const cache = lerCachePainel_(chaveCache);
         try {
-          if (cache?.resposta && await cachePainelAindaAtualNoServidor_(cache)) {
-            salvarCachePainel_(chaveCache, cache.resposta);
-            return;
-          }
-          const resposta = await apiRequest('config', { consulta:'registros', filtros:{ ...filtros, offset:0, limite } }, 40000);
-          salvarCachePainel_(chaveCache, resposta || {});
+          await carregarInicioRapido_({ forcar:false });
+          agendarTarefaOciosa_(() => { void carregarResumoPainelLeve_({ forcar:false }); }, 1200);
         } catch (erro) {}
       }
 
@@ -8291,9 +8428,10 @@
         if (!fila.length) return base;
         const locais = fila.map(itemPainelPendenteLocal_);
         const servidor = Array.isArray(base.itens) ? base.itens : [];
+        const limiteVisivel = recordsState.modoProgressivo ? 200 : recordsState.limite;
         return {
           ...base,
-          itens: [...locais, ...servidor].slice(0, recordsState.limite),
+          itens: [...locais, ...servidor].slice(0, limiteVisivel),
           total: Number(base.total || 0) + locais.length,
           resumo: resumoPainelComPendentesLocais_(base.resumo || {}, locais),
           _pendentesLocais: locais.length
@@ -8301,6 +8439,10 @@
       }
 
       function aplicarRespostaPainel_(resposta, opcoes = {}) {
+        recordsState.modoProgressivo = false;
+        recordsState.temAnteriores = false;
+        recordsState.cursorAnterior = 0;
+        recordsState.historicoAnteriorCarregado = false;
         const respostaComLocal = respostaPainelComPendenciasLocais_(resposta || {});
         recordsState.itens = (Array.isArray(respostaComLocal?.itens) ? respostaComLocal.itens : []).slice(0, recordsState.limite);
         recordsState.total = Number(respostaComLocal?.total || 0);
@@ -8413,6 +8555,13 @@
         const limiteApi = Math.max(10, recordsState.limite);
         const filtros = filtrosConsultaAtuais_();
         const buscaAtiva = Boolean(String(filtros.busca || '').trim());
+        const modoPadraoProgressivo = Number(recordsState.pagina || 1) === 1 && !Object.values(filtros || {}).some(v => Boolean(String(v || '').trim()));
+        if (!modoPadraoProgressivo) {
+          recordsState.modoProgressivo = false;
+          recordsState.temAnteriores = false;
+          recordsState.cursorAnterior = 0;
+          recordsState.historicoAnteriorCarregado = false;
+        }
         const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
         const cache = lerCachePainel_(chaveCache);
 
@@ -8440,7 +8589,8 @@
           return;
         }
 
-        const manterDadosDaSessao = Boolean(sessaoConfirmada?.resposta) && recordsState.itens.some(item => !item?.sincronizacaoPendente);
+        const manterProgressivoRecente = recordsState.modoProgressivo === true && recordsState.itens.length > 0 && inicioRapidoAtualizadoEm_ && Date.now() - inicioRapidoAtualizadoEm_ < 60 * 1000;
+        const manterDadosDaSessao = (Boolean(sessaoConfirmada?.resposta) && recordsState.itens.some(item => !item?.sincronizacaoPendente)) || manterProgressivoRecente;
         if (!opcoes.silenciosa && !manterDadosDaSessao) prepararPainelParaConfirmacaoOnline_(filtros);
 
         recordsState.carregando = true;
@@ -8465,8 +8615,21 @@
         }
 
         try {
-          // V23.9.99gs — sem filtros e na primeira página, uma única consulta leve
-          // traz os registros recentes e os cards operacionais antes da leitura completa.
+          // V23.9.99gt — no Painel padrão não carregamos mais a base inteira na abertura.
+          // Primeiro entram os últimos 30 dias (máx. 100); KPIs/filtros gerais são
+          // consolidados separadamente e o histórico anterior só vem sob demanda.
+          if (filtrosPainelPadraoSemBusca_()) {
+            const inicio = await carregarInicioRapido_({ aplicarPainel:true, forcar:opcoes.forcar === true });
+            if (requisicaoSequencia !== recordsRequestSequencia_) return;
+            if (inicio?.recentes) {
+              void carregarResumoPainelLeve_({ forcar:opcoes.forcar === true });
+              agendarTarefaOciosa_(() => carregarResumoSugestoesFiscalizacao_().catch(() => {}), 1200);
+              return;
+            }
+          }
+
+          // Fallback: se a consulta progressiva falhar, preserva o caminho completo
+          // existente para que o Painel continue utilizável.
           if (!cache?.resposta && !manterDadosDaSessao && filtrosPainelPadraoSemBusca_()) {
             await carregarInicioRapido_({ aplicarPainel:true });
             if (requisicaoSequencia !== recordsRequestSequencia_) return;
@@ -22120,7 +22283,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gs';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gt';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23891,24 +24054,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           card?.setAttribute('aria-busy', verificando ? 'true' : 'false');
         });
 
-        // Enquanto a consulta online está em andamento ou falhou, o app não usa a
-        // lista anterior como situação atual. O card permanece visível para deixar
-        // claro que a confirmação ainda está pendente e permitir nova tentativa.
+        // V23.9.99gt — card operacional só existe visualmente quando a pendência
+        // foi confirmada. Durante verificação/erro não mostramos um card vazio.
         if (verificando || falhou) {
-          if (dduSummaryCard) dduSummaryCard.hidden = false;
-          if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = false;
-          const texto = verificando
-            ? 'Verificando DDUs pendentes…'
-            : 'Não foi possível confirmar — toque para tentar novamente';
-          const contador = verificando ? '…' : '!';
-          if(dduSummaryText)dduSummaryText.textContent=texto;
-          if(dduVistoriaSummaryText)dduVistoriaSummaryText.textContent=texto;
-          if(dduSummaryCount)dduSummaryCount.textContent=contador;
-          if(dduVistoriaSummaryCount)dduVistoriaSummaryCount.textContent=contador;
-          [dduSummaryCard,dduVistoriaSummaryCard].forEach(card => card?.classList.remove('is-danger','is-warning'));
+          if (dduSummaryCard) dduSummaryCard.hidden = true;
+          if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
           if (dduList) dduList.innerHTML = verificando
             ? '<div class="prepared-empty operational-check-state">Verificando DDUs atuais no servidor…</div>'
-            : '<div class="prepared-empty operational-check-state is-error">Não foi possível confirmar os DDUs atuais. Toque no card novamente para tentar de novo.</div>';
+            : '<div class="prepared-empty operational-check-state is-error">Não foi possível confirmar os DDUs atuais. Tente atualizar novamente.</div>';
           if (dduListStatus) dduListStatus.textContent = verificando
             ? 'Verificando DDUs pendentes…'
             : 'Não foi possível confirmar os DDUs atuais.';
@@ -23937,6 +24090,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         [dduSummaryCard,dduVistoriaSummaryCard].forEach(card => {
           card?.classList.toggle('is-danger',vencidos>0);
           card?.classList.toggle('is-warning',!vencidos&&criticos>0);
+          card?.classList.toggle('operational-summary-ready', confirmado && totalAtivos > 0);
         });
         if(!dduList)return;
         if (resumoRapido) {
@@ -24786,20 +24940,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         if (verificando || falhou) {
-          const texto = verificando
-            ? 'Verificando Vistorias Programadas…'
-            : 'Não foi possível confirmar — toque para tentar novamente';
-          const contador = verificando ? '…' : '!';
-          if (programmedSummaryRow) programmedSummaryRow.hidden = false;
-          if (dashboardProgrammedSummaryCard) dashboardProgrammedSummaryCard.hidden = false;
-          if (programmedSummaryText) programmedSummaryText.textContent = texto;
-          if (dashboardProgrammedSummaryText) dashboardProgrammedSummaryText.textContent = texto;
-          if (programmedSummaryCount) programmedSummaryCount.textContent = contador;
-          if (dashboardProgrammedSummaryCount) dashboardProgrammedSummaryCount.textContent = contador;
-          [programmedSummaryCard,dashboardProgrammedSummaryCard].forEach(card => {
-            card?.classList.remove('is-danger');
-            card?.setAttribute('aria-label', texto);
-          });
+          // Mesmo padrão do DDU: só mostrar o card após confirmar que há pendência.
+          if (programmedSummaryRow) programmedSummaryRow.hidden = true;
+          if (dashboardProgrammedSummaryCard) dashboardProgrammedSummaryCard.hidden = true;
+          [programmedSummaryCard,dashboardProgrammedSummaryCard].forEach(card => card?.classList.remove('is-danger','operational-summary-ready'));
           if (homeOperationalProgrammed) homeOperationalProgrammed.textContent = '—';
           return;
         }
@@ -24816,6 +24960,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (programmedSummaryRow) programmedSummaryRow.hidden = confirmado ? total === 0 : true;
         if (programmedSummaryCard) {
           programmedSummaryCard.classList.toggle('is-danger', criticas > 0);
+          programmedSummaryCard.classList.toggle('operational-summary-ready', confirmado && total > 0);
           programmedSummaryCard.setAttribute('aria-label', total
             ? `Abrir Vistorias Programadas. ${total} programada${total === 1 ? '' : 's'}${minhas ? `, ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}.`
             : 'Nenhuma vistoria programada pendente');
@@ -24828,6 +24973,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (dashboardProgrammedSummaryCard) {
           dashboardProgrammedSummaryCard.hidden = confirmado ? total === 0 : true;
           dashboardProgrammedSummaryCard.classList.toggle('is-danger', criticas > 0);
+          dashboardProgrammedSummaryCard.classList.toggle('operational-summary-ready', confirmado && total > 0);
           dashboardProgrammedSummaryCard.setAttribute('aria-label', total
             ? `Abrir Vistorias Programadas. ${total} programada${total === 1 ? '' : 's'}${minhas ? `, ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}.`
             : 'Nenhuma vistoria programada pendente');
@@ -26158,7 +26304,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function agendarCargaAuxiliarProgressiva_() {
         if (!navigator.onLine || !usuarioPodeOperar_()) return;
 
-        // V23.9.99gs — os cards recebem primeiro um resumo operacional leve em
+        // V23.9.99gt — os cards recebem primeiro um resumo operacional leve em
         // uma única chamada. Os detalhes completos só são carregados ao abrir a lista.
         programadasConsultaEstado_ = 'loading';
         ddusConsultaEstado_ = 'loading';
@@ -27273,6 +27419,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false, { forcar: true, motivo: 'atualização manual' }));
+      recordsLoadOlderBtn?.addEventListener('click', () => { void carregarRegistrosAnteriores_(); });
       iniciarFiltrosPainelPremium_();
       recordsClearFiltersBtn?.addEventListener('click', () => {
         limparFiltrosVisiveisPainel_();
@@ -27982,7 +28129,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gs', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gt', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

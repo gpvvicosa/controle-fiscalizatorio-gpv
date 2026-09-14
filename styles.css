@@ -22396,7 +22396,7 @@ body.records-mode .records-status.loading .panel-loading-visual{
   .programmed-summary-card.operational-summary-check-error .programmed-summary-copy small{font-size:.72rem!important;line-height:1.2!important}
 }
 
-/* ===== V23.9.99gs — carregamento operacional rápido + skeleton/shimmer ===== */
+/* ===== V23.9.99gt — carregamento operacional rápido + skeleton/shimmer ===== */
 @keyframes gpvOperationalShimmer{
   0%{background-position:180% 0}
   100%{background-position:-80% 0}
@@ -22458,4 +22458,40 @@ body.records-mode .records-status.loading .panel-loading-visual{
   .programmed-summary-card.operational-summary-verifying .programmed-summary-count,
   .records-skeleton-line,
   .records-skeleton-card::before{animation:none!important}
+}
+
+/* ===== V23.9.99gt — Painel progressivo + cards operacionais sob demanda ===== */
+.records-progressive-more{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:14px 16px 4px;
+}
+.records-progressive-more[hidden]{display:none!important}
+.records-load-older-btn{
+  min-height:42px;
+  border-radius:12px;
+  gap:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.records-load-older-btn.is-loading{opacity:.72;cursor:wait}
+.records-load-older-btn.is-loading span:first-child{animation:gpvOlderPulse .8s ease-in-out infinite alternate}
+.records-progressive-more small{color:#667085;font-size:.78rem;line-height:1.35;max-width:620px}
+@keyframes gpvOlderPulse{from{transform:translateY(-1px)}to{transform:translateY(3px)}}
+@keyframes gpvOperationalReveal{0%{opacity:.45;transform:translateY(-4px) scale(.992)}100%{opacity:1;transform:none}}
+.ddu-summary-card.operational-summary-ready,
+.programmed-summary-card.operational-summary-ready{animation:gpvOperationalReveal .28s ease-out both}
+@media(max-width:700px){
+  .records-progressive-more{align-items:stretch;flex-direction:column;padding:12px 10px 2px}
+  .records-load-older-btn{width:100%}
+  .records-progressive-more small{text-align:center}
+}
+@media(prefers-reduced-motion:reduce){
+  .records-load-older-btn.is-loading span:first-child,
+  .ddu-summary-card.operational-summary-ready,
+  .programmed-summary-card.operational-summary-ready{animation:none!important}
 }
