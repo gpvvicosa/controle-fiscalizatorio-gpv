@@ -17,7 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gi';
+      const APP_VERSION = '23.9.99gj';
+      // V23.9.99gj — Listas operacionais e Painel usam cache somente offline; online aguarda confirmação do servidor e remove encerrados do navegador.
       // V23.9.99gi — Upload de anexos temporários em partes para evitar requisições grandes, preservando múltiplos formatos e retenção automática.
       // V23.9.99ge — Pesquisa Técnica com split-view real no PC, manuais em rolagem contínua, busca interna refinada e Painel sem status redundante.
       // V23.9.99gc — Visualizador responsivo dos Manuais INFOSCIP: páginas renderizadas no próprio app, navegação/zoom e retorno contextual.
@@ -2711,7 +2712,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gi';
+      const APP_REVISION_UI_ = '23.9.99gj';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2770,6 +2771,7 @@
       let recordsRequestStartedAt_ = 0;
       let recordsForegroundRefreshTimer_ = null;
       let recordsPeriodicRefreshTimer_ = null;
+      let operationalListsRefreshTimer_ = null;
       let recordsPostSyncTimers_ = [];
       let atualizacaoPlanilhaPromise_ = null;
       const recordsState = {
@@ -4747,7 +4749,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gi', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gj', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5896,7 +5898,7 @@
         atualizarBotaoPlanilhaSucesso_();
         if (document.body.classList.contains('records-mode') && !online) {
           recordsStatus.className = 'records-status error';
-          recordsStatus.textContent = 'O Painel Fiscalizatório precisa de internet. O formulário e os registros pendentes continuam disponíveis offline.';
+          recordsStatus.textContent = 'Offline — os dados visíveis do Painel podem estar desatualizados. O formulário e os registros pendentes continuam disponíveis neste aparelho.';
         }
       }
 
@@ -6872,6 +6874,7 @@
         atualizarResumoRascunhosLocais_();
         atualizarResumoOperacionalHome_();
         void carregarResumoOperacionalServidor_();
+        if (navigator.onLine && usuarioPodeOperar_()) agendarAtualizacaoListasOperacionaisAoRetornar_('abertura da Vistoria', 90);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         if (usuarioEmTreinamento_()) {
           if (draftStatus) draftStatus.textContent = 'Preenchimento temporário';
@@ -8024,6 +8027,17 @@
         }, Math.max(80, Number(opcoes.atraso || 240)));
       }
 
+      function agendarAtualizacaoListasOperacionaisAoRetornar_(motivo = 'retorno ao app', atraso = 320) {
+        if (!navigator.onLine || !authState.sessionToken || !usuarioPodeOperar_()) return;
+        clearTimeout(operationalListsRefreshTimer_);
+        operationalListsRefreshTimer_ = setTimeout(() => {
+          operationalListsRefreshTimer_ = null;
+          if (!navigator.onLine || document.visibilityState !== 'visible' || !authState.sessionToken || !usuarioPodeOperar_()) return;
+          Promise.allSettled([carregarPreparacoesVistoria_(), carregarDdUs_()]).catch(() => {});
+        }, Math.max(80, Number(atraso || 320)));
+        void motivo;
+      }
+
       function iniciarAtualizacaoPeriodicaPainel_() {
         clearInterval(recordsPeriodicRefreshTimer_);
         recordsPeriodicRefreshTimer_ = setInterval(() => {
@@ -8163,7 +8177,7 @@
           const momentoCache = formatarMomentoPainel_(opcoes.salvoEm);
           recordsStatus.innerHTML = navigator.onLine
             ? `<strong>Dados salvos de ${momentoCache} exibidos.</strong> Conferindo informações mais recentes... <span class="records-freshness is-cached">Cache identificado</span>`
-            : `<strong>Offline:</strong> exibindo dados salvos de ${momentoCache} neste aparelho. <span class="records-freshness is-cached">Sem consulta ao servidor</span>`;
+            : `<strong>Offline:</strong> exibindo dados salvos de ${momentoCache} neste aparelho; eles podem estar desatualizados. <span class="records-freshness is-cached">Sem consulta ao servidor</span>`;
           return;
         }
         const resumoConsulta = rotuloMulta
@@ -8181,6 +8195,32 @@
           recordsSearchBox.setAttribute('aria-busy', ligada ? 'true' : 'false');
         }
         if (recordsSearchActivity) recordsSearchActivity.hidden = !ligada;
+      }
+
+      function prepararPainelParaConfirmacaoOnline_(filtros = {}) {
+        const semFiltros = !Object.values(filtros || {}).some(valor => Boolean(String(valor || '').trim()));
+        const primeiraPagina = Number(recordsState.pagina || 1) === 1;
+        const temPendenciasLocais = obterPendentes().length > 0 && semFiltros && primeiraPagina;
+
+        if (temPendenciasLocais) {
+          aplicarRespostaPainel_({ itens: [], total: 0, resumo: {}, filtrosDisponiveis: {} }, { localOnly: true });
+          if (recordsStatus) {
+            recordsStatus.className = 'records-status loading';
+            recordsStatus.innerHTML = '<strong>Atualizando Painel Fiscalizatório...</strong> As vistorias salvas neste aparelho permanecem identificadas como locais até a confirmação do servidor.';
+          }
+          return;
+        }
+
+        recordsState.itens = [];
+        recordsState.total = 0;
+        recordsState.totalPaginas = 1;
+        recordsState.resumo = null;
+        recordsState.chaveSelecionada = '';
+        [kpiTotal, kpiAutuado, kpiAdvertencia, kpiNotificado, kpiRegularizado, kpiLiberado, kpiMulta1, kpiMulta2].forEach(el => { if (el) el.textContent = '—'; });
+        [kpiRegularizadoPercent, kpiLiberadoPercent, kpiAdvertenciaPercent].forEach(el => { if (el) el.textContent = 'Atualizando...'; });
+        if (recordsList) recordsList.innerHTML = '<div class="records-empty">Atualizando dados atuais do Painel...</div>';
+        if (recordsTableBody) recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Atualizando dados atuais do Painel...</td></tr>';
+        atualizarPaginacao_();
       }
 
       async function carregarRegistros_(reiniciar = true, opcoes = {}) {
@@ -8203,12 +8243,15 @@
         const buscaAtiva = Boolean(String(filtros.busca || '').trim());
         const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
         const cache = lerCachePainel_(chaveCache);
-        if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true, salvoEm: cache.salvoEm });
-        else if (obterPendentes().length && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1) {
-          aplicarRespostaPainel_({ itens: [], total: 0, resumo: {}, filtrosDisponiveis: {} }, { localOnly: true });
-        }
 
+        // V23.9.99gj — cache do Painel é contingência exclusivamente offline.
+        // Quando há internet, a tela aguarda a confirmação atual do servidor para não
+        // reapresentar situação/processo encerrado como se ainda estivesse ativo.
         if (!navigator.onLine) {
+          if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true, salvoEm: cache.salvoEm });
+          else if (obterPendentes().length && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1) {
+            aplicarRespostaPainel_({ itens: [], total: 0, resumo: {}, filtrosDisponiveis: {} }, { localOnly: true });
+          }
           definirBuscaPainelEmAndamento_(false);
           const temPendenciasLocais = obterPendentes().length > 0 && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1;
           if (!cache?.resposta && !temPendenciasLocais) {
@@ -8217,6 +8260,9 @@
           }
           return;
         }
+
+        const manterDadosDaSessao = opcoes.silenciosa === true && recordsState.itens.some(item => !item?.sincronizacaoPendente);
+        if (!opcoes.silenciosa) prepararPainelParaConfirmacaoOnline_(filtros);
 
         recordsState.carregando = true;
         const requisicaoSequencia = ++recordsRequestSequencia_;
@@ -8233,10 +8279,8 @@
 
         if (buscaAtiva) {
           recordsStatus.className = 'records-status searching';
-          recordsStatus.innerHTML = cache?.resposta
-            ? '<strong>Resultados salvos exibidos.</strong> Buscando informações mais recentes...'
-            : '<strong>Buscando registros...</strong> Consultando estabelecimento, CNPJ/CPF, PSCIP, endereço e nº do endereço.';
-        } else if (!cache?.resposta) {
+          recordsStatus.innerHTML = '<strong>Buscando registros atuais...</strong> Consultando estabelecimento, CNPJ/CPF, PSCIP, endereço e nº do endereço.';
+        } else if (!opcoes.silenciosa) {
           recordsStatus.className = 'records-status loading';
           recordsStatus.innerHTML = `
             <div class="panel-loading-visual" role="status" aria-live="polite">
@@ -8245,7 +8289,7 @@
                 <span class="panel-loading-pen"></span>
               </div>
               <strong>Atualizando Painel Fiscalizatório...</strong>
-              <small>Carregando dados do painel</small>
+              <small>Confirmando os dados atuais no servidor</small>
               <span class="panel-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span>
             </div>`;
         }
@@ -8263,19 +8307,17 @@
         } catch (erro) {
           if (requisicaoSequencia !== recordsRequestSequencia_ || erro?.code === 'REQUEST_CANCELLED') return;
           registrarFalhaPainel_(erro);
-          if (cache?.resposta) {
+          if (manterDadosDaSessao && recordsState.itens.length) {
             recordsStatus.className = 'records-status cached';
-            const momentoCache = formatarMomentoPainel_(cache.salvoEm);
-            recordsStatus.innerHTML = buscaAtiva
-              ? `<strong>Serviço temporariamente instável.</strong> Resultados salvos de ${momentoCache} continuam visíveis; tente novamente em instantes.`
-              : `<strong>Atualização temporariamente indisponível.</strong> Dados salvos de ${momentoCache} continuam visíveis e serão conferidos na próxima tentativa.`;
+            recordsStatus.innerHTML = '<strong>Não foi possível confirmar uma atualização agora.</strong> Permanecem visíveis somente os dados já confirmados nesta sessão; tente novamente em instantes.';
+          } else if (recordsState.itens.some(item => item?.sincronizacaoPendente)) {
+            recordsStatus.className = 'records-status cached';
+            recordsStatus.innerHTML = '<strong>Servidor temporariamente indisponível.</strong> Apenas vistorias salvas neste aparelho permanecem visíveis; dados antigos do cache online não foram exibidos.';
           } else {
             recordsStatus.className = 'records-status error';
-            recordsStatus.textContent = erro?.message || (buscaAtiva ? 'Não foi possível concluir a busca.' : 'Não foi possível carregar o Painel Fiscalizatório.');
-            if (!recordsState.itens.length) {
-              recordsList.innerHTML = '<div class="records-empty">O painel não pôde ser carregado agora.</div>';
-              recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Não foi possível carregar os registros.</td></tr>';
-            }
+            recordsStatus.textContent = erro?.message || (buscaAtiva ? 'Não foi possível concluir a busca atual.' : 'Não foi possível confirmar os dados atuais do Painel Fiscalizatório.');
+            recordsList.innerHTML = '<div class="records-empty">Nenhum dado antigo foi exibido. Tente atualizar o Painel novamente.</div>';
+            recordsTableBody.innerHTML = '<tr><td colspan="9" class="records-table-empty">Nenhum dado antigo foi exibido. Tente novamente.</td></tr>';
           }
         } finally {
           if (requisicaoSequencia === recordsRequestSequencia_) {
@@ -12117,6 +12159,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ultimoRegistroParaOrientacoes = { ...payload };
         registrarHistoricoOperacionalLocal_(payload);
         const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
+        const preparacaoEncerradaId = String(preparacaoEmUsoId || payload._appPreparacaoId || '');
+        const dduEncerradoId = String(dduEmUsoId || payload._appDduId || '');
         if (submitBtn) submitBtn.textContent = 'Salvando no aparelho...';
         appStatus.textContent = 'Salvando a vistoria neste aparelho...';
         enfileirarRegistro(payload);
@@ -12129,6 +12173,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }, 12000).catch(() => {});
         }
         encerrarEstadoLocalVistoria_(registroEncerradoId, payload);
+        limparCachesOperacionaisAposEncerramento_(preparacaoEncerradaId, dduEncerradoId);
         resetForm(true, true);
         mostrarSucesso(
           'Vistoria salva no aparelho',
@@ -20213,6 +20258,35 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
       }
 
+      function limparCachesOperacionaisAposEncerramento_(preparacaoId = '', dduId = '') {
+        const prepId = String(preparacaoId || '').trim();
+        const dduAtualId = String(dduId || '').trim();
+
+        if (prepId) {
+          preparacoesVistoria = (Array.isArray(preparacoesVistoria) ? preparacoesVistoria : []).filter(item => String(item?.id || '') !== prepId);
+          try {
+            const cache = JSON.parse(localStorage.getItem('gpv_preparacoes_cache_v1') || '[]');
+            const limpo = (Array.isArray(cache) ? cache : []).filter(item => String(item?.id || '') !== prepId);
+            localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(limpo));
+          } catch (_) {}
+          renderizarPreparacoesVistoria_();
+        }
+
+        if (dduAtualId) {
+          ddusAtivos = (Array.isArray(ddusAtivos) ? ddusAtivos : []).filter(item => String(item?.id || '') !== dduAtualId);
+          try {
+            const cache = lerCacheDdus_();
+            const itens = (Array.isArray(cache?.itens) ? cache.itens : []).filter(item => String(item?.id || '') !== dduAtualId);
+            localStorage.setItem(DDU_CACHE_STORAGE, JSON.stringify({ salvoEm: Date.now(), itens }));
+          } catch (_) {}
+          renderizarDdUs_();
+        }
+
+        // O Painel será reconstruído pela próxima resposta do servidor; não preserva
+        // uma fotografia anterior ao encerramento como se ainda fosse atual.
+        try { localStorage.removeItem(PANEL_CACHE_STORAGE); } catch (_) {}
+      }
+
       async function submit() {
         if (submitting) return;
         if (vistoriaAguardandoPrimeiraEdicao_) {
@@ -20335,6 +20409,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // entra na fila do aparelho. Isso torna o botão praticamente imediato e
         // evita perda de dados caso a conexão oscile durante o envio.
         const registroEncerradoId = String(currentRecordId || payload._appRegistroId || '');
+        const preparacaoEncerradaId = String(preparacaoEmUsoId || payload._appPreparacaoId || '');
+        const dduEncerradoId = String(dduEmUsoId || payload._appDduId || '');
         if (submitBtn) submitBtn.textContent = 'Salvando no aparelho...';
         appStatus.textContent = 'Salvando a vistoria neste aparelho...';
         enfileirarRegistro(payload);
@@ -20347,6 +20423,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }, 12000).catch(() => {});
         }
         encerrarEstadoLocalVistoria_(registroEncerradoId, payload);
+        limparCachesOperacionaisAposEncerramento_(preparacaoEncerradaId, dduEncerradoId);
         resetForm(true, true);
 
         if (!navigator.onLine) {
@@ -21652,7 +21729,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gi';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gj';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23368,10 +23445,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function renderizarDdUs_(){
         const todos=Array.isArray(ddusAtivos)?ddusAtivos:[];
         const ativos=todos.filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado'));
-        const concluidos=todos.filter(x=>normalize(x.status)===normalize('Concluído') && !x.arquivoRemovidoEm);
         let vencidos=0,criticos=0; ativos.forEach(x=>{const p=classificarPrazoDdu_(x.dataLimite); if(p.c==='is-overdue')vencidos++; else if(p.c==='is-today')criticos++;});
-        // V23.9.54 — o atalho DDU só existe visualmente quando há demanda pendente.
-        // Registros concluídos/cancelados continuam disponíveis na janela DDU, mas não geram alerta na vistoria.
+        // V23.9.99gj — a área operacional mostra somente DDU pendente/em andamento.
+        // A retenção de anexos concluídos continua no backend, sem manter a demanda
+        // encerrada misturada às atividades atuais do navegador.
         if (dduSummaryCard) dduSummaryCard.hidden = ativos.length === 0;
         if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = ativos.length === 0;
         if(dduSummaryCount)dduSummaryCount.textContent=String(ativos.length);
@@ -23406,7 +23483,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : '';
           return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p>${responsavelHtml}<p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'Os anexos temporários serão excluídos automaticamente após 24 h.':'Anexos disponíveis enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir anexo</a>`:''}${botaoAtribuir}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
         };
-        const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — denúncia disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
+        const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU pendente.</div>';
       }
       function lerCacheDdus_() {
         try {
@@ -23429,54 +23506,58 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function carregarDdUs_(){
         const inicioLoadingDdu = Date.now();
         const tempoMinimoLoading = 250;
-        const tinhaCache = aplicarCacheDdus_(navigator.onLine ? 'Última lista sincronizada — atualizando...' : 'Offline — exibindo a última lista sincronizada.');
 
         if (!navigator.onLine) {
-          if (!tinhaCache) { if (dduSummaryCard) dduSummaryCard.hidden = true; if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true; }
+          const tinhaCacheOffline = aplicarCacheDdus_('Dados salvos neste aparelho — podem estar desatualizados.');
+          if (!tinhaCacheOffline) {
+            ddusAtivos = [];
+            renderizarDdUs_();
+            if (dduSummaryCard) dduSummaryCard.hidden = true;
+            if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
+            if (dduListStatus) dduListStatus.textContent = 'Offline — nenhum DDU salvo neste aparelho.';
+          }
           return;
         }
 
-        // Com cache disponível, mantém o conteúdo útil visível enquanto atualiza.
-        // Sem cache, usa o indicador tradicional de carregamento.
-        if (!tinhaCache) {
-          if (dduSummaryCard) dduSummaryCard.hidden = true;
-          if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
-          dduSummaryCard?.classList.add('is-loading');
-          if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
-            dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
-          }
-          if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label">Atualizando demandas...</span>';
-          if(dduSummaryCount)dduSummaryCount.innerHTML='<span class="ddu-count-loading" aria-hidden="true"></span>';
+        // Online: nunca mostra primeiro a lista antiga do navegador.
+        ddusAtivos = [];
+        renderizarDdUs_();
+        if (dduSummaryCard) dduSummaryCard.hidden = true;
+        if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
+        dduSummaryCard?.classList.add('is-loading');
+        if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
+          dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
         }
+        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label">Atualizando demandas...</span>';
+        if(dduSummaryCount)dduSummaryCount.innerHTML='<span class="ddu-count-loading" aria-hidden="true"></span>';
 
         try{
           const r=await apiRequest('config',{consulta:'ddus'},15000);
           const novosDdUs=Array.isArray(r?.itens)?r.itens:[];
           const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
-          if(espera && !tinhaCache) await new Promise(resolve=>setTimeout(resolve,espera));
+          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
           ddusAtivos=novosDdUs;
           try { localStorage.setItem(DDU_CACHE_STORAGE, JSON.stringify({ salvoEm: Date.now(), itens: ddusAtivos })); } catch (_) {}
           dduSummaryCard?.classList.remove('is-loading');
           dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
           renderizarDdUs_();
-          if(dduListStatus)dduListStatus.textContent=`${ddusAtivos.length} registro(s) ativo(s).`;
+          const totalAtivos = ddusAtivos.filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado')).length;
+          if(dduListStatus)dduListStatus.textContent=totalAtivos===1?'1 DDU pendente.':`${totalAtivos} DDUs pendentes.`;
         }catch(e){
           console.error('Falha ao carregar DDU:',e);
           const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
-          if(espera && !tinhaCache) await new Promise(resolve=>setTimeout(resolve,espera));
+          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
           dduSummaryCard?.classList.remove('is-loading');
           dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
-          if (tinhaCache) {
-            aplicarCacheDdus_('Não foi possível atualizar agora — exibindo a última lista sincronizada.');
-          } else {
-            if(dduSummaryText)dduSummaryText.textContent='Não foi possível carregar';
-            if(dduSummaryCount)dduSummaryCount.textContent='';
-            if (dduSummaryCard) dduSummaryCard.hidden = true;
-            if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
-            dduSummaryCard?.classList.remove('is-danger','is-warning');
-            dduVistoriaSummaryCard?.classList.remove('is-danger','is-warning');
-            if(dduListStatus)dduListStatus.textContent='Não foi possível atualizar os DDU agora. Toque novamente no card DDU para tentar de novo.';
-          }
+          ddusAtivos = [];
+          renderizarDdUs_();
+          if(dduSummaryText)dduSummaryText.textContent='Não foi possível confirmar';
+          if(dduSummaryCount)dduSummaryCount.textContent='';
+          if (dduSummaryCard) dduSummaryCard.hidden = true;
+          if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
+          dduSummaryCard?.classList.remove('is-danger','is-warning');
+          dduVistoriaSummaryCard?.classList.remove('is-danger','is-warning');
+          if(dduListStatus)dduListStatus.textContent='Não foi possível confirmar os DDU atuais. Nenhuma lista antiga foi exibida; toque novamente para tentar de novo.';
         }
       }
       function obterIdCadastroDdu_() {
@@ -24945,18 +25026,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const cacheKey = 'gpv_preparacoes_cache_v1';
         let cachePreparacoes = [];
         try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
-        const tinhaCache = Array.isArray(cachePreparacoes) && cachePreparacoes.length > 0;
-
-        if (tinhaCache) {
-          preparacoesVistoria = cachePreparacoes;
-          renderizarPreparacoesVistoria_();
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = navigator.onLine
-            ? 'Última lista sincronizada — atualizando...'
-            : 'Offline — exibindo a última lista sincronizada.';
-        }
+        const cacheDisponivel = Array.isArray(cachePreparacoes) && cachePreparacoes.length > 0;
 
         if (!navigator.onLine) {
-          if (!tinhaCache) {
+          if (cacheDisponivel) {
+            preparacoesVistoria = cachePreparacoes;
+            renderizarPreparacoesVistoria_();
+            if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Dados salvos neste aparelho — podem estar desatualizados.';
+          } else {
             preparacoesVistoria = [];
             renderizarPreparacoesVistoria_();
             if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — nenhuma programação armazenada neste aparelho.';
@@ -24964,22 +25041,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
 
-        if (!tinhaCache) {
-          if (programmedSummaryRow) programmedSummaryRow.hidden = true;
-          preparedInspectionsList?.classList.add('is-loading');
-          if (preparedInspectionsList) {
-            preparedInspectionsList.innerHTML = `
-              <div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Atualizando vistorias programadas">
-                <span class="prepared-loading-track-knob" aria-hidden="true"></span>
-              </div>`;
-          }
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Atualizando vistorias programadas...';
+        // Online: lista antiga do navegador não é tratada como situação operacional atual.
+        preparacoesVistoria = [];
+        renderizarPreparacoesVistoria_();
+        if (programmedSummaryRow) programmedSummaryRow.hidden = true;
+        preparedInspectionsList?.classList.add('is-loading');
+        if (preparedInspectionsList) {
+          preparedInspectionsList.innerHTML = `
+            <div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Atualizando vistorias programadas">
+              <span class="prepared-loading-track-knob" aria-hidden="true"></span>
+            </div>`;
         }
+        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Atualizando vistorias programadas...';
         try {
           const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
           const novasPreparacoes = Array.isArray(r?.itens) ? r.itens : [];
           const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-          if (espera && !tinhaCache) await new Promise(resolve => setTimeout(resolve, espera));
+          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
           preparacoesVistoria = novasPreparacoes;
           try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
           preparedInspectionsList?.classList.remove('is-loading');
@@ -24987,12 +25065,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           renderizarPreparacoesVistoria_();
         } catch (erro) {
           const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-          if (espera && !tinhaCache) await new Promise(resolve => setTimeout(resolve, espera));
-          preparacoesVistoria = cachePreparacoes;
+          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
+          preparacoesVistoria = [];
           preparedInspectionsList?.classList.remove('is-loading');
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = cachePreparacoes.length
-            ? 'Não foi possível atualizar agora — exibindo a última lista sincronizada.'
-            : 'Não foi possível atualizar as programações agora.';
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível confirmar as programações atuais. Nenhuma lista antiga foi exibida.';
           renderizarPreparacoesVistoria_();
         }
       }
@@ -25556,7 +25632,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!navigator.onLine || !usuarioPodeOperar_()) return;
 
         // Após muitas horas/dias sem uso, evita três consultas simultâneas logo na abertura.
-        // A interface usa o que estiver salvo e confirma os dados atuais em etapas.
+        // Usuários/configuração podem usar cache; listas operacionais online aguardam confirmação atual do servidor.
         const longaPausa = appRetomadaAposLongaPausa_;
         const atrasos = longaPausa
           ? { usuarios: 900, programadas: 2200, ddu: 3800, painel: 16000 }
@@ -25600,17 +25676,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? (navigator.onLine ? 'Aplicativo pronto. Sincronizando configurações...' : 'Modo offline — aplicativo pronto para preenchimento.')
           : (navigator.onLine ? 'Aplicativo pronto para consulta e treinamento. Atualizando dados...' : 'Sem internet — consultas salvas e preenchimento para conhecimento continuam disponíveis.');
 
-        // Dados auxiliares armazenados são aplicados antes de qualquer consulta online.
+        // Dados auxiliares de usuários podem ser usados imediatamente. As listas
+        // operacionais (Programadas/DDU) usam cache somente quando o aparelho está offline.
         aplicarCacheVistoriadores_();
-        if (usuarioPodeOperar_()) {
+        if (usuarioPodeOperar_() && !navigator.onLine) {
           try {
             const cacheProgramadas = JSON.parse(localStorage.getItem('gpv_preparacoes_cache_v1') || '[]');
             if (Array.isArray(cacheProgramadas) && cacheProgramadas.length) {
               preparacoesVistoria = cacheProgramadas;
               renderizarPreparacoesVistoria_();
+              if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Dados salvos neste aparelho — podem estar desatualizados.';
             }
           } catch (_) {}
-          aplicarCacheDdus_();
+          aplicarCacheDdus_('Dados salvos neste aparelho — podem estar desatualizados.');
         }
 
         if (navigator.onLine) {
@@ -27198,6 +27276,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           repararInterfaceOrfa_('retorno ao primeiro plano');
           if (authState.sessionToken) validarSessaoLocalAtivaBm_();
           agendarAtualizacaoPainelAoRetornar_('retorno ao primeiro plano');
+          agendarAtualizacaoListasOperacionaisAoRetornar_('retorno ao primeiro plano', 260);
 
           const ficouForaPor = appOcultadoEm_ ? Date.now() - appOcultadoEm_ : 0;
           const forcarVerificacao = ficouForaPor >= 15 * 60 * 1000;
@@ -27219,6 +27298,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         repararInterfaceOrfa_('foco da janela');
         if (authState.sessionToken) validarSessaoLocalAtivaBm_();
         agendarAtualizacaoPainelAoRetornar_('foco da janela');
+        agendarAtualizacaoListasOperacionaisAoRetornar_('foco da janela', 300);
         verificarAtualizacaoSilenciosaPwa_();
         aplicarAtualizacaoSilenciosaSeSeguro_();
       });
@@ -27228,6 +27308,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         invalidarConsultasAntigasAoRetornar_();
         repararInterfaceOrfa_(event.persisted ? 'restauração BFCache' : 'pageshow');
         agendarAtualizacaoPainelAoRetornar_(event.persisted ? 'restauração BFCache' : 'pageshow');
+        agendarAtualizacaoListasOperacionaisAoRetornar_(event.persisted ? 'restauração BFCache' : 'pageshow', 340);
         if (event.persisted) {
           verificarAtualizacaoSilenciosaPwa_(true);
           aplicarAtualizacaoSilenciosaSeSeguro_();
@@ -27316,6 +27397,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           setTimeout(() => { void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false }); }, 220);
           setTimeout(() => { void sincronizarTudoPendente_(true); }, 450);
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
+          agendarAtualizacaoListasOperacionaisAoRetornar_('internet restabelecida', 700);
         }
         setTimeout(() => { void sincronizarSituacoesCriticasProcessos_({ atualizarFichaAberta: true }); }, 650);
         if (document.body.classList.contains('records-mode')) {
@@ -27357,7 +27439,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gi', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gj', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
