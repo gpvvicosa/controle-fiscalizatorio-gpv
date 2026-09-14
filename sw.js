@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gj-cache-operacional-offline';
-const VERSION = '23.9.99gj';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gk-pesquisa-tecnica-duas-areas';
+const VERSION = '23.9.99gk';
 
 const CORE_SHELL = [
   './',

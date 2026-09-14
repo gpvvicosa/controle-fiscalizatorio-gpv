@@ -22091,3 +22091,221 @@ body.records-mode .records-status:not(.loading):not(.error):not(.searching){disp
   padding:5px 8px;
   line-height:1;
 }
+
+
+/* =============================================================================
+   V23.9.99gk — Pesquisa Técnica: duas áreas, documento único e largura responsiva
+   ============================================================================= */
+.technical-search-mark{
+  padding:0 .08em;
+  border-radius:3px;
+  background:#fff0a8;
+  color:inherit;
+  font-weight:900;
+}
+.technical-search-result.is-selected{
+  border-color:#2f7d4d!important;
+  background:#f1fbf5!important;
+  box-shadow:inset 4px 0 0 #2f7d4d,0 5px 16px rgba(31,96,58,.08)!important;
+}
+.technical-search-result.is-selected .technical-search-open-link{color:#175f35}
+.technical-search-suggestions{
+  display:grid;
+  gap:7px;
+  padding:14px;
+  border:1px dashed #ccd9d1;
+  border-radius:14px;
+  background:#fbfdfc;
+  color:#5d6d63;
+}
+.technical-search-suggestions>strong{font-size:12px;color:#314c3a}
+.technical-search-suggestions>span{font-size:10px}
+.technical-search-suggestions>div{display:flex;flex-wrap:wrap;gap:7px}
+.technical-search-suggestions button{
+  min-height:32px;
+  padding:6px 10px;
+  border:1px solid #d5e1da;
+  border-radius:999px;
+  background:#fff;
+  color:#315b40;
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer;
+}
+.technical-search-suggestions button:hover,.technical-search-suggestions button:focus-visible{
+  border-color:#4f8d66;
+  background:#f2faf5;
+  outline:none;
+}
+.infoscip-manual-continuous-pages{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  align-items:flex-start!important;
+}
+.infoscip-manual-continuous-page{max-width:none!important}
+.infoscip-manual-fit-btn.is-active{
+  border-color:#ce8a17!important;
+  background:#fff7e5!important;
+  color:#8a5700!important;
+}
+
+@media(min-width:901px){
+  /* Dois painéis reais: pesquisa 34% e documento 66%. */
+  body.technical-search-document-open .technical-search-overlay{
+    padding:2vh 1vw!important;
+    justify-content:flex-start!important;
+  }
+  body.technical-search-document-open .technical-search-card{
+    width:34vw!important;
+    max-width:none!important;
+    height:96vh!important;
+    max-height:96vh!important;
+    border-radius:18px 0 0 18px!important;
+  }
+  body.technical-search-document-open .infoscip-manual-viewer-overlay{
+    padding:2vh 1vw 2vh 35vw!important;
+  }
+  body.technical-search-document-open .infoscip-manual-viewer-card{
+    width:64vw!important;
+    max-width:none!important;
+    height:96vh!important;
+    max-height:96vh!important;
+    border-radius:0 18px 18px 0!important;
+  }
+  .technical-search-card.has-it-preview{
+    width:min(1780px,98vw)!important;
+    height:96vh!important;
+    max-height:96vh!important;
+  }
+  .technical-search-card.has-it-preview .technical-search-workspace{
+    grid-template-columns:minmax(320px,.34fr) minmax(0,.66fr)!important;
+  }
+
+  /* Campo, filtros e status permanecem visíveis; somente os resultados rolam. */
+  body.technical-search-document-open .technical-search-modal-body,
+  .technical-search-card.has-it-preview .technical-search-modal-body{
+    display:flex!important;
+    flex-direction:column!important;
+    gap:8px!important;
+    overflow:hidden!important;
+    padding:10px 12px 12px!important;
+  }
+  body.technical-search-document-open .technical-search-results,
+  .technical-search-card.has-it-preview .technical-search-results{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow:auto!important;
+    overscroll-behavior:contain;
+    padding-right:3px;
+  }
+  body.technical-search-document-open .technical-search-header,
+  .technical-search-card.has-it-preview .technical-search-header{padding:11px 13px 9px!important}
+  body.technical-search-document-open .useful-links-hero-icon,
+  .technical-search-card.has-it-preview .useful-links-hero-icon{width:44px!important;height:44px!important;font-size:19px!important}
+  body.technical-search-document-open .useful-links-head-copy h2,
+  .technical-search-card.has-it-preview .useful-links-head-copy h2{font-size:21px!important}
+  body.technical-search-document-open .useful-links-head-copy small,
+  .technical-search-card.has-it-preview .useful-links-head-copy small{font-size:9px!important}
+  body.technical-search-document-open .technical-search-main-form input,
+  .technical-search-card.has-it-preview .technical-search-main-form input{min-height:42px!important;font-size:12px!important}
+  body.technical-search-document-open .technical-search-main-form .btn,
+  .technical-search-card.has-it-preview .technical-search-main-form .btn{min-height:42px!important;padding:7px 12px!important;font-size:10px!important}
+  body.technical-search-document-open .technical-search-filters,
+  .technical-search-card.has-it-preview .technical-search-filters{gap:5px!important}
+  body.technical-search-document-open .technical-search-filters button,
+  .technical-search-card.has-it-preview .technical-search-filters button{min-height:30px!important;padding:5px 8px!important;font-size:9px!important}
+  body.technical-search-document-open .technical-search-status,
+  .technical-search-card.has-it-preview .technical-search-status{font-size:10px!important;min-height:16px!important}
+
+  /* Resultado denso, mas legível. */
+  body.technical-search-document-open .technical-search-result,
+  .technical-search-card.has-it-preview .technical-search-result{
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-areas:"source action" "main main"!important;
+    row-gap:6px!important;
+    column-gap:8px!important;
+    padding:9px 10px!important;
+    border-radius:12px!important;
+  }
+  body.technical-search-document-open .technical-search-source,
+  .technical-search-card.has-it-preview .technical-search-source{grid-area:source!important;font-size:9px!important;padding:5px 7px!important}
+  body.technical-search-document-open .technical-search-open-link,
+  .technical-search-card.has-it-preview .technical-search-open-link{grid-area:action!important;font-size:9px!important;padding:0!important}
+  body.technical-search-document-open .technical-search-result-main,
+  .technical-search-card.has-it-preview .technical-search-result-main{grid-area:main!important;gap:3px!important}
+  body.technical-search-document-open .technical-search-result-main strong,
+  .technical-search-card.has-it-preview .technical-search-result-main strong{font-size:11.5px!important;line-height:1.3!important}
+  body.technical-search-document-open .technical-search-result-main em,
+  .technical-search-card.has-it-preview .technical-search-result-main em{font-size:8.5px!important}
+  body.technical-search-document-open .technical-search-result-main small,
+  .technical-search-card.has-it-preview .technical-search-result-main small{
+    display:-webkit-box!important;
+    -webkit-box-orient:vertical!important;
+    -webkit-line-clamp:3!important;
+    overflow:hidden!important;
+    font-size:9.5px!important;
+    line-height:1.38!important;
+  }
+
+  /* Visualizador ganha altura útil e não repete “Voltar à pesquisa” no rodapé. */
+  body.technical-search-document-open .infoscip-manual-viewer-header{padding:8px 12px 7px!important}
+  body.technical-search-document-open .infoscip-manual-viewer-heading>span{font-size:9px!important;margin-bottom:1px!important}
+  body.technical-search-document-open .infoscip-manual-viewer-heading h2{font-size:20px!important;line-height:1.1!important}
+  body.technical-search-document-open .infoscip-manual-viewer-heading p{font-size:9px!important;margin-top:3px!important}
+  body.technical-search-document-open .infoscip-manual-viewer-toolbar{padding:5px 8px!important;gap:8px!important}
+  body.technical-search-document-open .infoscip-manual-tool-btn,
+  body.technical-search-document-open .infoscip-manual-fit-btn,
+  body.technical-search-document-open .infoscip-manual-search-toggle{height:34px!important;min-height:34px!important}
+  body.technical-search-document-open .infoscip-manual-page-stage{padding:10px 14px!important}
+  body.technical-search-document-open .infoscip-manual-viewer-actions{display:none!important}
+
+  .technical-it-preview{padding:12px!important}
+  .technical-it-preview-head{padding-bottom:8px!important}
+  .technical-it-preview-head h3{font-size:19px!important}
+  .technical-it-internal-search input{min-height:40px!important}
+}
+
+@media(max-width:680px){
+  /* Pesquisa mobile: cabeçalho e formulário compactos, filtros em uma linha. */
+  .technical-search-header{padding:max(7px,env(safe-area-inset-top)) 9px 7px!important}
+  .technical-search-header .useful-links-hero-icon{width:38px!important;height:38px!important;font-size:17px!important}
+  .technical-search-header .useful-links-head-copy span{font-size:8px!important}
+  .technical-search-header .useful-links-head-copy h2{font-size:17px!important;line-height:1.1!important}
+  .technical-search-header .useful-links-head-copy small{font-size:8.5px!important;line-height:1.25!important}
+  .technical-search-modal-body{padding:8px 9px 9px!important;gap:7px!important}
+  .technical-search-main-form{grid-template-columns:minmax(0,1fr) auto!important;gap:6px!important}
+  .technical-search-main-form input{min-height:40px!important;padding:0 10px!important;font-size:12px!important}
+  .technical-search-main-form .btn{width:auto!important;min-height:40px!important;padding:6px 10px!important;font-size:10px!important}
+  .technical-search-filters{flex-wrap:nowrap!important;overflow-x:auto!important;gap:5px!important;padding-bottom:2px;scrollbar-width:none}
+  .technical-search-filters::-webkit-scrollbar{display:none}
+  .technical-search-filters button{flex:0 0 auto;min-height:29px!important;padding:4px 8px!important;font-size:9px!important}
+  .technical-search-recent{padding:6px 8px!important}
+  .technical-search-recent>strong{font-size:8.5px!important}
+  .technical-search-status{font-size:9.5px!important;min-height:15px!important}
+  .technical-search-results{gap:7px!important}
+  .technical-search-result{padding:9px 10px!important;border-radius:12px!important;gap:5px!important}
+  .technical-search-source{font-size:9px!important;min-width:0!important;padding:5px 7px!important}
+  .technical-search-result-main strong{font-size:11.5px!important}
+  .technical-search-result-main em{font-size:8.5px!important}
+  .technical-search-result-main small{font-size:9.5px!important;line-height:1.38!important}
+  .technical-search-open-link{font-size:9px!important}
+  .technical-search-suggestions{padding:10px!important;gap:6px!important}
+  .technical-search-suggestions>strong{font-size:11px!important}
+  .technical-search-suggestions>span{font-size:9px!important}
+  .technical-search-suggestions>div{gap:5px!important}
+  .technical-search-suggestions button{min-height:29px!important;padding:5px 8px!important;font-size:9px!important}
+  .technical-search-footer{padding:6px 9px max(6px,env(safe-area-inset-bottom))!important}
+  .technical-search-footer a{font-size:9px!important}
+
+  /* Documento mobile abre por padrão na largura e usa duas linhas compactas de controles. */
+  .infoscip-manual-viewer-toolbar{display:grid!important;grid-template-columns:1fr!important;gap:4px!important;padding:4px 6px!important}
+  .infoscip-manual-page-controls,.infoscip-manual-zoom-controls{width:100%!important;justify-content:space-between!important;gap:3px!important}
+  .infoscip-manual-tool-btn{width:32px!important;min-width:32px!important;height:31px!important}
+  .infoscip-manual-fit-btn{width:auto!important;min-width:62px!important;height:31px!important;padding:0 7px!important;font-size:9px!important}
+  .infoscip-manual-search-toggle{width:auto!important;min-width:68px!important;height:31px!important;padding:0 7px!important;font-size:9px!important}
+  .infoscip-manual-page-stage{padding:5px!important}
+  .infoscip-manual-viewer-actions small{display:none!important}
+  .infoscip-manual-viewer-footer-buttons{width:100%!important}
+  .infoscip-manual-viewer-footer-buttons .btn{flex:1 1 0!important}
+}
