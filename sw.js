@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gm-listas-operacionais-confirmadas';
-const VERSION = '23.9.99gm';
+const VERSION = '23.9.99gn';
 
 const CORE_SHELL = [
   './',

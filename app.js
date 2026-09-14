@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gm';
-      // V23.9.99gm — DDU e Vistorias Programadas confirmados com prioridade, estado explícito de verificação/erro e sem zerar listas antes da resposta.
+      const APP_VERSION = '23.9.99gn';
+      // V23.9.99gn — CLCB: fluxo documental na Fiscalização, anulação futura no INFOSCIP e atualização auditável de vistorias encerradas.
       // V23.9.99gl — Painel não bloqueante com confirmação leve por revisão, DDU com contador/lista unificados e proteção contra falso 'vistoria não iniciada'.
       // V23.9.99gk — Pesquisa Técnica em duas áreas no PC, documento ativo único, resultados destacados e visualizador ajustado à largura.
       // V23.9.99gj — Listas operacionais e Painel usam cache somente offline; online aguarda confirmação do servidor e remove encerrados do navegador.
@@ -972,7 +972,7 @@
         const campos = [
           'tipoVistoria','nomeFantasia','razaoSocial','cnpj','pf','reds','endereco','numero','bairro','localizacaoCoordenadas',
           'demandaPrincipal','sancao','responsavel','nomeResponsavel','cpf','telefone','pscip','ocupacao',
-          'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado','acessoriaTipoLicenca','acessoriaClcbAnulado',
+          'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado','acessoriaTipoLicenca','acessoriaClcbAnulado','acessoriaClcbSeraAnulado','tipoLicenciamentoFiscalizacao','clcbIrregularidadeDocumental','clcbSeraAnuladoInfoscip',
           '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
         ];
         if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
@@ -2228,6 +2228,12 @@
       const cityCheckKeepBtn = document.getElementById('cityCheckKeepBtn');
       const cidadeSuggestionStatus = document.getElementById('cidadeSuggestionStatus');
       const licenciamentoSelect = document.getElementById('licenciamento');
+      const tipoLicenciamentoFiscalizacaoWrap = document.getElementById('tipoLicenciamentoFiscalizacaoWrap');
+      const tipoLicenciamentoFiscalizacaoSelect = document.getElementById('tipoLicenciamentoFiscalizacao');
+      const clcbIrregularidadeDocumentalWrap = document.getElementById('clcbIrregularidadeDocumentalWrap');
+      const clcbIrregularidadeDocumentalSelect = document.getElementById('clcbIrregularidadeDocumental');
+      const clcbSeraAnuladoInfoscipWrap = document.getElementById('clcbSeraAnuladoInfoscipWrap');
+      const clcbSeraAnuladoInfoscipSelect = document.getElementById('clcbSeraAnuladoInfoscip');
       const possuiPscipSelect = document.getElementById('possuiPscip');
       const pscipLicenciamentoWrap = document.getElementById('pscipLicenciamentoWrap');
       const pscipInput = document.getElementById('pscip');
@@ -2725,7 +2731,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gm';
+      const APP_REVISION_UI_ = '23.9.99gn';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4768,7 +4774,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gm', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gn', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8923,6 +8929,22 @@ DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO FUNCIONA SEM AVCB VÁLIDO JU
 
 O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
         },
+        clcbSeraAnulado: {
+          titulo: 'Fiscalização — CLCB será anulado por irregularidade documental',
+          texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, FOI CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO PROCEDIMENTO DECLARATÓRIO DO CLCB, REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}. EM RAZÃO DA IRREGULARIDADE DOCUMENTAL CONSTATADA, {{CLCB_IDENTIFICACAO}} SERÁ ANULADO NO SISTEMA INFOSCIP FISCALIZAÇÃO.
+
+O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE ADOTAR AS PROVIDÊNCIAS CABÍVEIS PARA A REGULARIZAÇÃO DA EDIFICAÇÃO.`
+        },
+        clcbFoiAnulado: {
+          titulo: 'Fiscalização — CLCB anulado por irregularidade documental',
+          texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, FOI CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO PROCEDIMENTO DECLARATÓRIO DO CLCB, REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº {{PF}}. EM RAZÃO DA IRREGULARIDADE DOCUMENTAL CONSTATADA, {{CLCB_IDENTIFICACAO}} FOI ANULADO NO SISTEMA INFOSCIP FISCALIZAÇÃO.
+
+O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE ADOTAR AS PROVIDÊNCIAS CABÍVEIS PARA A REGULARIZAÇÃO DA EDIFICAÇÃO.`
+        },
         acessoriaLicenciado: {
           titulo: 'Vistoria Acessória — regularizada — local possui licenciamento',
           texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA ACESSÓRIA, CONFORME PREVISTO NO ITEM 6.4.2 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
@@ -8940,6 +8962,14 @@ DURANTE A VISTORIA, CONSTATOU-SE QUE AS IRREGULARIDADES APONTADAS NO PROCESSO FI
           texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA ACESSÓRIA, CONFORME PREVISTO NO ITEM 6.4.2 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
 DURANTE A VISTORIA, CONSTATOU-SE QUE AS IRREGULARIDADES APONTADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}} PERSISTEM, NÃO TENDO SIDO SANADAS. O RESPONSÁVEL FOI ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO DAS PENDÊNCIAS IDENTIFICADAS.`
+        },
+        acessoriaClcbSeraAnulado: {
+          titulo: 'Vistoria Acessória — CLCB será anulado',
+          texto: `COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA ACESSÓRIA, CONFORME PREVISTO NO ITEM 6.4.2 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
+
+DURANTE A VISTORIA, CONSTATOU-SE A PERSISTÊNCIA DE IRREGULARIDADES DOCUMENTAIS RELACIONADAS AO PROCEDIMENTO DECLARATÓRIO, REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}. EM RAZÃO DAS IRREGULARIDADES CONSTATADAS, {{CLCB_IDENTIFICACAO}} SERÁ ANULADO NO SISTEMA INFOSCIP FISCALIZAÇÃO.
+
+AS IRREGULARIDADES PERMANECEM PENDENTES DE REGULARIZAÇÃO, DEVENDO O RESPONSÁVEL ADOTAR AS PROVIDÊNCIAS NECESSÁRIAS PARA NOVA REGULARIZAÇÃO DA EDIFICAÇÃO.`
         },
         acessoriaClcbAnulado: {
           titulo: 'Vistoria Acessória — CLCB anulado',
@@ -9036,6 +9066,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           titulo: 'Fiscalização — AVCB vencido',
           texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO FUNCIONA COM AVCB/CLCB VENCIDO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À RENOVAÇÃO DO LICENCIAMENTO.`
         },
+        clcbSeraAnulado: {
+          titulo: 'Fiscalização — CLCB será anulado',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO CLCB. EM RAZÃO DA IRREGULARIDADE CONSTATADA, O CLCB SERÁ ANULADO NO INFOSCIP FISCALIZAÇÃO. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
+        },
+        clcbFoiAnulado: {
+          titulo: 'Fiscalização — CLCB anulado',
+          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADA IRREGULARIDADE DOCUMENTAL RELACIONADA AO CLCB. O CLCB FOI ANULADO NO INFOSCIP FISCALIZAÇÃO. RESPONSÁVEL ORIENTADO QUANTO À REGULARIZAÇÃO.`
+        },
         acessoriaLicenciado: {
           titulo: 'Vistoria Acessória — regularizada — com licenciamento',
           texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES ANTERIORMENTE APONTADAS. CONSTATADO QUE AS IRREGULARIDADES FORAM SANADAS. A EDIFICAÇÃO POSSUI {{DOCUMENTO_LICENCA_NOME}} VÁLIDO E ENCONTRA-SE REGULARIZADA JUNTO AO CBMMG.`
@@ -9047,6 +9085,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         acessoriaPersistem: {
           titulo: 'Vistoria Acessória — irregularidades persistem',
           texto: `VISTORIA ACESSÓRIA REALIZADA PARA VERIFICAÇÃO DAS IRREGULARIDADES ANTERIORMENTE APONTADAS. CONSTATADO QUE AS IRREGULARIDADES PERSISTEM E PERMANECEM PENDENTES DE REGULARIZAÇÃO. O RESPONSÁVEL FOI ORIENTADO QUANTO ÀS PROVIDÊNCIAS NECESSÁRIAS.`
+        },
+        acessoriaClcbSeraAnulado: {
+          titulo: 'Vistoria Acessória — CLCB será anulado',
+          texto: `VISTORIA ACESSÓRIA REALIZADA. CONSTATADA A PERSISTÊNCIA DE IRREGULARIDADES DOCUMENTAIS NO PROCEDIMENTO DECLARATÓRIO. O CLCB SERÁ ANULADO NO INFOSCIP FISCALIZAÇÃO. AS IRREGULARIDADES PERMANECEM PENDENTES DE REGULARIZAÇÃO.`
         },
         acessoriaClcbAnulado: {
           titulo: 'Vistoria Acessória — CLCB anulado',
@@ -9096,7 +9138,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         { id: 'fiscalizacao.acessoriaLicenciado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'acessoriaLicenciado', titulo: RELATORIOS_REDS_FISCALIZACAO.acessoriaLicenciado.titulo },
         { id: 'fiscalizacao.acessoriaDispensado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'acessoriaDispensado', titulo: RELATORIOS_REDS_FISCALIZACAO.acessoriaDispensado.titulo },
         { id: 'fiscalizacao.acessoriaPersistem', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'acessoriaPersistem', titulo: RELATORIOS_REDS_FISCALIZACAO.acessoriaPersistem.titulo },
+        { id: 'fiscalizacao.acessoriaClcbSeraAnulado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'acessoriaClcbSeraAnulado', titulo: RELATORIOS_REDS_FISCALIZACAO.acessoriaClcbSeraAnulado.titulo },
         { id: 'fiscalizacao.acessoriaClcbAnulado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'acessoriaClcbAnulado', titulo: RELATORIOS_REDS_FISCALIZACAO.acessoriaClcbAnulado.titulo },
+        { id: 'fiscalizacao.clcbSeraAnulado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'clcbSeraAnulado', titulo: RELATORIOS_REDS_FISCALIZACAO.clcbSeraAnulado.titulo },
+        { id: 'fiscalizacao.clcbFoiAnulado', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'clcbFoiAnulado', titulo: RELATORIOS_REDS_FISCALIZACAO.clcbFoiAnulado.titulo },
         { id: 'fiscalizacao.comPscipSemAvcb', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'comPscipSemAvcb', titulo: RELATORIOS_REDS_FISCALIZACAO.comPscipSemAvcb.titulo },
         { id: 'fiscalizacao.eventoDeclaratorioConforme', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'eventoDeclaratorioConforme', titulo: RELATORIOS_REDS_FISCALIZACAO.eventoDeclaratorioConforme.titulo },
         { id: 'fiscalizacao.irregular', grupo: 'Fiscalização', grupoId: 'fiscalizacao', chave: 'irregular', titulo: RELATORIOS_REDS_FISCALIZACAO.irregular.titulo },
@@ -9509,9 +9554,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (acessoria) {
           const resultado = normalize(valorCampoFicha_(registro, 'Resultado da vistoria acessória'));
           const tipoLicenca = String(valorCampoFicha_(registro, 'Documento de licenciamento da acessória') || '').toUpperCase();
-          const clcbAnulado = normalize(valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')) === normalize('Sim');
+          const clcbSeraAnulado = normalize(valorCampoFicha_(registro, 'CLCB será anulado na vistoria acessória')) === normalize('Sim');
+          const clcbFoiAnulado = normalize(valorCampoFicha_(registro, 'CLCB foi anulado no INFOSCIP')) === normalize('Sim') ||
+            normalize(valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')) === normalize('Sim');
           if (resultado === normalize('Irregularidades persistem')) {
-            return tipoLicenca === 'CLCB' && clcbAnulado ? 'acessoriaClcbAnulado' : 'acessoriaPersistem';
+            if (tipoLicenca === 'CLCB' && clcbFoiAnulado) return 'acessoriaClcbAnulado';
+            if (tipoLicenca === 'CLCB' && clcbSeraAnulado) return 'acessoriaClcbSeraAnulado';
+            return 'acessoriaPersistem';
           }
           if (resultado === normalize('Irregularidades sanadas')) {
             return [normalize('dispensado'), normalize('Dispensado de licenciamento')].includes(licenciamento) ? 'acessoriaDispensado' : 'acessoriaLicenciado';
@@ -9520,6 +9569,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? ([normalize('dispensado'), normalize('Dispensado de licenciamento')].includes(licenciamento) ? 'acessoriaDispensado' : 'acessoriaLicenciado')
             : '';
         }
+        const tipoLicenciamentoFiscalizacao = String(valorCampoFicha_(registro, 'Tipo do licenciamento') || '').toUpperCase();
+        const clcbIrregularidadeDocumental = normalize(valorCampoFicha_(registro, 'Irregularidade documental no CLCB')) === normalize('Sim');
+        const clcbSeraAnulado = normalize(valorCampoFicha_(registro, 'CLCB será anulado no INFOSCIP')) === normalize('Sim');
+        const clcbFoiAnulado = normalize(valorCampoFicha_(registro, 'CLCB foi anulado no INFOSCIP')) === normalize('Sim');
+        if (tipoLicenciamentoFiscalizacao === 'CLCB' && clcbIrregularidadeDocumental && clcbFoiAnulado) return 'clcbFoiAnulado';
+        if (tipoLicenciamentoFiscalizacao === 'CLCB' && clcbIrregularidadeDocumental && clcbSeraAnulado) return 'clcbSeraAnulado';
         if (demanda.includes(normalize('Eventos declaratórios')) && n === normalize('Regularizado')) return 'eventoDeclaratorioConforme';
         if (demanda.includes(normalize('Renovação AVCB')) && n === normalize('Regularizado')) return 'renovacaoAvcb';
         if (n === normalize('Autuado')) {
@@ -9553,11 +9608,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const resultado = normalize(valorCampoFicha_(registro, 'Resultado da vistoria acessória'));
             const licenciamentoAtual = normalize(valorCampoFicha_(registro, 'Situação do licenciamento'));
             const tipoLicenca = String(valorCampoFicha_(registro, 'Documento de licenciamento da acessória') || '').toUpperCase();
-            const clcbAnulado = normalize(valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')) === normalize('Sim');
+            const clcbSeraAnulado = normalize(valorCampoFicha_(registro, 'CLCB será anulado na vistoria acessória')) === normalize('Sim');
+            const clcbFoiAnulado = normalize(valorCampoFicha_(registro, 'CLCB foi anulado no INFOSCIP')) === normalize('Sim') ||
+              normalize(valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')) === normalize('Sim');
             if (resultado === normalize('Irregularidades persistem')) {
-              return tipoLicenca === 'CLCB' && clcbAnulado
-                ? [['acessoriaClcbAnulado', 'Vistoria Acessória — CLCB anulado']]
-                : [['acessoriaPersistem', 'Vistoria Acessória — irregularidades persistem']];
+              if (tipoLicenca === 'CLCB' && clcbFoiAnulado) return [['acessoriaClcbAnulado', 'Vistoria Acessória — CLCB anulado']];
+              if (tipoLicenca === 'CLCB' && clcbSeraAnulado) return [['acessoriaClcbSeraAnulado', 'Vistoria Acessória — CLCB será anulado']];
+              return [['acessoriaPersistem', 'Vistoria Acessória — irregularidades persistem']];
             }
             if (resultado === normalize('Irregularidades sanadas')) {
               return [normalize('dispensado'), normalize('Dispensado de licenciamento')].includes(licenciamentoAtual)
@@ -9566,6 +9623,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
             return [
               ['acessoriaPersistem', 'Vistoria Acessória — irregularidades persistem'],
+              ['acessoriaClcbSeraAnulado', 'Vistoria Acessória — CLCB será anulado'],
               ['acessoriaClcbAnulado', 'Vistoria Acessória — CLCB anulado'],
               ['acessoriaLicenciado', 'Vistoria Acessória — regularizada — com licenciamento'],
               ['acessoriaDispensado', 'Vistoria Acessória — regularizada — dispensado de licenciamento']
@@ -9573,6 +9631,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           })() : []),
           ...(ehEventoDeclaratorio ? [['eventoDeclaratorioConforme', 'Fiscalização — evento declaratório conforme']] : []),
           ...(!ehAcessoria ? [
+            ['clcbSeraAnulado', 'Fiscalização — CLCB será anulado por irregularidade documental'],
+            ['clcbFoiAnulado', 'Fiscalização — CLCB anulado por irregularidade documental'],
             ['ddu', 'DDU — fiscalização autuada'],
             ['brigadaVencida', 'Fiscalização — brigada vencida'],
             ['avcbVencido', 'Fiscalização — AVCB vencido'],
@@ -10429,6 +10489,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const pet = registroEhPetCorrecao_(registro);
         const liberacao = registroEhLiberacao_(registro) || pet;
         const acessoria = registroEhAcessoria_(registro);
+        const fiscalizacao = !liberacao && !evento;
         const demanda = valorCampoFicha_(registro, 'Demanda');
         const renovacao = normalize(demanda).includes(normalize('Renovação AVCB'));
         const ddu = normalize(demanda).includes(normalize('DDU')) || Boolean(valorCampoFicha_(registro, 'Nº DDU'));
@@ -10460,6 +10521,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             tipo: 'select',
             opcoes: ['Possui AVCB ou CLCB', 'Não possui', 'AVCB/CLCB vencido', 'Dispensado de licenciamento']
           }),
+          campo('tipoLicenciamentoFiscalizacao', 'processo', 'Tipo do licenciamento', ['Tipo do licenciamento'], { mostrar: fiscalizacao && !acessoria, tipo: 'select', opcoes: ['AVCB', 'CLCB'] }),
+          campo('clcbIrregularidadeDocumental', 'processo', 'Irregularidade documental relacionada ao CLCB', ['Irregularidade documental no CLCB'], { mostrar: fiscalizacao && !acessoria, tipo: 'select', opcoes: ['Sim', 'Não'] }),
+          campo('clcbSeraAnuladoInfoscip', 'processo', 'O CLCB SERÁ anulado no INFOSCIP?', ['CLCB será anulado no INFOSCIP'], { mostrar: fiscalizacao && !acessoria, tipo: 'select', opcoes: ['Sim', 'Não'] }),
+          campo('clcbFoiAnuladoInfoscip', 'processo', 'O CLCB FOI anulado no INFOSCIP?', ['CLCB foi anulado no INFOSCIP'], { mostrar: fiscalizacao, tipo: 'select', opcoes: ['Sim', 'Não'] }),
           campo('situacaoPscip', 'processo', 'Situação atual do PSCIP', ['Situação atual do PSCIP'], { mostrar: !evento }),
           campo('pendenciaDocumental', 'processo', 'Pendência documental', ['Pendência documental'], { mostrar: liberacao, tipo: 'select', opcoes: ['Sim', 'Não'] }),
           campo('nDdu', 'processo', 'Nº DDU', ['Nº DDU'], { mostrar: ddu }),
@@ -10469,7 +10534,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campo('liberacaoParcialArea', 'processo', 'Área liberada parcialmente (m²)', ['Área liberada parcialmente (m²)'], { mostrar: liberacao, inputmode: 'decimal' }),
           campo('acessoriaResultado', 'processo', 'Resultado da vistoria acessória', ['Resultado da vistoria acessória'], { mostrar: acessoria, tipo: 'select', opcoes: ['Irregularidades sanadas', 'Irregularidades persistem'] }),
           campo('acessoriaTipoLicenca', 'processo', 'Documento de licenciamento da acessória', ['Documento de licenciamento da acessória'], { mostrar: acessoria, tipo: 'select', opcoes: ['CLCB', 'AVCB'] }),
-          campo('acessoriaClcbAnulado', 'processo', 'CLCB anulado na vistoria acessória', ['CLCB anulado na vistoria acessória'], { mostrar: acessoria, tipo: 'select', opcoes: ['Sim', 'Não'] }),
+          campo('acessoriaClcbSeraAnulado', 'processo', 'O CLCB SERÁ anulado no INFOSCIP?', ['CLCB será anulado na vistoria acessória'], { mostrar: acessoria, tipo: 'select', opcoes: ['Sim', 'Não'] }),
+          campo('acessoriaClcbAnulado', 'processo', 'CLCB anulado na vistoria acessória (registro legado)', ['CLCB anulado na vistoria acessória'], { mostrar: acessoria && Boolean(valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')), tipo: 'select', opcoes: ['Sim', 'Não'] }),
           campo('acessoriaSituacaoAnterior', 'processo', 'Situação anterior do PF', ['Situação anterior do PF'], { mostrar: acessoria }),
 
           campo('cep', 'local', 'CEP', ['CEP'], { inputmode: 'numeric', placeholder: '00000-000', cepLookupContext: 'correcao-local' }),
@@ -11577,7 +11643,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Nº DDU', valorCampoFicha_(registro, 'Nº DDU')],
           ['Resultado da vistoria acessória', valorCampoFicha_(registro, 'Resultado da vistoria acessória')],
           ['Situação anterior do PF', valorCampoFicha_(registro, 'Situação anterior do PF')],
+          ['Tipo do licenciamento', valorCampoFicha_(registro, 'Tipo do licenciamento')],
+          ['Irregularidade documental no CLCB', valorCampoFicha_(registro, 'Irregularidade documental no CLCB')],
+          ['CLCB será anulado no INFOSCIP', valorCampoFicha_(registro, 'CLCB será anulado no INFOSCIP')],
+          ['CLCB foi anulado no INFOSCIP', valorCampoFicha_(registro, 'CLCB foi anulado no INFOSCIP')],
           ['Documento de licenciamento', valorCampoFicha_(registro, 'Documento de licenciamento da acessória')],
+          ['CLCB será anulado na vistoria acessória', valorCampoFicha_(registro, 'CLCB será anulado na vistoria acessória')],
           ['CLCB anulado na vistoria acessória', valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')],
           ['Tipo da liberação', valorCampoFicha_(registro, 'Tipo da liberação')],
           ['Área/trecho liberado', valorCampoFicha_(registro, 'Área/trecho liberado')],
@@ -12832,7 +12903,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         if (acessoriaResultadoHint) acessoriaResultadoHint.textContent = naoSanadas
           ? (mostrarAnulacaoClcb
-            ? 'CLCB com irregularidades persistentes: informe se a constatação implica anulação do CLCB. Essa escolha definirá o histórico do REDS.'
+            ? 'CLCB com irregularidades persistentes: informe se o CLCB será anulado no INFOSCIP. Essa escolha definirá o relatório do REDS e o histórico do INFOSCIP.'
             : 'As irregularidades persistem: o registro ficará vinculado ao PF anterior e não será gerada nova autuação automaticamente.')
           : 'Quando as irregularidades forem sanadas, a situação final só será Regularizado se não houver multa em aberto no INFOSCIP.';
         atualizarVinculoAcessoria_();
@@ -15185,6 +15256,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           _appIdentificadorTipo: eventoDeclaratorio ? '' : tipoIdentificador_(value('cnpj')) ,
           _appLicenciamento: eventoDeclaratorio ? '' : value('licenciamento'),
           situacaoLicenciamento: eventoDeclaratorio ? '' : value('licenciamento'),
+          tipoLicenciamentoFiscalizacao: (!eventoDeclaratorio && ehFluxoFiscalizacao_() && !acessoria && value('licenciamento') === 'possui') ? value('tipoLicenciamentoFiscalizacao') : '',
+          clcbIrregularidadeDocumental: (!eventoDeclaratorio && ehFluxoFiscalizacao_() && !acessoria && String(value('tipoLicenciamentoFiscalizacao') || '').toUpperCase() === 'CLCB') ? value('clcbIrregularidadeDocumental') : '',
+          clcbSeraAnuladoInfoscip: (!eventoDeclaratorio && ehFluxoFiscalizacao_() && !acessoria && normalize(value('clcbIrregularidadeDocumental')) === normalize('sim')) ? value('clcbSeraAnuladoInfoscip') : '',
           _appPossuiPscip: eventoDeclaratorio ? '' : value('possuiPscip'),
           situacaoPscip: eventoDeclaratorio ? '' : value('situacaoPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
@@ -15197,7 +15271,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           liberacaoParcialArea: ehFluxoLiberacao_() && normalize(value('tipoLiberacao')) === normalize('parcial') ? value('liberacaoParcialArea') : '',
           acessoriaResultado: acessoria ? value('acessoriaResultado') : '',
           acessoriaTipoLicenca: acessoria ? value('acessoriaTipoLicenca') : '',
-          acessoriaClcbAnulado: acessoria ? value('acessoriaClcbAnulado') : '',
+          acessoriaClcbSeraAnulado: acessoria ? value('acessoriaClcbAnulado') : '',
+          acessoriaClcbAnulado: '',
           acessoriaSituacaoAnterior: acessoria ? String(processoAcessoriaVinculado?.sancao || '') : '',
           dduProtocol: ehDemandaDdu_() ? (value('dduProtocol') || dduEmUsoNumero) : '',
           pscip: eventoDeclaratorio ? '' : (value('possuiPscip') === 'sim' ? projetoPscipOperacional_(value('pscip')) : ''),
@@ -15452,6 +15527,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const areaParcial = numeroAreaM2_(value('liberacaoParcialArea'));
           if (!String(value('liberacaoParcialArea') || '').trim() || !Number.isFinite(areaParcial) || areaParcial <= 0) {
             liberacaoParcialAreaInput?.classList.add('invalid'); missing.push('Área liberada parcialmente (m²)'); first = first || liberacaoParcialAreaInput;
+          }
+        }
+        if (ehFluxoFiscalizacao_() && !eventoDeclaratorio && !ehVistoriaAcessoria_() && value('licenciamento') === 'possui') {
+          const tipoLicenciamento = String(value('tipoLicenciamentoFiscalizacao') || '').toUpperCase();
+          if (!['AVCB','CLCB'].includes(tipoLicenciamento)) {
+            tipoLicenciamentoFiscalizacaoSelect?.classList.add('invalid');
+            missing.push('Tipo do licenciamento');
+            first = first || tipoLicenciamentoFiscalizacaoSelect;
+          }
+          if (tipoLicenciamento === 'CLCB') {
+            const irregularidadeDoc = String(value('clcbIrregularidadeDocumental') || '').trim();
+            if (!irregularidadeDoc) {
+              clcbIrregularidadeDocumentalSelect?.classList.add('invalid');
+              missing.push('Irregularidade documental relacionada ao CLCB');
+              first = first || clcbIrregularidadeDocumentalSelect;
+            } else if (normalize(irregularidadeDoc) === normalize('sim') && !String(value('clcbSeraAnuladoInfoscip') || '').trim()) {
+              clcbSeraAnuladoInfoscipSelect?.classList.add('invalid');
+              missing.push('O CLCB SERÁ anulado no INFOSCIP?');
+              first = first || clcbSeraAnuladoInfoscipSelect;
+            }
           }
         }
         if (ehVistoriaAcessoria_()) {
@@ -15855,6 +15950,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return true;
       }
 
+      function sincronizarClcbFiscalizacao_() {
+        const fiscalizacaoComum = ehFluxoFiscalizacao_() && !ehEventoDeclaratorio_() && !ehVistoriaAcessoria_();
+        const possuiLicenciamento = value('licenciamento') === 'possui';
+        const mostrarTipo = fiscalizacaoComum && possuiLicenciamento;
+
+        if (tipoLicenciamentoFiscalizacaoWrap) tipoLicenciamentoFiscalizacaoWrap.hidden = !mostrarTipo;
+        if (!mostrarTipo && tipoLicenciamentoFiscalizacaoSelect) tipoLicenciamentoFiscalizacaoSelect.value = '';
+
+        const tipo = String(tipoLicenciamentoFiscalizacaoSelect?.value || '').toUpperCase();
+        const mostrarIrregularidade = mostrarTipo && tipo === 'CLCB';
+        if (clcbIrregularidadeDocumentalWrap) clcbIrregularidadeDocumentalWrap.hidden = !mostrarIrregularidade;
+        if (!mostrarIrregularidade && clcbIrregularidadeDocumentalSelect) clcbIrregularidadeDocumentalSelect.value = '';
+
+        const irregularidade = normalize(clcbIrregularidadeDocumentalSelect?.value || '') === normalize('sim');
+        const mostrarAnulacao = mostrarIrregularidade && irregularidade;
+        if (clcbSeraAnuladoInfoscipWrap) clcbSeraAnuladoInfoscipWrap.hidden = !mostrarAnulacao;
+        if (!mostrarAnulacao && clcbSeraAnuladoInfoscipSelect) clcbSeraAnuladoInfoscipSelect.value = '';
+      }
+
       function syncLicenciamento() {
         const situacao = value('licenciamento');
         const naoPossui = situacao === 'nao_possui';
@@ -15862,6 +15976,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const liberacao = ehFluxoLiberacao_();
         const eventoDeclaratorio = ehEventoDeclaratorio_();
         const acessoria = ehVistoriaAcessoria_();
+        sincronizarClcbFiscalizacao_();
 
         if (eventoDeclaratorio) {
           if (sancaoSelect) sancaoSelect.disabled = false;
@@ -19719,6 +19834,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
+        // V23.9.99gn — o campo visual da acessória mantém o id histórico para não
+        // quebrar a interface, mas os novos rascunhos gravam a semântica futura em
+        // acessoriaClcbSeraAnulado. Rascunhos antigos continuam compatíveis.
+        if (acessoriaClcbAnuladoSelect) {
+          acessoriaClcbAnuladoSelect.value = String(p.acessoriaClcbSeraAnulado || p.acessoriaClcbAnulado || '');
+        }
         protegerCamposResponsavelPreenchidos_();
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
         restaurarFotosGerais_(p.fotosGerais);
@@ -20166,6 +20287,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             icone: '📁',
             itens: [
               ['Licenciamento', textoLicenciamentoRevisao_(payload?._appLicenciamento)],
+              ...(payload?.tipoLicenciamentoFiscalizacao ? [['Tipo do licenciamento', payload.tipoLicenciamentoFiscalizacao]] : []),
+              ...(String(payload?.tipoLicenciamentoFiscalizacao || '').toUpperCase() === 'CLCB' ? [
+                ['Irregularidade documental no CLCB', payload?.clcbIrregularidadeDocumental === 'sim' ? 'Sim' : (payload?.clcbIrregularidadeDocumental === 'nao' ? 'Não' : '—')],
+                ...(payload?.clcbIrregularidadeDocumental === 'sim' ? [['Anulação no INFOSCIP', payload?.clcbSeraAnuladoInfoscip === 'sim' ? 'CLCB será anulado' : (payload?.clcbSeraAnuladoInfoscip === 'nao' ? 'Não será anulado' : '—')]] : [])
+              ] : []),
               ['Possui PSCIP?', payload?._appPossuiPscip === 'sim'
                 ? 'Sim'
                 : (payload?._appPossuiPscip === 'nao'
@@ -20183,7 +20309,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 ['Resultado da Vistoria Acessória', payload?.acessoriaResultado === 'sanadas' ? 'Irregularidades sanadas' : (payload?.acessoriaResultado === 'nao_sanadas' ? 'Irregularidades persistem' : '—')],
                 ['Documento de licenciamento', payload?.acessoriaTipoLicenca || '—'],
                 ...(payload?.acessoriaResultado === 'nao_sanadas' && String(payload?.acessoriaTipoLicenca || '').toUpperCase() === 'CLCB'
-                  ? [['Situação do CLCB', payload?.acessoriaClcbAnulado === 'sim' ? 'CLCB anulado' : (payload?.acessoriaClcbAnulado === 'nao' ? 'Irregularidades persistem — CLCB não anulado' : '—')]]
+                  ? [['Situação do CLCB', payload?.acessoriaClcbSeraAnulado === 'sim' ? 'CLCB será anulado no INFOSCIP' : (payload?.acessoriaClcbSeraAnulado === 'nao' ? 'Irregularidades persistem — CLCB não será anulado' : '—')]]
                   : [])
               ] : [])
             ]
@@ -21854,7 +21980,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gm';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gn';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -26619,6 +26745,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
+      tipoLicenciamentoFiscalizacaoSelect?.addEventListener('change', () => { sincronizarClcbFiscalizacao_(); scheduleDraftSave(); });
+      clcbIrregularidadeDocumentalSelect?.addEventListener('change', () => { sincronizarClcbFiscalizacao_(); scheduleDraftSave(); });
+      clcbSeraAnuladoInfoscipSelect?.addEventListener('change', scheduleDraftSave);
       tipoLiberacaoSelect?.addEventListener('change', () => { sincronizarTipoLiberacao_(); scheduleDraftSave(); });
       acessoriaResultadoSelect?.addEventListener('change', () => { atualizarOpcoesSancaoPorFluxo_(); sincronizarVistoriaAcessoria_(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       acessoriaTipoLicencaSelect?.addEventListener('change', () => { sincronizarVistoriaAcessoria_(); scheduleDraftSave(); });
@@ -27683,7 +27812,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gm', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gn', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
