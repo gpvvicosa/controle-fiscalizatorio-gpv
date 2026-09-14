@@ -22094,7 +22094,7 @@ body.records-mode .records-status:not(.loading):not(.error):not(.searching){disp
 
 
 /* =============================================================================
-   V23.9.99gl — Pesquisa Técnica: duas áreas, documento único e largura responsiva
+   V23.9.99gk — Pesquisa Técnica: duas áreas, documento único e largura responsiva
    ============================================================================= */
 .technical-search-mark{
   padding:0 .08em;
@@ -22359,4 +22359,39 @@ body.records-mode .records-status.loading .panel-loading-visual{
     margin:8px 0 0!important;
     font-size:11.8px!important;
   }
+}
+
+
+/* ===== V23.9.99gm — confirmação explícita das listas operacionais ===== */
+.ddu-summary-card.operational-summary-verifying,
+.programmed-summary-card.operational-summary-verifying{
+  opacity:.96;
+  cursor:progress;
+  border-style:dashed;
+  border-color:#9aa7b8!important;
+  background:linear-gradient(180deg,#fff,#f8fafc)!important;
+}
+.ddu-summary-card.operational-summary-verifying .ddu-summary-count,
+.programmed-summary-card.operational-summary-verifying .programmed-summary-count{
+  background:#eef2f6!important;
+  color:#475467!important;
+}
+.ddu-summary-card.operational-summary-check-error,
+.programmed-summary-card.operational-summary-check-error{
+  border-color:#f0a6a6!important;
+  background:#fff8f8!important;
+  cursor:pointer;
+}
+.ddu-summary-card.operational-summary-check-error .ddu-summary-count,
+.programmed-summary-card.operational-summary-check-error .programmed-summary-count{
+  background:#fee4e2!important;
+  color:#b42318!important;
+}
+.operational-check-state{padding:18px 14px!important;text-align:center!important}
+.operational-check-state.is-error{color:#b42318!important;background:#fff8f8!important;border:1px solid #fecaca!important;border-radius:12px!important}
+@media (max-width:700px){
+  .ddu-summary-card.operational-summary-verifying .ddu-summary-copy small,
+  .programmed-summary-card.operational-summary-verifying .programmed-summary-copy small,
+  .ddu-summary-card.operational-summary-check-error .ddu-summary-copy small,
+  .programmed-summary-card.operational-summary-check-error .programmed-summary-copy small{font-size:.72rem!important;line-height:1.2!important}
 }

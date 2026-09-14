@@ -17,7 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gl';
+      const APP_VERSION = '23.9.99gm';
+      // V23.9.99gm — DDU e Vistorias Programadas confirmados com prioridade, estado explícito de verificação/erro e sem zerar listas antes da resposta.
       // V23.9.99gl — Painel não bloqueante com confirmação leve por revisão, DDU com contador/lista unificados e proteção contra falso 'vistoria não iniciada'.
       // V23.9.99gk — Pesquisa Técnica em duas áreas no PC, documento ativo único, resultados destacados e visualizador ajustado à largura.
       // V23.9.99gj — Listas operacionais e Painel usam cache somente offline; online aguarda confirmação do servidor e remove encerrados do navegador.
@@ -1278,21 +1279,22 @@
         const hojeLocal = historico.filter(item => mesmoDiaLocal_(item.em)).length;
         const hojeServidor = Number.isFinite(Number(homeOperationalServidor_.hoje)) ? Number(homeOperationalServidor_.hoje) : 0;
         const hoje = Math.max(hojeLocal, hojeServidor);
-        const programadas = Array.isArray(preparacoesVistoria) ? preparacoesVistoria.length : 0;
+        const programadasConfirmadas = programadasConsultaEstado_ === 'ready' || programadasConsultaEstado_ === 'offline';
+        const programadas = programadasConfirmadas && Array.isArray(preparacoesVistoria) ? preparacoesVistoria.length : null;
         const rascunhos = usuarioPodeOperar_() ? listarRascunhosLocaisAtivos_() : [];
         const pendentesVistorias = typeof obterPendentes === 'function' ? obterPendentes().length : 0;
         const pendentesFotos = Number(photoPendingCountCache_ || 0);
         const pendentes = pendentesVistorias + pendentesFotos;
 
         homeOperationalToday.textContent = String(hoje);
-        homeOperationalProgrammed.textContent = String(programadas);
+        homeOperationalProgrammed.textContent = programadas == null ? '—' : String(programadas);
         homeOperationalDrafts.textContent = String(rascunhos.length);
         homeOperationalPending.textContent = pendentes ? String(pendentes) : '✓';
         homeOperationalPending.closest('.home-operational-metric')?.classList.toggle('is-warning', pendentes > 0);
 
         homeOperationalContext_ = null;
         const ultimoRascunho = rascunhos[0] || null;
-        const proxima = proximaProgramacaoOperacional_();
+        const proxima = programadasConfirmadas ? proximaProgramacaoOperacional_() : null;
         const ultimoLocal = historico[0] || null;
         const ultimoServidorBruto = homeOperationalServidor_.ultimo || null;
         const ultimo = ultimoLocal || (ultimoServidorBruto ? {
@@ -2655,6 +2657,8 @@
       let demandasConfiguradas = [];
       let usuariosAtivosApp = [];
       let preparacoesVistoria = [];
+      let programadasConsultaEstado_ = 'idle';
+      let programadasCarregamentoPromise_ = null;
       let sugestoesFiscalizacao = [];
       let resumoSugestoesFiscalizacao = { total: 0, alta: 0, media: 0, acompanhamento: 0 };
       let sugestoesFiscalizacaoCarregadas = false;
@@ -2678,6 +2682,8 @@
       let dduCnpjConsultaNumero = '';
       let processoAcessoriaVinculado = null;
       let ddusAtivos = [];
+      let ddusConsultaEstado_ = 'idle';
+      let ddusCarregamentoPromise_ = null;
       let detalheVistoriaCadastradaAtual_ = null;
       let vistoriaAguardandoPrimeiraEdicao_ = false;
       let vistoriaOrigemAguardandoEdicao_ = '';
@@ -2719,7 +2725,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gl';
+      const APP_REVISION_UI_ = '23.9.99gm';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4762,7 +4768,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gl', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gm', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21848,7 +21854,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gl';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gm';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23608,12 +23614,45 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function renderizarDdUs_(){
         const todos=Array.isArray(ddusAtivos)?ddusAtivos:[];
         const ativos=todos.filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado'));
+        const verificando = ddusConsultaEstado_ === 'loading';
+        const falhou = ddusConsultaEstado_ === 'error';
+        const confirmado = ddusConsultaEstado_ === 'ready' || ddusConsultaEstado_ === 'offline';
+
+        [dduSummaryCard,dduVistoriaSummaryCard].forEach(card => {
+          card?.classList.toggle('operational-summary-verifying', verificando);
+          card?.classList.toggle('operational-summary-check-error', falhou);
+          card?.setAttribute('aria-busy', verificando ? 'true' : 'false');
+        });
+
+        // Enquanto a consulta online está em andamento ou falhou, o app não usa a
+        // lista anterior como situação atual. O card permanece visível para deixar
+        // claro que a confirmação ainda está pendente e permitir nova tentativa.
+        if (verificando || falhou) {
+          if (dduSummaryCard) dduSummaryCard.hidden = false;
+          if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = false;
+          const texto = verificando
+            ? 'Verificando DDUs pendentes…'
+            : 'Não foi possível confirmar — toque para tentar novamente';
+          const contador = verificando ? '…' : '!';
+          if(dduSummaryText)dduSummaryText.textContent=texto;
+          if(dduVistoriaSummaryText)dduVistoriaSummaryText.textContent=texto;
+          if(dduSummaryCount)dduSummaryCount.textContent=contador;
+          if(dduVistoriaSummaryCount)dduVistoriaSummaryCount.textContent=contador;
+          [dduSummaryCard,dduVistoriaSummaryCard].forEach(card => card?.classList.remove('is-danger','is-warning'));
+          if (dduList) dduList.innerHTML = verificando
+            ? '<div class="prepared-empty operational-check-state">Verificando DDUs atuais no servidor…</div>'
+            : '<div class="prepared-empty operational-check-state is-error">Não foi possível confirmar os DDUs atuais. Toque no card novamente para tentar de novo.</div>';
+          if (dduListStatus) dduListStatus.textContent = verificando
+            ? 'Verificando DDUs pendentes…'
+            : 'Não foi possível confirmar os DDUs atuais.';
+          return;
+        }
+
         let vencidos=0,criticos=0; ativos.forEach(x=>{const p=classificarPrazoDdu_(x.dataLimite); if(p.c==='is-overdue')vencidos++; else if(p.c==='is-today')criticos++;});
-        // V23.9.99gj — a área operacional mostra somente DDU pendente/em andamento.
-        // A retenção de anexos concluídos continua no backend, sem manter a demanda
-        // encerrada misturada às atividades atuais do navegador.
-        if (dduSummaryCard) dduSummaryCard.hidden = ativos.length === 0;
-        if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = ativos.length === 0;
+        // A área operacional mostra somente DDU pendente/em andamento. A retenção
+        // de anexos concluídos continua no backend sem manter demanda encerrada ativa.
+        if (dduSummaryCard) dduSummaryCard.hidden = confirmado ? ativos.length === 0 : true;
+        if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = confirmado ? ativos.length === 0 : true;
         if(dduSummaryCount)dduSummaryCount.textContent=String(ativos.length);
         if(dduVistoriaSummaryCount)dduVistoriaSummaryCount.textContent=String(ativos.length);
         const base=ativos.length===1?'1 DDU aguardando vistoria':`${ativos.length} DDUs aguardando vistoria`;
@@ -23661,6 +23700,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function aplicarCacheDdus_(mensagem = '') {
         const cache = lerCacheDdus_();
         if (!cache) return false;
+        if (!navigator.onLine) ddusConsultaEstado_ = 'offline';
         ddusAtivos = cache.itens;
         renderizarDdUs_();
         if (dduListStatus) dduListStatus.textContent = mensagem || 'Exibindo a última lista sincronizada.';
@@ -23668,62 +23708,48 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function carregarDdUs_(){
-        const inicioLoadingDdu = Date.now();
-        const tempoMinimoLoading = 250;
+        if (ddusCarregamentoPromise_) return ddusCarregamentoPromise_;
+        ddusCarregamentoPromise_ = (async () => {
+          const inicioLoadingDdu = Date.now();
+          const tempoMinimoLoading = 120;
 
-        if (!navigator.onLine) {
-          const tinhaCacheOffline = aplicarCacheDdus_('Dados salvos neste aparelho — podem estar desatualizados.');
-          if (!tinhaCacheOffline) {
-            ddusAtivos = [];
-            renderizarDdUs_();
-            if (dduSummaryCard) dduSummaryCard.hidden = true;
-            if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
-            if (dduListStatus) dduListStatus.textContent = 'Offline — nenhum DDU salvo neste aparelho.';
+          if (!navigator.onLine) {
+            ddusConsultaEstado_ = 'offline';
+            const tinhaCacheOffline = aplicarCacheDdus_('Dados salvos neste aparelho — podem estar desatualizados.');
+            if (!tinhaCacheOffline) {
+              ddusAtivos = [];
+              renderizarDdUs_();
+              if (dduSummaryCard) dduSummaryCard.hidden = true;
+              if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
+              if (dduListStatus) dduListStatus.textContent = 'Offline — nenhum DDU salvo neste aparelho.';
+            }
+            return;
           }
-          return;
-        }
 
-        // Online: nunca mostra primeiro a lista antiga do navegador.
-        ddusAtivos = [];
-        renderizarDdUs_();
-        if (dduListStatus) dduListStatus.textContent = 'Atualizando DDUs pendentes...';
-        if (dduSummaryCard) dduSummaryCard.hidden = true;
-        if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
-        dduSummaryCard?.classList.add('is-loading');
-        if (dduSummaryCard && !dduSummaryCard.querySelector('.ddu-live-loading-bar')) {
-          dduSummaryCard.insertAdjacentHTML('beforeend', '<span class="ddu-live-loading-bar" aria-hidden="true"><i></i></span>');
-        }
-        if(dduSummaryText)dduSummaryText.innerHTML='<span class="ddu-loading-label">Atualizando demandas...</span>';
-        if(dduSummaryCount)dduSummaryCount.innerHTML='<span class="ddu-count-loading" aria-hidden="true"></span>';
+          // Online: não zera a lista antes da resposta. O conteúdo anterior fica apenas
+          // em memória/cache e não é exibido como situação atual durante a confirmação.
+          ddusConsultaEstado_ = 'loading';
+          renderizarDdUs_();
 
-        try{
-          const r=await apiRequest('config',{consulta:'ddus'},15000);
-          const novosDdUs=Array.isArray(r?.itens)?r.itens:[];
-          const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
-          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
-          ddusAtivos=novosDdUs;
-          try { localStorage.setItem(DDU_CACHE_STORAGE, JSON.stringify({ salvoEm: Date.now(), itens: ddusAtivos })); } catch (_) {}
-          dduSummaryCard?.classList.remove('is-loading');
-          dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
-          renderizarDdUs_();
-          const totalAtivos = ddusAtivos.filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado')).length;
-          if(dduListStatus)dduListStatus.textContent=totalAtivos===1?'1 DDU pendente.':`${totalAtivos} DDUs pendentes.`;
-        }catch(e){
-          console.error('Falha ao carregar DDU:',e);
-          const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
-          if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
-          dduSummaryCard?.classList.remove('is-loading');
-          dduSummaryCard?.querySelector('.ddu-live-loading-bar')?.remove();
-          ddusAtivos = [];
-          renderizarDdUs_();
-          if(dduSummaryText)dduSummaryText.textContent='Não foi possível confirmar';
-          if(dduSummaryCount)dduSummaryCount.textContent='';
-          if (dduSummaryCard) dduSummaryCard.hidden = true;
-          if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
-          dduSummaryCard?.classList.remove('is-danger','is-warning');
-          dduVistoriaSummaryCard?.classList.remove('is-danger','is-warning');
-          if(dduListStatus)dduListStatus.textContent='Não foi possível confirmar os DDU atuais. Nenhuma lista antiga foi exibida; toque novamente para tentar de novo.';
-        }
+          try{
+            const r=await apiRequest('config',{consulta:'ddus'},15000);
+            const novosDdUs=Array.isArray(r?.itens)?r.itens:[];
+            const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
+            if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
+            ddusAtivos=novosDdUs;
+            ddusConsultaEstado_ = 'ready';
+            try { localStorage.setItem(DDU_CACHE_STORAGE, JSON.stringify({ salvoEm: Date.now(), itens: ddusAtivos })); } catch (_) {}
+            renderizarDdUs_();
+          }catch(e){
+            console.error('Falha ao carregar DDU:',e);
+            const espera=Math.max(0,tempoMinimoLoading-(Date.now()-inicioLoadingDdu));
+            if(espera) await new Promise(resolve=>setTimeout(resolve,espera));
+            ddusConsultaEstado_ = 'error';
+            renderizarDdUs_();
+          }
+        })();
+        try { return await ddusCarregamentoPromise_; }
+        finally { ddusCarregamentoPromise_ = null; }
       }
       function obterIdCadastroDdu_() {
         if (dduEditandoId) return String(dduEditandoId);
@@ -24466,6 +24492,35 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function atualizarVisibilidadeProgramadasMobile_() {
         const lista = Array.isArray(preparacoesVistoria) ? preparacoesVistoria : [];
+        const verificando = programadasConsultaEstado_ === 'loading';
+        const falhou = programadasConsultaEstado_ === 'error';
+        const confirmado = programadasConsultaEstado_ === 'ready' || programadasConsultaEstado_ === 'offline';
+
+        [programmedSummaryCard,dashboardProgrammedSummaryCard].forEach(card => {
+          card?.classList.toggle('operational-summary-verifying', verificando);
+          card?.classList.toggle('operational-summary-check-error', falhou);
+          card?.setAttribute('aria-busy', verificando ? 'true' : 'false');
+        });
+
+        if (verificando || falhou) {
+          const texto = verificando
+            ? 'Verificando Vistorias Programadas…'
+            : 'Não foi possível confirmar — toque para tentar novamente';
+          const contador = verificando ? '…' : '!';
+          if (programmedSummaryRow) programmedSummaryRow.hidden = false;
+          if (dashboardProgrammedSummaryCard) dashboardProgrammedSummaryCard.hidden = false;
+          if (programmedSummaryText) programmedSummaryText.textContent = texto;
+          if (dashboardProgrammedSummaryText) dashboardProgrammedSummaryText.textContent = texto;
+          if (programmedSummaryCount) programmedSummaryCount.textContent = contador;
+          if (dashboardProgrammedSummaryCount) dashboardProgrammedSummaryCount.textContent = contador;
+          [programmedSummaryCard,dashboardProgrammedSummaryCard].forEach(card => {
+            card?.classList.remove('is-danger');
+            card?.setAttribute('aria-label', texto);
+          });
+          if (homeOperationalProgrammed) homeOperationalProgrammed.textContent = '—';
+          return;
+        }
+
         const total = lista.length;
         const minhas = preparacoesDoUsuarioLogado_().length;
         let criticas = 0;
@@ -24475,7 +24530,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         if (programmedInspectionsBox) programmedInspectionsBox.setAttribute('data-program-count', String(total));
-        if (programmedSummaryRow) programmedSummaryRow.hidden = total === 0;
+        if (programmedSummaryRow) programmedSummaryRow.hidden = confirmado ? total === 0 : true;
         if (programmedSummaryCard) {
           programmedSummaryCard.classList.toggle('is-danger', criticas > 0);
           programmedSummaryCard.setAttribute('aria-label', total
@@ -24487,10 +24542,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
           : 'Nenhuma vistoria programada';
 
-        // V23.9.99fq — no Painel, Vistorias Programadas segue a mesma lógica do DDU:
-        // aparece somente quando há programação pendente e abre a lista para consulta.
         if (dashboardProgrammedSummaryCard) {
-          dashboardProgrammedSummaryCard.hidden = total === 0;
+          dashboardProgrammedSummaryCard.hidden = confirmado ? total === 0 : true;
           dashboardProgrammedSummaryCard.classList.toggle('is-danger', criticas > 0);
           dashboardProgrammedSummaryCard.setAttribute('aria-label', total
             ? `Abrir Vistorias Programadas. ${total} programada${total === 1 ? '' : 's'}${minhas ? `, ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}.`
@@ -25117,6 +25170,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         atualizarVisibilidadeProgramadasMobile_();
+        if (programadasConsultaEstado_ === 'loading' || programadasConsultaEstado_ === 'error') {
+          if (preparedInspectionsList) {
+            const verificando = programadasConsultaEstado_ === 'loading';
+            preparedInspectionsList.classList.toggle('is-loading', verificando);
+            preparedInspectionsList.innerHTML = verificando
+              ? '<div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Verificando vistorias programadas"><span class="prepared-loading-track-knob" aria-hidden="true"></span></div>'
+              : '<div class="prepared-empty operational-check-state is-error">Não foi possível confirmar as Vistorias Programadas atuais. Toque no card novamente para tentar de novo.</div>';
+          }
+          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = programadasConsultaEstado_ === 'loading'
+            ? 'Verificando Vistorias Programadas…'
+            : 'Não foi possível confirmar as Vistorias Programadas atuais.';
+          return;
+        }
         atualizarIndicadorPreparacoesUsuario_();
         atualizarAlertaPrazosProgramados_();
         if (!preparedInspectionsList) return;
@@ -25187,56 +25253,56 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       async function carregarPreparacoesVistoria_() {
-        const inicioLoadingProgramadas = Date.now();
-        const tempoMinimoLoading = 250;
-        const cacheKey = 'gpv_preparacoes_cache_v1';
-        let cachePreparacoes = [];
-        try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
-        const cacheDisponivel = Array.isArray(cachePreparacoes) && cachePreparacoes.length > 0;
+        if (programadasCarregamentoPromise_) return programadasCarregamentoPromise_;
+        programadasCarregamentoPromise_ = (async () => {
+          const inicioLoadingProgramadas = Date.now();
+          const tempoMinimoLoading = 120;
+          const cacheKey = 'gpv_preparacoes_cache_v1';
+          let cachePreparacoes = [];
+          try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
+          const cacheDisponivel = Array.isArray(cachePreparacoes) && cachePreparacoes.length > 0;
 
-        if (!navigator.onLine) {
-          if (cacheDisponivel) {
-            preparacoesVistoria = cachePreparacoes;
-            renderizarPreparacoesVistoria_();
-            if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Dados salvos neste aparelho — podem estar desatualizados.';
-          } else {
-            preparacoesVistoria = [];
-            renderizarPreparacoesVistoria_();
-            if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — nenhuma programação armazenada neste aparelho.';
+          if (!navigator.onLine) {
+            programadasConsultaEstado_ = 'offline';
+            if (cacheDisponivel) {
+              preparacoesVistoria = cachePreparacoes;
+              renderizarPreparacoesVistoria_();
+              if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Dados salvos neste aparelho — podem estar desatualizados.';
+            } else {
+              preparacoesVistoria = [];
+              renderizarPreparacoesVistoria_();
+              if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — nenhuma programação armazenada neste aparelho.';
+            }
+            return;
           }
-          return;
-        }
 
-        // Online: lista antiga do navegador não é tratada como situação operacional atual.
-        preparacoesVistoria = [];
-        renderizarPreparacoesVistoria_();
-        if (programmedSummaryRow) programmedSummaryRow.hidden = true;
-        preparedInspectionsList?.classList.add('is-loading');
-        if (preparedInspectionsList) {
-          preparedInspectionsList.innerHTML = `
-            <div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Atualizando vistorias programadas">
-              <span class="prepared-loading-track-knob" aria-hidden="true"></span>
-            </div>`;
-        }
-        if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Atualizando vistorias programadas...';
-        try {
-          const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
-          const novasPreparacoes = Array.isArray(r?.itens) ? r.itens : [];
-          const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
-          preparacoesVistoria = novasPreparacoes;
-          try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
-          preparedInspectionsList?.classList.remove('is-loading');
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = preparacoesVistoria.length === 1 ? '1 vistoria pendente.' : `${preparacoesVistoria.length} vistorias pendentes.`;
+          // Online: não converte uma situação ainda desconhecida em zero pendências.
+          // A lista anterior permanece apenas em memória até o servidor confirmar a atual.
+          programadasConsultaEstado_ = 'loading';
           renderizarPreparacoesVistoria_();
-        } catch (erro) {
-          const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-          if (espera) await new Promise(resolve => setTimeout(resolve, espera));
-          preparacoesVistoria = [];
-          preparedInspectionsList?.classList.remove('is-loading');
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Não foi possível confirmar as programações atuais. Nenhuma lista antiga foi exibida.';
-          renderizarPreparacoesVistoria_();
-        }
+          try {
+            const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
+            const novasPreparacoes = Array.isArray(r?.itens) ? r.itens : [];
+            const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
+            if (espera) await new Promise(resolve => setTimeout(resolve, espera));
+            preparacoesVistoria = novasPreparacoes;
+            programadasConsultaEstado_ = 'ready';
+            try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
+            preparedInspectionsList?.classList.remove('is-loading');
+            renderizarPreparacoesVistoria_();
+            if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = preparacoesVistoria.length === 1
+              ? '1 vistoria pendente.'
+              : (preparacoesVistoria.length ? `${preparacoesVistoria.length} vistorias pendentes.` : 'Nenhuma vistoria programada pendente.');
+          } catch (erro) {
+            const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
+            if (espera) await new Promise(resolve => setTimeout(resolve, espera));
+            programadasConsultaEstado_ = 'error';
+            preparedInspectionsList?.classList.remove('is-loading');
+            renderizarPreparacoesVistoria_();
+          }
+        })();
+        try { return await programadasCarregamentoPromise_; }
+        finally { programadasCarregamentoPromise_ = null; }
       }
 
       async function excluirPreparacaoVistoria_(item) {
@@ -25798,12 +25864,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function agendarCargaAuxiliarProgressiva_() {
         if (!navigator.onLine || !usuarioPodeOperar_()) return;
 
-        // Após muitas horas/dias sem uso, evita três consultas simultâneas logo na abertura.
-        // Usuários/configuração podem usar cache; listas operacionais online aguardam confirmação atual do servidor.
+        // DDU e Vistorias Programadas são listas operacionais prioritárias. A interface
+        // entra imediatamente em estado de confirmação sem apagar os dados em memória;
+        // a consulta começa quase junto da abertura e não espera o Painel pesado.
+        programadasConsultaEstado_ = 'loading';
+        ddusConsultaEstado_ = 'loading';
+        renderizarPreparacoesVistoria_();
+        renderizarDdUs_();
+
         const longaPausa = appRetomadaAposLongaPausa_;
         const atrasos = longaPausa
-          ? { usuarios: 900, programadas: 2200, ddu: 3800, painel: 16000 }
-          : { usuarios: 350, programadas: 1000, ddu: 1900, painel: 8000 };
+          ? { usuarios: 900, programadas: 120, ddu: 240, painel: 16000 }
+          : { usuarios: 350, programadas: 60, ddu: 140, painel: 8000 };
 
         setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarUsuariosVistoriadores_(); }, atrasos.usuarios);
         setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarPreparacoesVistoria_(); }, atrasos.programadas);
@@ -25847,6 +25919,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // operacionais (Programadas/DDU) usam cache somente quando o aparelho está offline.
         aplicarCacheVistoriadores_();
         if (usuarioPodeOperar_() && !navigator.onLine) {
+          programadasConsultaEstado_ = 'offline';
+          ddusConsultaEstado_ = 'offline';
           try {
             const cacheProgramadas = JSON.parse(localStorage.getItem('gpv_preparacoes_cache_v1') || '[]');
             if (Array.isArray(cacheProgramadas) && cacheProgramadas.length) {
@@ -27609,7 +27683,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gl', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gm', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
