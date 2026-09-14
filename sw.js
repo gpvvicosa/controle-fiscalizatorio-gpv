@@ -1,6 +1,10 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gt-painel-progressivo';
-const VERSION = '23.9.99gu';
+const CACHE_NAME = 'gpv-vistorias-shell-20260914-v23-9-99-gv-estabilidade';
+const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
+const VERSION = '23.9.99gv';
 
+// V23.9.99gv — instalação leve: somente o núcleo necessário para abrir/operar o PWA.
+// Manuais, ITs, PDFs e imagens técnicas são armazenados sob demanda em cache separado,
+// que sobrevive às trocas de versão do shell e não bloqueia a atualização do aplicativo.
 const CORE_SHELL = [
   './',
   './index.html',
@@ -18,164 +22,6 @@ const CORE_SHELL = [
   './offline.html'
 ];
 
-const OPTIONAL_SHELL = [
-  './base-normativa-its.json?v=23.9.99l',
-  './assets/cabecalho.webp',
-  './assets/logo-cbmmg.png',
-  `./assets/logo-gpv.png?v=${VERSION}`,
-  `./assets/miniatura-app-vistoriador-ch.jpg?v=${VERSION}`,
-  `./assets/app-vistoriador-icon-maskable-512-ck.png?v=${VERSION}`,
-  './assets/manual-do-autuado-infoscip-fiscalizacao.pdf',
-  './assets/manual-do-militar-infoscip-fiscalizacao.pdf',
-  './assets/infoscip-fiscalizacao-search-index.json',
-  './assets/manual-pages/autuado/p001.webp',
-  './assets/manual-pages/autuado/p032.webp',
-  './assets/manual-pages/autuado/p034.webp',
-  './assets/manual-pages/autuado/p045.webp',
-  './assets/manual-pages/militar/p001.webp',
-  './assets/manual-pages/militar/p017.webp',
-  './assets/manual-pages/militar/p049.webp',
-  './assets/manual-pages/militar/p051.webp',
-  './manual/',
-  './instrucoes-tecnicas/assets/app.js',
-  './instrucoes-tecnicas/assets/its.js',
-  './instrucoes-tecnicas/assets/portal.js',
-  './instrucoes-tecnicas/assets/search-index.js',
-  './instrucoes-tecnicas/assets/style.css',
-  './instrucoes-tecnicas/assets/visual/it-01-p77.webp',
-  './instrucoes-tecnicas/assets/visual/it-01-p78.webp',
-  './instrucoes-tecnicas/assets/visual/it-01-p79.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p17.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p18.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p19.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p20.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p21.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p22.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p23.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p24.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p25.webp',
-  './instrucoes-tecnicas/assets/visual/it-17-p18.webp',
-  './instrucoes-tecnicas/assets/visual/it-17-p21.webp',
-  './instrucoes-tecnicas/assets/visual/it-17-p23.webp',
-  './instrucoes-tecnicas/assets/visual/it-17-p24.webp',
-  './instrucoes-tecnicas/assets/visual/it-17-p27.webp',
-  './instrucoes-tecnicas/assets/visual/it-17-p30.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p47.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p48.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p49.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p50.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p51.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p52.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p53.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p54.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p55.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p56.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p57.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p58.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p59.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p60.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p61.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p62.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p63.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p64.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p65.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p66.webp',
-  './instrucoes-tecnicas/assets/visual/it-23-p67.webp',
-  './instrucoes-tecnicas/assets/visual/it-28-p05.webp',
-  './instrucoes-tecnicas/assets/visual/it-29-p05.webp',
-  './instrucoes-tecnicas/assets/visual/it-29-p06.webp',
-  './instrucoes-tecnicas/assets/visual/it-29-p07.webp',
-  './instrucoes-tecnicas/assets/visual/it-35-p23.webp',
-  './instrucoes-tecnicas/assets/visual/it-35-p27.webp',
-  './instrucoes-tecnicas/assets/visual/it-35-p28.webp',
-  './instrucoes-tecnicas/assets/visual/it-38-p06.webp',
-  './instrucoes-tecnicas/assets/visual/it-38-p08.webp',
-  './instrucoes-tecnicas/assets/visual/it-39-p14.webp',
-  './instrucoes-tecnicas/assets/visual/it-39-p15.webp',
-  './instrucoes-tecnicas/assets/visual/it-39-p16.webp',
-  './instrucoes-tecnicas/assets/visual/it-39-p17.webp',
-  './instrucoes-tecnicas/assets/visual/it-03-p65.webp',
-  './instrucoes-tecnicas/assets/visual/it-03-p89.webp',
-  './instrucoes-tecnicas/assets/visual/it-03-p90.webp',
-  './instrucoes-tecnicas/assets/visual/it-03-p91.webp',
-  './instrucoes-tecnicas/assets/visual/it-03-p92.webp',
-  './instrucoes-tecnicas/assets/visual/it-03-p93.webp',
-  './instrucoes-tecnicas/assets/visual/it-03-p94.webp',
-  './instrucoes-tecnicas/assets/visual/it-10-p27.webp',
-  './instrucoes-tecnicas/assets/visual/it-10-p28.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p26.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p27.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p28.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p29.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p30.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p31.webp',
-  './instrucoes-tecnicas/assets/visual/it-15-p32.webp',
-  './instrucoes-tecnicas/assets/visual/it-41-p69.webp',
-  './instrucoes-tecnicas/assets/visual/it-41-p70.webp',
-  './instrucoes-tecnicas/assets/visual/it-41-p71.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p21.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p26.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p45.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p46.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p50.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p51.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p52.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p54.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p55.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p66.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p67.webp',
-  './instrucoes-tecnicas/assets/visual/it-33-p69.webp',
-  './instrucoes-tecnicas/index.html',
-  './instrucoes-tecnicas/its/it-01.html',
-  './instrucoes-tecnicas/its/it-02.html',
-  './instrucoes-tecnicas/its/it-03.html',
-  './instrucoes-tecnicas/its/it-04.html',
-  './instrucoes-tecnicas/its/it-05.html',
-  './instrucoes-tecnicas/its/it-06.html',
-  './instrucoes-tecnicas/its/it-07.html',
-  './instrucoes-tecnicas/its/it-08.html',
-  './instrucoes-tecnicas/its/it-09.html',
-  './instrucoes-tecnicas/its/it-10.html',
-  './instrucoes-tecnicas/its/it-11.html',
-  './instrucoes-tecnicas/its/it-12.html',
-  './instrucoes-tecnicas/its/it-13.html',
-  './instrucoes-tecnicas/its/it-14.html',
-  './instrucoes-tecnicas/its/it-15.html',
-  './instrucoes-tecnicas/its/it-16.html',
-  './instrucoes-tecnicas/its/it-17.html',
-  './instrucoes-tecnicas/its/it-18.html',
-  './instrucoes-tecnicas/its/it-19.html',
-  './instrucoes-tecnicas/its/it-20.html',
-  './instrucoes-tecnicas/its/it-21.html',
-  './instrucoes-tecnicas/its/it-22.html',
-  './instrucoes-tecnicas/its/it-23.html',
-  './instrucoes-tecnicas/its/it-24.html',
-  './instrucoes-tecnicas/its/it-25.html',
-  './instrucoes-tecnicas/its/it-26.html',
-  './instrucoes-tecnicas/its/it-27.html',
-  './instrucoes-tecnicas/its/it-28.html',
-  './instrucoes-tecnicas/its/it-29.html',
-  './instrucoes-tecnicas/its/it-30.html',
-  './instrucoes-tecnicas/its/it-31.html',
-  './instrucoes-tecnicas/its/it-32.html',
-  './instrucoes-tecnicas/its/it-33.html',
-  './instrucoes-tecnicas/its/it-34.html',
-  './instrucoes-tecnicas/its/it-35.html',
-  './instrucoes-tecnicas/its/it-36.html',
-  './instrucoes-tecnicas/its/it-37.html',
-  './instrucoes-tecnicas/its/it-38.html',
-  './instrucoes-tecnicas/its/it-39.html',
-  './instrucoes-tecnicas/its/it-40.html',
-  './instrucoes-tecnicas/its/it-41.html',
-  './instrucoes-tecnicas/its/it-42.html',
-  './instrucoes-tecnicas/its/it-43.html',
-  './instrucoes-tecnicas/its/it-44.html',
-  './instrucoes-tecnicas/its/it-45.html'
-
-];
-
-// V23.9.99dl — recursos compartilhados do acervo de ITs devem ser renovados
-// na atualização para evitar manter CSS/JS antigo ou incompleto no cache.
 const IT_SHARED_CRITICAL_PATHS = new Set([
   '/instrucoes-tecnicas/assets/app.js',
   '/instrucoes-tecnicas/assets/its.js',
@@ -200,67 +46,21 @@ function ehAssetCompartilhadoIts_(url) {
   return IT_SHARED_CRITICAL_PATHS.has(caminhoRelativoAoEscopo_(url));
 }
 
-async function buscarOpcionalComLimite(request, timeoutMs = 6000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const resposta = await fetch(request, { cache: 'no-store', signal: controller.signal });
-    return resposta && resposta.ok ? resposta : null;
-  } catch (_) {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function copiarOpcionaisDaVersaoAnterior(cacheAtual) {
-  const chaves = (await caches.keys()).filter(key =>
-    key.startsWith('gpv-vistorias-pwa-') && key !== CACHE_NAME
-  );
-  if (!chaves.length) return false;
-
-  const cachesAntigos = await Promise.all(chaves.map(key => caches.open(key)));
-  await Promise.allSettled(OPTIONAL_SHELL.map(async url => {
-    const req = new Request(new URL(url, self.location.href).href);
-
-    // CSS/JS compartilhados das ITs: tenta sempre a versão publicada primeiro.
-    // Se a rede falhar, reaproveita a última cópia válida para manter o offline.
-    if (ehAssetCompartilhadoIts_(req.url)) {
-      const nova = await buscarOpcionalComLimite(req);
-      if (nova) {
-        await cacheAtual.put(req, nova.clone());
-        return;
-      }
-    }
-
-    for (const cacheAntigo of cachesAntigos) {
-      const resposta = await cacheAntigo.match(req, { ignoreSearch: true });
-      if (resposta) {
-        await cacheAtual.put(req, resposta.clone());
-        return;
-      }
-    }
-
-    // Arquivo ainda ausente: tenta baixar com limite curto.
-    const nova = await buscarOpcionalComLimite(req);
-    if (nova) await cacheAtual.put(req, nova.clone());
-  }));
-  return true;
+function ehDocumentoRuntime_(url) {
+  const path = caminhoRelativoAoEscopo_(url);
+  return path === '/base-normativa-its.json' ||
+    path === '/assets/infoscip-fiscalizacao-search-index.json' ||
+    path === '/assets/manual-do-autuado-infoscip-fiscalizacao.pdf' ||
+    path === '/assets/manual-do-militar-infoscip-fiscalizacao.pdf' ||
+    path.startsWith('/assets/manual-pages/') ||
+    path.startsWith('/instrucoes-tecnicas/') ||
+    path.startsWith('/manual/');
 }
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // Arquivos críticos continuam sendo baixados na versão atual.
     await cache.addAll(CORE_SHELL);
-
-    // Em atualização, reaproveita localmente os arquivos auxiliares já armazenados
-    // (Manual/ITs/imagens), evitando baixar novamente dezenas de arquivos após dias sem uso.
-    const migrou = await copiarOpcionaisDaVersaoAnterior(cache);
-    if (!migrou) {
-      // Primeira instalação: mantém o comportamento offline completo.
-      await Promise.allSettled(OPTIONAL_SHELL.map(url => cache.add(url)));
-    }
     await self.skipWaiting();
   })());
 });
@@ -269,8 +69,11 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys
-      .filter(key => key.startsWith('gpv-vistorias-pwa-') && key !== CACHE_NAME)
+      .filter(key => key.startsWith('gpv-vistorias-pwa-') || key.startsWith('gpv-vistorias-shell-'))
+      .filter(key => key !== CACHE_NAME)
       .map(key => caches.delete(key)));
+    // RUNTIME_CACHE_NAME é intencionalmente preservado para manter documentos já
+    // consultados disponíveis offline sem recopiá-los a cada atualização do PWA.
     await self.clients.claim();
   })());
 });
@@ -279,11 +82,11 @@ self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-async function atualizarCacheEmSegundoPlano(request, cacheKey = request) {
+async function atualizarCacheEmSegundoPlano(request, cacheKey = request, cacheName = CACHE_NAME) {
   try {
     const response = await fetch(request, { cache: 'no-store' });
-    if (response && response.ok) {
-      const cache = await caches.open(CACHE_NAME);
+    if (response && response.ok && response.status === 200) {
+      const cache = await caches.open(cacheName);
       await cache.put(cacheKey, response.clone());
     }
     return response;
@@ -293,44 +96,55 @@ async function atualizarCacheEmSegundoPlano(request, cacheKey = request) {
 }
 
 async function cacheRapidoComAtualizacao(request, fallbackUrl = '', cacheKey = request) {
-  const cached = await caches.match(request);
-  if (cached) return { response: cached, refresh: atualizarCacheEmSegundoPlano(request, cacheKey) };
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request, { ignoreSearch: false }) || await cache.match(request, { ignoreSearch: true });
+  if (cached) return { response: cached, refresh: atualizarCacheEmSegundoPlano(request, cacheKey, CACHE_NAME) };
 
   if (fallbackUrl) {
-    const fallback = await caches.match(fallbackUrl);
-    if (fallback) return { response: fallback, refresh: atualizarCacheEmSegundoPlano(request, cacheKey) };
+    const fallback = await cache.match(fallbackUrl, { ignoreSearch: true });
+    if (fallback) return { response: fallback, refresh: atualizarCacheEmSegundoPlano(request, cacheKey, CACHE_NAME) };
   }
 
-  // Somente quando não existe shell armazenado é necessário aguardar a rede.
   const response = await fetch(request, { cache: 'no-store' });
-  if (response && response.ok) {
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(request, response.clone()).catch(() => {});
-  }
+  if (response && response.ok && response.status === 200) cache.put(request, response.clone()).catch(() => {});
   return { response, refresh: Promise.resolve() };
 }
 
-async function redePrimeiroComCache_(request, fallbackUrl = '') {
+async function redePrimeiroComCache_(request, fallbackUrl = '', cacheName = RUNTIME_CACHE_NAME) {
   let response = null;
   try {
     response = await fetch(request, { cache: 'no-store' });
     if (response && response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put(request, response.clone());
+      if (response.status === 200) {
+        const cache = await caches.open(cacheName);
+        await cache.put(request, response.clone());
+      }
       return response;
     }
   } catch (_) {
     response = null;
   }
 
-  const cached = await caches.match(request, { ignoreSearch: true });
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request, { ignoreSearch: true });
   if (cached) return cached;
   if (fallbackUrl) {
-    const fallback = await caches.match(fallbackUrl, { ignoreSearch: true });
+    const fallback = await cache.match(fallbackUrl, { ignoreSearch: true });
     if (fallback) return fallback;
   }
   if (response) return response;
   throw new Error('Recurso indisponível na rede e no cache.');
+}
+
+async function runtimeCachePrimeiro_(request) {
+  const cache = await caches.open(RUNTIME_CACHE_NAME);
+  const cached = await cache.match(request, { ignoreSearch: true });
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response && response.ok && response.status === 200) {
+    cache.put(request, response.clone()).catch(() => {});
+  }
+  return response;
 }
 
 self.addEventListener('fetch', event => {
@@ -341,10 +155,8 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    // As páginas das Instruções Técnicas são documentos próprios. Nunca usar
-    // o index.html do App como fallback de uma URL do acervo.
     if (ehRotaIts_(url)) {
-      event.respondWith(redePrimeiroComCache_(request, './instrucoes-tecnicas/index.html'));
+      event.respondWith(redePrimeiroComCache_(request, './instrucoes-tecnicas/index.html', RUNTIME_CACHE_NAME));
       return;
     }
 
@@ -356,10 +168,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // CSS/JS do acervo: rede primeiro para recuperar imediatamente uma cópia
-  // íntegra; cache é fallback para uso offline.
   if (ehAssetCompartilhadoIts_(url)) {
-    event.respondWith(redePrimeiroComCache_(request));
+    event.respondWith(redePrimeiroComCache_(request, '', RUNTIME_CACHE_NAME));
     return;
   }
 
@@ -367,7 +177,7 @@ self.addEventListener('fetch', event => {
   const arquivoCritico = destino === 'style' || destino === 'script' ||
     /\/(?:styles\.css|app\.js|config\.js|ocupacoes\.js|notificacoes-infoscip\.js)$/.test(url.pathname);
 
-  if (arquivoCritico) {
+  if (arquivoCritico && !ehDocumentoRuntime_(url)) {
     event.respondWith((async () => {
       const resultado = await cacheRapidoComAtualizacao(request);
       event.waitUntil(resultado.refresh.catch(() => {}));
@@ -376,26 +186,30 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  if (ehDocumentoRuntime_(url)) {
+    event.respondWith(runtimeCachePrimeiro_(request));
+    return;
+  }
+
   event.respondWith((async () => {
-    const cached = await caches.match(request);
+    const cached = await caches.match(request, { ignoreSearch: true });
     if (cached) return cached;
     try {
       const response = await fetch(request);
-      if (response && response.ok && response.type === 'basic') {
+      if (response && response.ok && response.status === 200 && response.type === 'basic') {
         const copy = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
       }
       return response;
     } catch (error) {
       if (request.destination === 'document') {
-        const offline = await caches.match('./offline.html');
+        const offline = await caches.match('./offline.html', { ignoreSearch: true });
         if (offline) return offline;
       }
       throw error;
     }
   })());
 });
-
 
 // =============================================================================
 // V23.9.99cl — PUSH SEGURO
@@ -405,8 +219,8 @@ self.addEventListener('fetch', event => {
 self.addEventListener('push', event => {
   event.waitUntil(self.registration.showNotification('App do Vistoriador', {
     body: 'Novo aviso disponível. Abra o aplicativo para consultar.',
-    icon: './assets/icon-192.png',
-    badge: './assets/icon-192.png',
+    icon: './assets/app-vistoriador-icon-192-ck.png',
+    badge: './assets/app-vistoriador-icon-192-ck.png',
     tag: 'app-vistoriador-aviso',
     renotify: true,
     requireInteraction: false,

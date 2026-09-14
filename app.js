@@ -5,6 +5,8 @@
       const PENDING_KEY = 'appVistoriaGpvPendentesV1';
       const HOME_OPERATIONAL_LOG_STORAGE = 'gpvHomeOperationalLogV1';
       const CONFIG_CACHE_KEY = 'appVistoriaGpvConfigPwaV1';
+      const CONFIG_SYNC_META_STORAGE = 'gpvConfigSyncMetaV1';
+      const CONFIG_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
       const DB_NAME = 'ControleVistoriasGPV';
       const DB_VERSION = 2;
       const DB_STORE = 'pendentes';
@@ -17,7 +19,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gu';
+      const APP_VERSION = '23.9.99gv';
+      // V23.9.99gv — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
       // V23.9.99gq — Histórico INFOSCIP de anulação do CLCB usa somente o modelo com fato consumado: FOI ANULADO.
@@ -1541,9 +1544,13 @@
         '',
         'registros',
         'painel_revisao',
+        'inicio_rapido',
+        'painel_resumo',
+        'registros_progressivos',
         'registros_sync',
         'registro',
         'registro_extras',
+        'registro_localizacao',
         'responsavel_telefone',
         'responsavel_cpf',
         'responsavel_busca',
@@ -2745,7 +2752,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gu';
+      const APP_REVISION_UI_ = '23.9.99gv';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4797,7 +4804,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gu', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gv', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8334,13 +8341,17 @@
         }, Math.max(80, Number(opcoes.atraso || 240)));
       }
 
-      function agendarAtualizacaoListasOperacionaisAoRetornar_(motivo = 'retorno ao app', atraso = 320) {
+      function agendarAtualizacaoListasOperacionaisAoRetornar_(motivo = 'retorno ao app', atraso = 320, opcoes = {}) {
         if (!navigator.onLine || !authState.sessionToken || !usuarioPodeOperar_()) return;
+        const forcar = opcoes.forcar === true;
         clearTimeout(operationalListsRefreshTimer_);
         operationalListsRefreshTimer_ = setTimeout(() => {
           operationalListsRefreshTimer_ = null;
           if (!navigator.onLine || document.visibilityState !== 'visible' || !authState.sessionToken || !usuarioPodeOperar_()) return;
-          void carregarInicioRapido_({ forcar:true });
+          // V23.9.99gv — focus/pageshow/visibilitychange podem ocorrer em sequência.
+          // Reaproveita o resumo confirmado por até 60 s e só força nova consulta após
+          // uma ausência relevante, evitando tempestade de requisições no Apps Script.
+          void carregarInicioRapido_({ forcar });
           if (programmedListModal && !programmedListModal.hidden) void carregarPreparacoesVistoria_();
           if (dduListModal && !dduListModal.hidden) void carregarDdUs_();
         }, Math.max(80, Number(atraso || 320)));
@@ -22296,7 +22307,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gu';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gv';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -26388,7 +26399,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             try {
               const data = await apiRequest('config', {}, 30000);
               aplicarConfig(data);
-              try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+              try {
+                localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(data));
+                localStorage.setItem(CONFIG_SYNC_META_STORAGE, JSON.stringify({ versao: APP_VERSION, em: Date.now() }));
+              } catch (e) {}
               appStatus.textContent = usuarioPodeOperar_() ? 'Sistema pronto para registrar vistoria.' : 'Sistema pronto para consulta e treinamento.';
             } catch (error) {
               appStatus.textContent = cached ? 'Aplicativo pronto com configuração armazenada.' : 'Aplicativo pronto com configuração padrão.';
@@ -26396,10 +26410,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
           };
 
-          // V23.9.47: em aparelhos já sincronizados, a configuração armazenada libera a tela
-          // imediatamente. A conferência online ocorre depois, sem prolongar o "Carregando".
-          if (cached) setTimeout(() => { void sincronizarConfigOnline_(); }, 1600);
-          else await sincronizarConfigOnline_();
+          // V23.9.99gv — as opções de configuração mudam raramente. Se esta mesma
+          // versão já confirmou a configuração nas últimas 6 h, não repete uma consulta
+          // estrutural na abertura. Atualizações de versão sempre fazem nova confirmação.
+          let metaConfig = null;
+          try { metaConfig = JSON.parse(localStorage.getItem(CONFIG_SYNC_META_STORAGE) || 'null'); } catch (_) {}
+          const configRecente = Boolean(
+            cached &&
+            metaConfig &&
+            String(metaConfig.versao || '') === APP_VERSION &&
+            Date.now() - Number(metaConfig.em || 0) < CONFIG_SYNC_INTERVAL_MS
+          );
+          if (!configRecente) {
+            if (cached) setTimeout(() => { void sincronizarConfigOnline_(); }, 1800);
+            else await sincronizarConfigOnline_();
+          } else {
+            appStatus.textContent = usuarioPodeOperar_() ? 'Sistema pronto para registrar vistoria.' : 'Sistema pronto para consulta e treinamento.';
+          }
 
           if (usuarioPodeOperar_() && totalPendenciasSincronizacao_()) setTimeout(() => { void sincronizarTudoPendente_(true); }, 900);
         }
@@ -27889,7 +27916,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function invalidarConsultasAntigasAoRetornar_() {
         const agora = Date.now();
-        if (agora - ultimaInvalidacaoRetornoInterface_ < 350) return;
+        if (agora - ultimaInvalidacaoRetornoInterface_ < 900) return;
         ultimaInvalidacaoRetornoInterface_ = agora;
 
         [
@@ -27975,13 +28002,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         if (document.visibilityState === 'visible') {
+          const ficouForaPor = appOcultadoEm_ ? Date.now() - appOcultadoEm_ : 0;
           invalidarConsultasAntigasAoRetornar_();
           repararInterfaceOrfa_('retorno ao primeiro plano');
           if (authState.sessionToken) validarSessaoLocalAtivaBm_();
           agendarAtualizacaoPainelAoRetornar_('retorno ao primeiro plano');
-          agendarAtualizacaoListasOperacionaisAoRetornar_('retorno ao primeiro plano', 260);
+          agendarAtualizacaoListasOperacionaisAoRetornar_('retorno ao primeiro plano', 260, { forcar: ficouForaPor >= 5 * 60 * 1000 });
 
-          const ficouForaPor = appOcultadoEm_ ? Date.now() - appOcultadoEm_ : 0;
           const forcarVerificacao = ficouForaPor >= 15 * 60 * 1000;
 
           verificarAtualizacaoSilenciosaPwa_(forcarVerificacao);
@@ -28142,7 +28169,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gu', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gv', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
