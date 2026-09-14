@@ -22395,3 +22395,67 @@ body.records-mode .records-status.loading .panel-loading-visual{
   .ddu-summary-card.operational-summary-check-error .ddu-summary-copy small,
   .programmed-summary-card.operational-summary-check-error .programmed-summary-copy small{font-size:.72rem!important;line-height:1.2!important}
 }
+
+/* ===== V23.9.99gs — carregamento operacional rápido + skeleton/shimmer ===== */
+@keyframes gpvOperationalShimmer{
+  0%{background-position:180% 0}
+  100%{background-position:-80% 0}
+}
+@keyframes gpvOperationalPulse{
+  0%,100%{opacity:.52;transform:scale(.96)}
+  50%{opacity:1;transform:scale(1)}
+}
+.ddu-summary-card.operational-summary-verifying,
+.programmed-summary-card.operational-summary-verifying{
+  position:relative!important;
+  overflow:hidden!important;
+  border-style:solid!important;
+  background:linear-gradient(105deg,#f7f9fb 20%,#ffffff 38%,#eaf0f5 52%,#ffffff 66%,#f7f9fb 82%)!important;
+  background-size:260% 100%!important;
+  animation:gpvOperationalShimmer 1.25s linear infinite!important;
+}
+.ddu-summary-card.operational-summary-verifying .ddu-summary-copy small,
+.programmed-summary-card.operational-summary-verifying .programmed-summary-copy small{
+  font-weight:700!important;
+}
+.ddu-summary-card.operational-summary-verifying .ddu-summary-count,
+.programmed-summary-card.operational-summary-verifying .programmed-summary-count{
+  animation:gpvOperationalPulse 1s ease-in-out infinite!important;
+}
+.records-skeleton-row{pointer-events:none!important}
+.records-skeleton-row td{height:48px!important}
+.records-skeleton-line,
+.records-skeleton-card::before{
+  display:block;
+  border-radius:8px;
+  background:linear-gradient(105deg,#edf1f5 20%,#f9fbfc 40%,#e3e9ef 54%,#f9fbfc 68%,#edf1f5 84%);
+  background-size:260% 100%;
+  animation:gpvOperationalShimmer 1.25s linear infinite;
+}
+.records-skeleton-line{width:66%;height:11px;min-width:34px}
+.records-skeleton-line.is-wide{width:92%}
+.records-skeleton-line.is-button{width:30px;height:30px;border-radius:9px;margin:auto}
+.records-skeleton-card{
+  min-height:168px;
+  padding:16px;
+  border:1px solid #e4e9ef;
+  border-radius:17px;
+  background:#fff;
+  display:grid;
+  align-content:start;
+  gap:13px;
+  overflow:hidden;
+}
+.records-skeleton-card .records-skeleton-line{height:14px;width:58%}
+.records-skeleton-card .records-skeleton-line.is-title{height:21px;width:48%}
+.records-skeleton-card .records-skeleton-line.is-wide{width:88%}
+.records-skeleton-card .records-skeleton-line.is-action{height:38px;width:100%;margin-top:9px;border-radius:11px}
+.records-status--quick{border-color:#cfd9e5!important;background:#f8fafc!important}
+@media(prefers-reduced-motion:reduce){
+  .ddu-summary-card.operational-summary-verifying,
+  .programmed-summary-card.operational-summary-verifying,
+  .ddu-summary-card.operational-summary-verifying .ddu-summary-count,
+  .programmed-summary-card.operational-summary-verifying .programmed-summary-count,
+  .records-skeleton-line,
+  .records-skeleton-card::before{animation:none!important}
+}

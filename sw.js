@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gq-historico-infoscip-clcb-unico';
-const VERSION = '23.9.99gr';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gs-carregamento-operacional-rapido';
+const VERSION = '23.9.99gs';
 
 const CORE_SHELL = [
   './',
