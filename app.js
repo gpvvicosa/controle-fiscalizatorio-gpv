@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gg';
-      // V23.9.99gg — Correção do salto exato para páginas no visualizador contínuo dos Manuais INFOSCIP.
+      const APP_VERSION = '23.9.99gh';
+      // V23.9.99gh — Anexos temporários múltiplos (inclui DWG), retenção automática e recuperação de gravação DDU.
       // V23.9.99ge — Pesquisa Técnica com split-view real no PC, manuais em rolagem contínua, busca interna refinada e Painel sem status redundante.
       // V23.9.99gc — Visualizador responsivo dos Manuais INFOSCIP: páginas renderizadas no próprio app, navegação/zoom e retorno contextual.
       // V23.9.99gb — Pesquisa Técnica Unificada: ITs + Manuais INFOSCIP Fiscalização no Painel e durante a Vistoria.
@@ -2659,6 +2659,9 @@
       let dduEmUsoId = '';
       let dduEmUsoNumero = '';
       let dduEditandoId = '';
+      let dduAnexosExistentes_ = [];
+      let dduAnexosRemover_ = new Set();
+      let dduAnexosNovos_ = [];
       let dduAtribuicaoId = '';
       let dduAtribuicaoSalvando_ = false;
       let dduAtribuicaoOperacaoId_ = '';
@@ -2674,6 +2677,9 @@
       let metasMensaisAtual = null;
       let metasCarregando = false;
       let preparacaoEditandoId = '';
+      let preparacaoAnexosExistentes_ = [];
+      let preparacaoAnexosRemover_ = new Set();
+      let preparacaoAnexosNovos_ = [];
       let preparacaoCadastroIdPendente = '';
       let prepareNomeFantasiaCnpjSugerido_ = '';
       let preparacaoRetornarProgramadas = false;
@@ -2704,7 +2710,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gg';
+      const APP_REVISION_UI_ = '23.9.99gh';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4740,7 +4746,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gg', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gh', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21645,7 +21651,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gg';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gh';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -22340,7 +22346,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (pscip && !String(pscip.value || '').trim()) pscip.value = 'PRJ';
           if (declaracao && normalize(demanda?.value || '') !== normalize('Eventos declaratórios')) declaracao.value = '';
         }
-        if (prepareDwgWrap) prepareDwgWrap.hidden = !liberacao;
+        if (prepareDwgWrap) prepareDwgWrap.hidden = false;
       }
 
 
@@ -22352,6 +22358,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         if (prepareTipo) prepareTipo.value = '';
         if (prepareDwgFile) prepareDwgFile.value = '';
+        preparacaoAnexosExistentes_ = [];
+        preparacaoAnexosRemover_ = new Set();
+        preparacaoAnexosNovos_ = [];
+        renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
         if (prepareDwgStatus) prepareDwgStatus.textContent = '';
         if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
         const cidade = document.getElementById('prepareCidade'); if (cidade) cidade.value = 'Viçosa';
@@ -22382,6 +22392,65 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           reader.onload = () => resolve({ nome:file.name, tipo:file.type || '', tamanho:file.size, base64:String(reader.result||'').split(',').pop() || '' });
           reader.readAsDataURL(file);
         });
+      }
+
+      const ANEXOS_TEMP_EXTENSOES_ = ['.pdf','.jpg','.jpeg','.png','.webp','.doc','.docx','.xls','.xlsx','.txt','.dwg'];
+      const ANEXO_TEMP_MAX_BYTES_ = 10 * 1024 * 1024;
+      const ANEXOS_TEMP_TOTAL_MAX_BYTES_ = 25 * 1024 * 1024;
+
+      function extensaoArquivo_(nome='') {
+        const n=String(nome||'').toLowerCase();
+        return ANEXOS_TEMP_EXTENSOES_.find(ext=>n.endsWith(ext)) || '';
+      }
+
+      function validarArquivosTemporariosSelecionados_(files) {
+        const lista=Array.from(files || []);
+        if (lista.length > 8) throw new Error('Selecione no máximo 8 arquivos por envio.');
+        let total=0;
+        for (const file of lista) {
+          if (!extensaoArquivo_(file?.name || '')) throw new Error(`Formato não permitido: ${file?.name || 'arquivo'}. Use PDF, JPG, JPEG, PNG, WEBP, DOC, DOCX, XLS, XLSX, TXT ou DWG.`);
+          if (Number(file?.size || 0) > ANEXO_TEMP_MAX_BYTES_) throw new Error(`${file?.name || 'Arquivo'} excede o limite de 10 MB.`);
+          total += Number(file?.size || 0);
+        }
+        if (total > ANEXOS_TEMP_TOTAL_MAX_BYTES_) throw new Error('O conjunto de anexos excede 25 MB. Divida o envio em etapas menores.');
+        return lista;
+      }
+
+      async function lerArquivosTemporarios_(files) {
+        const lista=validarArquivosTemporariosSelecionados_(files);
+        const resultado=[];
+        for (const file of lista) resultado.push(await lerArquivoBase64_(file, ANEXO_TEMP_MAX_BYTES_, ANEXOS_TEMP_EXTENSOES_));
+        return resultado;
+      }
+
+      function tamanhoArquivoLegivel_(bytes) {
+        const n=Number(bytes||0); if (!n) return '';
+        if (n < 1024) return `${n} B`;
+        if (n < 1024*1024) return `${Math.round(n/1024)} KB`;
+        return `${(n/1024/1024).toFixed(1).replace('.',',')} MB`;
+      }
+
+      function renderizarAnexosTemporarios_(container, existentes, removidos, input, prefixo) {
+        if (!container) return;
+        const ativos=(Array.isArray(existentes)?existentes:[]).filter(a=>!removidos?.has(String(a?.id||a?.fileId||'')));
+        const selecionados=Array.isArray(input) ? input : Array.from(input?.files || []);
+        const linhas=[];
+        ativos.forEach(a=>{
+          const id=String(a?.id||a?.fileId||'');
+          linhas.push(`<div class="temporary-attachment-item is-existing"><div><strong>${escapeHtml(a?.nome||'Anexo')}</strong><small>${escapeHtml(tamanhoArquivoLegivel_(a?.tamanho))}${a?.temporario!==false?' · temporário':''}</small></div><div class="temporary-attachment-actions">${a?.url?`<a href="${escapeAttr(a.url)}" target="_blank" rel="noopener">Abrir</a>`:''}<button type="button" data-temp-attachment-remove="${escapeAttr(prefixo)}" data-temp-attachment-id="${escapeAttr(id)}">Remover</button></div></div>`);
+        });
+        selecionados.forEach((f,idx)=>linhas.push(`<div class="temporary-attachment-item is-new"><div><strong>${escapeHtml(f.name||'Novo anexo')}</strong><small>${escapeHtml(tamanhoArquivoLegivel_(f.size))} · será enviado ao salvar</small></div><div class="temporary-attachment-actions"><span class="temporary-attachment-new-badge">Novo</span><button type="button" data-temp-new-remove="${escapeAttr(prefixo)}" data-temp-new-index="${idx}">Remover</button></div></div>`));
+        container.innerHTML=linhas.join('') || '<div class="temporary-attachments-empty">Nenhum anexo selecionado.</div>';
+      }
+
+      function anexosAtivosCount_(existentes, removidos) {
+        return (Array.isArray(existentes)?existentes:[]).filter(a=>!removidos?.has(String(a?.id||a?.fileId||''))).length;
+      }
+
+      function htmlAnexosDetalhe_(anexos) {
+        const lista=Array.isArray(anexos)?anexos.filter(a=>a?.url):[];
+        if (!lista.length) return '';
+        return `<div class="registered-inspection-detail-field is-wide registered-inspection-detail-attachments"><span>Anexos temporários</span><div class="detail-attachment-links">${lista.map(a=>`<a href="${escapeAttr(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.nome||'Abrir anexo')} ↗</a>`).join('')}</div><small>Disponíveis durante o atendimento e por 24 h após a conclusão.</small></div>`;
       }
 
       function formatarValorDetalheCadastrado_(valor, fallback = 'Não informado') {
@@ -22468,6 +22537,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Complemento / referência', item.complemento));
           if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoLinkDetalheCadastrado_('Rota', item.rotaUrl));
           campos.push(campoDetalheCadastrado_('Observações / teor da denúncia', item.observacao, { largo: true, paragrafo: true }));
+          const anexosDduHtml = htmlAnexosDetalhe_(item.anexos);
+          if (anexosDduHtml) campos.push(anexosDduHtml);
           if (registeredInspectionDetailStatus) {
             const concluido = normalize(item.status) === normalize('Concluído');
             registeredInspectionDetailStatus.textContent = concluido
@@ -22493,9 +22564,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             registeredInspectionDetailAssignBtn.textContent = item.vistoriadorResponsavel ? 'Alterar vistoriador' : 'Atribuir vistoriador';
           }
           if (registeredInspectionDetailFileBtn) {
-            registeredInspectionDetailFileBtn.hidden = !item.arquivoUrl;
-            registeredInspectionDetailFileBtn.href = item.arquivoUrl || '#';
-            registeredInspectionDetailFileBtn.textContent = 'Ver denúncia';
+            const anexos = Array.isArray(item.anexos) ? item.anexos.filter(a=>a?.url) : [];
+            registeredInspectionDetailFileBtn.hidden = anexos.length !== 1 && !item.arquivoUrl;
+            registeredInspectionDetailFileBtn.href = anexos[0]?.url || item.arquivoUrl || '#';
+            registeredInspectionDetailFileBtn.textContent = anexos.length === 1 ? 'Abrir anexo' : 'Abrir primeiro anexo';
           }
         } else {
           if (registeredInspectionDetailAssignBtn) registeredInspectionDetailAssignBtn.hidden = true;
@@ -22518,6 +22590,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Cidade', item.cidade));
           if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoLinkDetalheCadastrado_('Rota', item.rotaUrl));
           campos.push(campoDetalheCadastrado_('Observação prévia', item.observacaoPrevia || item.observacao, { largo: true, paragrafo: true }));
+          const anexosProgramacaoHtml = htmlAnexosDetalhe_(item.anexos);
+          if (anexosProgramacaoHtml) campos.push(anexosProgramacaoHtml);
           if (registeredInspectionDetailStatus) {
             registeredInspectionDetailStatus.textContent = item.vistoriaIniciada
               ? 'Esta vistoria já possui preenchimento iniciado. Use o botão abaixo para continuar o rascunho existente.'
@@ -22529,9 +22603,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
           if (registeredInspectionDetailEditBtn) registeredInspectionDetailEditBtn.hidden = Boolean(item.vistoriaIniciada);
           if (registeredInspectionDetailFileBtn) {
-            registeredInspectionDetailFileBtn.hidden = !item.arquivoDwgUrl;
-            registeredInspectionDetailFileBtn.href = item.arquivoDwgUrl || '#';
-            registeredInspectionDetailFileBtn.textContent = 'Abrir arquivo cadastrado';
+            const anexos = Array.isArray(item.anexos) ? item.anexos.filter(a=>a?.url) : [];
+            registeredInspectionDetailFileBtn.hidden = anexos.length !== 1 && !item.arquivoDwgUrl;
+            registeredInspectionDetailFileBtn.href = anexos[0]?.url || item.arquivoDwgUrl || '#';
+            registeredInspectionDetailFileBtn.textContent = anexos.length === 1 ? 'Abrir anexo' : 'Abrir primeiro anexo';
           }
         }
 
@@ -22701,8 +22776,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const cidade = document.getElementById('dduCidade'); if (cidade) cidade.value = 'Viçosa';
         const pscip = document.getElementById('dduPscip'); if (pscip) pscip.value = 'PRJ';
         const pdf = document.getElementById('dduPdfFile'); if (pdf) { pdf.value = ''; pdf.required = true; }
+        dduAnexosExistentes_ = [];
+        dduAnexosRemover_ = new Set();
+        dduAnexosNovos_ = [];
         const pdfLabel = document.getElementById('dduPdfLabel'); pdfLabel?.classList.add('required');
         const pdfStatus = document.getElementById('dduPdfStatus'); if (pdfStatus) { pdfStatus.className = 'lookup-status'; pdfStatus.textContent = ''; }
+        renderizarAnexosTemporarios_(document.getElementById('dduAttachmentsList'), dduAnexosExistentes_, dduAnexosRemover_, dduAnexosNovos_, 'ddu');
         const titulo = document.getElementById('dduRegisterTitle'); if (titulo) titulo.textContent = 'Cadastrar DDU';
         if (dduRegisterSaveBtn) dduRegisterSaveBtn.textContent = 'Salvar DDU';
         if (dduRegisterError) { dduRegisterError.hidden = true; dduRegisterError.textContent = ''; }
@@ -22869,12 +22948,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         const titulo = document.getElementById('dduRegisterTitle'); if (titulo) titulo.textContent = 'Editar DDU';
         const pdf = document.getElementById('dduPdfFile'); if (pdf) { pdf.value = ''; pdf.required = false; }
+        dduAnexosExistentes_ = Array.isArray(item.anexos) ? item.anexos.slice() : (item.arquivoUrl ? [{id:item.arquivoId||'',fileId:item.arquivoId||'',nome:item.arquivoNome||'Anexo do DDU',url:item.arquivoUrl,temporario:true,legado:true}] : []);
+        dduAnexosRemover_ = new Set();
+        dduAnexosNovos_ = [];
         const pdfLabel = document.getElementById('dduPdfLabel'); pdfLabel?.classList.remove('required');
         const pdfStatus = document.getElementById('dduPdfStatus');
         if (pdfStatus) {
           pdfStatus.className = 'lookup-status show info';
-          pdfStatus.textContent = item.arquivoNome ? `Arquivo atual: ${item.arquivoNome}. Selecione outro PDF somente para substituir.` : 'Nenhum PDF atual identificado.';
+          pdfStatus.textContent = dduAnexosExistentes_.length ? `${dduAnexosExistentes_.length} anexo(s) atual(is). Novos arquivos serão acrescentados sem substituir os existentes.` : 'Nenhum anexo atual identificado.';
         }
+        renderizarAnexosTemporarios_(document.getElementById('dduAttachmentsList'), dduAnexosExistentes_, dduAnexosRemover_, dduAnexosNovos_, 'ddu');
         if (dduRegisterSaveBtn) dduRegisterSaveBtn.textContent = 'Salvar alterações';
         if (registeredInspectionDetailModal) registeredInspectionDetailModal.hidden = true;
         if (dduListModal) dduListModal.hidden = true;
@@ -23215,7 +23298,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const botaoAtribuir = !concluido && usuarioPodeOperar_()
             ? `<button class="btn semantic-action-orange ddu-assign-btn" type="button" data-ddu-assign="${escapeAttr(x.id)}">${responsavel ? 'Alterar vistoriador' : 'Atribuir vistoriador'}</button>`
             : '';
-          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p>${responsavelHtml}<p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'O arquivo da denúncia será enviado automaticamente para a lixeira após 24 h.':'Denúncia disponível enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver denúncia</a>`:''}${botaoAtribuir}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
+          return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p>${responsavelHtml}<p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'Os anexos temporários serão excluídos automaticamente após 24 h.':'Anexos disponíveis enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir anexo</a>`:''}${botaoAtribuir}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
         };
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); if(concluidos.length)blocos.push(`<section class="prepared-group"><h3>Concluídos — denúncia disponível por 24 h</h3>${concluidos.map(x=>card(x,true)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU cadastrado.</div>';
       }
@@ -23290,12 +23373,54 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         }
       }
+      async function confirmarDduNoServidor_(payload, eraEdicao) {
+        if (!navigator.onLine) return null;
+        const esperas=[0,1800,3500,6000];
+        const esperadoDoc=digits(payload?.cnpj||'');
+        const esperadoEndereco=normalize(String(payload?.endereco||''));
+        const esperadoNumero=normalize(String(payload?.numero||''));
+        const esperadoPrazo=String(payload?.dataLimite||'').slice(0,10);
+        const esperadoDdu=normalize(String(payload?.numeroDdu||''));
+        for (const espera of esperas) {
+          if (espera) await new Promise(r=>setTimeout(r,espera));
+          try {
+            const r=await apiRequest('config',{consulta:'ddus'},10000,{silentSuccess:true});
+            const itens=Array.isArray(r?.itens)?r.itens:[];
+            let encontrado=null;
+            if (eraEdicao && payload?.id) encontrado=itens.find(x=>String(x?.id||'')===String(payload.id))||null;
+            if (!encontrado) {
+              encontrado=itens.find(x=>{
+                if (esperadoDdu && normalize(String(x?.numeroDdu||''))!==esperadoDdu) return false;
+                if (esperadoDoc && digits(x?.cnpj||x?.cpf||'')!==esperadoDoc) return false;
+                if (esperadoEndereco && normalize(String(x?.endereco||''))!==esperadoEndereco) return false;
+                if (esperadoNumero && normalize(String(x?.numero||''))!==esperadoNumero) return false;
+                if (esperadoPrazo && String(x?.dataLimite||'').slice(0,10)!==esperadoPrazo) return false;
+                return Boolean(esperadoDdu || esperadoDoc || esperadoEndereco);
+              })||null;
+            }
+            if (encontrado) {
+              const anexos=Array.isArray(encontrado.anexos)?encontrado.anexos:[];
+              const nomesEsperados=(Array.isArray(payload?.anexos)?payload.anexos:[]).map(a=>normalize(String(a?.nome||''))).filter(Boolean);
+              const nomesAtuais=new Set(anexos.map(a=>normalize(String(a?.nome||''))).filter(Boolean));
+              const removidos=new Set((Array.isArray(payload?.anexosRemover)?payload.anexosRemover:[]).map(v=>String(v||'')));
+              const novosOk=nomesEsperados.every(nome=>nomesAtuais.has(nome));
+              const removidosOk=anexos.every(a=>!removidos.has(String(a?.id||'')) && !removidos.has(String(a?.fileId||'')));
+              if (novosOk && removidosOk) { ddusAtivos=itens; return encontrado; }
+            }
+          } catch (_) {}
+        }
+        return null;
+      }
+
       async function salvarDdu_(){
         if(!navigator.onLine){avisarGpv_('É necessário estar online para cadastrar ou editar o DDU.','Sem internet',{tom:'warning'});return;}
         const prazo = String(document.getElementById('dduPrazo')?.value || '').trim();
         const endereco = String(document.getElementById('dduEndereco')?.value || '').trim();
         const cidade = String(document.getElementById('dduCidade')?.value || '').trim();
-        const file = document.getElementById('dduPdfFile')?.files?.[0] || null;
+        const inputAnexos = document.getElementById('dduPdfFile');
+        let arquivosSelecionados=[];
+        try { arquivosSelecionados=validarArquivosTemporariosSelecionados_(dduAnexosNovos_); }
+        catch (erro) { if(dduRegisterError){dduRegisterError.textContent=erro.message;dduRegisterError.hidden=false;} return; }
         const eraEdicao = Boolean(dduEditandoId);
         const pscipBruto = String(document.getElementById('dduPscip')?.value || '').trim();
         const pscip = pscipBruto && pscipBruto !== 'PRJ' ? projetoPscipOperacional_(pscipBruto) : '';
@@ -23303,7 +23428,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!prazo) faltantes.push('Data Expiração');
         if (!cidade) faltantes.push('Cidade');
         if (!endereco) faltantes.push('Endereço');
-        if (!eraEdicao && !file) faltantes.push('Arquivo PDF do DDU');
+        if (!eraEdicao && !arquivosSelecionados.length) faltantes.push('ao menos um anexo');
+        if (eraEdicao && anexosAtivosCount_(dduAnexosExistentes_, dduAnexosRemover_) + arquivosSelecionados.length < 1) faltantes.push('ao menos um anexo');
         if (pscipBruto && pscipBruto !== 'PRJ' && !pscipProjetoValido_(pscip)) faltantes.push('Nº do PSCIP / Projeto válido');
         if (faltantes.length) {
           if(dduRegisterError){dduRegisterError.textContent=`Preencha: ${faltantes.join(', ')}.`;dduRegisterError.hidden=false;}
@@ -23313,10 +23439,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           dduRegisterSaveBtn.disabled=true;
           if(dduRegisterError){dduRegisterError.hidden=true;dduRegisterError.textContent='';}
           const rotaUrl = validarLinkRotaMapsFormulario_(document.getElementById('dduRotaUrl')?.value || '');
-          let arq = null;
-          if (file) {
-            dduRegisterSaveBtn.textContent='Preparando PDF...';
-            arq=await lerArquivoBase64_(file,8*1024*1024,'.pdf');
+          let anexos=[];
+          if (arquivosSelecionados.length) {
+            dduRegisterSaveBtn.textContent='Preparando anexos...';
+            anexos=await lerArquivosTemporarios_(arquivosSelecionados);
           }
           const payload = {
             id: eraEdicao ? dduEditandoId : '',
@@ -23338,19 +23464,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             complemento:document.getElementById('dduComplemento')?.value || '',
             rotaUrl,
             observacao:document.getElementById('dduObservacao')?.value || '',
-            _appDispositivo:nomeDispositivo_(),
-            ...(arq ? {arquivo:arq} : {})
+            anexos,
+            anexosRemover:Array.from(dduAnexosRemover_),
+            _appDispositivo:nomeDispositivo_()
           };
-          dduRegisterSaveBtn.textContent = eraEdicao ? 'Salvando alterações...' : 'Salvando DDU...';
-          await apiRequest('config',{consulta:eraEdicao?'ddu_editar':'ddu_salvar',payload},120000);
+          dduRegisterSaveBtn.textContent = anexos.length ? 'Enviando anexos...' : (eraEdicao ? 'Salvando alterações...' : 'Salvando DDU...');
+          try {
+            await apiRequest('config',{consulta:eraEdicao?'ddu_editar':'ddu_salvar',payload},anexos.length?150000:90000);
+          } catch (erroApi) {
+            const statusFalha=Number(erroApi?.upstreamStatus||erroApi?.status||0);
+            const confirmar=['RESPONSE_FORMAT','REQUEST_TIMEOUT','NETWORK_ERROR'].includes(String(erroApi?.code||'')) || [408,502,503,504,520,522,524].includes(statusFalha);
+            if (!confirmar) throw erroApi;
+            if(dduRegisterError){dduRegisterError.hidden=false;dduRegisterError.textContent='A comunicação demorou mais que o esperado. Verificando se a alteração já foi efetivada...';}
+            dduRegisterSaveBtn.textContent='Verificando gravação...';
+            const confirmado=await confirmarDduNoServidor_(payload,eraEdicao);
+            if (!confirmado) throw new Error('Ainda não foi possível confirmar a gravação. Os dados e anexos permanecem na tela; aguarde alguns segundos e tente novamente.');
+          }
           const retornar = dduCadastroRetornarLista;
           dduCadastroRetornarLista = false;
           if(dduRegisterModal)dduRegisterModal.hidden=true;
           document.body.classList.remove('review-open');
           dduEditandoId='';
+          dduAnexosExistentes_=[]; dduAnexosRemover_=new Set(); dduAnexosNovos_=[];
           await carregarDdUs_();
           if(retornar && dduListModal)dduListModal.hidden=false;
-          appStatus.textContent = eraEdicao ? 'Cadastro do DDU atualizado com sucesso.' : 'DDU cadastrado e disponibilizado para toda a equipe.';
+          appStatus.textContent = eraEdicao ? '✓ Cadastro e anexos do DDU atualizados com sucesso.' : '✓ DDU cadastrado e disponibilizado para toda a equipe.';
+          mostrarFeedbackPremium_(eraEdicao ? '✓ Alterações do DDU concluídas com sucesso.' : '✓ DDU cadastrado com sucesso.', 'success');
         }catch(e){
           if(dduRegisterError){dduRegisterError.textContent=e?.message||(eraEdicao?'Não foi possível editar o DDU.':'Não foi possível cadastrar o DDU.');dduRegisterError.hidden=false;}
         } finally {
@@ -23464,7 +23603,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ultimoCnpjPreparacaoConsultado = numero.length === 14 ? numero : '';
         }
         const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Editar vistoria programada';
-        if (prepareDwgStatus) prepareDwgStatus.textContent = item.arquivoDwgNome ? `Arquivo atual: ${item.arquivoDwgNome}. Selecione outro arquivo apenas para substituir.` : 'Nenhum arquivo anexado.';
+        preparacaoAnexosExistentes_ = Array.isArray(item.anexos) ? item.anexos.slice() : (item.arquivoDwgUrl ? [{id:item.arquivoDwgId||'',fileId:item.arquivoDwgId||'',nome:item.arquivoDwgNome||'Projeto / documento',url:item.arquivoDwgUrl,temporario:true,legado:true}] : []);
+        preparacaoAnexosRemover_ = new Set();
+        preparacaoAnexosNovos_ = [];
+        if (prepareDwgFile) prepareDwgFile.value = '';
+        renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
+        if (prepareDwgStatus) prepareDwgStatus.textContent = preparacaoAnexosExistentes_.length ? `${preparacaoAnexosExistentes_.length} anexo(s) atual(is). Novos arquivos serão acrescentados.` : 'Nenhum anexo atual.';
         if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = 'Salvar alterações';
         if (prepareInspectionError) prepareInspectionError.hidden = true;
         atualizarCamposPreparacaoPorTipo_();
@@ -23713,7 +23857,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return normalize(String(valor == null ? '' : valor)).replace(/\s+/g, ' ').trim();
       }
 
-      function preparacaoServidorConferePayload_(item, payload, arquivoNomeEsperado = '') {
+      function preparacaoServidorConferePayload_(item, payload, arquivoNomeEsperado = '', anexosNomesEsperados = [], anexosRemovidos = []) {
         if (!item || !payload) return false;
         const iguais = (a, b) => normalizarComparacaoPreparacao_(a) === normalizarComparacaoPreparacao_(b);
         const campos = [
@@ -23742,6 +23886,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (!iguais(item[campoItem], esperado)) return false;
         }
         if (arquivoNomeEsperado && !iguais(item.arquivoDwgNome, arquivoNomeEsperado)) return false;
+        const anexos=Array.isArray(item.anexos)?item.anexos:[];
+        if (Array.isArray(anexosNomesEsperados) && anexosNomesEsperados.length) {
+          const nomesAtuais=new Set(anexos.map(a=>normalize(String(a?.nome||''))).filter(Boolean));
+          if (!anexosNomesEsperados.map(v=>normalize(String(v||''))).filter(Boolean).every(nome=>nomesAtuais.has(nome))) return false;
+        }
+        if (Array.isArray(anexosRemovidos) && anexosRemovidos.length) {
+          const removidos=new Set(anexosRemovidos.map(v=>String(v||'')));
+          if (anexos.some(a=>removidos.has(String(a?.id||'')) || removidos.has(String(a?.fileId||'')))) return false;
+        }
         return true;
       }
 
@@ -23750,6 +23903,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!chave || !navigator.onLine) return null;
         const edicao = Boolean(opcoes.edicao);
         const arquivoNome = String(opcoes.arquivoNome || '').trim();
+        const anexosNomes = Array.isArray(opcoes.anexosNomes) ? opcoes.anexosNomes : [];
+        const anexosRemovidos = Array.isArray(opcoes.anexosRemovidos) ? opcoes.anexosRemovidos : [];
         const esperas = [0, 2500, 5000, 8000, 12000];
         for (let tentativa = 0; tentativa < esperas.length; tentativa += 1) {
           if (esperas[tentativa]) await new Promise(resolve => setTimeout(resolve, esperas[tentativa]));
@@ -23757,7 +23912,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const resposta = await apiRequest('config', { consulta: 'programadas' }, 8000);
             const itens = Array.isArray(resposta?.itens) ? resposta.itens : [];
             const encontrado = itens.find(item => String(item?.id || '').trim() === chave) || null;
-            if (encontrado && (!edicao || preparacaoServidorConferePayload_(encontrado, payload, arquivoNome))) {
+            if (encontrado && (!edicao || preparacaoServidorConferePayload_(encontrado, payload, arquivoNome, anexosNomes, anexosRemovidos))) {
               preparacoesVistoria = itens;
               return encontrado;
             }
@@ -23820,20 +23975,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         const eraEdicao = Boolean(preparacaoEditandoId);
         const rotuloBotao = eraEdicao ? 'Salvar alterações' : 'Cadastrar vistoria';
-        const arquivoSelecionado = p.tipoPreparacao === 'liberacao' ? (prepareDwgFile?.files?.[0] || null) : null;
+        let arquivosSelecionados=[];
+        try { arquivosSelecionados=validarArquivosTemporariosSelecionados_(preparacaoAnexosNovos_); }
+        catch (erro) { if (prepareInspectionError) { prepareInspectionError.hidden=false; prepareInspectionError.textContent=erro.message; } return; }
         prepareInspectionSaveBtn.disabled = true;
         if (prepareInspectionError) {
           prepareInspectionError.hidden = true;
           prepareInspectionError.textContent = '';
         }
         try {
-          if (arquivoSelecionado) {
-            prepareInspectionSaveBtn.textContent = 'Preparando arquivo...';
-            p._appArquivoDwg = await lerArquivoBase64_(arquivoSelecionado, 8 * 1024 * 1024, ['.dwg', '.pdf']);
+          if (arquivosSelecionados.length) {
+            prepareInspectionSaveBtn.textContent = 'Preparando anexos...';
+            p._appAnexos = await lerArquivosTemporarios_(arquivosSelecionados);
           }
+          p._appAnexosRemover = Array.from(preparacaoAnexosRemover_);
 
-          const timeoutMs = arquivoSelecionado ? 120000 : 60000;
-          prepareInspectionSaveBtn.textContent = arquivoSelecionado ? 'Enviando e cadastrando...' : (eraEdicao ? 'Salvando alterações...' : 'Cadastrando...');
+          const timeoutMs = arquivosSelecionados.length ? 150000 : 60000;
+          prepareInspectionSaveBtn.textContent = arquivosSelecionados.length ? 'Enviando anexos...' : (eraEdicao ? 'Salvando alterações...' : 'Cadastrando...');
           let resposta;
           if (eraEdicao) {
             resposta = await apiRequest('config', { consulta: 'programada_editar', payload: p }, timeoutMs);
@@ -23845,11 +24003,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           limparFormularioPreparacao_();
           carregarPreparacoesVistoria_().catch(() => {});
           appStatus.textContent = eraEdicao
-            ? 'Programação atualizada com sucesso.'
-            : (resposta?.duplicado ? 'Vistoria já estava cadastrada. Lista atualizada sem duplicar o registro.' : 'Vistoria cadastrada e compartilhada com a equipe.');
+            ? '✓ Programação e anexos atualizados com sucesso.'
+            : (resposta?.duplicado ? 'Vistoria já estava cadastrada. Lista atualizada sem duplicar o registro.' : '✓ Vistoria cadastrada e compartilhada com a equipe.');
+          mostrarFeedbackPremium_(eraEdicao ? '✓ Alterações concluídas com sucesso.' : '✓ Vistoria cadastrada com sucesso.', 'success');
         } catch (erro) {
           const statusFalha = Number(erro?.upstreamStatus || erro?.status || 0);
-          const podeTerConcluido = ['REQUEST_TIMEOUT', 'NETWORK_ERROR'].includes(String(erro?.code || ''))
+          const podeTerConcluido = ['RESPONSE_FORMAT', 'REQUEST_TIMEOUT', 'NETWORK_ERROR'].includes(String(erro?.code || ''))
             || [408, 502, 503, 504, 520, 522, 524].includes(statusFalha);
           if (podeTerConcluido && navigator.onLine) {
             if (prepareInspectionError) {
@@ -23859,7 +24018,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             prepareInspectionSaveBtn.textContent = 'Verificando cadastro...';
             const confirmado = await confirmarPreparacaoNoServidor_(p._appPreparacaoId, p, {
               edicao: eraEdicao,
-              arquivoNome: arquivoSelecionado?.name || ''
+              arquivoNome: '',
+              anexosNomes: arquivosSelecionados.map(f=>f.name),
+              anexosRemovidos: Array.from(preparacaoAnexosRemover_)
             });
             if (confirmado) {
               fecharModalPreparacao_({ restaurarContexto: false });
@@ -25548,6 +25709,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (event.key === 'Escape' && programmedListModal && !programmedListModal.hidden) fecharListaProgramadas_();
       });
       dduRegisterCloseBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterCancelBtn?.addEventListener('click', fecharCadastroDdu_); dduRegisterSaveBtn?.addEventListener('click', salvarDdu_);
+      document.getElementById('dduPdfFile')?.addEventListener('change', event => {
+        const selecionados = Array.from(event.target.files || []);
+        try {
+          validarArquivosTemporariosSelecionados_([...dduAnexosNovos_, ...selecionados]);
+          dduAnexosNovos_.push(...selecionados);
+          event.target.value='';
+          if (dduRegisterError) { dduRegisterError.hidden=true; dduRegisterError.textContent=''; }
+        } catch (erro) {
+          event.target.value='';
+          if (dduRegisterError) { dduRegisterError.hidden=false; dduRegisterError.textContent=erro.message; }
+        }
+        renderizarAnexosTemporarios_(document.getElementById('dduAttachmentsList'), dduAnexosExistentes_, dduAnexosRemover_, dduAnexosNovos_, 'ddu');
+      });
       let timerConsultaCnpjDdu = null;
       const dduCnpjInput = document.getElementById('dduCnpj');
       dduCnpjInput?.addEventListener('input', () => {
@@ -25606,6 +25780,40 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (item) void abrirAtribuicaoDdu_(item);
       });
       registeredInspectionDetailModal?.addEventListener('click', e => { if (e.target === registeredInspectionDetailModal) fecharDetalheVistoriaCadastrada_(); });
+      document.addEventListener('click', event => {
+        const novoBtn = event.target.closest('[data-temp-new-remove]');
+        if (novoBtn) {
+          event.preventDefault();
+          const tipo = String(novoBtn.dataset.tempNewRemove || '');
+          const indice = Number(novoBtn.dataset.tempNewIndex);
+          if (Number.isInteger(indice) && indice >= 0) {
+            if (tipo === 'ddu' && indice < dduAnexosNovos_.length) {
+              dduAnexosNovos_.splice(indice, 1);
+              renderizarAnexosTemporarios_(document.getElementById('dduAttachmentsList'), dduAnexosExistentes_, dduAnexosRemover_, dduAnexosNovos_, 'ddu');
+            } else if (tipo === 'prepare' && indice < preparacaoAnexosNovos_.length) {
+              preparacaoAnexosNovos_.splice(indice, 1);
+              renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
+            }
+          }
+          return;
+        }
+
+        const btn=event.target.closest('[data-temp-attachment-remove]');
+        if (!btn) return;
+        const tipo=String(btn.dataset.tempAttachmentRemove||'');
+        const id=String(btn.dataset.tempAttachmentId||'').trim();
+        if (!id) return;
+        event.preventDefault();
+        if (tipo==='ddu') {
+          dduAnexosRemover_.add(id);
+          renderizarAnexosTemporarios_(document.getElementById('dduAttachmentsList'), dduAnexosExistentes_, dduAnexosRemover_, dduAnexosNovos_, 'ddu');
+          { const st=document.getElementById('dduPdfStatus'); if (st) { st.className='lookup-status show warning'; st.textContent='O anexo será removido ao salvar as alterações.'; } }
+        } else if (tipo==='prepare') {
+          preparacaoAnexosRemover_.add(id);
+          renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
+          if (prepareDwgStatus) { prepareDwgStatus.className='lookup-status show warning'; prepareDwgStatus.textContent='O anexo será removido ao salvar as alterações.'; }
+        }
+      });
       dduList?.addEventListener('click', e => {
         if (e.target.closest('a')) return;
         const atribuir = e.target.closest('[data-ddu-assign]');
@@ -25635,6 +25843,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       prepareInspectionCloseBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionCancelBtn?.addEventListener('click', fecharModalPreparacao_);
       prepareInspectionSaveBtn?.addEventListener('click', salvarPreparacaoVistoria_);
+      prepareDwgFile?.addEventListener('change', event => {
+        const selecionados = Array.from(event.target.files || []);
+        try {
+          validarArquivosTemporariosSelecionados_([...preparacaoAnexosNovos_, ...selecionados]);
+          preparacaoAnexosNovos_.push(...selecionados);
+          event.target.value='';
+          if (prepareInspectionError) { prepareInspectionError.hidden=true; prepareInspectionError.textContent=''; }
+        } catch (erro) {
+          event.target.value='';
+          if (prepareInspectionError) { prepareInspectionError.hidden=false; prepareInspectionError.textContent=erro.message; }
+        }
+        renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
+      });
       prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
       document.getElementById('prepareDemanda')?.addEventListener('input', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 180); });
       document.getElementById('prepareDemanda')?.addEventListener('change', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 100); });
@@ -27004,7 +27225,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gg', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gh', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
