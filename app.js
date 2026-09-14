@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gh';
-      // V23.9.99gh — Anexos temporários múltiplos (inclui DWG), retenção automática e recuperação de gravação DDU.
+      const APP_VERSION = '23.9.99gi';
+      // V23.9.99gi — Upload de anexos temporários em partes para evitar requisições grandes, preservando múltiplos formatos e retenção automática.
       // V23.9.99ge — Pesquisa Técnica com split-view real no PC, manuais em rolagem contínua, busca interna refinada e Painel sem status redundante.
       // V23.9.99gc — Visualizador responsivo dos Manuais INFOSCIP: páginas renderizadas no próprio app, navegação/zoom e retorno contextual.
       // V23.9.99gb — Pesquisa Técnica Unificada: ITs + Manuais INFOSCIP Fiscalização no Painel e durante a Vistoria.
@@ -2659,6 +2659,7 @@
       let dduEmUsoId = '';
       let dduEmUsoNumero = '';
       let dduEditandoId = '';
+      let dduCadastroIdPendente_ = '';
       let dduAnexosExistentes_ = [];
       let dduAnexosRemover_ = new Set();
       let dduAnexosNovos_ = [];
@@ -2710,7 +2711,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gh';
+      const APP_REVISION_UI_ = '23.9.99gi';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4746,7 +4747,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gh', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gi', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21651,7 +21652,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gh';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gi';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -22397,6 +22398,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       const ANEXOS_TEMP_EXTENSOES_ = ['.pdf','.jpg','.jpeg','.png','.webp','.doc','.docx','.xls','.xlsx','.txt','.dwg'];
       const ANEXO_TEMP_MAX_BYTES_ = 10 * 1024 * 1024;
       const ANEXOS_TEMP_TOTAL_MAX_BYTES_ = 25 * 1024 * 1024;
+      // 288 KiB é múltiplo de 3: cada parte gera Base64 sem preenchimento intermediário,
+      // mantendo cada requisição bem abaixo do tamanho que causava rejeição no gateway.
+      const ANEXO_UPLOAD_CHUNK_BYTES_ = 288 * 1024;
+      const ANEXO_UPLOAD_MAX_TENTATIVAS_ = 3;
+      const uploadTemporarioCache_ = new WeakMap();
 
       function extensaoArquivo_(nome='') {
         const n=String(nome||'').toLowerCase();
@@ -22421,6 +22427,105 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const resultado=[];
         for (const file of lista) resultado.push(await lerArquivoBase64_(file, ANEXO_TEMP_MAX_BYTES_, ANEXOS_TEMP_EXTENSOES_));
         return resultado;
+      }
+
+      function criarIdUploadTemporario_() {
+        try {
+          if (crypto?.randomUUID) return `up_${crypto.randomUUID().replace(/-/g,'')}`;
+        } catch (_) {}
+        return `up_${Date.now()}_${Math.random().toString(36).slice(2,12)}_${Math.random().toString(36).slice(2,10)}`;
+      }
+
+      function lerBlobBase64_(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error('Não foi possível ler uma parte do arquivo selecionado.'));
+          reader.onload = () => resolve(String(reader.result || '').split(',').pop() || '');
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function erroUploadPodeRepetir_(erro) {
+        const codigo = String(erro?.code || '').toUpperCase();
+        const status = Number(erro?.upstreamStatus || erro?.status || 0);
+        return ['RESPONSE_FORMAT','REQUEST_TIMEOUT','NETWORK_ERROR'].includes(codigo) || [408,429,500,502,503,504,520,522,524].includes(status);
+      }
+
+      async function requisicaoUploadComTentativas_(dados, timeoutMs = 60000) {
+        let ultimoErro = null;
+        for (let tentativa = 1; tentativa <= ANEXO_UPLOAD_MAX_TENTATIVAS_; tentativa += 1) {
+          try {
+            return await apiRequest('config', dados, timeoutMs, { silentSuccess:true, noRetry:true });
+          } catch (erro) {
+            ultimoErro = erro;
+            if (tentativa >= ANEXO_UPLOAD_MAX_TENTATIVAS_ || !erroUploadPodeRepetir_(erro) || !navigator.onLine) throw erro;
+            await new Promise(resolve => window.setTimeout(resolve, 650 * tentativa));
+          }
+        }
+        throw ultimoErro || new Error('Não foi possível enviar o anexo.');
+      }
+
+      async function enviarArquivoTemporarioPorPartes_(file, progresso) {
+        if (!file) throw new Error('Arquivo não selecionado.');
+        validarArquivosTemporariosSelecionados_([file]);
+        const cache = uploadTemporarioCache_.get(file);
+        if (cache?.uploadId) {
+          progresso?.({ etapa:'pronto', percentual:100, parte:cache.totalPartes || 1, totalPartes:cache.totalPartes || 1, nome:file.name, reutilizado:true });
+          return cache;
+        }
+
+        const uploadId = criarIdUploadTemporario_();
+        const totalPartes = Math.max(1, Math.ceil(Number(file.size || 0) / ANEXO_UPLOAD_CHUNK_BYTES_));
+        for (let indice = 0; indice < totalPartes; indice += 1) {
+          const inicio = indice * ANEXO_UPLOAD_CHUNK_BYTES_;
+          const fim = Math.min(Number(file.size || 0), inicio + ANEXO_UPLOAD_CHUNK_BYTES_);
+          const base64 = await lerBlobBase64_(file.slice(inicio, fim));
+          progresso?.({ etapa:'enviando', percentual:Math.round((indice / totalPartes) * 100), parte:indice + 1, totalPartes, nome:file.name });
+          await requisicaoUploadComTentativas_({
+            consulta:'anexo_chunk_salvar',
+            uploadId,
+            indice,
+            totalPartes,
+            nome:file.name,
+            tipo:file.type || 'application/octet-stream',
+            tamanhoTotal:Number(file.size || 0),
+            base64
+          }, 60000);
+        }
+
+        progresso?.({ etapa:'finalizando', percentual:96, parte:totalPartes, totalPartes, nome:file.name });
+        const resposta = await requisicaoUploadComTentativas_({
+          consulta:'anexo_chunk_finalizar',
+          uploadId,
+          totalPartes,
+          nome:file.name,
+          tipo:file.type || 'application/octet-stream',
+          tamanhoTotal:Number(file.size || 0)
+        }, 90000);
+        if (!resposta?.uploadId || !resposta?.fileId) throw new Error('O servidor não confirmou a preparação do anexo. Tente novamente.');
+        const descritor = {
+          uploadId:String(resposta.uploadId || uploadId),
+          id:String(resposta.id || ''),
+          fileId:String(resposta.fileId || ''),
+          nome:String(resposta.nome || file.name || ''),
+          tipo:String(resposta.tipo || file.type || 'application/octet-stream'),
+          tamanho:Number(resposta.tamanho || file.size || 0),
+          totalPartes
+        };
+        uploadTemporarioCache_.set(file, descritor);
+        progresso?.({ etapa:'pronto', percentual:100, parte:totalPartes, totalPartes, nome:file.name });
+        return descritor;
+      }
+
+      async function enviarArquivosTemporariosPorPartes_(files, progresso) {
+        const lista = validarArquivosTemporariosSelecionados_(files);
+        const enviados = [];
+        for (let i = 0; i < lista.length; i += 1) {
+          const file = lista[i];
+          const descritor = await enviarArquivoTemporarioPorPartes_(file, info => progresso?.({ ...info, arquivoIndice:i + 1, arquivosTotal:lista.length }));
+          enviados.push(descritor);
+        }
+        return enviados;
       }
 
       function tamanhoArquivoLegivel_(bytes) {
@@ -22768,6 +22873,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function limparFormularioDdu_() {
         dduEditandoId = '';
+        dduCadastroIdPendente_ = '';
         const hoje = new Date();
         const iso = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0,10);
         const ids = ['dduNumero','dduPrazo','dduCnpj','dduPf','dduNomeFantasia','dduRazaoSocial','dduArea','dduCep','dduEndereco','dduEnderecoNumero','dduBairro','dduComplemento','dduRotaUrl','dduObservacao'];
@@ -23373,6 +23479,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         }
       }
+      function obterIdCadastroDdu_() {
+        if (dduEditandoId) return String(dduEditandoId);
+        if (!dduCadastroIdPendente_) {
+          dduCadastroIdPendente_ = `ddu_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
+        }
+        return dduCadastroIdPendente_;
+      }
+
       async function confirmarDduNoServidor_(payload, eraEdicao) {
         if (!navigator.onLine) return null;
         const esperas=[0,1800,3500,6000];
@@ -23387,7 +23501,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const r=await apiRequest('config',{consulta:'ddus'},10000,{silentSuccess:true});
             const itens=Array.isArray(r?.itens)?r.itens:[];
             let encontrado=null;
-            if (eraEdicao && payload?.id) encontrado=itens.find(x=>String(x?.id||'')===String(payload.id))||null;
+            if (payload?.id) encontrado=itens.find(x=>String(x?.id||'')===String(payload.id))||null;
             if (!encontrado) {
               encontrado=itens.find(x=>{
                 if (esperadoDdu && normalize(String(x?.numeroDdu||''))!==esperadoDdu) return false;
@@ -23400,7 +23514,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
             if (encontrado) {
               const anexos=Array.isArray(encontrado.anexos)?encontrado.anexos:[];
-              const nomesEsperados=(Array.isArray(payload?.anexos)?payload.anexos:[]).map(a=>normalize(String(a?.nome||''))).filter(Boolean);
+              const nomesEsperados=[...(Array.isArray(payload?.anexosUploads)?payload.anexosUploads:[]), ...(Array.isArray(payload?.anexos)?payload.anexos:[])].map(a=>normalize(String(a?.nome||''))).filter(Boolean);
               const nomesAtuais=new Set(anexos.map(a=>normalize(String(a?.nome||''))).filter(Boolean));
               const removidos=new Set((Array.isArray(payload?.anexosRemover)?payload.anexosRemover:[]).map(v=>String(v||'')));
               const novosOk=nomesEsperados.every(nome=>nomesAtuais.has(nome));
@@ -23439,13 +23553,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           dduRegisterSaveBtn.disabled=true;
           if(dduRegisterError){dduRegisterError.hidden=true;dduRegisterError.textContent='';}
           const rotaUrl = validarLinkRotaMapsFormulario_(document.getElementById('dduRotaUrl')?.value || '');
-          let anexos=[];
+          let anexosUploads=[];
           if (arquivosSelecionados.length) {
-            dduRegisterSaveBtn.textContent='Preparando anexos...';
-            anexos=await lerArquivosTemporarios_(arquivosSelecionados);
+            const statusAnexo = document.getElementById('dduPdfStatus');
+            anexosUploads=await enviarArquivosTemporariosPorPartes_(arquivosSelecionados, info => {
+              const pct = Math.max(0, Math.min(100, Number(info?.percentual || 0)));
+              const prefixo = `Enviando anexo ${info?.arquivoIndice || 1} de ${info?.arquivosTotal || arquivosSelecionados.length}`;
+              dduRegisterSaveBtn.textContent = info?.etapa === 'finalizando' ? `${prefixo} — finalizando...` : `${prefixo} — ${pct}%`;
+              if (statusAnexo) {
+                statusAnexo.className='lookup-status show info';
+                statusAnexo.textContent = `${info?.nome || 'Anexo'}: parte ${info?.parte || 1} de ${info?.totalPartes || 1}.`;
+              }
+            });
           }
           const payload = {
-            id: eraEdicao ? dduEditandoId : '',
+            id: obterIdCadastroDdu_(),
             numeroDdu:document.getElementById('dduNumero')?.value || '',
             dataRecebimento:document.getElementById('dduRecebimento')?.value || '',
             dataLimite:prazo,
@@ -23464,13 +23586,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             complemento:document.getElementById('dduComplemento')?.value || '',
             rotaUrl,
             observacao:document.getElementById('dduObservacao')?.value || '',
-            anexos,
+            anexos:[],
+            anexosUploads,
             anexosRemover:Array.from(dduAnexosRemover_),
             _appDispositivo:nomeDispositivo_()
           };
-          dduRegisterSaveBtn.textContent = anexos.length ? 'Enviando anexos...' : (eraEdicao ? 'Salvando alterações...' : 'Salvando DDU...');
+          dduRegisterSaveBtn.textContent = anexosUploads.length ? 'Vinculando anexos ao DDU...' : (eraEdicao ? 'Salvando alterações...' : 'Salvando DDU...');
           try {
-            await apiRequest('config',{consulta:eraEdicao?'ddu_editar':'ddu_salvar',payload},anexos.length?150000:90000);
+            await apiRequest('config',{consulta:eraEdicao?'ddu_editar':'ddu_salvar',payload},90000);
           } catch (erroApi) {
             const statusFalha=Number(erroApi?.upstreamStatus||erroApi?.status||0);
             const confirmar=['RESPONSE_FORMAT','REQUEST_TIMEOUT','NETWORK_ERROR'].includes(String(erroApi?.code||'')) || [408,502,503,504,520,522,524].includes(statusFalha);
@@ -23485,6 +23608,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if(dduRegisterModal)dduRegisterModal.hidden=true;
           document.body.classList.remove('review-open');
           dduEditandoId='';
+          dduCadastroIdPendente_='';
           dduAnexosExistentes_=[]; dduAnexosRemover_=new Set(); dduAnexosNovos_=[];
           await carregarDdUs_();
           if(retornar && dduListModal)dduListModal.hidden=false;
@@ -23985,13 +24109,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         try {
           if (arquivosSelecionados.length) {
-            prepareInspectionSaveBtn.textContent = 'Preparando anexos...';
-            p._appAnexos = await lerArquivosTemporarios_(arquivosSelecionados);
+            p._appAnexosUploads = await enviarArquivosTemporariosPorPartes_(arquivosSelecionados, info => {
+              const pct = Math.max(0, Math.min(100, Number(info?.percentual || 0)));
+              const prefixo = `Enviando anexo ${info?.arquivoIndice || 1} de ${info?.arquivosTotal || arquivosSelecionados.length}`;
+              prepareInspectionSaveBtn.textContent = info?.etapa === 'finalizando' ? `${prefixo} — finalizando...` : `${prefixo} — ${pct}%`;
+              if (prepareDwgStatus) {
+                prepareDwgStatus.className='lookup-status show info';
+                prepareDwgStatus.textContent = `${info?.nome || 'Anexo'}: parte ${info?.parte || 1} de ${info?.totalPartes || 1}.`;
+              }
+            });
           }
+          p._appAnexos = [];
           p._appAnexosRemover = Array.from(preparacaoAnexosRemover_);
 
-          const timeoutMs = arquivosSelecionados.length ? 150000 : 60000;
-          prepareInspectionSaveBtn.textContent = arquivosSelecionados.length ? 'Enviando anexos...' : (eraEdicao ? 'Salvando alterações...' : 'Cadastrando...');
+          const timeoutMs = 90000;
+          prepareInspectionSaveBtn.textContent = arquivosSelecionados.length ? 'Vinculando anexos à vistoria...' : (eraEdicao ? 'Salvando alterações...' : 'Cadastrando...');
           let resposta;
           if (eraEdicao) {
             resposta = await apiRequest('config', { consulta: 'programada_editar', payload: p }, timeoutMs);
@@ -27225,7 +27357,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gh', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gi', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

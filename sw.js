@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gh-anexos-temporarios';
-const VERSION = '23.9.99gh';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gi-upload-anexos-em-partes';
+const VERSION = '23.9.99gi';
 
 const CORE_SHELL = [
   './',
