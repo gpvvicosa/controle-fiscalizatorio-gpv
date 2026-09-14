@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gk-pesquisa-tecnica-duas-areas';
-const VERSION = '23.9.99gk';
+const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gl-estabilidade-operacional';
+const VERSION = '23.9.99gl';
 
 const CORE_SHELL = [
   './',

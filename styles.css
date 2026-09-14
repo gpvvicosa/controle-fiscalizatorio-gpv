@@ -22094,7 +22094,7 @@ body.records-mode .records-status:not(.loading):not(.error):not(.searching){disp
 
 
 /* =============================================================================
-   V23.9.99gk — Pesquisa Técnica: duas áreas, documento único e largura responsiva
+   V23.9.99gl — Pesquisa Técnica: duas áreas, documento único e largura responsiva
    ============================================================================= */
 .technical-search-mark{
   padding:0 .08em;
@@ -22308,4 +22308,55 @@ body.records-mode .records-status:not(.loading):not(.error):not(.searching){disp
   .infoscip-manual-viewer-actions small{display:none!important}
   .infoscip-manual-viewer-footer-buttons{width:100%!important}
   .infoscip-manual-viewer-footer-buttons .btn{flex:1 1 0!important}
+}
+
+
+/* =========================================================
+   V23.9.99gl — Painel não bloqueante
+   A atualização online vira uma faixa discreta. Regras antigas
+   de overlay permanecem no histórico do CSS, mas são anuladas aqui.
+   ========================================================= */
+body.records-mode .records-status.loading{
+  position:static!important;
+  inset:auto!important;
+  top:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  left:auto!important;
+  z-index:auto!important;
+  width:auto!important;
+  min-height:0!important;
+  margin:10px 0 0!important;
+  padding:10px 13px!important;
+  display:block!important;
+  background:#f7fafc!important;
+  border:1px solid #dde5ee!important;
+  border-radius:12px!important;
+  color:#526173!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  font-size:12.5px!important;
+  line-height:1.4!important;
+}
+body.records-mode .records-status.loading strong{
+  color:#263449!important;
+}
+body.records-mode .records-status.loading .panel-loading-visual{
+  width:auto!important;
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+@media(max-width:900px){
+  body.records-mode .records-status.loading{
+    position:static!important;
+    min-height:0!important;
+    padding:9px 11px!important;
+    margin:8px 0 0!important;
+    font-size:11.8px!important;
+  }
 }

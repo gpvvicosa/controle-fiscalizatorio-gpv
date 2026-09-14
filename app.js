@@ -17,7 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gk';
+      const APP_VERSION = '23.9.99gl';
+      // V23.9.99gl — Painel não bloqueante com confirmação leve por revisão, DDU com contador/lista unificados e proteção contra falso 'vistoria não iniciada'.
       // V23.9.99gk — Pesquisa Técnica em duas áreas no PC, documento ativo único, resultados destacados e visualizador ajustado à largura.
       // V23.9.99gj — Listas operacionais e Painel usam cache somente offline; online aguarda confirmação do servidor e remove encerrados do navegador.
       // V23.9.99gi — Upload de anexos temporários em partes para evitar requisições grandes, preservando múltiplos formatos e retenção automática.
@@ -39,8 +40,10 @@
       const RECORD_CACHE_CRITICAL_MS = 72 * 60 * 60 * 1000;
       const RECORD_CACHE_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
       const PROCESS_STATUS_SYNC_STORAGE = 'gpvProcessStatusSyncV1';
-      const PANEL_FOREGROUND_REFRESH_MS = 15 * 1000;
-      const PANEL_PERIODIC_REFRESH_MS = 60 * 1000;
+      const PANEL_FOREGROUND_REFRESH_MS = 2 * 60 * 1000;
+      const PANEL_PERIODIC_REFRESH_MS = 2 * 60 * 1000;
+      const PANEL_SESSION_FRESH_MS = 2 * 60 * 1000;
+      const PANEL_SERVER_REVISION_TIMEOUT_MS = 7000;
       const PANEL_REQUEST_STALE_MS = 25 * 1000;
       const PANEL_LAST_SUCCESS_STORAGE = 'gpvPainelUltimaRespostaV1';
       const PANEL_LAST_ERROR_STORAGE = 'gpvPainelUltimaFalhaV1';
@@ -1533,6 +1536,7 @@
       const API_CONFIG_READ_QUERIES = new Set([
         '',
         'registros',
+        'painel_revisao',
         'registros_sync',
         'registro',
         'registro_extras',
@@ -2677,6 +2681,8 @@
       let detalheVistoriaCadastradaAtual_ = null;
       let vistoriaAguardandoPrimeiraEdicao_ = false;
       let vistoriaOrigemAguardandoEdicao_ = '';
+      let vistoriaEstadoInicialAssinatura_ = '';
+      let vistoriaEstadoInicialTimer_ = null;
       let metasMensaisAtual = null;
       let metasCarregando = false;
       let preparacaoEditandoId = '';
@@ -2713,7 +2719,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gk';
+      const APP_REVISION_UI_ = '23.9.99gl';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2788,6 +2794,12 @@
         linhaSelecionada: 0,
         prazoMulta: ''
       };
+
+      // Respostas confirmadas nesta abertura do app podem ser reutilizadas por poucos
+      // minutos sem nova consulta pesada. Esse mapa existe somente em memória: ao
+      // fechar/recarregar o app ele desaparece, evitando transformar cache antigo em
+      // estado operacional atual.
+      const painelSessaoConfirmado_ = new Map();
 
       function registrarFalhaInterface_(tipo, detalhe) {
         try {
@@ -4750,7 +4762,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gk', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gl', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6890,7 +6902,7 @@
         atualizarVistaNaUrl_('records');
         if (opcoes.busca != null && recordsSearch) recordsSearch.value = String(opcoes.busca || '');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        if (opcoes.carregar !== false) carregarRegistros_(true, { forcar: true, motivo: 'abertura do Painel' });
+        if (opcoes.carregar !== false) carregarRegistros_(true, { motivo: 'abertura do Painel' });
       }
 
       function preencherSelectConsulta_(select, valores, rotuloTodos) {
@@ -7769,10 +7781,39 @@
       }
 
       function salvarCachePainel_(chave, resposta) {
+        const salvoEm = Date.now();
         const mapa = lerStorageJson_(PANEL_CACHE_STORAGE, {});
-        mapa[chave] = { salvoEm: Date.now(), resposta };
+        mapa[chave] = { salvoEm, resposta };
         const entradas = Object.entries(mapa).sort((a,b) => Number(b[1]?.salvoEm || 0) - Number(a[1]?.salvoEm || 0));
         gravarStorageJson_(PANEL_CACHE_STORAGE, Object.fromEntries(entradas.slice(0, 6)));
+        painelSessaoConfirmado_.set(chave, { salvoEm, resposta });
+      }
+
+      function lerCachePainelSessao_(chave) {
+        const item = painelSessaoConfirmado_.get(chave);
+        if (!item?.resposta || !item?.salvoEm) return null;
+        const idade = Math.max(0, Date.now() - Number(item.salvoEm));
+        return { ...item, idade };
+      }
+
+      function invalidarCachePainelOperacional_() {
+        painelSessaoConfirmado_.clear();
+        try { localStorage.removeItem(PANEL_CACHE_STORAGE); } catch (_) {}
+      }
+
+      async function cachePainelAindaAtualNoServidor_(cache, signal = null) {
+        const revisaoLocal = String(cache?.resposta?.revisaoPainel || '').trim();
+        if (!revisaoLocal || !navigator.onLine) return false;
+        try {
+          const atual = await apiRequest('config', { consulta:'painel_revisao' }, PANEL_SERVER_REVISION_TIMEOUT_MS, {
+            signal,
+            noRetry: true
+          });
+          return atual?.confiavel === true && String(atual?.revisaoPainel || '').trim() === revisaoLocal;
+        } catch (erro) {
+          if (erro?.code === 'REQUEST_CANCELLED') throw erro;
+          return false;
+        }
       }
 
       function lerCacheFicha_(chave) {
@@ -7866,7 +7907,7 @@
       }
 
       function limparCachesConsulta_() {
-        try { localStorage.removeItem(PANEL_CACHE_STORAGE); } catch (erro) {}
+        invalidarCachePainelOperacional_();
         try { localStorage.removeItem(RECORD_CACHE_STORAGE); } catch (erro) {}
         try { localStorage.removeItem(GOALS_CACHE_STORAGE); } catch (erro) {}
         try { localStorage.removeItem(SUGGESTIONS_CACHE_STORAGE); } catch (erro) {}
@@ -7937,9 +7978,15 @@
         const filtros = { busca:'', cidade:'', demanda:'', sancao:'', tipo:'', vistoriador:'', periodo:'', prazoMulta:'' };
         const limite = 25;
         const chaveCache = chaveCachePainel_(filtros, 0, limite);
-        if (lerCachePainel_(chaveCache)?.resposta) return;
+        const sessao = lerCachePainelSessao_(chaveCache);
+        if (sessao && sessao.idade <= PANEL_SESSION_FRESH_MS) return;
+        const cache = lerCachePainel_(chaveCache);
         try {
-          const resposta = await apiRequest('config', { consulta:'registros', filtros:{ ...filtros, offset:0, limite } }, 50000);
+          if (cache?.resposta && await cachePainelAindaAtualNoServidor_(cache)) {
+            salvarCachePainel_(chaveCache, cache.resposta);
+            return;
+          }
+          const resposta = await apiRequest('config', { consulta:'registros', filtros:{ ...filtros, offset:0, limite } }, 40000);
           salvarCachePainel_(chaveCache, resposta || {});
         } catch (erro) {}
       }
@@ -8024,7 +8071,7 @@
           recordsForegroundRefreshTimer_ = null;
           if (!navigator.onLine || document.visibilityState !== 'visible') return;
           if (!document.body.classList.contains('records-mode')) return;
-          void carregarRegistros_(true, { forcar: true, motivo });
+          void carregarRegistros_(true, { forcar, silenciosa: true, motivo });
         }, Math.max(80, Number(opcoes.atraso || 240)));
       }
 
@@ -8262,8 +8309,15 @@
           return;
         }
 
-        const manterDadosDaSessao = opcoes.silenciosa === true && recordsState.itens.some(item => !item?.sincronizacaoPendente);
-        if (!opcoes.silenciosa) prepararPainelParaConfirmacaoOnline_(filtros);
+        const sessaoConfirmada = lerCachePainelSessao_(chaveCache);
+        if (opcoes.forcar !== true && sessaoConfirmada && sessaoConfirmada.idade <= PANEL_SESSION_FRESH_MS) {
+          aplicarRespostaPainel_(sessaoConfirmada.resposta || {});
+          definirBuscaPainelEmAndamento_(false);
+          return;
+        }
+
+        const manterDadosDaSessao = Boolean(sessaoConfirmada?.resposta) && recordsState.itens.some(item => !item?.sincronizacaoPendente);
+        if (!opcoes.silenciosa && !manterDadosDaSessao) prepararPainelParaConfirmacaoOnline_(filtros);
 
         recordsState.carregando = true;
         const requisicaoSequencia = ++recordsRequestSequencia_;
@@ -8283,23 +8337,25 @@
           recordsStatus.innerHTML = '<strong>Buscando registros atuais...</strong> Consultando estabelecimento, CNPJ/CPF, PSCIP, endereço e nº do endereço.';
         } else if (!opcoes.silenciosa) {
           recordsStatus.className = 'records-status loading';
-          recordsStatus.innerHTML = `
-            <div class="panel-loading-visual" role="status" aria-live="polite">
-              <div class="panel-loading-icon" aria-hidden="true">
-                <span class="panel-loading-sheet"></span>
-                <span class="panel-loading-pen"></span>
-              </div>
-              <strong>Atualizando Painel Fiscalizatório...</strong>
-              <small>Confirmando os dados atuais no servidor</small>
-              <span class="panel-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            </div>`;
+          recordsStatus.innerHTML = '<strong>Atualizando dados em segundo plano...</strong> Confirmando a situação atual no servidor. Você pode continuar usando o aplicativo.';
         }
 
         try {
+          // Antes de executar a consulta pesada, confirma por uma revisão leve se a
+          // resposta persistida ainda corresponde à planilha atual. Se corresponder,
+          // o Painel abre em poucos instantes sem reler toda a base.
+          if (opcoes.forcar !== true && cache?.resposta && await cachePainelAindaAtualNoServidor_(cache, requestController.signal)) {
+            if (requisicaoSequencia !== recordsRequestSequencia_) return;
+            salvarCachePainel_(chaveCache, cache.resposta);
+            registrarSucessoPainel_(cache.resposta);
+            aplicarRespostaPainel_(cache.resposta);
+            return;
+          }
+
           const resposta = await apiRequest('config', {
             consulta: 'registros',
             filtros: { ...filtros, offset, limite: limiteApi }
-          }, 40000, { signal: requestController.signal });
+          }, 32000, { signal: requestController.signal });
           if (requisicaoSequencia !== recordsRequestSequencia_) return;
           salvarCachePainel_(chaveCache, resposta || {});
           registrarSucessoPainel_(resposta || {});
@@ -19459,8 +19515,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function concluirParcialmente_() {
         if (!usuarioPodeOperar_()) return;
         if (vistoriaAguardandoPrimeiraEdicao_) {
-          await avisarGpv_('A vistoria ainda não foi iniciada. Preencha ou altere pelo menos um campo operacional antes de concluir parcialmente.', 'Vistoria ainda não iniciada', { tom: 'info' });
-          return;
+          if (houveAlteracaoOperacionalDesdeAbertura_()) {
+            ativarInicioEfetivoVistoria_('alteração operacional confirmada na conclusão parcial');
+          } else {
+            await avisarGpv_('A vistoria ainda não foi iniciada. Preencha ou altere pelo menos um campo operacional antes de concluir parcialmente.', 'Vistoria ainda não iniciada', { tom: 'info' });
+            return;
+          }
         }
         saveDraft();
         const ok = await sincronizarRascunhoCompartilhado_('parcial', false);
@@ -19521,10 +19581,51 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         el.textContent = '⟳ Salvando...';
       }
 
+      function assinaturaOperacionalVistoria_(payload = null) {
+        try {
+          const fonte = payload && typeof payload === 'object' ? payload : buildPayload();
+          const normalizado = {};
+          Object.keys(fonte || {}).sort().forEach(chave => {
+            // Metadados internos identificam sessão/dispositivo, mas não representam
+            // uma edição operacional feita pelo vistoriador.
+            if (String(chave).startsWith('_app')) return;
+            if (chave === 'localizacaoCapturadaEm') return;
+            const valorAtual = fonte[chave];
+            if (Array.isArray(valorAtual)) normalizado[chave] = valorAtual;
+            else if (valorAtual && typeof valorAtual === 'object') normalizado[chave] = valorAtual;
+            else normalizado[chave] = String(valorAtual == null ? '' : valorAtual).trim();
+          });
+          return JSON.stringify(normalizado);
+        } catch (_) {
+          return '';
+        }
+      }
+
+      function capturarEstadoInicialVistoria_() {
+        if (!vistoriaAguardandoPrimeiraEdicao_) return '';
+        clearTimeout(vistoriaEstadoInicialTimer_);
+        vistoriaEstadoInicialTimer_ = null;
+        vistoriaEstadoInicialAssinatura_ = assinaturaOperacionalVistoria_();
+        return vistoriaEstadoInicialAssinatura_;
+      }
+
+      function houveAlteracaoOperacionalDesdeAbertura_() {
+        if (!vistoriaAguardandoPrimeiraEdicao_) return true;
+        const atual = assinaturaOperacionalVistoria_();
+        if (!atual || !vistoriaEstadoInicialAssinatura_) return false;
+        return atual !== vistoriaEstadoInicialAssinatura_;
+      }
+
       function armarInicioEfetivoVistoria_(origem = '') {
         if (!usuarioPodeOperar_()) return;
         vistoriaAguardandoPrimeiraEdicao_ = true;
         vistoriaOrigemAguardandoEdicao_ = String(origem || '').trim();
+        vistoriaEstadoInicialAssinatura_ = '';
+        clearTimeout(vistoriaEstadoInicialTimer_);
+        vistoriaEstadoInicialTimer_ = setTimeout(() => {
+          vistoriaEstadoInicialTimer_ = null;
+          capturarEstadoInicialVistoria_();
+        }, 80);
         document.body.classList.add('inspection-awaiting-first-edit');
         clearTimeout(saveTimer);
         clearTimeout(sharedDraftSyncTimer);
@@ -19535,6 +19636,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function ativarInicioEfetivoVistoria_(origem = 'preenchimento') {
         if (!usuarioPodeOperar_() || !vistoriaAguardandoPrimeiraEdicao_) return false;
         vistoriaAguardandoPrimeiraEdicao_ = false;
+        clearTimeout(vistoriaEstadoInicialTimer_);
+        vistoriaEstadoInicialTimer_ = null;
+        vistoriaEstadoInicialAssinatura_ = '';
         const origemPreparada = vistoriaOrigemAguardandoEdicao_;
         vistoriaOrigemAguardandoEdicao_ = '';
         document.body.classList.remove('inspection-awaiting-first-edit');
@@ -19586,6 +19690,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function applyPayload(p, recordId = '') {
         if (!p || typeof p !== 'object') return;
         vistoriaAguardandoPrimeiraEdicao_ = false;
+        clearTimeout(vistoriaEstadoInicialTimer_);
+        vistoriaEstadoInicialTimer_ = null;
+        vistoriaEstadoInicialAssinatura_ = '';
         vistoriaOrigemAguardandoEdicao_ = '';
         document.body.classList.remove('inspection-awaiting-first-edit');
         limparProtecaoEdicaoResponsavel_();
@@ -19726,6 +19833,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function resetForm(preservarRascunhoAtual = false, limpezaForte = false) {
         restaurarPainelProgramadas_(false);
         vistoriaAguardandoPrimeiraEdicao_ = false;
+        clearTimeout(vistoriaEstadoInicialTimer_);
+        vistoriaEstadoInicialTimer_ = null;
+        vistoriaEstadoInicialAssinatura_ = '';
         vistoriaOrigemAguardandoEdicao_ = '';
         document.body.classList.remove('inspection-awaiting-first-edit');
         ultimaSugestaoCepResponsavel_ = null;
@@ -20285,14 +20395,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         // O Painel será reconstruído pela próxima resposta do servidor; não preserva
         // uma fotografia anterior ao encerramento como se ainda fosse atual.
-        try { localStorage.removeItem(PANEL_CACHE_STORAGE); } catch (_) {}
+        invalidarCachePainelOperacional_();
       }
 
       async function submit() {
         if (submitting) return;
         if (vistoriaAguardandoPrimeiraEdicao_) {
-          await avisarGpv_('Abrir ou consultar o formulário não inicia uma vistoria. Preencha ou altere pelo menos um campo operacional antes de finalizar.', 'Vistoria ainda não iniciada', { tom: 'info' });
-          return;
+          // Defesa final contra controles que atualizam campos por JavaScript e, em
+          // alguns navegadores/tablets, não disparam input/change confiável. Se os
+          // dados operacionais realmente mudaram desde a abertura, reconhece o início
+          // antes de bloquear o envio.
+          if (houveAlteracaoOperacionalDesdeAbertura_()) {
+            ativarInicioEfetivoVistoria_('alteração operacional confirmada no envio');
+          } else {
+            await avisarGpv_('Abrir ou consultar o formulário não inicia uma vistoria. Preencha ou altere pelo menos um campo operacional antes de finalizar.', 'Vistoria ainda não iniciada', { tom: 'info' });
+            return;
+          }
         }
 
         submitting = true;
@@ -21730,7 +21848,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gk';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gl';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23529,6 +23647,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return `<article class="ddu-item ${concluido?'is-completed':p.c}" data-ddu-id="${escapeAttr(x.id)}" tabindex="0" role="button" aria-label="Ver detalhes do DDU ${escapeAttr(x.numeroDdu||'181')}"><div class="ddu-item-head"><div><h3>${escapeHtml(x.numeroDdu||'DDU 181')}</h3>${identificacaoLocal?`<p><strong>${escapeHtml(identificacaoLocal)}</strong></p>`:''}<p>${escapeHtml(end)}</p>${responsavelHtml}<p class="ddu-team-status">${atendimento}</p></div><span class="ddu-deadline">${escapeHtml(concluido?(ret||'Concluído'):p.r)}</span></div><div class="ddu-file-note">${concluido?'Os anexos temporários serão excluídos automaticamente após 24 h.':'Anexos disponíveis enquanto o DDU estiver aberto e por 24 h após a conclusão.'}</div><div class="ddu-item-actions">${x.arquivoUrl?`<a class="btn btn-secondary" href="${escapeAttr(x.arquivoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir anexo</a>`:''}${botaoAtribuir}<button class="btn btn-primary ddu-details-btn" type="button" data-ddu-details="${escapeAttr(x.id)}">Ver detalhes</button></div></article>`;
         };
         const blocos=[]; if(ativos.length)blocos.push(`<section class="prepared-group"><h3>Pendentes</h3>${ativos.sort((a,b)=>String(a.dataLimite||'9999').localeCompare(String(b.dataLimite||'9999'))).map(x=>card(x,false)).join('')}</section>`); dduList.innerHTML=blocos.join('')||'<div class="prepared-empty">Nenhum DDU pendente.</div>';
+        if (dduListStatus) dduListStatus.textContent = ativos.length === 1 ? '1 DDU pendente.' : (ativos.length ? `${ativos.length} DDUs pendentes.` : 'Nenhum DDU pendente.');
       }
       function lerCacheDdus_() {
         try {
@@ -23567,6 +23686,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // Online: nunca mostra primeiro a lista antiga do navegador.
         ddusAtivos = [];
         renderizarDdUs_();
+        if (dduListStatus) dduListStatus.textContent = 'Atualizando DDUs pendentes...';
         if (dduSummaryCard) dduSummaryCard.hidden = true;
         if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
         dduSummaryCard?.classList.add('is-loading');
@@ -23806,6 +23926,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConsultaProcessoPf_('form',180);
         agendarConferenciaCidadePorCep_(300);
         agendarConferenciaCidadePorEndereco_(700);
+        capturarEstadoInicialVistoria_();
         if (draftStatus) draftStatus.textContent = 'Aguardando primeiro preenchimento';
         appStatus.textContent=`DDU ${dduEmUsoNumero||'181'} carregado para consulta/preenchimento. A vistoria só será iniciada quando houver a primeira alteração operacional.`;
       }
@@ -25661,6 +25782,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConferenciaCidadePorCep_(300);
         agendarConferenciaCidadePorEndereco_(700);
         rolarParaFormularioProgramado_();
+        capturarEstadoInicialVistoria_();
         if (draftStatus) draftStatus.textContent = 'Aguardando primeiro preenchimento';
         appStatus.textContent = `Vistoria cadastrada carregada para consulta/preenchimento${item.vistoriadorResponsavel ? ` — responsável previsto: ${item.vistoriadorResponsavel}` : ''}. O rascunho só será criado após a primeira alteração operacional.`;
         return true;
@@ -25764,7 +25886,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (vistaForcada) mostrarVistaPlanilha_();
           else {
             marcarAbaApp_('records');
-            carregarRegistros_(true, { forcar: true, motivo: 'restauração do Painel' });
+            carregarRegistros_(true, { motivo: 'restauração do Painel' });
           }
         } else {
           marcarAbaApp_('form');
@@ -27487,7 +27609,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gk', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gl', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
