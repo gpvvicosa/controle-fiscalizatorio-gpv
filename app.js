@@ -17,8 +17,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gt';
-      // V23.9.99gt — Painel progressivo: últimos 30 dias primeiro, histórico sob demanda e cards DDU/Programadas apenas quando houver pendência.
+      const APP_VERSION = '23.9.99gu';
+      // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
       // V23.9.99gq — Histórico INFOSCIP de anulação do CLCB usa somente o modelo com fato consumado: FOI ANULADO.
       // V23.9.99gl — Painel não bloqueante com confirmação leve por revisão, DDU com contador/lista unificados e proteção contra falso 'vistoria não iniciada'.
@@ -2745,7 +2745,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gt';
+      const APP_REVISION_UI_ = '23.9.99gu';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2822,6 +2822,8 @@
         modoProgressivo: false,
         temAnteriores: false,
         cursorAnterior: 0,
+        cursorAnteriorTimestamp: 0,
+        cursorAnteriorLinha: 0,
         periodoInicialDias: 30,
         totalBase: 0,
         carregandoAnteriores: false,
@@ -4795,7 +4797,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gt', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gu', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6919,7 +6921,7 @@
         atualizarVistaNaUrl_('form');
         atualizarResumoRascunhosLocais_();
         atualizarResumoOperacionalHome_();
-        // V23.9.99gt — o resumo pessoal do servidor é secundário e não compete
+        // V23.9.99gu — o resumo pessoal do servidor é secundário e não compete
         // com a confirmação rápida de DDU/Programadas na entrada da Vistoria.
         if (navigator.onLine) setTimeout(() => { void carregarResumoOperacionalServidor_(); }, 4200);
         if (navigator.onLine && usuarioPodeOperar_()) agendarAtualizacaoListasOperacionaisAoRetornar_('abertura da Vistoria', 90);
@@ -8053,6 +8055,8 @@
         recordsState.periodoInicialDias = Math.max(1, Number(resposta?.periodoDias || 30));
         recordsState.temAnteriores = Boolean(resposta?.temAnteriores);
         recordsState.cursorAnterior = Math.max(0, Number(resposta?.cursorAnterior || 0));
+        recordsState.cursorAnteriorTimestamp = Math.max(0, Number(resposta?.cursorAnteriorTimestamp || 0));
+        recordsState.cursorAnteriorLinha = Math.max(0, Number(resposta?.cursorAnteriorLinha || 0));
         recordsState.historicoAnteriorCarregado = false;
         recordsState.pagina = 1;
         recordsState.totalPaginas = 1;
@@ -8183,6 +8187,9 @@
         try {
           const resposta = await apiRequest('config', {
             consulta:'registros_progressivos',
+            antesDeTimestamp: Math.max(0, Number(recordsState.cursorAnteriorTimestamp || 0)),
+            antesDaLinhaData: Math.max(0, Number(recordsState.cursorAnteriorLinha || 0)),
+            // Fallback compatível com backend anterior durante a troca de versão.
             antesDaLinha: Math.max(0, Number(recordsState.cursorAnterior || 0)),
             limite: 50
           }, 16000, { noRetry:true });
@@ -8196,6 +8203,8 @@
             }
           });
           recordsState.cursorAnterior = Math.max(0, Number(resposta?.cursorAnterior || recordsState.cursorAnterior || 0));
+          recordsState.cursorAnteriorTimestamp = Math.max(0, Number(resposta?.cursorAnteriorTimestamp || 0));
+          recordsState.cursorAnteriorLinha = Math.max(0, Number(resposta?.cursorAnteriorLinha || 0));
           recordsState.temAnteriores = Boolean(resposta?.temAnteriores);
           if (novos.length) recordsState.historicoAnteriorCarregado = true;
           recordsState.total = recordsState.itens.length;
@@ -8442,6 +8451,8 @@
         recordsState.modoProgressivo = false;
         recordsState.temAnteriores = false;
         recordsState.cursorAnterior = 0;
+        recordsState.cursorAnteriorTimestamp = 0;
+        recordsState.cursorAnteriorLinha = 0;
         recordsState.historicoAnteriorCarregado = false;
         const respostaComLocal = respostaPainelComPendenciasLocais_(resposta || {});
         recordsState.itens = (Array.isArray(respostaComLocal?.itens) ? respostaComLocal.itens : []).slice(0, recordsState.limite);
@@ -8560,6 +8571,8 @@
           recordsState.modoProgressivo = false;
           recordsState.temAnteriores = false;
           recordsState.cursorAnterior = 0;
+          recordsState.cursorAnteriorTimestamp = 0;
+          recordsState.cursorAnteriorLinha = 0;
           recordsState.historicoAnteriorCarregado = false;
         }
         const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
@@ -8615,7 +8628,7 @@
         }
 
         try {
-          // V23.9.99gt — no Painel padrão não carregamos mais a base inteira na abertura.
+          // V23.9.99gu — no Painel padrão não carregamos mais a base inteira na abertura.
           // Primeiro entram os últimos 30 dias (máx. 100); KPIs/filtros gerais são
           // consolidados separadamente e o histórico anterior só vem sob demanda.
           if (filtrosPainelPadraoSemBusca_()) {
@@ -22283,7 +22296,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gt';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gu';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -24054,7 +24067,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           card?.setAttribute('aria-busy', verificando ? 'true' : 'false');
         });
 
-        // V23.9.99gt — card operacional só existe visualmente quando a pendência
+        // V23.9.99gu — card operacional só existe visualmente quando a pendência
         // foi confirmada. Durante verificação/erro não mostramos um card vazio.
         if (verificando || falhou) {
           if (dduSummaryCard) dduSummaryCard.hidden = true;
@@ -26304,7 +26317,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function agendarCargaAuxiliarProgressiva_() {
         if (!navigator.onLine || !usuarioPodeOperar_()) return;
 
-        // V23.9.99gt — os cards recebem primeiro um resumo operacional leve em
+        // V23.9.99gu — os cards recebem primeiro um resumo operacional leve em
         // uma única chamada. Os detalhes completos só são carregados ao abrir a lista.
         programadasConsultaEstado_ = 'loading';
         ddusConsultaEstado_ = 'loading';
@@ -28129,7 +28142,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gt', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gu', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

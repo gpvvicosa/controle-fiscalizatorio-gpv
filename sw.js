@@ -1,5 +1,5 @@
 const CACHE_NAME = 'gpv-vistorias-pwa-20260914-v23-9-99-gt-painel-progressivo';
-const VERSION = '23.9.99gt';
+const VERSION = '23.9.99gu';
 
 const CORE_SHELL = [
   './',
