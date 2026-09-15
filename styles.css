@@ -22541,7 +22541,7 @@ body.records-mode .records-status.loading .panel-loading-visual{
 }
 
 
-/* V23.9.99gy — pré-cadastro técnico da Vistoria de Liberação */
+/* V23.9.99gz — validação guiada global + ajustes de desempenho do Painel */
 .prepare-project-data{grid-column:1/-1}
 .prepare-project-card{border:1px solid #d8e2ee;border-radius:16px;background:linear-gradient(180deg,#fbfdff 0%,#f7faff 100%);padding:14px}
 .prepare-project-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
@@ -22577,4 +22577,20 @@ body.records-mode .records-status.loading .panel-loading-visual{
   .prepare-project-grid{grid-template-columns:1fr}
   .prepare-measures-grid{grid-template-columns:1fr}
   .prepare-project-head{align-items:center}
+}
+
+
+/* V23.9.99gz — orientação automática até o primeiro campo obrigatório pendente. */
+.validation-guided-current{
+  scroll-margin-top:110px;
+  scroll-margin-bottom:96px;
+  animation:gpvRequiredAttention .85s ease-out 1;
+}
+@keyframes gpvRequiredAttention{
+  0%{transform:translateZ(0);box-shadow:0 0 0 0 rgba(180,35,24,.24)}
+  55%{box-shadow:0 0 0 7px rgba(180,35,24,.12)}
+  100%{box-shadow:0 0 0 4px rgba(180,35,24,.14)}
+}
+@media (prefers-reduced-motion:reduce){
+  .validation-guided-current{animation:none!important;scroll-behavior:auto}
 }

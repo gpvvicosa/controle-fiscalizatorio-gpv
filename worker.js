@@ -1,7 +1,7 @@
 /**
  * CONTROLE FISCALIZATÓRIO — GPV VIÇOSA
  * Gateway Cloudflare Worker entre o PWA (GitHub Pages) e o Apps Script.
- * V23.9.99gv — retries seguros ampliados para leituras do carregamento progressivo.
+ * V23.9.99gz — inclui resumo operacional independente de DDU/Programadas entre as leituras seguras.
  *
  * SEGREDOS/VARIÁVEIS NO CLOUDFLARE (NUNCA COLOCAR NO GITHUB):
  *   APPS_SCRIPT_URL   = URL /exec do Web App do Apps Script
@@ -15,7 +15,7 @@ const ACTIONS = new Set(['ping', 'config', 'cnpj', 'save', 'update', 'auth', 'us
 const MAX_BODY_BYTES = 12 * 1024 * 1024; // 12 MB — uploads PDF/DWG até 8 MB em Base64
 
 const CONFIG_READ_QUERIES = new Set([
-  '', 'registros', 'painel_revisao', 'inicio_rapido', 'painel_resumo', 'registros_progressivos',
+  '', 'registros', 'painel_revisao', 'inicio_rapido', 'painel_resumo', 'operacional_resumo', 'registros_progressivos',
   'registro', 'registro_extras', 'registro_localizacao', 'registros_sync',
   'responsavel_telefone', 'responsavel_cpf', 'responsavel_busca', 'duplicidade', 'estabelecimento_historico',
   'pscip', 'encerramento_fiscal', 'processo_pf', 'cep', 'rascunhos', 'rascunho', 'rascunho_estado',

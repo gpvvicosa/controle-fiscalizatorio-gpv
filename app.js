@@ -1,4 +1,4 @@
-// V23.9.99gy — pré-cadastro de Liberação com dados técnicos e medidas previstas no projeto.
+// V23.9.99gz — Painel/Programadas desacoplados + validação guiada global; preserva pré-cadastro técnico da Liberação.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
@@ -22,7 +22,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gy';
+      const APP_VERSION = '23.9.99gz';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2688,6 +2688,7 @@
       let painelResumoLevePromise_ = null;
       let painelResumoLeveAtualizadoEm_ = 0;
       let painelResumoLeveUltimaResposta_ = null;
+      let resumoOperacionalPromise_ = null;
       let resumoOperacionalRapido_ = { ddu: null, programadas: null, atualizadoEm: 0 };
       let sugestoesFiscalizacao = [];
       let resumoSugestoesFiscalizacao = { total: 0, alta: 0, media: 0, acompanhamento: 0 };
@@ -2755,7 +2756,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gy';
+      const APP_REVISION_UI_ = '23.9.99gz';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2839,11 +2840,6 @@
         carregandoAnteriores: false,
         historicoAnteriorCarregado: false
       };
-      // V23.9.99gx — um único lote histórico pode ser preparado silenciosamente
-      // depois que os registros recentes aparecem. Ele existe apenas em memória.
-      let recordsHistoricoPrefetch_ = null;
-      let recordsHistoricoPrefetchPromise_ = null;
-
 
       // Respostas confirmadas nesta abertura do app podem ser reutilizadas por poucos
       // minutos sem nova consulta pesada. Esse mapa existe somente em memória: ao
@@ -4835,7 +4831,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gy', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gz', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5492,7 +5488,7 @@
         if (!alvo) return 'Selecionar opção';
         const id = String(alvo.id || '').trim();
         if (id) {
-          const label = document.querySelector(`label[for="${CSS.escape(id)}"]`);
+          const label = document.querySelector(`label[for="${id}"]`);
           if (label) return String(label.textContent || '').replace(/\s+/g, ' ').trim() || 'Selecionar opção';
         }
         const labelPai = alvo.closest('label');
@@ -7420,16 +7416,21 @@
       }
 
       function renderizarRegistros_() {
-        const itens = recordsState.itens || [];
+        const todosItens = recordsState.itens || [];
+        const progressivo = recordsState.modoProgressivo === true;
+        const limiteLocal = Math.max(1, Number(recordsState.limite || 25));
+        const inicioLocal = progressivo ? Math.max(0, (Number(recordsState.pagina || 1) - 1) * limiteLocal) : 0;
+        const itens = progressivo ? todosItens.slice(inicioLocal, inicioLocal + limiteLocal) : todosItens;
+        const mobilePainel = window.matchMedia ? window.matchMedia('(max-width: 720px)').matches : window.innerWidth <= 720;
         if (!itens.length) {
           const possuiFiltros = Object.values(filtrosConsultaAtuais_()).some(Boolean);
-          recordsList.innerHTML = `<div class="records-empty records-empty--premium"><span class="records-empty-icon" aria-hidden="true">⌕</span><strong>${possuiFiltros ? 'Nenhum processo encontrado' : 'Nenhum registro disponível'}</strong><p>${possuiFiltros ? 'Tente remover um filtro ou usar outro termo de busca.' : 'Quando houver registros disponíveis, eles aparecerão aqui.'}</p>${possuiFiltros ? '<button type="button" class="btn btn-secondary" data-clear-record-filters>Limpar filtros</button>' : ''}</div>`;
-          recordsTableBody.innerHTML = '<tr><td colspan="11" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
+          recordsList.innerHTML = mobilePainel ? `<div class="records-empty records-empty--premium"><span class="records-empty-icon" aria-hidden="true">⌕</span><strong>${possuiFiltros ? 'Nenhum processo encontrado' : 'Nenhum registro disponível'}</strong><p>${possuiFiltros ? 'Tente remover um filtro ou usar outro termo de busca.' : 'Quando houver registros disponíveis, eles aparecerão aqui.'}</p>${possuiFiltros ? '<button type="button" class="btn btn-secondary" data-clear-record-filters>Limpar filtros</button>' : ''}</div>` : '';
+          recordsTableBody.innerHTML = mobilePainel ? '' : '<tr><td colspan="11" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
           atualizarPainelFiltrosPremium_();
           return;
         }
 
-        recordsTableBody.innerHTML = itens.map(item => {
+        recordsTableBody.innerHTML = mobilePainel ? '' : itens.map(item => {
           const tituloBase = padronizarTextoCadastroCliente_(item.nomeFantasia || item.razaoSocial || '') || 'Registro sem nome';
           const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
           const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
@@ -7451,7 +7452,7 @@
           </tr>`;
         }).join('');
 
-        recordsList.innerHTML = itens.map(item => {
+        recordsList.innerHTML = mobilePainel ? itens.map(item => {
           const tituloBase = padronizarTextoCadastroCliente_(item.nomeFantasia || item.razaoSocial || '') || 'Registro sem nome';
           const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
           const razao = item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? padronizarTextoCadastroCliente_(item.razaoSocial) : '';
@@ -7475,7 +7476,7 @@
             <div class="records-card-action"><span>Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
             <button type="button" class="records-card-cta" ${item.sincronizacaoPendente ? 'disabled aria-label="Aguardando sincronização"' : `data-record-open aria-label="Abrir ficha de ${escapeAttr(titulo)}"`}><span>${item.sincronizacaoPendente ? 'Sincronizando...' : 'Ver ficha completa'}</span><span class="records-card-cta-icon" aria-hidden="true">${item.sincronizacaoPendente ? '↻' : '→'}</span></button>
           </article>`;
-        }).join('');
+        }).join('') : '';
       }
 
       function paginasPainel_(pagina, totalPaginas) {
@@ -7486,49 +7487,31 @@
 
       function atualizarPaginacao_() {
         const progressivo = recordsState.modoProgressivo === true;
-        const total = recordsState.total || 0;
-        const pagina = recordsState.pagina || 1;
-        const totalPaginas = Math.max(1, recordsState.totalPaginas || 1);
+        const total = Number(recordsState.total || 0);
+        const pagina = Math.max(1, Number(recordsState.pagina || 1));
+        const totalPaginas = progressivo
+          ? Math.max(1, Math.ceil(total / Math.max(1, Number(recordsState.limite || 25))))
+          : Math.max(1, Number(recordsState.totalPaginas || 1));
+        if (progressivo) recordsState.totalPaginas = totalPaginas;
+
         const centro = recordsPrevBtn?.parentElement || null;
         const tamanhoWrap = recordsPageSize?.closest('label') || null;
-
-        if (progressivo) {
-          if (recordsPaginationSummary) {
-            const periodo = Number(recordsState.periodoInicialDias || 30);
-            const periodoTexto = recordsState.historicoAnteriorCarregado ? `período recente + histórico anterior` : `últimos ${periodo} dias`;
-            const sufixo = recordsState.temAnteriores ? ' · há mais registros anteriores disponíveis' : ' · histórico carregado até o início da base';
-            recordsPaginationSummary.textContent = `${total} registro${total === 1 ? '' : 's'} carregado${total === 1 ? '' : 's'} · ${periodoTexto}${sufixo}`;
-          }
-          if (recordsPageLabel) recordsPageLabel.textContent = 'Carregamento progressivo de registros';
-          if (centro) centro.hidden = true;
-          if (tamanhoWrap) tamanhoWrap.hidden = true;
-          if (recordsProgressiveMore) recordsProgressiveMore.hidden = !recordsState.temAnteriores;
-          if (recordsLoadOlderBtn) {
-            recordsLoadOlderBtn.disabled = recordsState.carregandoAnteriores || recordsState.carregando;
-            recordsLoadOlderBtn.classList.toggle('is-loading', recordsState.carregandoAnteriores);
-            const texto = recordsLoadOlderBtn.querySelector('span:last-child');
-            if (texto) {
-              const tokenAtual = tokenCursorHistoricoPainel_();
-              const pronto = Boolean(recordsHistoricoPrefetch_ && recordsHistoricoPrefetch_.token === tokenAtual && recordsHistoricoPrefetch_.resposta);
-              texto.textContent = recordsState.carregandoAnteriores
-                ? 'Buscando registros anteriores...'
-                : (pronto ? 'Mostrar 50 registros anteriores' : 'Carregar 50 registros anteriores');
-            }
-          }
-          if (recordsProgressiveNote) {
-            recordsProgressiveNote.textContent = recordsState.temAnteriores
-              ? 'A lista abriu com os registros recentes. A pesquisa acima consulta toda a base, inclusive registros antigos.'
-              : 'Todo o histórico disponível para esta lista já foi carregado.';
-          }
-          return;
-        }
-
         if (centro) centro.hidden = false;
         if (tamanhoWrap) tamanhoWrap.hidden = false;
         if (recordsProgressiveMore) recordsProgressiveMore.hidden = true;
-        const inicio = total ? ((pagina - 1) * recordsState.limite) + 1 : 0;
-        const fim = Math.min(total, pagina * recordsState.limite);
-        if (recordsPaginationSummary) recordsPaginationSummary.textContent = total ? `Mostrando ${inicio} a ${fim} de ${total} registros` : 'Nenhum registro';
+
+        const inicio = total ? ((pagina - 1) * Number(recordsState.limite || 25)) + 1 : 0;
+        const fim = Math.min(total, pagina * Number(recordsState.limite || 25));
+        if (recordsPaginationSummary) {
+          if (progressivo) {
+            const periodo = Math.max(1, Number(recordsState.periodoInicialDias || 30));
+            recordsPaginationSummary.textContent = total
+              ? `Mostrando ${inicio} a ${fim} de ${total} registros recentes · últimos ${periodo} dias`
+              : 'Nenhum registro recente';
+          } else {
+            recordsPaginationSummary.textContent = total ? `Mostrando ${inicio} a ${fim} de ${total} registros` : 'Nenhum registro';
+          }
+        }
         if (recordsPageLabel) recordsPageLabel.textContent = `Página ${pagina} de ${totalPaginas}`;
         if (recordsPrevBtn) recordsPrevBtn.disabled = pagina <= 1 || recordsState.carregando;
         if (recordsNextBtn) recordsNextBtn.disabled = pagina >= totalPaginas || recordsState.carregando;
@@ -8102,22 +8085,22 @@
         recordsState.cursorAnteriorTimestamp = Math.max(0, Number(resposta?.cursorAnteriorTimestamp || 0));
         recordsState.cursorAnteriorLinha = Math.max(0, Number(resposta?.cursorAnteriorLinha || 0));
         recordsState.historicoAnteriorCarregado = false;
-        recordsHistoricoPrefetch_ = null;
-        recordsHistoricoPrefetchPromise_ = null;
         recordsState.pagina = 1;
-        recordsState.totalPaginas = 1;
 
         const comLocais = respostaPainelComPendenciasLocais_({ itens, total: itens.length, resumo:recordsState.resumo || {}, filtrosDisponiveis:{} });
         recordsState.itens = Array.isArray(comLocais?.itens) ? comLocais.itens : [];
         recordsState.total = recordsState.itens.length;
+        recordsState.totalPaginas = Math.max(1, Math.ceil(recordsState.total / Math.max(1, Number(recordsState.limite || 25))));
         renderizarRegistros_();
         atualizarPaginacao_();
         atualizarPainelFiltrosPremium_();
         if (recordsStatus) {
           recordsStatus.className = 'records-status records-status--quick';
-          recordsStatus.innerHTML = `<strong>${recordsState.total} registro${recordsState.total === 1 ? '' : 's'} recente${recordsState.total === 1 ? '' : 's'} carregado${recordsState.total === 1 ? '' : 's'}.</strong> Exibindo primeiro os últimos ${recordsState.periodoInicialDias} dias. Indicadores gerais são atualizados separadamente, sem bloquear a lista.`;
+          recordsStatus.innerHTML = `<strong>${recordsState.total} registro${recordsState.total === 1 ? '' : 's'} recente${recordsState.total === 1 ? '' : 's'} carregado${recordsState.total === 1 ? '' : 's'}.</strong> A pesquisa consulta todo o histórico; indicadores e cards operacionais são atualizados separadamente.`;
         }
-        agendarPrecarregamentoHistoricoPainel_();
+        // V23.9.99gz — não pré-carrega histórico. Isso evita competir com
+        // Programadas/DDU e com a própria abertura do Painel. A pesquisa continua
+        // consultando toda a base quando o usuário precisa localizar registro antigo.
         return true;
       }
 
@@ -8128,13 +8111,74 @@
           programadas: operacional.programadas || null,
           atualizadoEm: Date.now()
         };
-        if (operacional.ddu && !ddusCarregamentoPromise_) ddusConsultaEstado_ = 'summary';
-        if (operacional.programadas && !programadasCarregamentoPromise_) programadasConsultaEstado_ = 'summary';
+        if (operacional.ddu && !ddusCarregamentoPromise_ && !['ready','offline'].includes(ddusConsultaEstado_)) ddusConsultaEstado_ = 'summary';
+        if (operacional.programadas && !programadasCarregamentoPromise_ && !['ready','offline'].includes(programadasConsultaEstado_)) programadasConsultaEstado_ = 'summary';
         renderizarDdUs_();
         atualizarVisibilidadeProgramadasMobile_();
         atualizarIndicadorPreparacoesUsuario_();
         atualizarResumoOperacionalHome_();
         return true;
+      }
+
+
+      function chaveResumoOperacionalLocal_() {
+        return `gpv_operational_summary_v2:${normalize(authState.usuario?.nome || 'anonimo')}`;
+      }
+
+      function aplicarResumoOperacionalLocalRecente_() {
+        try {
+          const cache = JSON.parse(localStorage.getItem(chaveResumoOperacionalLocal_()) || 'null');
+          if (!cache?.operacional || !cache?.salvoEm || Date.now() - Number(cache.salvoEm) > 90 * 1000) return false;
+          aplicarResumoOperacionalRapido_(cache.operacional);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      async function carregarResumoOperacionalSeparado_(opcoes = {}) {
+        if (!usuarioPodeOperar_()) return null;
+        const forcar = opcoes.forcar === true;
+        const idade = Date.now() - Number(resumoOperacionalRapido_?.atualizadoEm || 0);
+        if (!forcar && idade >= 0 && idade < 60 * 1000 && (resumoOperacionalRapido_?.ddu || resumoOperacionalRapido_?.programadas)) {
+          return resumoOperacionalRapido_;
+        }
+        if (!navigator.onLine || !authState.sessionToken) {
+          aplicarResumoOperacionalLocalRecente_();
+          return null;
+        }
+        if (resumoOperacionalPromise_) return resumoOperacionalPromise_;
+
+        if (!aplicarResumoOperacionalLocalRecente_()) {
+          if (ddusConsultaEstado_ === 'idle') ddusConsultaEstado_ = 'loading';
+          if (programadasConsultaEstado_ === 'idle') programadasConsultaEstado_ = 'loading';
+        }
+        renderizarDdUs_();
+        atualizarVisibilidadeProgramadasMobile_();
+
+        resumoOperacionalPromise_ = (async () => {
+          try {
+            const r = await apiRequest('config', { consulta:'operacional_resumo', forcar }, 9000, { noRetry:true });
+            const operacional = r?.operacional || r;
+            if (operacional && (operacional.ddu || operacional.programadas)) {
+              aplicarResumoOperacionalRapido_(operacional);
+              try { localStorage.setItem(chaveResumoOperacionalLocal_(), JSON.stringify({ salvoEm:Date.now(), operacional })); } catch (_) {}
+            }
+            return operacional || null;
+          } catch (erro) {
+            const temResumo = Boolean(resumoOperacionalRapido_?.ddu || resumoOperacionalRapido_?.programadas);
+            if (!temResumo) {
+              if (ddusConsultaEstado_ === 'loading' || ddusConsultaEstado_ === 'idle') ddusConsultaEstado_ = 'error';
+              if (programadasConsultaEstado_ === 'loading' || programadasConsultaEstado_ === 'idle') programadasConsultaEstado_ = 'error';
+              renderizarDdUs_();
+              atualizarVisibilidadeProgramadasMobile_();
+            }
+            return null;
+          } finally {
+            resumoOperacionalPromise_ = null;
+          }
+        })();
+        return resumoOperacionalPromise_;
       }
 
       async function carregarInicioRapido_(opcoes = {}) {
@@ -8151,20 +8195,13 @@
               consulta:'inicio_rapido',
               limite: 100,
               dias: 30,
-              incluirOperacional: usuarioPodeOperar_()
+              incluirOperacional: false
             }, 12000, { noRetry:true });
             inicioRapidoAtualizadoEm_ = Date.now();
             inicioRapidoUltimaResposta_ = resposta || null;
-            if (resposta?.operacional && usuarioPodeOperar_()) aplicarResumoOperacionalRapido_(resposta.operacional);
             if (opcoes.aplicarPainel) aplicarRegistrosRapidosPainel_(resposta?.recentes || {});
             return resposta;
           } catch (erro) {
-            if (usuarioPodeOperar_()) {
-              if (ddusConsultaEstado_ === 'loading' || ddusConsultaEstado_ === 'idle') ddusConsultaEstado_ = 'error';
-              if (programadasConsultaEstado_ === 'loading' || programadasConsultaEstado_ === 'idle') programadasConsultaEstado_ = 'error';
-              renderizarDdUs_();
-              atualizarVisibilidadeProgramadasMobile_();
-            }
             return null;
           } finally {
             inicioRapidoPromise_ = null;
@@ -8213,7 +8250,7 @@
               if (recordsStatus && recordsState.modoProgressivo) {
                 const geral = Number(r?.totalBase || 0);
                 recordsStatus.className = 'records-status records-status--quick';
-                recordsStatus.innerHTML = `<strong>${recordsState.total} registro${recordsState.total === 1 ? '' : 's'} recente${recordsState.total === 1 ? '' : 's'} na tela.</strong> Total geral da base: ${geral}. O histórico anterior é carregado somente quando solicitado.`;
+                recordsStatus.innerHTML = `<strong>${recordsState.total} registro${recordsState.total === 1 ? '' : 's'} recente${recordsState.total === 1 ? '' : 's'} disponível${recordsState.total === 1 ? '' : 'is'} nesta abertura.</strong> Total geral da base: ${geral}. A pesquisa consulta todo o histórico.`;
               }
             }
             return r;
@@ -8227,110 +8264,6 @@
         return painelResumoLevePromise_;
       }
 
-      function tokenCursorHistoricoPainel_() {
-        return [
-          Math.max(0, Number(recordsState.cursorAnteriorTimestamp || 0)),
-          Math.max(0, Number(recordsState.cursorAnteriorLinha || 0)),
-          Math.max(0, Number(recordsState.cursorAnterior || 0))
-        ].join(':');
-      }
-
-      async function solicitarLoteHistoricoPainel_(tokenEsperado) {
-        const token = tokenEsperado || tokenCursorHistoricoPainel_();
-        const partes = token.split(':').map(v => Math.max(0, Number(v || 0)));
-        return apiRequest('config', {
-          consulta:'registros_progressivos',
-          antesDeTimestamp: partes[0] || 0,
-          antesDaLinhaData: partes[1] || 0,
-          antesDaLinha: partes[2] || 0,
-          limite: 50
-        }, 18000, { noRetry:true });
-      }
-
-      function agendarPrecarregamentoHistoricoPainel_() {
-        if (!navigator.onLine || !authState.sessionToken || !recordsState.modoProgressivo || !recordsState.temAnteriores) return;
-        if (!document.body.classList.contains('records-mode') || !filtrosPainelPadraoSemBusca_()) return;
-        const token = tokenCursorHistoricoPainel_();
-        if (recordsHistoricoPrefetch_?.token === token || recordsHistoricoPrefetchPromise_?.token === token) return;
-
-        const iniciar = () => {
-          if (!navigator.onLine || !recordsState.modoProgressivo || !recordsState.temAnteriores || tokenCursorHistoricoPainel_() !== token) return;
-          const promessa = solicitarLoteHistoricoPainel_(token)
-            .then(resposta => {
-              if (tokenCursorHistoricoPainel_() === token && resposta) {
-                recordsHistoricoPrefetch_ = { token, resposta, prontoEm:Date.now() };
-                atualizarPaginacao_();
-              }
-              return resposta;
-            })
-            .catch(() => null)
-            .finally(() => {
-              if (recordsHistoricoPrefetchPromise_?.token === token) recordsHistoricoPrefetchPromise_ = null;
-            });
-          recordsHistoricoPrefetchPromise_ = { token, promessa };
-        };
-
-        // Dá prioridade aos cards/indicadores da abertura. O histórico é preparado
-        // somente quando o navegador estiver ocioso ou após uma pequena espera.
-        if (typeof requestIdleCallback === 'function') {
-          requestIdleCallback(iniciar, { timeout: 2600 });
-        } else {
-          setTimeout(iniciar, 1800);
-        }
-      }
-
-      function aplicarLoteHistoricoPainel_(resposta) {
-        const novos = Array.isArray(resposta?.itens) ? resposta.itens : [];
-        const existentes = new Set((recordsState.itens || []).map(item => String(item?.chave || `linha:${item?.linha || ''}`)));
-        novos.forEach(item => {
-          const chave = String(item?.chave || `linha:${item?.linha || ''}`);
-          if (!existentes.has(chave)) {
-            recordsState.itens.push(item);
-            existentes.add(chave);
-          }
-        });
-        recordsState.cursorAnterior = Math.max(0, Number(resposta?.cursorAnterior || recordsState.cursorAnterior || 0));
-        recordsState.cursorAnteriorTimestamp = Math.max(0, Number(resposta?.cursorAnteriorTimestamp || 0));
-        recordsState.cursorAnteriorLinha = Math.max(0, Number(resposta?.cursorAnteriorLinha || 0));
-        recordsState.temAnteriores = Boolean(resposta?.temAnteriores);
-        if (novos.length) recordsState.historicoAnteriorCarregado = true;
-        recordsState.total = recordsState.itens.length;
-        return novos.length;
-      }
-
-      async function carregarRegistrosAnteriores_() {
-        if (!recordsState.modoProgressivo || !recordsState.temAnteriores || recordsState.carregandoAnteriores || !navigator.onLine) return;
-        recordsState.carregandoAnteriores = true;
-        atualizarPaginacao_();
-        try {
-          const token = tokenCursorHistoricoPainel_();
-          let resposta = null;
-          if (recordsHistoricoPrefetch_?.token === token && recordsHistoricoPrefetch_.resposta) {
-            resposta = recordsHistoricoPrefetch_.resposta;
-          } else if (recordsHistoricoPrefetchPromise_?.token === token) {
-            resposta = await recordsHistoricoPrefetchPromise_.promessa;
-          }
-          if (!resposta) resposta = await solicitarLoteHistoricoPainel_(token);
-
-          recordsHistoricoPrefetch_ = null;
-          recordsHistoricoPrefetchPromise_ = null;
-          aplicarLoteHistoricoPainel_(resposta || {});
-          renderizarRegistros_();
-          if (recordsStatus) {
-            recordsStatus.className = 'records-status records-status--quick';
-            recordsStatus.innerHTML = `<strong>${recordsState.total} registros carregados.</strong> ${recordsState.temAnteriores ? 'Há mais registros antigos disponíveis; a pesquisa continua consultando toda a base.' : 'Todo o histórico atual disponível foi carregado.'}`;
-          }
-          agendarPrecarregamentoHistoricoPainel_();
-        } catch (erro) {
-          if (recordsStatus) {
-            recordsStatus.className = 'records-status error';
-            recordsStatus.textContent = erro?.message || 'Não foi possível carregar os registros anteriores agora.';
-          }
-        } finally {
-          recordsState.carregandoAnteriores = false;
-          atualizarPaginacao_();
-        }
-      }
 
       function resumoDduDaListaAtual_() {
         const ativos = (Array.isArray(ddusAtivos) ? ddusAtivos : []).filter(x=>normalize(x.status)!==normalize('Concluído')&&normalize(x.status)!==normalize('Cancelado'));
@@ -8748,6 +8681,7 @@
             if (requisicaoSequencia !== recordsRequestSequencia_) return;
             if (inicio?.recentes) {
               void carregarResumoPainelLeve_({ forcar:opcoes.forcar === true });
+              agendarTarefaOciosa_(() => { void carregarResumoOperacionalSeparado_({ forcar:false }); }, 180);
               agendarTarefaOciosa_(() => carregarResumoSugestoesFiscalizacao_().catch(() => {}), 1200);
               return;
             }
@@ -15771,6 +15705,81 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (details) details.open = true;
       }
 
+
+      function campoAtivoParaValidacaoGuiada_(element) {
+        if (!element || element.disabled) return false;
+        if (element.type === 'hidden') return false;
+        if (element.closest('[hidden]')) return false;
+        const secao = element.closest('.section, .field, .modal-body, .review-body, .registered-inspection-body');
+        try {
+          const estilo = window.getComputedStyle(element);
+          if (estilo.display === 'none' || estilo.visibility === 'hidden') return false;
+          if (secao) {
+            const estiloSecao = window.getComputedStyle(secao);
+            if (estiloSecao.display === 'none' || estiloSecao.visibility === 'hidden') return false;
+          }
+        } catch (_) {}
+        return true;
+      }
+
+      function rotuloCampoValidacaoGuiada_(element, fallback = 'Campo obrigatório') {
+        if (!element) return fallback;
+        const id = String(element.id || '').trim();
+        const label = id ? document.querySelector(`label[for="${id}"]`) : null;
+        const texto = String(label?.textContent || element.getAttribute('aria-label') || fallback)
+          .replace(/\s*\*\s*$/, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        return texto || fallback;
+      }
+
+      function rolarCampoValidacaoGuiada_(element, scrollTarget = null) {
+        const alvo = element || scrollTarget;
+        if (!alvo) return;
+        setTimeout(() => {
+          try {
+            alvo.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+          } catch (_) {}
+          setTimeout(() => {
+            try {
+              const rect = alvo.getBoundingClientRect();
+              const topoSeguro = Math.max(88, Number(document.querySelector('.topbar')?.getBoundingClientRect?.().height || 0) + 18);
+              if (rect.top < topoSeguro) window.scrollBy({ top: rect.top - topoSeguro, behavior: 'smooth' });
+            } catch (_) {}
+            if (element && !element.disabled && !element.readOnly) {
+              try { element.focus({ preventScroll: true }); } catch (_) { try { element.focus(); } catch (__){ } }
+            }
+          }, 220);
+        }, 30);
+      }
+
+      function mostrarPendenciaObrigatoriaGlobal_(element, mensagem, opcoes = {}) {
+        const erroBox = opcoes.errorBox || null;
+        const scrollTarget = opcoes.scrollTarget || null;
+        const texto = String(mensagem || `Preencha este campo: ${rotuloCampoValidacaoGuiada_(element)}.`).trim();
+        limparOrientacaoCampoObrigatorio_();
+        if (element) {
+          openParentDetails(element);
+          element.classList.add('invalid', 'validation-guided-current');
+          element.setAttribute('aria-invalid', 'true');
+        }
+        const host = element?.closest('.field') || element?.parentElement || scrollTarget;
+        if (host) {
+          const hint = document.createElement('div');
+          hint.className = 'required-field-guidance';
+          hint.setAttribute('role', 'alert');
+          hint.setAttribute('aria-live', 'assertive');
+          hint.textContent = texto;
+          host.appendChild(hint);
+        }
+        if (erroBox) {
+          erroBox.hidden = false;
+          erroBox.textContent = texto;
+        }
+        rolarCampoValidacaoGuiada_(element, scrollTarget);
+        return false;
+      }
+
       function limparOrientacaoCampoObrigatorio_() {
         document.querySelectorAll('.required-field-guidance').forEach(el => el.remove());
         document.querySelectorAll('.validation-guided-current').forEach(el => {
@@ -15818,17 +15827,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         if (showMessage) showError(textoCompleto);
 
-        const alvoRolagem = element || scrollTarget;
-        if (alvoRolagem?.scrollIntoView) {
-          setTimeout(() => {
-            try { alvoRolagem.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
-            if (element && !element.disabled && !element.readOnly) {
-              setTimeout(() => {
-                try { element.focus({ preventScroll: true }); } catch (e) { try { element.focus(); } catch (_) {} }
-              }, 220);
-            }
-          }, 30);
-        }
+        rolarCampoValidacaoGuiada_(element, scrollTarget);
         return false;
       }
 
@@ -16041,10 +16040,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         checks.forEach(([id, label]) => {
           const el = document.getElementById(id);
-          if (!el || !String(el.value || '').trim()) {
+          if (!el || !campoAtivoParaValidacaoGuiada_(el)) return;
+          if (!String(el.value || '').trim()) {
             missing.push(label);
-            if (el) el.classList.add('invalid');
-            if (!first && el) first = el;
+            el.classList.add('invalid');
+            if (!first) first = el;
           }
         });
         if (citySelect.value === 'Outro' && !value('outraCidade')) {
@@ -22532,7 +22532,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gy';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gz';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -24577,14 +24577,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const pscipBruto = String(document.getElementById('dduPscip')?.value || '').trim();
         const pscip = pscipBruto && pscipBruto !== 'PRJ' ? projetoPscipOperacional_(pscipBruto) : '';
         const faltantes = [];
-        if (!prazo) faltantes.push('Data Expiração');
-        if (!cidade) faltantes.push('Cidade');
-        if (!endereco) faltantes.push('Endereço');
-        if (!eraEdicao && !arquivosSelecionados.length) faltantes.push('ao menos um anexo');
-        if (eraEdicao && anexosAtivosCount_(dduAnexosExistentes_, dduAnexosRemover_) + arquivosSelecionados.length < 1) faltantes.push('ao menos um anexo');
-        if (pscipBruto && pscipBruto !== 'PRJ' && !pscipProjetoValido_(pscip)) faltantes.push('Nº do PSCIP / Projeto válido');
+        const adicionarFaltanteDdu = (id, mensagem) => {
+          const el = document.getElementById(id);
+          if (el && !campoAtivoParaValidacaoGuiada_(el)) return;
+          faltantes.push({ el, mensagem });
+        };
+        if (!prazo) adicionarFaltanteDdu('dduPrazo', 'Informe a data de expiração do DDU.');
+        if (!cidade) adicionarFaltanteDdu('dduCidade', 'Informe a cidade.');
+        if (!endereco) adicionarFaltanteDdu('dduEndereco', 'Informe o endereço.');
+        if (!eraEdicao && !arquivosSelecionados.length) adicionarFaltanteDdu('dduPdfFile', 'Adicione ao menos um anexo do DDU.');
+        if (eraEdicao && anexosAtivosCount_(dduAnexosExistentes_, dduAnexosRemover_) + arquivosSelecionados.length < 1) adicionarFaltanteDdu('dduPdfFile', 'Mantenha ou adicione ao menos um anexo do DDU.');
+        if (pscipBruto && pscipBruto !== 'PRJ' && !pscipProjetoValido_(pscip)) adicionarFaltanteDdu('dduPscip', 'Informe um Nº do PSCIP / Projeto válido.');
         if (faltantes.length) {
-          if(dduRegisterError){dduRegisterError.textContent=`Preencha: ${faltantes.join(', ')}.`;dduRegisterError.hidden=false;}
+          const atual = faltantes[0];
+          mostrarPendenciaObrigatoriaGlobal_(atual.el, atual.mensagem, { errorBox:dduRegisterError, scrollTarget:dduRegisterModal });
           return;
         }
         try{
@@ -25113,27 +25119,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         const faltantes = [];
+        let primeiroFaltante = null;
+        const adicionarFaltante = (id, mensagem) => {
+          const el = document.getElementById(id);
+          if (el && !campoAtivoParaValidacaoGuiada_(el)) return;
+          faltantes.push({ el, mensagem });
+          if (!primeiroFaltante && el) primeiroFaltante = el;
+        };
         const eventoDeclaratorio = p.tipoPreparacao === 'fiscalizacao' && normalize(p.demandaPrincipal) === normalize('Eventos declaratórios');
-        if (!['fiscalizacao','liberacao'].includes(p.tipoPreparacao)) faltantes.push('Tipo de vistoria');
-        if (p.tipoPreparacao === 'liberacao' && !p.dataPrevista) faltantes.push('Data prevista');
-        if (normalize(p.demandaPrincipal) === normalize('PET') && !String(p.nomeFantasia || '').trim()) faltantes.push('Nome do evento');
-        if (!p.vistoriadorResponsavel) faltantes.push('Vistoriador responsável');
+        if (!['fiscalizacao','liberacao'].includes(p.tipoPreparacao)) adicionarFaltante('prepareTipo', 'Selecione o tipo de vistoria.');
+        if (p.tipoPreparacao === 'liberacao' && !p.dataPrevista) adicionarFaltante('prepareData', 'Informe a data prevista da Vistoria de Liberação.');
+        if (normalize(p.demandaPrincipal) === normalize('PET') && !String(p.nomeFantasia || '').trim()) adicionarFaltante('prepareNomeFantasia', 'Informe o nome do evento.');
+        if (!p.vistoriadorResponsavel) adicionarFaltante('prepareVistoriador', 'Informe o vistoriador responsável.');
         if (p.tipoPreparacao === 'liberacao' && !pscipAtualValido_(p.pscip)) {
-          faltantes.push('Nº do PSCIP atual (PRJ + 10 números)');
+          adicionarFaltante('preparePscip', 'Informe o Nº do PSCIP atual no padrão PRJ + 10 números.');
         }
         if (!eventoDeclaratorio && String(p.pscip || '').trim() && String(p.pscip || '').trim() !== 'PRJ' && !pscipProjetoValido_(p.pscip)) {
-          faltantes.push('Nº do PSCIP / Projeto válido (PRJ + 10 números ou processo antigo, ex.: 44/2016)');
+          adicionarFaltante('preparePscip', 'Informe um Nº do PSCIP / Projeto válido: PRJ + 10 números ou processo antigo, ex.: 44/2016.');
         }
-        if (eventoDeclaratorio && !p.eventoDeclaracaoNumero) faltantes.push('Nº da declaração INFOSCIP');
-        if (eventoDeclaratorio && p.eventoDeclaracaoNumero && !declaracaoEventoValida_(p.eventoDeclaracaoNumero)) faltantes.push('Nº da declaração INFOSCIP válido');
+        if (eventoDeclaratorio && !p.eventoDeclaracaoNumero) adicionarFaltante('prepareEventoDeclaracaoNumero', 'Informe o Nº da declaração INFOSCIP.');
+        if (eventoDeclaratorio && p.eventoDeclaracaoNumero && !declaracaoEventoValida_(p.eventoDeclaracaoNumero)) adicionarFaltante('prepareEventoDeclaracaoNumero', 'Informe um Nº da declaração INFOSCIP válido.');
         const renovacaoAvcb = p.tipoPreparacao === 'fiscalizacao' && ehRenovacaoAvcbValor_(p.demandaPrincipal);
-        if (renovacaoAvcb && !p.dataRenovacaoAvcb) faltantes.push('Data de renovação do AVCB');
-        if (renovacaoAvcb && p.dataRenovacaoAvcb && !dataRenovacaoAvcbValida_(p.dataRenovacaoAvcb)) faltantes.push('Data de renovação do AVCB válida');
+        if (renovacaoAvcb && !p.dataRenovacaoAvcb) adicionarFaltante('prepareDataRenovacaoAvcb', 'Informe a data de renovação do AVCB.');
+        if (renovacaoAvcb && p.dataRenovacaoAvcb && !dataRenovacaoAvcbValida_(p.dataRenovacaoAvcb)) adicionarFaltante('prepareDataRenovacaoAvcb', 'Informe uma data de renovação do AVCB válida.');
         if (faltantes.length) {
-          if (prepareInspectionError) {
-            prepareInspectionError.hidden = false;
-            prepareInspectionError.textContent = `Preencha: ${faltantes.join(', ')}.`;
-          }
+          const atual = faltantes[0];
+          mostrarPendenciaObrigatoriaGlobal_(
+            atual.el || primeiroFaltante,
+            atual.mensagem,
+            { errorBox:prepareInspectionError, scrollTarget:prepareInspectionModal }
+          );
           return;
         }
         if (!usuarioPodeOperar_()) {
@@ -26666,7 +26681,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : { usuarios: 350, resumo: 60, painel: 8000 };
 
         setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarUsuariosVistoriadores_(); }, atrasos.usuarios);
-        setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarInicioRapido_({ aplicarPainel: document.body.classList.contains('records-mode') }); }, atrasos.resumo);
+        setTimeout(() => {
+          if (document.visibilityState !== 'visible' || !navigator.onLine) return;
+          void carregarResumoOperacionalSeparado_({ forcar:false });
+          if (document.body.classList.contains('records-mode')) void carregarInicioRapido_({ aplicarPainel:true });
+        }, atrasos.resumo);
         setTimeout(() => {
           if (
             document.visibilityState === 'visible' &&
@@ -27331,6 +27350,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (item) abrirDetalheVistoriaCadastrada_('programada', item);
       });
 
+      document.addEventListener('input', event => {
+        const alvo = event.target;
+        if (!alvo?.classList?.contains('validation-guided-current')) return;
+        const preenchido = alvo.type === 'file'
+          ? Boolean(alvo.files && alvo.files.length)
+          : Boolean(String(alvo.value || '').trim());
+        if (!preenchido) return;
+        alvo.classList.remove('invalid', 'validation-guided-current');
+        alvo.removeAttribute('aria-invalid');
+        const host = alvo.closest('.field') || alvo.parentElement;
+        host?.querySelector?.('.required-field-guidance')?.remove();
+      }, true);
+
       form.addEventListener('input', event => {
         if (event.isTrusted) ativarInicioEfetivoVistoria_('preenchimento do formulário');
         if (RESPONSAVEL_EDITABLE_FIELDS_.has(String(event.target?.id || '')) && !preenchendoResponsavelLookup) {
@@ -27795,7 +27827,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false, { forcar: true, motivo: 'atualização manual' }));
-      recordsLoadOlderBtn?.addEventListener('click', () => { void carregarRegistrosAnteriores_(); });
       iniciarFiltrosPainelPremium_();
       recordsClearFiltersBtn?.addEventListener('click', () => {
         limparFiltrosVisiveisPainel_();
@@ -27838,20 +27869,46 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           carregarRegistros_(true, { forcar: true, motivo: 'alteração de filtro' });
         });
       });
-      recordsPrevBtn?.addEventListener('click', () => { if (recordsState.pagina > 1) { recordsState.pagina -= 1; carregarRegistros_(false, { forcar: true, motivo: 'página anterior' }); } });
-      recordsNextBtn?.addEventListener('click', () => { if (recordsState.pagina < recordsState.totalPaginas) { recordsState.pagina += 1; carregarRegistros_(false, { forcar: true, motivo: 'próxima página' }); } });
+      const navegarPaginaPainel_ = (pagina, motivo) => {
+        const alvo = Math.max(1, Math.min(Number(recordsState.totalPaginas || 1), Number(pagina || 1)));
+        if (alvo === recordsState.pagina || recordsState.carregando) return;
+        recordsState.pagina = alvo;
+        if (recordsState.modoProgressivo) {
+          renderizarRegistros_();
+          atualizarPaginacao_();
+          try { document.querySelector('.dashboard-results')?.scrollIntoView({ behavior:'smooth', block:'start' }); } catch (_) {}
+          return;
+        }
+        carregarRegistros_(false, { forcar:true, motivo });
+      };
+      recordsPrevBtn?.addEventListener('click', () => navegarPaginaPainel_(recordsState.pagina - 1, 'página anterior'));
+      recordsNextBtn?.addEventListener('click', () => navegarPaginaPainel_(recordsState.pagina + 1, 'próxima página'));
       recordsPageButtons?.addEventListener('click', event => {
         const botao = event.target.closest('[data-page]');
         const pagina = Number(botao?.dataset?.page || 0);
-        if (!pagina || pagina === recordsState.pagina || recordsState.carregando) return;
-        recordsState.pagina = pagina;
-        carregarRegistros_(false, { forcar: true, motivo: 'seleção de página' });
+        if (!pagina) return;
+        navegarPaginaPainel_(pagina, 'seleção de página');
       });
       recordsPageSize?.addEventListener('change', () => {
         const limite = Number(recordsPageSize.value || 25);
         recordsState.limite = [8, 15, 25].includes(limite) ? limite : 25;
-        carregarRegistros_(true, { forcar: true, motivo: 'quantidade por página' });
+        recordsState.pagina = 1;
+        if (recordsState.modoProgressivo) {
+          recordsState.totalPaginas = Math.max(1, Math.ceil(Number(recordsState.total || 0) / recordsState.limite));
+          renderizarRegistros_();
+          atualizarPaginacao_();
+          return;
+        }
+        carregarRegistros_(true, { forcar:true, motivo:'quantidade por página' });
       });
+      try {
+        const mqPainel = window.matchMedia('(max-width: 720px)');
+        mqPainel.addEventListener?.('change', () => {
+          if (!document.body.classList.contains('records-mode')) return;
+          renderizarRegistros_();
+        });
+      } catch (_) {}
+
       recordsList?.addEventListener('click', async event => {
         const atalho = event.target.closest('[data-record-quick-action]');
         if (atalho) {
@@ -28505,7 +28562,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gy', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

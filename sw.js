@@ -1,8 +1,8 @@
 const CACHE_NAME = 'gpv-vistorias-shell-20260915-v23-9-99-gy-precadastro-liberacao-projeto';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99gy';
+const VERSION = '23.9.99gz';
 
-// V23.9.99gy — mantém instalação leve; pré-cadastro técnico da Liberação não amplia o cache inicial.
+// V23.9.99gz — mantém instalação leve; Painel e Programadas carregam de forma independente.
 // V23.9.99gx — mantém instalação leve; otimização do Painel ocorre no app/backend.
 // V23.9.99gw — instalação leve: somente o núcleo necessário para abrir/operar o PWA.
 // Manuais, ITs, PDFs e imagens técnicas são armazenados sob demanda em cache separado,
