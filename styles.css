@@ -22594,3 +22594,401 @@ body.records-mode .records-status.loading .panel-loading-visual{
 @media (prefers-reduced-motion:reduce){
   .validation-guided-current{animation:none!important;scroll-behavior:auto}
 }
+
+/* ============================================================
+   V23.9.99ha — Ficha cadastrada: leitura operacional por blocos
+   ============================================================ */
+#registeredInspectionDetailModal{
+  padding:max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  box-sizing:border-box;
+}
+.registered-inspection-detail-card{
+  width:min(860px,96vw);
+  max-height:calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:22px;
+}
+.registered-inspection-detail-head{
+  flex:0 0 auto;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:18px 20px 14px;
+  border-bottom:1px solid #e9edf3;
+  background:#fff;
+}
+.registered-inspection-detail-head .icon-btn{
+  flex:0 0 auto;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border:1px solid #e4e8ef;
+  border-radius:50%;
+  background:#f8fafc;
+  color:#475467;
+  font-size:23px;
+  line-height:1;
+}
+.registered-inspection-detail-eyebrow-row{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-bottom:4px;
+}
+.registered-inspection-detail-eyebrow-row .registered-inspection-detail-kicker{
+  margin:0;
+}
+.registered-inspection-detail-state{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:3px 9px;
+  border-radius:999px;
+  font-size:.69rem;
+  font-weight:900;
+  letter-spacing:.025em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.registered-inspection-detail-state.is-pending{
+  background:#fff6da;
+  color:#7a4d00;
+  border:1px solid #f0d88c;
+}
+.registered-inspection-detail-state.is-progress{
+  background:#eaf3ff;
+  color:#174f8a;
+  border:1px solid #bfd5ee;
+}
+.registered-inspection-detail-meta{
+  margin-top:6px;
+  color:#334155;
+  font-size:.82rem;
+  font-weight:800;
+  line-height:1.4;
+}
+.registered-inspection-detail-head p{
+  margin:5px 0 0;
+  font-size:.8rem;
+  line-height:1.4;
+}
+.registered-inspection-detail-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 18px 18px;
+  background:#f8fafc;
+}
+.registered-inspection-detail-status{
+  margin:0 0 12px;
+  padding:9px 11px;
+  border:1px solid #dce6f0;
+  border-radius:11px;
+  background:#f3f7fb;
+  color:#425466;
+  font-size:.82rem;
+  line-height:1.4;
+}
+.registered-inspection-detail-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+.registered-detail-section{
+  padding:13px;
+  border:1px solid #e3e8ef;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 1px 1px rgba(16,24,40,.02);
+}
+.registered-detail-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.registered-detail-section-head h3{
+  margin:0;
+  color:#213047;
+  font-size:.78rem;
+  font-weight:950;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+}
+.registered-detail-section-head p{
+  margin:4px 0 0;
+  color:#667085;
+  font-size:.74rem;
+  line-height:1.4;
+}
+.registered-detail-section-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+.registered-detail-section .registered-inspection-detail-field{
+  padding:10px 11px;
+  border-color:#e7ebf1;
+  border-radius:11px;
+  background:#fbfcfe;
+}
+.registered-detail-section .registered-inspection-detail-field span{
+  margin-bottom:3px;
+  font-size:.68rem;
+}
+.registered-detail-section .registered-inspection-detail-field strong,
+.registered-detail-section .registered-inspection-detail-field p{
+  font-size:.9rem;
+  line-height:1.35;
+}
+.registered-detail-chip-field{
+  background:#fff!important;
+}
+.registered-detail-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.registered-detail-chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:30px;
+  padding:5px 9px;
+  border:1px solid #d9e1eb;
+  border-radius:999px;
+  background:#f6f8fb;
+  color:#24364f;
+  font-size:.78rem;
+  font-weight:800;
+  line-height:1.2;
+}
+.registered-detail-chips.is-occupancy .registered-detail-chip{
+  min-width:46px;
+  justify-content:center;
+  background:#eef5ff;
+  border-color:#c8daf2;
+  color:#174f8a;
+}
+.registered-detail-chips.is-measure .registered-detail-chip{
+  background:#f8fafc;
+  border-color:#dce3eb;
+  color:#344054;
+  font-weight:750;
+}
+.registered-detail-measures{
+  padding-top:1px;
+}
+.registered-detail-location-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  border:1px solid #dce5ee;
+  border-radius:12px;
+  background:#fbfdff;
+}
+.registered-detail-location-text{
+  min-width:0;
+}
+.registered-detail-location-text strong{
+  display:block;
+  color:#172b45;
+  font-size:.92rem;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+}
+.registered-detail-location-text span{
+  display:block;
+  margin-top:3px;
+  color:#667085;
+  font-size:.76rem;
+  font-weight:700;
+}
+.registered-detail-inline-action{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-height:40px;
+  padding:8px 12px;
+  border:1px solid #b9d4f5;
+  border-radius:10px;
+  background:#eef6ff;
+  color:#0759aa!important;
+  font-size:.81rem;
+  font-weight:900;
+  text-decoration:none;
+}
+.registered-detail-note{
+  padding:10px 12px;
+  border:1px solid #e5e9ef;
+  border-radius:11px;
+  background:#fbfcfe;
+  color:#344054;
+  font-size:.87rem;
+  line-height:1.5;
+  white-space:pre-wrap;
+}
+.registered-detail-attachments-list{
+  display:grid;
+  gap:8px;
+}
+.registered-detail-attachment{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  padding:9px 10px;
+  border:1px solid #dce5ee;
+  border-radius:11px;
+  background:#fbfdff;
+  color:inherit!important;
+  text-decoration:none;
+}
+.registered-detail-attachment-icon{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:#eef5ff;
+  font-size:17px;
+}
+.registered-detail-attachment-copy{
+  min-width:0;
+}
+.registered-detail-attachment-copy strong{
+  display:block;
+  color:#154f8a;
+  font-size:.84rem;
+  line-height:1.25;
+}
+.registered-detail-attachment-copy small{
+  display:block;
+  margin-top:2px;
+  color:#667085;
+  font-size:.72rem;
+  line-height:1.25;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.registered-detail-attachment-open{
+  color:#1764aa;
+  font-weight:900;
+}
+.registered-detail-attachments-note{
+  color:#667085;
+  font-size:.7rem;
+  line-height:1.35;
+}
+.registered-inspection-detail-actions{
+  flex:0 0 auto;
+  margin:0;
+  padding:11px 18px max(13px, env(safe-area-inset-bottom));
+  border-top:1px solid #e5e9ef;
+  background:#fff;
+}
+
+@media(hover:hover) and (pointer:fine){
+  .registered-detail-inline-action:hover,
+  .registered-detail-attachment:hover{
+    border-color:#a9c8e8;
+    background:#f2f8ff;
+  }
+}
+
+@media(max-width:680px){
+  #registeredInspectionDetailModal{
+    align-items:center!important;
+    padding:max(8px, env(safe-area-inset-top)) 6px max(8px, env(safe-area-inset-bottom))!important;
+  }
+  .registered-inspection-detail-card{
+    width:calc(100vw - 12px);
+    max-height:calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+    border-radius:18px;
+  }
+  .registered-inspection-detail-head{
+    padding:14px 14px 11px;
+    gap:10px;
+  }
+  .registered-inspection-detail-title-wrap{gap:8px}
+  .registered-inspection-detail-head h2{
+    font-size:1.25rem;
+    line-height:1.18;
+  }
+  .registered-inspection-detail-head p{
+    font-size:.74rem;
+  }
+  .registered-inspection-detail-meta{
+    font-size:.76rem;
+  }
+  .registered-inspection-detail-head .icon-btn{
+    width:36px;
+    height:36px;
+  }
+  .registered-inspection-detail-body{
+    padding:10px 10px 13px;
+  }
+  .registered-inspection-detail-grid{
+    gap:9px;
+  }
+  .registered-detail-section{
+    padding:11px;
+    border-radius:14px;
+  }
+  .registered-detail-section-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  .registered-detail-section .registered-inspection-detail-field{
+    grid-column:auto;
+    padding:9px;
+  }
+  .registered-detail-section .registered-inspection-detail-field.is-wide{
+    grid-column:1/-1;
+  }
+  .registered-detail-location-card{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .registered-detail-inline-action{
+    width:100%;
+  }
+  .registered-inspection-detail-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding:10px 10px max(12px, env(safe-area-inset-bottom));
+  }
+  .registered-inspection-detail-actions #registeredInspectionDetailStartBtn{
+    grid-column:1/-1;
+    margin-left:0;
+  }
+  .registered-inspection-detail-actions #registeredInspectionDetailEditBtn{
+    width:auto;
+  }
+}
+
+@media(max-width:430px){
+  .registered-detail-section-grid{
+    grid-template-columns:1fr;
+  }
+  .registered-detail-section .registered-inspection-detail-field,
+  .registered-detail-section .registered-inspection-detail-field.is-wide{
+    grid-column:1/-1;
+  }
+  .registered-inspection-detail-actions{
+    grid-template-columns:1fr 1fr;
+  }
+}

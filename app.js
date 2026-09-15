@@ -1,4 +1,4 @@
-// V23.9.99gz — Painel/Programadas desacoplados + validação guiada global; preserva pré-cadastro técnico da Liberação.
+// V23.9.99ha — ficha de vistoria cadastrada reorganizada para leitura operacional; preserva desempenho/validação da V23.9.99gz.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
@@ -22,7 +22,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gz';
+      const APP_VERSION = '23.9.99ha';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2756,7 +2756,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gz';
+      const APP_REVISION_UI_ = '23.9.99ha';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4831,7 +4831,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gz', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ha', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -22532,7 +22532,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gz';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99ha';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23556,7 +23556,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function htmlAnexosDetalhe_(anexos) {
         const lista=Array.isArray(anexos)?anexos.filter(a=>a?.url):[];
         if (!lista.length) return '';
-        return `<div class="registered-inspection-detail-field is-wide registered-inspection-detail-attachments"><span>Anexos temporários</span><div class="detail-attachment-links">${lista.map(a=>`<a href="${escapeAttr(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.nome||'Abrir anexo')} ↗</a>`).join('')}</div><small>Disponíveis durante o atendimento e por 24 h após a conclusão.</small></div>`;
+        return `<div class="registered-detail-attachments-list">${lista.map((a,indice)=>`<a class="registered-detail-attachment" href="${escapeAttr(a.url)}" target="_blank" rel="noopener"><span class="registered-detail-attachment-icon" aria-hidden="true">📎</span><span class="registered-detail-attachment-copy"><strong>${escapeHtml(nomeTipoAnexoDetalhe_(a))}</strong><small>${escapeHtml(a.nome || `Anexo ${indice + 1}`)}</small></span><span class="registered-detail-attachment-open" aria-hidden="true">↗</span></a>`).join('')}<small class="registered-detail-attachments-note">Disponíveis durante o atendimento e por 24 h após a conclusão.</small></div>`;
       }
 
       function formatarValorDetalheCadastrado_(valor, fallback = 'Não informado') {
@@ -23568,6 +23568,80 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const texto = formatarValorDetalheCadastrado_(valor, opcoes.fallback || 'Não informado');
         const tag = opcoes.paragrafo ? 'p' : 'strong';
         return `<div class="registered-inspection-detail-field${opcoes.largo ? ' is-wide' : ''}"><span>${escapeHtml(rotulo)}</span><${tag}>${escapeHtml(texto)}</${tag}></div>`;
+      }
+
+      // V23.9.99ha — apresentação operacional compacta da ficha cadastrada.
+      function temValorDetalheCadastrado_(valor) {
+        return String(valor == null ? '' : valor).trim() !== '';
+      }
+
+      function valorNumericoPositivoDetalhe_(valor) {
+        const bruto = String(valor == null ? '' : valor).trim();
+        if (!bruto) return '';
+        const normalizado = bruto.replace(/\s/g, '').replace(/\./g, '').replace(',', '.').replace(/[^0-9.+-]/g, '');
+        const numero = Number(normalizado);
+        if (!Number.isFinite(numero) || numero <= 0) return '';
+        return bruto;
+      }
+
+      function listaUnicaDetalheCadastrado_(valor) {
+        const vistos = new Set();
+        return String(valor == null ? '' : valor)
+          .split(/[;,|•]+/)
+          .map(item => item.trim())
+          .filter(Boolean)
+          .filter(item => {
+            const chave = normalize(item);
+            if (!chave || vistos.has(chave)) return false;
+            vistos.add(chave);
+            return true;
+          });
+      }
+
+      function chipsDetalheCadastrado_(itens, classeExtra = '') {
+        const lista = Array.isArray(itens) ? itens.filter(Boolean) : [];
+        if (!lista.length) return '';
+        return `<div class="registered-detail-chips${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}">${lista.map(item => `<span class="registered-detail-chip">${escapeHtml(item)}</span>`).join('')}</div>`;
+      }
+
+      function blocoDetalheCadastrado_(titulo, conteudo, opcoes = {}) {
+        if (!conteudo) return '';
+        const subtitulo = opcoes.subtitulo ? `<p>${escapeHtml(opcoes.subtitulo)}</p>` : '';
+        return `<section class="registered-detail-section${opcoes.classe ? ` ${escapeAttr(opcoes.classe)}` : ''}">
+          <div class="registered-detail-section-head"><div><h3>${escapeHtml(titulo)}</h3>${subtitulo}</div></div>
+          ${conteudo}
+        </section>`;
+      }
+
+      function campoSeInformadoDetalhe_(rotulo, valor, opcoes = {}) {
+        if (!temValorDetalheCadastrado_(valor)) return '';
+        return campoDetalheCadastrado_(rotulo, valor, opcoes);
+      }
+
+      function htmlLocalizacaoVistoriaCadastrada_(item, urlRota) {
+        const enderecoPrincipal = [item?.endereco, item?.numero].filter(temValorDetalheCadastrado_).join(', ');
+        const localidade = [item?.bairro, item?.cidade].filter(temValorDetalheCadastrado_).join(' — ');
+        const cep = formatarCepCliente_(item?.cep || '');
+        const partes = [enderecoPrincipal, localidade].filter(Boolean);
+        if (!partes.length && !cep && !urlRota) return '';
+        return `<div class="registered-detail-location-card">
+          <div class="registered-detail-location-text">
+            ${partes.length ? `<strong>${escapeHtml(partes.join(' · '))}</strong>` : ''}
+            ${cep ? `<span>CEP ${escapeHtml(cep)}</span>` : ''}
+          </div>
+          ${urlRota ? `<a class="registered-detail-inline-action" href="${escapeAttr(urlRota)}" target="_blank" rel="noopener noreferrer" aria-label="Traçar rota até o endereço da vistoria no Google Maps">Traçar rota <span aria-hidden="true">↗</span></a>` : ''}
+        </div>`;
+      }
+
+      function nomeTipoAnexoDetalhe_(anexo) {
+        const nome = String(anexo?.nome || '').trim();
+        const ext = (nome.match(/\.([a-z0-9]{2,6})$/i)?.[1] || '').toUpperCase();
+        if (ext === 'DWG' || ext === 'DXF') return `Projeto/Plantas — ${ext}`;
+        if (ext === 'PDF') return 'Documento — PDF';
+        if (['JPG','JPEG','PNG','WEBP'].includes(ext)) return `Imagem — ${ext}`;
+        if (['DOC','DOCX'].includes(ext)) return `Documento — ${ext}`;
+        if (['XLS','XLSX'].includes(ext)) return `Planilha — ${ext}`;
+        return ext ? `Anexo — ${ext}` : 'Anexo';
       }
 
       // V23.9.99fk — link manual da rota visível e clicável na ficha cadastrada.
@@ -23619,7 +23693,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (registeredInspectionDetailSubtitle) {
           registeredInspectionDetailSubtitle.textContent = ehDdu
             ? 'Consulta do DDU. Abrir esta ficha não inicia a vistoria nem vincula o militar.'
-            : 'Consulte todos os dados cadastrados. Abrir esta ficha não inicia a vistoria.';
+            : 'Abrir esta ficha, consultar o projeto ou traçar rota não inicia a vistoria.';
+        }
+        const stateBadge = document.getElementById('registeredInspectionDetailStateBadge');
+        const metaLine = document.getElementById('registeredInspectionDetailMeta');
+        if (stateBadge) {
+          stateBadge.hidden = ehDdu;
+          stateBadge.className = `registered-inspection-detail-state ${item.vistoriaIniciada ? 'is-progress' : 'is-pending'}`;
+          stateBadge.textContent = item.vistoriaIniciada ? 'Em andamento' : 'Não iniciada';
+        }
+        if (metaLine) {
+          const meta = ehDdu ? [] : [
+            liberacao ? 'Liberação' : (pet ? 'PET' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização')),
+            formatarDataPreparacao_(item.dataPrevista),
+            item.pscip ? projetoPscipOperacional_(item.pscip) : '',
+            item.vistoriadorResponsavel || ''
+          ].filter(Boolean);
+          metaLine.hidden = ehDdu || !meta.length;
+          metaLine.textContent = meta.join(' • ');
         }
 
         const campos = [];
@@ -23677,47 +23768,76 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         } else {
           if (registeredInspectionDetailAssignBtn) registeredInspectionDetailAssignBtn.hidden = true;
+          // Na ficha de Vistoria Programada, rota e anexos ficam dentro das seções correspondentes,
+          // evitando ações duplicadas no rodapé.
+          if (registeredInspectionDetailRouteBtn) registeredInspectionDetailRouteBtn.hidden = true;
+          if (registeredInspectionDetailFileBtn) registeredInspectionDetailFileBtn.hidden = true;
+
           const tipoTexto = pet ? 'PET — Projeto de Evento Temporário' : (liberacao ? 'Vistoria de Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Vistoria de Fiscalização'));
-          campos.push(campoDetalheCadastrado_('Tipo', tipoTexto));
-          campos.push(campoDetalheCadastrado_('Data prevista', formatarDataPreparacao_(item.dataPrevista)));
-          campos.push(campoDetalheCadastrado_('Vistoriador responsável', item.vistoriadorResponsavel || 'Não definido'));
-          campos.push(campoDetalheCadastrado_('Demanda', item.demandaPrincipal || (eventoDeclaratorio ? 'Eventos declaratórios' : '')));
-          campos.push(campoDetalheCadastrado_('Nº do PSCIP / Projeto', item.pscip ? projetoPscipOperacional_(item.pscip) : 'Não informado'));
-          if (item.eventoDeclaracaoNumero) campos.push(campoDetalheCadastrado_('Declaração INFOSCIP', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero)));
-          campos.push(campoDetalheCadastrado_('Nº do PF', item.pf));
-          campos.push(campoDetalheCadastrado_('CNPJ / CPF', item.cnpj || item.cpf));
-          campos.push(campoDetalheCadastrado_('Nome Fantasia', item.nomeFantasia));
-          campos.push(campoDetalheCadastrado_('Razão Social', item.razaoSocial));
-          campos.push(campoDetalheCadastrado_('Área', item.area ? `${item.area} m²` : 'Não informada'));
-          if (liberacao && item.ocupacao) campos.push(campoDetalheCadastrado_('Ocupação / divisão prevista', item.ocupacao));
-          if (liberacao && item.pavimentos) campos.push(campoDetalheCadastrado_('Pavimentos previstos', item.pavimentos));
-          if (liberacao && item.altura) campos.push(campoDetalheCadastrado_('Altura prevista', `${item.altura} m`));
-          if (liberacao && item.medidasProjetoPrevistas) campos.push(campoDetalheCadastrado_('Medidas de segurança previstas no projeto', separarMedidasProjetoPrevistas_(item.medidasProjetoPrevistas).join(' • '), { largo: true, paragrafo: true }));
-          if (item.dataRenovacaoAvcb) campos.push(campoDetalheCadastrado_('Data de renovação do AVCB', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb)));
-          campos.push(campoDetalheCadastrado_('CEP', formatarCepCliente_(item.cep || '')));
-          campos.push(campoDetalheCadastrado_('Endereço', [item.endereco, item.numero].filter(Boolean).join(', '), { largo: true }));
-          campos.push(campoDetalheCadastrado_('Bairro', item.bairro));
-          campos.push(campoDetalheCadastrado_('Cidade', item.cidade));
-          if (normalizarLinkRotaMaps_(item.rotaUrl)) campos.push(campoLinkDetalheCadastrado_('Rota', item.rotaUrl));
-          campos.push(campoDetalheCadastrado_('Observação prévia', item.observacaoPrevia || item.observacao, { largo: true, paragrafo: true }));
+          const processo = [];
+          processo.push(campoDetalheCadastrado_('Tipo', tipoTexto));
+          processo.push(campoSeInformadoDetalhe_('Data prevista', formatarDataPreparacao_(item.dataPrevista)));
+          processo.push(campoSeInformadoDetalhe_('Vistoriador responsável', item.vistoriadorResponsavel));
+          processo.push(campoSeInformadoDetalhe_('Demanda', item.demandaPrincipal || (eventoDeclaratorio ? 'Eventos declaratórios' : '')));
+          processo.push(campoSeInformadoDetalhe_('Nº do PSCIP / Projeto', item.pscip ? projetoPscipOperacional_(item.pscip) : ''));
+          processo.push(campoSeInformadoDetalhe_('Nº do PF', item.pf));
+          if (item.eventoDeclaracaoNumero) processo.push(campoDetalheCadastrado_('Declaração INFOSCIP', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero)));
+          if (item.dataRenovacaoAvcb) processo.push(campoDetalheCadastrado_('Data de renovação do AVCB', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb)));
+          campos.push(blocoDetalheCadastrado_('Processo', `<div class="registered-detail-section-grid">${processo.filter(Boolean).join('')}</div>`));
+
+          const edificacao = [];
+          edificacao.push(campoSeInformadoDetalhe_('CNPJ / CPF', item.cnpj || item.cpf));
+          edificacao.push(campoSeInformadoDetalhe_('Nome Fantasia', item.nomeFantasia));
+          edificacao.push(campoSeInformadoDetalhe_('Razão Social', item.razaoSocial));
+          if (temValorDetalheCadastrado_(item.area)) edificacao.push(campoDetalheCadastrado_('Área', `${item.area} m²`));
+          if (liberacao && temValorDetalheCadastrado_(item.pavimentos)) edificacao.push(campoDetalheCadastrado_('Pavimentos previstos', item.pavimentos));
+          const alturaValida = liberacao ? valorNumericoPositivoDetalhe_(item.altura) : '';
+          if (alturaValida) edificacao.push(campoDetalheCadastrado_('Altura prevista', `${alturaValida} m`));
+
+          const ocupacoes = liberacao ? listaUnicaDetalheCadastrado_(item.ocupacao) : [];
+          if (ocupacoes.length) {
+            edificacao.push(`<div class="registered-inspection-detail-field is-wide registered-detail-chip-field"><span>Ocupação / divisão prevista</span>${chipsDetalheCadastrado_(ocupacoes, 'is-occupancy')}</div>`);
+          }
+          campos.push(blocoDetalheCadastrado_('Dados da edificação', `<div class="registered-detail-section-grid">${edificacao.filter(Boolean).join('')}</div>`));
+
+          const medidasProjeto = liberacao ? separarMedidasProjetoPrevistas_(item.medidasProjetoPrevistas || '') : [];
+          const medidasUnicas = [];
+          const medidasVistas = new Set();
+          medidasProjeto.forEach(medida => {
+            const chave = normalize(medida);
+            if (!chave || medidasVistas.has(chave)) return;
+            medidasVistas.add(chave);
+            medidasUnicas.push(medida);
+          });
+          if (medidasUnicas.length) {
+            campos.push(blocoDetalheCadastrado_(
+              'Medidas de segurança previstas no projeto',
+              `<div class="registered-detail-measures">${chipsDetalheCadastrado_(medidasUnicas, 'is-measure')}</div>`,
+              { subtitulo:'Informações do projeto. A conferência em campo ocorre separadamente durante a vistoria.' }
+            ));
+          }
+
+          const localizacaoHtml = htmlLocalizacaoVistoriaCadastrada_(item, urlRota);
+          if (localizacaoHtml) campos.push(blocoDetalheCadastrado_('Localização', localizacaoHtml));
+
+          const observacao = String(item.observacaoPrevia || item.observacao || '').trim();
+          if (observacao) {
+            campos.push(blocoDetalheCadastrado_('Observação prévia', `<div class="registered-detail-note">${escapeHtml(observacao)}</div>`));
+          }
+
           const anexosProgramacaoHtml = htmlAnexosDetalhe_(item.anexos);
-          if (anexosProgramacaoHtml) campos.push(anexosProgramacaoHtml);
+          if (anexosProgramacaoHtml) campos.push(blocoDetalheCadastrado_('Anexos', anexosProgramacaoHtml));
+
           if (registeredInspectionDetailStatus) {
             registeredInspectionDetailStatus.textContent = item.vistoriaIniciada
-              ? 'Esta vistoria já possui preenchimento iniciado. Use o botão abaixo para continuar o rascunho existente.'
-              : 'Vistoria cadastrada para consulta. Nenhum rascunho é criado até o primeiro preenchimento real do formulário.';
+              ? 'Esta vistoria já possui preenchimento iniciado. Continue o rascunho existente.'
+              : '';
           }
           if (registeredInspectionDetailStartBtn) {
             registeredInspectionDetailStartBtn.hidden = false;
             registeredInspectionDetailStartBtn.textContent = item.vistoriaIniciada ? 'Continuar vistoria' : 'Iniciar vistoria';
           }
           if (registeredInspectionDetailEditBtn) registeredInspectionDetailEditBtn.hidden = Boolean(item.vistoriaIniciada);
-          if (registeredInspectionDetailFileBtn) {
-            const anexos = Array.isArray(item.anexos) ? item.anexos.filter(a=>a?.url) : [];
-            registeredInspectionDetailFileBtn.hidden = anexos.length !== 1 && !item.arquivoDwgUrl;
-            registeredInspectionDetailFileBtn.href = anexos[0]?.url || item.arquivoDwgUrl || '#';
-            registeredInspectionDetailFileBtn.textContent = anexos.length === 1 ? 'Abrir anexo' : 'Abrir primeiro anexo';
-          }
         }
 
         if (registeredInspectionDetailBody) registeredInspectionDetailBody.innerHTML = campos.join('');
@@ -28562,7 +28682,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gz', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ha', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
