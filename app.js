@@ -1,3 +1,4 @@
+// V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
       'use strict';
@@ -20,7 +21,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gw';
+      const APP_VERSION = '23.9.99gx';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2753,7 +2754,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gw';
+      const APP_REVISION_UI_ = '23.9.99gx';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2837,6 +2838,11 @@
         carregandoAnteriores: false,
         historicoAnteriorCarregado: false
       };
+      // V23.9.99gx — um único lote histórico pode ser preparado silenciosamente
+      // depois que os registros recentes aparecem. Ele existe apenas em memória.
+      let recordsHistoricoPrefetch_ = null;
+      let recordsHistoricoPrefetchPromise_ = null;
+
 
       // Respostas confirmadas nesta abertura do app podem ser reutilizadas por poucos
       // minutos sem nova consulta pesada. Esse mapa existe somente em memória: ao
@@ -4828,7 +4834,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gw', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gx', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7500,12 +7506,18 @@
             recordsLoadOlderBtn.disabled = recordsState.carregandoAnteriores || recordsState.carregando;
             recordsLoadOlderBtn.classList.toggle('is-loading', recordsState.carregandoAnteriores);
             const texto = recordsLoadOlderBtn.querySelector('span:last-child');
-            if (texto) texto.textContent = recordsState.carregandoAnteriores ? 'Carregando registros anteriores...' : 'Carregar registros anteriores';
+            if (texto) {
+              const tokenAtual = tokenCursorHistoricoPainel_();
+              const pronto = Boolean(recordsHistoricoPrefetch_ && recordsHistoricoPrefetch_.token === tokenAtual && recordsHistoricoPrefetch_.resposta);
+              texto.textContent = recordsState.carregandoAnteriores
+                ? 'Buscando registros anteriores...'
+                : (pronto ? 'Mostrar 50 registros anteriores' : 'Carregar 50 registros anteriores');
+            }
           }
           if (recordsProgressiveNote) {
             recordsProgressiveNote.textContent = recordsState.temAnteriores
-              ? 'O app abriu primeiro os registros recentes. Toque para buscar o histórico anterior sem recarregar todo o Painel.'
-              : 'Todos os registros disponíveis neste intervalo já foram carregados.';
+              ? 'A lista abriu com os registros recentes. A pesquisa acima consulta toda a base, inclusive registros antigos.'
+              : 'Todo o histórico disponível para esta lista já foi carregado.';
           }
           return;
         }
@@ -8089,6 +8101,8 @@
         recordsState.cursorAnteriorTimestamp = Math.max(0, Number(resposta?.cursorAnteriorTimestamp || 0));
         recordsState.cursorAnteriorLinha = Math.max(0, Number(resposta?.cursorAnteriorLinha || 0));
         recordsState.historicoAnteriorCarregado = false;
+        recordsHistoricoPrefetch_ = null;
+        recordsHistoricoPrefetchPromise_ = null;
         recordsState.pagina = 1;
         recordsState.totalPaginas = 1;
 
@@ -8102,6 +8116,7 @@
           recordsStatus.className = 'records-status records-status--quick';
           recordsStatus.innerHTML = `<strong>${recordsState.total} registro${recordsState.total === 1 ? '' : 's'} recente${recordsState.total === 1 ? '' : 's'} carregado${recordsState.total === 1 ? '' : 's'}.</strong> Exibindo primeiro os últimos ${recordsState.periodoInicialDias} dias. Indicadores gerais são atualizados separadamente, sem bloquear a lista.`;
         }
+        agendarPrecarregamentoHistoricoPainel_();
         return true;
       }
 
@@ -8211,39 +8226,100 @@
         return painelResumoLevePromise_;
       }
 
+      function tokenCursorHistoricoPainel_() {
+        return [
+          Math.max(0, Number(recordsState.cursorAnteriorTimestamp || 0)),
+          Math.max(0, Number(recordsState.cursorAnteriorLinha || 0)),
+          Math.max(0, Number(recordsState.cursorAnterior || 0))
+        ].join(':');
+      }
+
+      async function solicitarLoteHistoricoPainel_(tokenEsperado) {
+        const token = tokenEsperado || tokenCursorHistoricoPainel_();
+        const partes = token.split(':').map(v => Math.max(0, Number(v || 0)));
+        return apiRequest('config', {
+          consulta:'registros_progressivos',
+          antesDeTimestamp: partes[0] || 0,
+          antesDaLinhaData: partes[1] || 0,
+          antesDaLinha: partes[2] || 0,
+          limite: 50
+        }, 18000, { noRetry:true });
+      }
+
+      function agendarPrecarregamentoHistoricoPainel_() {
+        if (!navigator.onLine || !authState.sessionToken || !recordsState.modoProgressivo || !recordsState.temAnteriores) return;
+        if (!document.body.classList.contains('records-mode') || !filtrosPainelPadraoSemBusca_()) return;
+        const token = tokenCursorHistoricoPainel_();
+        if (recordsHistoricoPrefetch_?.token === token || recordsHistoricoPrefetchPromise_?.token === token) return;
+
+        const iniciar = () => {
+          if (!navigator.onLine || !recordsState.modoProgressivo || !recordsState.temAnteriores || tokenCursorHistoricoPainel_() !== token) return;
+          const promessa = solicitarLoteHistoricoPainel_(token)
+            .then(resposta => {
+              if (tokenCursorHistoricoPainel_() === token && resposta) {
+                recordsHistoricoPrefetch_ = { token, resposta, prontoEm:Date.now() };
+                atualizarPaginacao_();
+              }
+              return resposta;
+            })
+            .catch(() => null)
+            .finally(() => {
+              if (recordsHistoricoPrefetchPromise_?.token === token) recordsHistoricoPrefetchPromise_ = null;
+            });
+          recordsHistoricoPrefetchPromise_ = { token, promessa };
+        };
+
+        // Dá prioridade aos cards/indicadores da abertura. O histórico é preparado
+        // somente quando o navegador estiver ocioso ou após uma pequena espera.
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(iniciar, { timeout: 2600 });
+        } else {
+          setTimeout(iniciar, 1800);
+        }
+      }
+
+      function aplicarLoteHistoricoPainel_(resposta) {
+        const novos = Array.isArray(resposta?.itens) ? resposta.itens : [];
+        const existentes = new Set((recordsState.itens || []).map(item => String(item?.chave || `linha:${item?.linha || ''}`)));
+        novos.forEach(item => {
+          const chave = String(item?.chave || `linha:${item?.linha || ''}`);
+          if (!existentes.has(chave)) {
+            recordsState.itens.push(item);
+            existentes.add(chave);
+          }
+        });
+        recordsState.cursorAnterior = Math.max(0, Number(resposta?.cursorAnterior || recordsState.cursorAnterior || 0));
+        recordsState.cursorAnteriorTimestamp = Math.max(0, Number(resposta?.cursorAnteriorTimestamp || 0));
+        recordsState.cursorAnteriorLinha = Math.max(0, Number(resposta?.cursorAnteriorLinha || 0));
+        recordsState.temAnteriores = Boolean(resposta?.temAnteriores);
+        if (novos.length) recordsState.historicoAnteriorCarregado = true;
+        recordsState.total = recordsState.itens.length;
+        return novos.length;
+      }
+
       async function carregarRegistrosAnteriores_() {
         if (!recordsState.modoProgressivo || !recordsState.temAnteriores || recordsState.carregandoAnteriores || !navigator.onLine) return;
         recordsState.carregandoAnteriores = true;
         atualizarPaginacao_();
         try {
-          const resposta = await apiRequest('config', {
-            consulta:'registros_progressivos',
-            antesDeTimestamp: Math.max(0, Number(recordsState.cursorAnteriorTimestamp || 0)),
-            antesDaLinhaData: Math.max(0, Number(recordsState.cursorAnteriorLinha || 0)),
-            // Fallback compatível com backend anterior durante a troca de versão.
-            antesDaLinha: Math.max(0, Number(recordsState.cursorAnterior || 0)),
-            limite: 50
-          }, 16000, { noRetry:true });
-          const novos = Array.isArray(resposta?.itens) ? resposta.itens : [];
-          const existentes = new Set((recordsState.itens || []).map(item => String(item?.chave || `linha:${item?.linha || ''}`)));
-          novos.forEach(item => {
-            const chave = String(item?.chave || `linha:${item?.linha || ''}`);
-            if (!existentes.has(chave)) {
-              recordsState.itens.push(item);
-              existentes.add(chave);
-            }
-          });
-          recordsState.cursorAnterior = Math.max(0, Number(resposta?.cursorAnterior || recordsState.cursorAnterior || 0));
-          recordsState.cursorAnteriorTimestamp = Math.max(0, Number(resposta?.cursorAnteriorTimestamp || 0));
-          recordsState.cursorAnteriorLinha = Math.max(0, Number(resposta?.cursorAnteriorLinha || 0));
-          recordsState.temAnteriores = Boolean(resposta?.temAnteriores);
-          if (novos.length) recordsState.historicoAnteriorCarregado = true;
-          recordsState.total = recordsState.itens.length;
+          const token = tokenCursorHistoricoPainel_();
+          let resposta = null;
+          if (recordsHistoricoPrefetch_?.token === token && recordsHistoricoPrefetch_.resposta) {
+            resposta = recordsHistoricoPrefetch_.resposta;
+          } else if (recordsHistoricoPrefetchPromise_?.token === token) {
+            resposta = await recordsHistoricoPrefetchPromise_.promessa;
+          }
+          if (!resposta) resposta = await solicitarLoteHistoricoPainel_(token);
+
+          recordsHistoricoPrefetch_ = null;
+          recordsHistoricoPrefetchPromise_ = null;
+          aplicarLoteHistoricoPainel_(resposta || {});
           renderizarRegistros_();
           if (recordsStatus) {
             recordsStatus.className = 'records-status records-status--quick';
-            recordsStatus.innerHTML = `<strong>${recordsState.total} registros carregados.</strong> ${recordsState.temAnteriores ? 'Você pode carregar mais registros anteriores quando precisar.' : 'Todo o histórico atual disponível foi carregado.'}`;
+            recordsStatus.innerHTML = `<strong>${recordsState.total} registros carregados.</strong> ${recordsState.temAnteriores ? 'Há mais registros antigos disponíveis; a pesquisa continua consultando toda a base.' : 'Todo o histórico atual disponível foi carregado.'}`;
           }
+          agendarPrecarregamentoHistoricoPainel_();
         } catch (erro) {
           if (recordsStatus) {
             recordsStatus.className = 'records-status error';
@@ -22452,7 +22528,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gw';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gx';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -28314,7 +28390,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gw', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gx', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

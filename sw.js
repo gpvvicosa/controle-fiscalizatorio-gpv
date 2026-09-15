@@ -1,7 +1,8 @@
-const CACHE_NAME = 'gpv-vistorias-shell-20260914-v23-9-99-gw-saudacao-diaria';
+const CACHE_NAME = 'gpv-vistorias-shell-20260914-v23-9-99-gx-painel-indice-prefetch';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99gw';
+const VERSION = '23.9.99gx';
 
+// V23.9.99gx — mantém instalação leve; otimização do Painel ocorre no app/backend.
 // V23.9.99gw — instalação leve: somente o núcleo necessário para abrir/operar o PWA.
 // Manuais, ITs, PDFs e imagens técnicas são armazenados sob demanda em cache separado,
 // que sobrevive às trocas de versão do shell e não bloqueia a atualização do aplicativo.
