@@ -22539,3 +22539,42 @@ body.records-mode .records-status.loading .panel-loading-visual{
 @media(prefers-reduced-motion:reduce){
   .daily-motivational-mark,.daily-motivational-mark::after{animation:none!important}
 }
+
+
+/* V23.9.99gy — pré-cadastro técnico da Vistoria de Liberação */
+.prepare-project-data{grid-column:1/-1}
+.prepare-project-card{border:1px solid #d8e2ee;border-radius:16px;background:linear-gradient(180deg,#fbfdff 0%,#f7faff 100%);padding:14px}
+.prepare-project-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.prepare-project-head>div{display:grid;gap:3px}
+.prepare-project-head strong{font-size:14px;color:#24364b}
+.prepare-project-head span{font-size:11px;line-height:1.35;color:#68778a}
+.prepare-project-badge{flex:0 0 auto!important;padding:5px 8px;border-radius:999px;background:#e8f1fb;color:#285d92!important;font-size:10px!important;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.prepare-project-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:11px}
+.prepare-project-grid .field{min-width:0}
+.prepare-measures-picker{margin-top:12px}
+.prepare-measures-button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #cbd8e6;border-radius:12px;background:#fff;padding:10px 12px;color:#22354a;text-align:left;cursor:pointer}
+.prepare-measures-button:hover{border-color:#8fb1d4;background:#f8fbff}
+.prepare-measures-button>span{font-weight:750}
+.prepare-measures-button>strong{font-size:11px;color:#1f64a3;background:#eaf4ff;border-radius:999px;padding:5px 8px;white-space:nowrap}
+.prepare-measures-panel{margin-top:8px;border:1px solid #dce5ee;border-radius:12px;background:#fff;padding:11px}
+.prepare-measures-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 12px}
+.prepare-measures-grid label{display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px 8px;border-radius:9px;font-size:12px;line-height:1.35;color:#34465a;cursor:pointer}
+.prepare-measures-grid label:hover{background:#f4f8fc}
+.prepare-measures-grid input{width:17px;height:17px;min-height:0;margin:0;flex:0 0 auto;accent-color:#1f6fb2}
+.prepare-measures-other{margin-top:9px!important}
+.prepare-measures-summary{margin-top:8px;padding:8px 10px;border-radius:10px;background:#f3f6f9;color:#6d7885;font-size:11px;line-height:1.4}
+.prepare-measures-summary.has-items{background:#edf7f1;color:#22623d}
+.project-measures-field{border:1px solid #cfdfed;border-radius:14px;background:#f8fbfe;padding:13px 14px}
+.project-measures-field-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.project-measures-field-head>div{display:grid;gap:2px}
+.project-measures-field-head span{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#657b90;font-weight:800}
+.project-measures-field-head strong{font-size:14px;color:#25394e}
+.project-measures-field-badge{background:#e8f1fb!important;color:#285d92!important;border-radius:999px;padding:4px 7px}
+.project-measures-chip-list{display:flex;flex-wrap:wrap;gap:6px}
+.project-measures-chip-list span{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:#fff;border:1px solid #cfdce8;color:#33495e;font-size:11px;font-weight:650}
+.project-measures-field .hint{margin-top:9px}
+@media (max-width:720px){
+  .prepare-project-grid{grid-template-columns:1fr}
+  .prepare-measures-grid{grid-template-columns:1fr}
+  .prepare-project-head{align-items:center}
+}

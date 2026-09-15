@@ -1,3 +1,4 @@
+// V23.9.99gy — pré-cadastro de Liberação com dados técnicos e medidas previstas no projeto.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
@@ -21,7 +22,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gx';
+      const APP_VERSION = '23.9.99gy';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2754,7 +2755,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gx';
+      const APP_REVISION_UI_ = '23.9.99gy';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4834,7 +4835,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gx', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gy', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -15656,6 +15657,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           _appUsuarioSessao: String(authState.sessionToken || ''),
           _appDispositivo: nomeDispositivo_(),
           _appPreparacaoId: preparacaoEmUsoId,
+          _appMedidasProjetoPrevistas: value('medidasProjetoPrevistas'),
           _appDduId: dduEmUsoId,
           _appDduNumero: value('dduProtocol') || dduEmUsoNumero,
           _appAcessoriaPfVinculado: acessoria ? String(processoAcessoriaVinculado?.pf || '') : '',
@@ -20268,6 +20270,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         restaurarFotosGerais_(p.fotosGerais);
         restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
+        renderizarMedidasProjetoPrevistasCampo_(p._appMedidasProjetoPrevistas || '');
         restaurarStatusLocalizacao_();
         if (!localizacaoValidaFormulario_()) agendarCapturaLocalizacaoAutomatica_(450);
         aplicarFluxoVistoria_(inferirFluxoDoRascunho_(p), { silencioso: true });
@@ -20395,6 +20398,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         dduEmUsoNumero = '';
         processoAcessoriaVinculado = null;
         form.reset();
+        renderizarMedidasProjetoPrevistasCampo_('');
         if (limpezaForte) limparCamposFormularioEncerrado_();
         limparStatusLocalizacao_();
         if (!preservarRascunhoAtual) removerRascunhoLocal_(currentRecordId);
@@ -22528,7 +22532,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gx';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gy';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23212,6 +23216,75 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return `${d}/${m}/${a}`;
       }
 
+
+      function separarMedidasProjetoPrevistas_(valor) {
+        const fonte = Array.isArray(valor) ? valor : String(valor || '').split(/\s*\|\s*|\r?\n/);
+        const vistos = new Set();
+        const saida = [];
+        fonte.forEach(item => {
+          const texto = String(item || '').replace(/\s+/g, ' ').trim();
+          if (!texto) return;
+          const chave = normalize(texto);
+          if (!chave || vistos.has(chave)) return;
+          vistos.add(chave);
+          saida.push(texto);
+        });
+        return saida;
+      }
+
+      function medidasProjetoPreparacaoSelecionadas_() {
+        const selecionadas = Array.from(document.querySelectorAll('[data-prepare-medida]:checked'))
+          .map(el => String(el.value || '').trim())
+          .filter(Boolean);
+        const outras = String(document.getElementById('prepareMedidasProjetoOutras')?.value || '')
+          .split(/[,;\n]+/)
+          .map(v => String(v || '').replace(/\s+/g, ' ').trim())
+          .filter(Boolean);
+        return separarMedidasProjetoPrevistas_(selecionadas.concat(outras));
+      }
+
+      function atualizarResumoMedidasProjetoPreparacao_() {
+        const medidas = medidasProjetoPreparacaoSelecionadas_();
+        const count = document.getElementById('prepareMedidasProjetoCount');
+        const resumo = document.getElementById('prepareMedidasProjetoResumo');
+        if (count) count.textContent = medidas.length ? `${medidas.length} selecionada${medidas.length === 1 ? '' : 's'}` : 'Selecionar';
+        if (resumo) {
+          resumo.textContent = medidas.length
+            ? medidas.join(' • ')
+            : 'Nenhuma medida informada.';
+          resumo.classList.toggle('has-items', medidas.length > 0);
+        }
+        return medidas;
+      }
+
+      function aplicarMedidasProjetoPreparacao_(valor) {
+        const medidas = separarMedidasProjetoPrevistas_(valor);
+        const chaves = new Set(medidas.map(normalize));
+        const reconhecidas = new Set();
+        document.querySelectorAll('[data-prepare-medida]').forEach(el => {
+          const chave = normalize(el.value || '');
+          const marcar = chaves.has(chave);
+          el.checked = marcar;
+          if (marcar) reconhecidas.add(chave);
+        });
+        const outras = medidas.filter(item => !reconhecidas.has(normalize(item)));
+        const campoOutras = document.getElementById('prepareMedidasProjetoOutras');
+        if (campoOutras) campoOutras.value = outras.join(', ');
+        atualizarResumoMedidasProjetoPreparacao_();
+      }
+
+      function renderizarMedidasProjetoPrevistasCampo_(valor) {
+        const medidas = separarMedidasProjetoPrevistas_(valor);
+        const input = document.getElementById('medidasProjetoPrevistas');
+        const box = document.getElementById('medidasProjetoPrevistasBox');
+        const lista = document.getElementById('medidasProjetoPrevistasLista');
+        const serializado = medidas.join(' | ');
+        if (input) input.value = serializado;
+        if (!box || !lista) return;
+        box.hidden = medidas.length === 0;
+        lista.innerHTML = medidas.map(item => `<span>${escapeHtml(item)}</span>`).join('');
+      }
+
       function atualizarCamposPreparacaoPorTipo_() {
         const tipoSelecionado = String(prepareTipo?.value || '');
         const pet = tipoSelecionado === 'pet';
@@ -23223,7 +23296,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const pscip = document.getElementById('preparePscip');
         const declaracao = document.getElementById('prepareEventoDeclaracaoNumero');
         const nomeLabel = document.getElementById('prepareNomeFantasiaLabel');
+        const projetoWrap = document.getElementById('prepareLiberacaoProjetoWrap');
 
+        if (projetoWrap) projetoWrap.hidden = tipoSelecionado !== 'liberacao';
         if (pscipWrap) {
           pscipWrap.hidden = evento;
           pscipWrap.classList.toggle('is-required-prep', liberacao && !evento);
@@ -23274,7 +23349,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
         preparacaoCadastroIdPendente = '';
-        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareRotaUrl','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
+        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareOcupacao','preparePavimentos','prepareAltura','prepareMedidasProjetoOutras','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareRotaUrl','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
@@ -23294,6 +23369,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         clearPrepareCnpjStatus_();
         statusCepContexto_('prepare', '');
         limparResultadoProcessoPf_('prepare');
+        document.querySelectorAll('[data-prepare-medida]').forEach(el => { el.checked = false; });
+        const medidasPanel = document.getElementById('prepareMedidasProjetoPanel');
+        const medidasBtn = document.getElementById('prepareMedidasProjetoBtn');
+        if (medidasPanel) medidasPanel.hidden = true;
+        if (medidasBtn) medidasBtn.setAttribute('aria-expanded', 'false');
+        atualizarResumoMedidasProjetoPreparacao_();
         atualizarCamposPreparacaoPorTipo_();
       }
 
@@ -23608,6 +23689,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Nome Fantasia', item.nomeFantasia));
           campos.push(campoDetalheCadastrado_('Razão Social', item.razaoSocial));
           campos.push(campoDetalheCadastrado_('Área', item.area ? `${item.area} m²` : 'Não informada'));
+          if (liberacao && item.ocupacao) campos.push(campoDetalheCadastrado_('Ocupação / divisão prevista', item.ocupacao));
+          if (liberacao && item.pavimentos) campos.push(campoDetalheCadastrado_('Pavimentos previstos', item.pavimentos));
+          if (liberacao && item.altura) campos.push(campoDetalheCadastrado_('Altura prevista', `${item.altura} m`));
+          if (liberacao && item.medidasProjetoPrevistas) campos.push(campoDetalheCadastrado_('Medidas de segurança previstas no projeto', separarMedidasProjetoPrevistas_(item.medidasProjetoPrevistas).join(' • '), { largo: true, paragrafo: true }));
           if (item.dataRenovacaoAvcb) campos.push(campoDetalheCadastrado_('Data de renovação do AVCB', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb)));
           campos.push(campoDetalheCadastrado_('CEP', formatarCepCliente_(item.cep || '')));
           campos.push(campoDetalheCadastrado_('Endereço', [item.endereco, item.numero].filter(Boolean).join(', '), { largo: true }));
@@ -24668,6 +24753,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
+        set('prepareOcupacao', item.ocupacao || '');
+        set('preparePavimentos', item.pavimentos || '');
+        set('prepareAltura', item.altura || '');
+        aplicarMedidasProjetoPreparacao_(item.medidasProjetoPrevistas || '');
         set('prepareCep', formatarCepCliente_(item.cep || ''));
         set('prepareEndereco', item.endereco || '');
         set('prepareNumero', item.numero || '');
@@ -24740,6 +24829,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           nomeFantasia: padronizarTextoCadastroCliente_(g('prepareNomeFantasia')),
           razaoSocial: padronizarTextoCadastroCliente_(g('prepareRazaoSocial')),
           area: g('prepareArea'),
+          ocupacao: (!pet && tipo === 'liberacao') ? padronizarTextoCadastroCliente_(g('prepareOcupacao')) : '',
+          pavimentos: (!pet && tipo === 'liberacao') ? g('preparePavimentos').replace(/\D/g, '').slice(0, 3) : '',
+          altura: (!pet && tipo === 'liberacao') ? g('prepareAltura') : '',
+          medidasProjetoPrevistas: (!pet && tipo === 'liberacao') ? medidasProjetoPreparacaoSelecionadas_().join(' | ') : '',
           cep: formatarCepCliente_(g('prepareCep')),
           endereco: padronizarTextoCadastroCliente_(g('prepareEndereco')),
           numero: g('prepareNumero'),
@@ -24783,6 +24876,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           alterados += setSeVazio('prepareNumero', item.numero) ? 1 : 0;
           alterados += setSeVazio('prepareBairro', item.bairro) ? 1 : 0;
           alterados += setSeVazio('prepareArea', item.area) ? 1 : 0;
+          alterados += setSeVazio('prepareOcupacao', item.ocupacao) ? 1 : 0;
+          alterados += setSeVazio('preparePavimentos', item.pavimentos) ? 1 : 0;
+          alterados += setSeVazio('prepareAltura', item.altura) ? 1 : 0;
 
           const pscip = projetoPscipOperacional_(item.pscip || '');
           const pscipAtual = String(document.getElementById('preparePscip')?.value || '').trim();
@@ -24949,6 +25045,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['nomeFantasia', 'nomeFantasia'],
           ['razaoSocial', 'razaoSocial'],
           ['area', 'area'],
+          ['ocupacao', 'ocupacao'],
+          ['pavimentos', 'pavimentos'],
+          ['altura', 'altura'],
+          ['medidasProjetoPrevistas', 'medidasProjetoPrevistas'],
           ['cep', 'cep'],
           ['endereco', 'endereco'],
           ['numero', 'numero'],
@@ -26491,6 +26591,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('rotaMapsUrl', item.rotaUrl || '');
         set('pf', item.pf);
         set('area', item.area);
+        set('pavimentos', item.pavimentos);
+        set('altura', item.altura);
+        if (item.ocupacao) restaurarOcupacoesSelecionadas(item.ocupacao);
+        renderizarMedidasProjetoPrevistasCampo_(item.medidasProjetoPrevistas || '');
         const preparacaoEventoDeclaratorio = normalize(item.demandaPrincipal || '') === normalize('Eventos declaratórios') || Boolean(item.eventoDeclaracaoNumero);
         const preparacaoPet = normalize(item.demandaPrincipal || '') === normalize('PET');
         if (!preparacaoEventoDeclaratorio && item.demandaPrincipal) {
@@ -27007,6 +27111,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
       });
       prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
+      document.getElementById('prepareMedidasProjetoBtn')?.addEventListener('click', () => {
+        const painel = document.getElementById('prepareMedidasProjetoPanel');
+        const botao = document.getElementById('prepareMedidasProjetoBtn');
+        if (!painel || !botao) return;
+        painel.hidden = !painel.hidden;
+        botao.setAttribute('aria-expanded', painel.hidden ? 'false' : 'true');
+      });
+      document.querySelectorAll('[data-prepare-medida]').forEach(el => {
+        el.addEventListener('change', atualizarResumoMedidasProjetoPreparacao_);
+      });
+      document.getElementById('prepareMedidasProjetoOutras')?.addEventListener('input', atualizarResumoMedidasProjetoPreparacao_);
       document.getElementById('prepareDemanda')?.addEventListener('input', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 180); });
       document.getElementById('prepareDemanda')?.addEventListener('change', () => { atualizarCamposPreparacaoPorTipo_(); agendarConsultaProcessoPf_('prepare', 100); });
       instalarProtecaoPscip_(document.getElementById('preparePscip'), () => agendarConsultaProcessoPf_('prepare'));
@@ -28390,7 +28505,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gx', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gy', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
