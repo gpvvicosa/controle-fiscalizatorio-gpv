@@ -22495,3 +22495,47 @@ body.records-mode .records-status.loading .panel-loading-visual{
   .ddu-summary-card.operational-summary-ready,
   .programmed-summary-card.operational-summary-ready{animation:none!important}
 }
+
+/* =============================================================================
+   V23.9.99gw — saudação diária animada integrada à atualização do PWA
+   ============================================================================= */
+.daily-motivational-overlay{z-index:12050!important}
+.daily-motivational-mark{position:relative;isolation:isolate;animation:dailyMotivationalMarkPulse 2.1s ease-in-out infinite}
+.daily-motivational-mark::after{
+  content:"";position:absolute;inset:-7px;border-radius:27px;border:2px solid rgba(21,148,71,.22);
+  opacity:0;transform:scale(.78);z-index:-1;animation:dailyMotivationalRing 2.1s ease-out infinite;
+}
+.daily-motivational-card small#dailyMotivationalStatus{transition:color .22s ease,transform .22s ease}
+.daily-motivational-detail{
+  display:block;margin-top:6px;color:#8b5a13;font-size:11px;line-height:1.35;font-weight:800;
+  opacity:.92;transition:opacity .22s ease;
+}
+.daily-motivational-detail[hidden]{display:none!important}
+.daily-motivational-overlay.is-updating .daily-motivational-mark{
+  color:#9a6a00;background:linear-gradient(145deg,#fff5d8,#ffe9a6);border-color:#f2d16e;
+  box-shadow:0 10px 30px rgba(154,106,0,.17);
+}
+.daily-motivational-overlay.is-updating .daily-motivational-loading span{
+  background:linear-gradient(90deg,#ad7300,#f0b323,#ad7300);
+  animation-duration:1.05s;
+}
+.daily-motivational-overlay.is-updating .daily-motivational-card small#dailyMotivationalStatus{color:#875b08}
+.daily-motivational-overlay.is-ready .daily-motivational-loading span{
+  width:100%;transform:none!important;animation:none!important;background:linear-gradient(90deg,#119543,#36bd67);
+}
+.daily-motivational-overlay.is-ready .daily-motivational-card small#dailyMotivationalStatus{color:#11763a}
+@keyframes dailyMotivationalMarkPulse{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-2px) scale(1.035)}
+}
+@keyframes dailyMotivationalRing{
+  0%{opacity:0;transform:scale(.78)}
+  28%{opacity:.55}
+  70%,100%{opacity:0;transform:scale(1.12)}
+}
+@media(max-width:640px){
+  .daily-motivational-detail{font-size:10.5px;margin-top:5px}
+}
+@media(prefers-reduced-motion:reduce){
+  .daily-motivational-mark,.daily-motivational-mark::after{animation:none!important}
+}

@@ -1,3 +1,4 @@
+// V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
       'use strict';
 
@@ -19,8 +20,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99gv';
-      // V23.9.99gv — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
+      const APP_VERSION = '23.9.99gw';
+      // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
       // V23.9.99gq — Histórico INFOSCIP de anulação do CLCB usa somente o modelo com fato consumado: FOI ANULADO.
@@ -2752,7 +2753,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99gv';
+      const APP_REVISION_UI_ = '23.9.99gw';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4649,8 +4650,24 @@
       }
 
       function mostrarAtualizacaoAutomatica_() {
-        if (!loadingOverlay || !loadingText) return;
         document.documentElement.classList.add('gpv-booting');
+
+        // V23.9.99gw — no primeiro acesso do dia, a própria saudação acompanha a
+        // atualização. Assim o usuário sabe que o app continua trabalhando mesmo
+        // quando um aparelho ficou vários dias sem abrir.
+        const motivacional = document.getElementById('dailyMotivationalOverlay');
+        if (motivacional?.classList.contains('show')) {
+          motivacional.dataset.autoUpdate = '1';
+          atualizarStatusMotivacional_(
+            'Atualizando o App do Vistoriador...',
+            'Nova versão encontrada. Preparando a versão mais recente com segurança.',
+            'updating'
+          );
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          return;
+        }
+
+        if (!loadingOverlay || !loadingText) return;
         loadingOverlay.dataset.autoUpdate = '1';
         loadingText.textContent = 'Atualizando o aplicativo...';
         if (loadingSubtext) {
@@ -4661,6 +4678,13 @@
       }
 
       function encerrarVisualAtualizacaoAutomatica_() {
+        const motivacional = document.getElementById('dailyMotivationalOverlay');
+        if (motivacional?.dataset.autoUpdate === '1') {
+          delete motivacional.dataset.autoUpdate;
+          atualizarStatusMotivacional_('Carregando seu ambiente de trabalho...', `App ${APP_REVISION_UI_}`);
+          if (!loadingOverlay?.classList.contains('show')) document.documentElement.classList.remove('gpv-booting');
+        }
+
         if (!loadingOverlay || loadingOverlay.dataset.autoUpdate !== '1') return;
         delete loadingOverlay.dataset.autoUpdate;
         if (loadingSubtext) {
@@ -4804,7 +4828,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99gv', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99gw', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8348,7 +8372,7 @@
         operationalListsRefreshTimer_ = setTimeout(() => {
           operationalListsRefreshTimer_ = null;
           if (!navigator.onLine || document.visibilityState !== 'visible' || !authState.sessionToken || !usuarioPodeOperar_()) return;
-          // V23.9.99gv — focus/pageshow/visibilitychange podem ocorrer em sequência.
+          // V23.9.99gw — focus/pageshow/visibilitychange podem ocorrer em sequência.
           // Reaproveita o resumo confirmado por até 60 s e só força nova consulta após
           // uma ausência relevante, evitando tempestade de requisições no Apps Script.
           void carregarInicioRapido_({ forcar });
@@ -21277,6 +21301,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         'Seu trabalho no GPV transforma conhecimento técnico em prevenção efetiva.'
       ];
 
+      // V23.9.99gw — saudação diária também acompanha a checagem/atualização do PWA.
+      // O objetivo é deixar claro que o aplicativo está trabalhando sem bloquear a abertura
+      // indefinidamente em rede lenta. A mensagem aparece uma vez por dia por usuário/aparelho.
+      const MOTIVACIONAL_RESUME_STORAGE_ = 'gpv_motivacional_abertura_v2';
+      let motivacionalAbertoEm_ = 0;
+
       function dataLocalChaveMotivacional_() {
         const agora = new Date();
         const y = agora.getFullYear();
@@ -21303,6 +21333,50 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try { localStorage.setItem(chaveMotivacionalUsuario_(), dataLocalChaveMotivacional_()); } catch (_) {}
       }
 
+      function chaveUsuarioMotivacionalAtual_() {
+        return String(authState.usuario?.id || authState.usuario?.bm || '').trim();
+      }
+
+      function salvarRetomadaMotivacional_() {
+        try {
+          sessionStorage.setItem(MOTIVACIONAL_RESUME_STORAGE_, JSON.stringify({
+            data: dataLocalChaveMotivacional_(),
+            usuario: chaveUsuarioMotivacionalAtual_(),
+            em: Date.now()
+          }));
+        } catch (_) {}
+      }
+
+      function deveRetomarMotivacional_() {
+        try {
+          const valor = JSON.parse(sessionStorage.getItem(MOTIVACIONAL_RESUME_STORAGE_) || 'null');
+          return Boolean(
+            valor &&
+            valor.data === dataLocalChaveMotivacional_() &&
+            String(valor.usuario || '') === chaveUsuarioMotivacionalAtual_() &&
+            Date.now() - Number(valor.em || 0) < 2 * 60 * 1000
+          );
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function limparRetomadaMotivacional_() {
+        try { sessionStorage.removeItem(MOTIVACIONAL_RESUME_STORAGE_); } catch (_) {}
+      }
+
+      function saudacaoPorHorarioMotivacional_() {
+        const hora = new Date().getHours();
+        if (hora < 12) return 'Bom dia';
+        if (hora < 18) return 'Boa tarde';
+        return 'Boa noite';
+      }
+
+      function primeiroNomeMotivacional_() {
+        const nome = String(authState.usuario?.nome || '').trim();
+        return nome ? nome.split(/\s+/)[0] : 'militar';
+      }
+
       function indiceMensagemMotivacional_() {
         const base = `${dataLocalChaveMotivacional_()}|${authState.usuario?.id || authState.usuario?.bm || ''}`;
         let hash = 0;
@@ -21324,10 +21398,77 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <h2 id="dailyMotivationalGreeting">Bom serviço!</h2>
             <p id="dailyMotivationalMessage"></p>
             <div class="daily-motivational-loading" aria-hidden="true"><span></span></div>
-            <small>Carregando seu ambiente de trabalho...</small>
+            <small id="dailyMotivationalStatus">Carregando seu ambiente de trabalho...</small>
+            <span id="dailyMotivationalDetail" class="daily-motivational-detail" hidden></span>
           </div>`;
         document.body.appendChild(overlay);
         return overlay;
+      }
+
+      function preencherMotivacionalDiario_(overlay) {
+        if (!overlay) return;
+        const greeting = overlay.querySelector('#dailyMotivationalGreeting');
+        const message = overlay.querySelector('#dailyMotivationalMessage');
+        if (greeting) greeting.textContent = `${saudacaoPorHorarioMotivacional_()}, ${primeiroNomeMotivacional_()}!`;
+        if (message) message.textContent = MENSAGENS_MOTIVACIONAIS_DIARIAS_[indiceMensagemMotivacional_()];
+      }
+
+      function atualizarStatusMotivacional_(texto, detalhe = '', estado = '') {
+        const overlay = document.getElementById('dailyMotivationalOverlay');
+        if (!overlay) return false;
+        const status = overlay.querySelector('#dailyMotivationalStatus');
+        const detail = overlay.querySelector('#dailyMotivationalDetail');
+        if (status && texto) status.textContent = texto;
+        if (detail) {
+          detail.textContent = String(detalhe || '');
+          detail.hidden = !String(detalhe || '').trim();
+        }
+        overlay.classList.toggle('is-updating', estado === 'updating');
+        overlay.classList.toggle('is-ready', estado === 'ready');
+        return overlay.classList.contains('show');
+      }
+
+      function mostrarMotivacionalDiario_(opcoes = {}) {
+        const overlay = garantirOverlayMotivacional_();
+        preencherMotivacionalDiario_(overlay);
+        const jaVisivel = overlay.classList.contains('show');
+        if (!jaVisivel) motivacionalAbertoEm_ = Date.now();
+        overlay.classList.remove('leaving');
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('daily-motivational-open');
+        marcarMotivacionalHoje_();
+        salvarRetomadaMotivacional_();
+        atualizarStatusMotivacional_(
+          opcoes.status || 'Carregando seu ambiente de trabalho...',
+          opcoes.detalhe || '',
+          opcoes.estado || ''
+        );
+        return overlay;
+      }
+
+      function preparacaoMotivacionalNaAbertura_() {
+        if (idAcessoAuxiliarNotificacoesUrl_()) return false;
+        if (!authState.usuario?.id && !authState.usuario?.bm) return false;
+        if (!String(authState.sessionToken || '').trim() || sessaoTokenExpiradaBm_(authState.sessionToken)) return false;
+
+        const retomar = deveRetomarMotivacional_();
+        if (!retomar && !deveMostrarMotivacionalHoje_()) return false;
+
+        let atualizadoRecentemente = false;
+        try {
+          const aplicadoEm = Number(sessionStorage.getItem('gpv_auto_update_applied_v1') || 0);
+          atualizadoRecentemente = aplicadoEm > 0 && Date.now() - aplicadoEm < 2 * 60 * 1000;
+          if (atualizadoRecentemente) sessionStorage.removeItem('gpv_auto_update_applied_v1');
+        } catch (_) {}
+
+        mostrarMotivacionalDiario_({
+          status: atualizadoRecentemente ? '✓ Aplicativo atualizado. Preparando seu ambiente...' : 'Verificando a versão do aplicativo...',
+          detalhe: atualizadoRecentemente ? `Versão ${APP_REVISION_UI_}` : 'Isso pode levar alguns instantes em aparelhos que ficaram dias sem abrir.',
+          estado: atualizadoRecentemente ? 'ready' : ''
+        });
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
+        return true;
       }
 
       async function carregarInicialComMotivacional_(opcoes = {}) {
@@ -21336,42 +21477,46 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         const forcar = Boolean(opcoes.forcar);
-        const mostrar = forcar || deveMostrarMotivacionalHoje_();
+        const overlayExistente = document.getElementById('dailyMotivationalOverlay');
+        const jaVisivel = Boolean(overlayExistente?.classList.contains('show'));
+        const mostrar = forcar || jaVisivel || deveMostrarMotivacionalHoje_() || deveRetomarMotivacional_();
         if (!mostrar) {
-          // V23.9.47: sem mensagem diária pendente, carrega o ambiente diretamente.
-          // A versão anterior chamava esta própria função novamente, prolongando o estado de carregamento.
           await loadInitialData();
           return;
         }
 
-        const overlay = garantirOverlayMotivacional_();
-        const nomeCompleto = String(authState.usuario?.nome || '').trim();
-        const primeiroNome = nomeCompleto || 'militar';
-        const greeting = overlay.querySelector('#dailyMotivationalGreeting');
-        const message = overlay.querySelector('#dailyMotivationalMessage');
-        if (greeting) greeting.textContent = `Bom serviço, ${primeiroNome}!`;
-        if (message) message.textContent = MENSAGENS_MOTIVACIONAIS_DIARIAS_[indiceMensagemMotivacional_()];
+        if (!jaVisivel) {
+          mostrarMotivacionalDiario_({ status:'Carregando seu ambiente de trabalho...' });
+        } else {
+          preencherMotivacionalDiario_(overlayExistente);
+          atualizarStatusMotivacional_('Carregando seu ambiente de trabalho...', `App ${APP_REVISION_UI_}`);
+        }
 
-        overlay.classList.add('show');
-        overlay.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('daily-motivational-open');
-        marcarMotivacionalHoje_();
-
-        const inicio = Date.now();
+        const inicio = motivacionalAbertoEm_ || Date.now();
         let erroCarga = null;
         try {
           await loadInitialData();
         } catch (erro) {
           erroCarga = erro;
         }
-        const restante = Math.max(0, 1800 - (Date.now() - inicio));
-        if (restante) await new Promise(resolve => setTimeout(resolve, restante));
 
-        overlay.classList.add('leaving');
-        await new Promise(resolve => setTimeout(resolve, 220));
-        overlay.classList.remove('show', 'leaving');
-        overlay.setAttribute('aria-hidden', 'true');
+        if (!erroCarga) atualizarStatusMotivacional_('✓ Ambiente pronto.', 'Bom serviço!', 'ready');
+        else atualizarStatusMotivacional_('Não foi possível concluir toda a preparação.', 'O aplicativo continuará com os recursos disponíveis neste momento.');
+
+        const restante = Math.max(0, 1650 - (Date.now() - inicio));
+        if (restante) await new Promise(resolve => setTimeout(resolve, restante));
+        if (!erroCarga) await new Promise(resolve => setTimeout(resolve, 280));
+
+        const overlay = document.getElementById('dailyMotivationalOverlay');
+        if (overlay) {
+          overlay.classList.add('leaving');
+          await new Promise(resolve => setTimeout(resolve, 240));
+          overlay.classList.remove('show', 'leaving', 'is-updating', 'is-ready');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
         document.body.classList.remove('daily-motivational-open');
+        document.documentElement.classList.remove('gpv-booting');
+        limparRetomadaMotivacional_();
         if (erroCarga) throw erroCarga;
       }
 
@@ -21565,7 +21710,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           atualizarUsuarioLogadoUi_();
           aplicarPermissoesInterface_();
           if (acessoAuxiliarId) await carregarAcessoAuxiliarRapido_();
-          else await loadInitialData();
+          else await carregarInicialComMotivacional_();
           return;
         }
 
@@ -22307,7 +22452,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gv';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99gw';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -26410,7 +26555,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             }
           };
 
-          // V23.9.99gv — as opções de configuração mudam raramente. Se esta mesma
+          // V23.9.99gw — as opções de configuração mudam raramente. Se esta mesma
           // versão já confirmou a configuração nas últimas 6 h, não repete uma consulta
           // estrutural na abertura. Atualizações de versão sempre fazem nova confirmação.
           let metaConfig = null;
@@ -28169,7 +28314,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gv', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99gw', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
@@ -28192,6 +28337,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       carregarSessaoLocalBm_();
 
       (async () => {
+        // V23.9.99gw — se já existe sessão válida e é o primeiro acesso do dia,
+        // a saudação aparece imediatamente e acompanha a própria checagem de versão.
+        preparacaoMotivacionalNaAbertura_();
+
         // Primeiro verifica a atualização, com limite de espera. Só depois libera
         // login/dados; assim uma versão pendente entra antes de o militar iniciar
         // ou retomar uma vistoria.

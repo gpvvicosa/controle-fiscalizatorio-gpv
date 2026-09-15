@@ -1,8 +1,8 @@
-const CACHE_NAME = 'gpv-vistorias-shell-20260914-v23-9-99-gv-estabilidade';
+const CACHE_NAME = 'gpv-vistorias-shell-20260914-v23-9-99-gw-saudacao-diaria';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99gv';
+const VERSION = '23.9.99gw';
 
-// V23.9.99gv — instalação leve: somente o núcleo necessário para abrir/operar o PWA.
+// V23.9.99gw — instalação leve: somente o núcleo necessário para abrir/operar o PWA.
 // Manuais, ITs, PDFs e imagens técnicas são armazenados sob demanda em cache separado,
 // que sobrevive às trocas de versão do shell e não bloqueia a atualização do aplicativo.
 const CORE_SHELL = [
