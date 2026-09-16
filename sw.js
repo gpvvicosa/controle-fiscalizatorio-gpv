@@ -1,8 +1,8 @@
-const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hc-metas-rapidas';
+const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hd-local-first';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99hc';
+const VERSION = '23.9.99hd';
 
-// V23.9.99hc — preserva instalação leve; Metas rápidas sob demanda e correção de Eventos declaratórios.
+// V23.9.99hd — abertura local-first, atualização silenciosa e Metas revalidadas sem bloquear o Painel.
 // V23.9.99gx — mantém instalação leve; otimização do Painel ocorre no app/backend.
 // V23.9.99gw — instalação leve: somente o núcleo necessário para abrir/operar o PWA.
 // Manuais, ITs, PDFs e imagens técnicas são armazenados sob demanda em cache separado,

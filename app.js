@@ -1,4 +1,4 @@
-// V23.9.99hc — Metas leves sob demanda, Eventos declaratórios em toda a área atendida e remoção do card redundante de operação; preserva V23.9.99hb.
+// V23.9.99hd — abertura local-first, Metas independentes/sempre revalidadas e Painel recente em cache; metas valem para toda a área atendida pelo app.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
@@ -22,7 +22,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hc';
+      const APP_VERSION = '23.9.99hd';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -37,6 +37,7 @@
       // V23.9.99ga — Manuais INFOSCIP Fiscalização: Manual do Militar e Manual do Autuado no PWA, com visualização interna, atalhos e cache offline.
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
+      const PANEL_RECENT_CACHE_STORAGE = 'gpvPainelRecentesV23_9_99hd';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
       const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV2Cronologica';
@@ -2760,7 +2761,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hc';
+      const APP_REVISION_UI_ = '23.9.99hd';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4835,7 +4836,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hc', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hd', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7704,18 +7705,17 @@
         const cacheDisponivel = Boolean(cache?.resposta && cache?.salvoEm && idadeCache <= GOALS_CACHE_STALE_MS);
         const cacheFresco = cacheDisponivel && idadeCache <= GOALS_CACHE_TTL_MS;
 
+        // V23.9.99hd — o cache serve somente para abrir rápido. Mesmo com um
+        // resumo já visível, a fonte online é sempre consultada em segundo plano.
         if (metasMensaisAtual && !forcar) {
           renderizarMetas_(metasMensaisAtual);
-          return;
-        }
-
-        if (!metasMensaisAtual && cacheDisponivel) {
+        } else if (cacheDisponivel) {
           metasMensaisAtual = cache.resposta;
           metasDetalhesCarregados = false;
           renderizarMetas_(metasMensaisAtual);
-          if (!cacheFresco && dashboardGoalsSubtitle) {
-            dashboardGoalsSubtitle.textContent += ' Última atualização salva; conferindo dados atuais...';
-          }
+        }
+        if (cacheDisponivel && dashboardGoalsSubtitle && !cacheFresco) {
+          dashboardGoalsSubtitle.textContent += ' Última atualização salva; conferindo dados atuais...';
         }
 
         if (!navigator.onLine) {
@@ -7935,6 +7935,36 @@
         painelSessaoConfirmado_.set(chave, { salvoEm, resposta });
       }
 
+
+      // V23.9.99hd — cache local específico da abertura rápida. Ele não substitui
+      // a confirmação online; apenas evita que o Painel volte vazio a cada entrada/refresh.
+      function lerCacheRecentesPainel_() {
+        const cache = lerStorageJson_(PANEL_RECENT_CACHE_STORAGE, null);
+        if (!cache?.resposta?.itens || !cache?.salvoEm) return null;
+        const idade = Math.max(0, Date.now() - Number(cache.salvoEm || 0));
+        if (idade > PANEL_CACHE_STALE_MS) return null;
+        return { ...cache, idade };
+      }
+
+      function salvarCacheRecentesPainel_(resposta) {
+        if (!resposta || !Array.isArray(resposta.itens)) return;
+        gravarStorageJson_(PANEL_RECENT_CACHE_STORAGE, { salvoEm: Date.now(), resposta });
+      }
+
+      function aplicarCacheRecentesPainel_() {
+        const cache = lerCacheRecentesPainel_();
+        if (!cache?.resposta) return false;
+        aplicarRegistrosRapidosPainel_(cache.resposta);
+        if (recordsStatus) {
+          const momento = formatarMomentoPainel_(cache.salvoEm);
+          recordsStatus.className = 'records-status cached';
+          recordsStatus.innerHTML = navigator.onLine
+            ? `<strong>Registros salvos de ${momento} exibidos.</strong> Conferindo os dados atuais em segundo plano... <span class="records-freshness is-cached">Cache local</span>`
+            : `<strong>Offline:</strong> registros salvos de ${momento}. <span class="records-freshness is-cached">Sem consulta ao servidor</span>`;
+        }
+        return true;
+      }
+
       function lerCachePainelSessao_(chave) {
         const item = painelSessaoConfirmado_.get(chave);
         if (!item?.resposta || !item?.salvoEm) return null;
@@ -7945,6 +7975,7 @@
       function invalidarCachePainelOperacional_() {
         painelSessaoConfirmado_.clear();
         try { localStorage.removeItem(PANEL_CACHE_STORAGE); } catch (_) {}
+        try { localStorage.removeItem(PANEL_RECENT_CACHE_STORAGE); } catch (_) {}
       }
 
       async function cachePainelAindaAtualNoServidor_(cache, signal = null) {
@@ -8245,12 +8276,13 @@
           try {
             const resposta = await apiRequest('config', {
               consulta:'inicio_rapido',
-              limite: 100,
+              limite: Math.min(100, Math.max(10, Number(opcoes.limite || 25))),
               dias: 30,
               incluirOperacional: false
             }, 12000, { noRetry:true });
             inicioRapidoAtualizadoEm_ = Date.now();
             inicioRapidoUltimaResposta_ = resposta || null;
+            if (resposta?.recentes) salvarCacheRecentesPainel_(resposta.recentes);
             if (opcoes.aplicarPainel) aplicarRegistrosRapidosPainel_(resposta?.recentes || {});
             return resposta;
           } catch (erro) {
@@ -8675,9 +8707,14 @@
         const chaveCache = chaveCachePainel_(filtros, offset, limiteApi);
         const cache = lerCachePainel_(chaveCache);
 
-        // V23.9.99gj — cache do Painel é contingência exclusivamente offline.
-        // Quando há internet, a tela aguarda a confirmação atual do servidor para não
-        // reapresentar situação/processo encerrado como se ainda estivesse ativo.
+        // V23.9.99hd — abertura local-first: o cache recente pode aparecer também
+        // online, sempre identificado como salvo e imediatamente revalidado no servidor.
+        // Ele nunca é tratado como confirmação oficial da situação atual.
+        let cacheRecenteAplicado = Boolean(modoPadraoProgressivo && recordsState.modoProgressivo && recordsState.itens.length);
+        if (!cacheRecenteAplicado && modoPadraoProgressivo && opcoes.forcar !== true) {
+          cacheRecenteAplicado = aplicarCacheRecentesPainel_();
+        }
+
         if (!navigator.onLine) {
           if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true, salvoEm: cache.salvoEm });
           else if (obterPendentes().length && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1) {
@@ -8685,7 +8722,7 @@
           }
           definirBuscaPainelEmAndamento_(false);
           const temPendenciasLocais = obterPendentes().length > 0 && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1;
-          if (!cache?.resposta && !temPendenciasLocais) {
+          if (!cache?.resposta && !temPendenciasLocais && !cacheRecenteAplicado) {
             recordsStatus.className = 'records-status error';
             recordsStatus.textContent = 'Sem internet e sem consulta recente salva neste aparelho.';
           }
@@ -8701,7 +8738,7 @@
 
         const manterProgressivoRecente = recordsState.modoProgressivo === true && recordsState.itens.length > 0 && inicioRapidoAtualizadoEm_ && Date.now() - inicioRapidoAtualizadoEm_ < 60 * 1000;
         const manterDadosDaSessao = (Boolean(sessaoConfirmada?.resposta) && recordsState.itens.some(item => !item?.sincronizacaoPendente)) || manterProgressivoRecente;
-        if (!opcoes.silenciosa && !manterDadosDaSessao) prepararPainelParaConfirmacaoOnline_(filtros);
+        if (!opcoes.silenciosa && !manterDadosDaSessao && !cacheRecenteAplicado) prepararPainelParaConfirmacaoOnline_(filtros);
 
         recordsState.carregando = true;
         const requisicaoSequencia = ++recordsRequestSequencia_;
@@ -8729,12 +8766,19 @@
           // Primeiro entram os últimos 30 dias (máx. 100); KPIs/filtros gerais são
           // consolidados separadamente e o histórico anterior só vem sob demanda.
           if (filtrosPainelPadraoSemBusca_()) {
-            const inicio = await carregarInicioRapido_({ aplicarPainel:true, forcar:opcoes.forcar === true });
+            const inicio = await carregarInicioRapido_({ aplicarPainel:true, forcar:opcoes.forcar === true, limite:25 });
             if (requisicaoSequencia !== recordsRequestSequencia_) return;
             if (inicio?.recentes) {
               void carregarResumoPainelLeve_({ forcar:opcoes.forcar === true });
               agendarTarefaOciosa_(() => { void carregarResumoOperacionalSeparado_({ forcar:false }); }, 180);
-              agendarTarefaOciosa_(() => carregarResumoSugestoesFiscalizacao_().catch(() => {}), 1200);
+              // Primeiro libera os 25 registros visíveis. Depois, quando a interface
+              // já está utilizável, completa a janela recente para manter a paginação.
+              agendarTarefaOciosa_(() => {
+                if (document.body.classList.contains('records-mode') && filtrosPainelPadraoSemBusca_() && Number(recordsState.pagina || 1) === 1) {
+                  void carregarInicioRapido_({ aplicarPainel:true, forcar:true, limite:100 });
+                }
+              }, 850);
+              agendarTarefaOciosa_(() => carregarResumoSugestoesFiscalizacao_().catch(() => {}), 1400);
               return;
             }
           }
@@ -22585,7 +22629,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hc';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hd';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -26995,7 +27039,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (vistaForcada) mostrarVistaPlanilha_();
           else {
             marcarAbaApp_('records');
-            carregarRegistros_(true, { motivo: 'restauração do Painel' });
+            // V23.9.99hd — restaura imediatamente os registros e as metas salvos,
+            // depois confirma cada fonte de forma independente em segundo plano.
+            const tinhaRecentesLocais = aplicarCacheRecentesPainel_();
+            void carregarMetas_(false, false);
+            carregarRegistros_(true, { silenciosa: tinhaRecentesLocais, motivo: 'restauração do Painel' });
           }
         } else {
           marcarAbaApp_('form');
@@ -28775,7 +28823,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hc', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hd', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
@@ -28802,11 +28850,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // a saudação aparece imediatamente e acompanha a própria checagem de versão.
         preparacaoMotivacionalNaAbertura_();
 
-        // Primeiro verifica a atualização, com limite de espera. Só depois libera
-        // login/dados; assim uma versão pendente entra antes de o militar iniciar
-        // ou retomar uma vistoria.
-        await prepararAtualizacaoAutomaticaNaAbertura_();
-        if (swRecarregamentoAtualizacaoEmCurso_) return;
+        // V23.9.99hd — a verificação do Service Worker não bloqueia mais a
+        // abertura. Interface, sessão e cache local entram primeiro; a atualização
+        // continua em paralelo e só é aplicada quando estiver seguro.
+        void prepararAtualizacaoAutomaticaNaAbertura_().catch(() => null);
         try {
           await inicializarFilaOffline();
         } catch (e) {}
