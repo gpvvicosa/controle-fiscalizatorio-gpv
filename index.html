@@ -18,8 +18,8 @@
   <meta property="og:title" content="App do Vistoriador">
   <meta property="og:description" content="Aplicativo de apoio a vistoria, com suporte offline.">
   <meta property="og:url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/">
-  <meta property="og:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99hn">
-  <meta property="og:image:secure_url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99hn">
+  <meta property="og:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ho">
+  <meta property="og:image:secure_url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ho">
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="675">
@@ -29,7 +29,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="App do Vistoriador">
   <meta name="twitter:description" content="Aplicativo de apoio a vistoria, com suporte offline.">
-  <meta name="twitter:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99hn">
+  <meta name="twitter:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ho">
 
   <link rel="canonical" href="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/">
   <title>App do Vistoriador</title>
@@ -44,11 +44,11 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99hn">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99hn" media="(max-width: 899px)" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99hn" media="(min-width: 900px)" fetchpriority="high">
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99hn">
-  <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99hn">
+  <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99ho">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99ho" media="(max-width: 899px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ho" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ho">
+  <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ho">
   <style id="gpv-critical-boot">
     html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif}
     html,body{background:#efe6dc}
@@ -56,7 +56,7 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99hn") center 28%/cover no-repeat}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99ho") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
     .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
     .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
@@ -70,7 +70,7 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99hn">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ho">
   <style id="gpv-hn-dashboard-operational">
     /* V23.9.99hn — visão operacional imediata no Painel. */
     .dashboard-operational-alerts.gpv-operational-overview{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
@@ -82,6 +82,41 @@
     @media(max-width:1050px){.dashboard-operational-alerts.gpv-operational-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:620px){.dashboard-operational-alerts.gpv-operational-overview{grid-template-columns:1fr}}
   </style>
+  <style id="gpv-ho-operational-occupancy">
+    /* V23.9.99ho — DDU/Rascunhos condicionais e seletor estruturado de ocupações. */
+    #dduSummaryCard[hidden],#dashboardDraftSummaryCard[hidden],#homeOperationalDraftMetric[hidden]{display:none!important}
+    .occupancy-select-trigger{width:100%;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left}
+    .occupancy-select-trigger-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .occupancy-select-trigger-copy strong{font-size:15px}
+    .occupancy-select-trigger-copy small{font-weight:500;opacity:.72;white-space:normal}
+    .occupancy-select-trigger-arrow{font-size:22px;line-height:1;flex:0 0 auto}
+    .occupancy-select-trigger.invalid{border-color:#dc2626!important;box-shadow:0 0 0 3px rgba(220,38,38,.12)!important}
+    .occupancy-selector-card{width:min(760px,calc(100vw - 24px));max-height:min(84vh,820px);display:flex;flex-direction:column;overflow:hidden}
+    .occupancy-selector-body{display:flex;flex-direction:column;gap:12px;min-height:0;padding:16px 18px}
+    .occupancy-selector-search{display:flex;gap:8px;align-items:center;position:sticky;top:0;z-index:2;background:var(--card,#fff)}
+    .occupancy-selector-search input{width:100%;min-height:48px}
+    .occupancy-selector-list{min-height:180px;overflow:auto;border:1px solid rgba(15,23,42,.12);border-radius:16px;background:#fff;padding:8px}
+    .occupancy-selector-group{padding:8px 6px 4px;font-size:12px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#475569}
+    .occupancy-check-option{display:grid;grid-template-columns:auto minmax(0,1fr);gap:11px;align-items:flex-start;padding:11px 10px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+    .occupancy-check-option:hover,.occupancy-check-option:focus-within{background:#f8fafc;border-color:rgba(15,23,42,.08)}
+    .occupancy-check-option.is-checked{background:#f0fdf4;border-color:rgba(22,163,74,.22)}
+    .occupancy-check-option input{width:21px;height:21px;margin:2px 0 0;accent-color:#15803d;flex:0 0 auto}
+    .occupancy-check-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .occupancy-check-copy strong{font-size:14px;color:#0f172a}
+    .occupancy-check-copy span{font-size:13px;color:#334155;line-height:1.35}
+    .occupancy-check-copy small{font-size:11px;color:#64748b}
+    .occupancy-selector-empty{padding:26px 14px;text-align:center;color:#64748b}
+    .occupancy-selector-status{font-size:12px;color:#475569;font-weight:700}
+    .occupancy-selector-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid rgba(15,23,42,.1);background:#fff}
+    body.occupancy-selector-open{overflow:hidden}
+    @media(max-width:620px){
+      .occupancy-selector-card{width:100%;height:100%;max-height:none;border-radius:0}
+      .occupancy-selector-body{padding:12px;flex:1}
+      .occupancy-selector-list{flex:1;border-radius:13px}
+      .occupancy-selector-actions{padding:12px}
+      .occupancy-selector-actions .btn{flex:1 1 130px}
+    }
+  </style>
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -90,7 +125,7 @@
   <div class="auth-gate" id="authGate" aria-hidden="false">
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-logo-wrap" aria-hidden="true">
-        <img src="assets/app-vistoriador-icon-512-ck.png?v=23.9.99hn" width="512" height="512" alt="">
+        <img src="assets/app-vistoriador-icon-512-ck.png?v=23.9.99ho" width="512" height="512" alt="">
       </div>
       <span class="auth-kicker">Controle Fiscalizatório</span>
       <h1 id="authTitle">App do Vistoriador</h1>
@@ -150,7 +185,7 @@
   <header class="topbar app-header">
     <div class="topbar-inner">
       <div class="brand-mark" aria-hidden="true">
-        <img class="brand-form-logo" src="assets/app-vistoriador-icon-192-ck.png?v=23.9.99hn" alt="">
+        <img class="brand-form-logo" src="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ho" alt="">
         <img class="brand-dashboard-logo" src="assets/logo-cbmmg.png" alt="">
       </div>
 
@@ -618,7 +653,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 16/09/2026 — V23.9.99hn.</div>
+        <div class="system-manual-revision">Última revisão: 16/09/2026 — V23.9.99ho.</div>
         <div class="system-manual-update-note"><strong>Manual atualizado:</strong> este conteúdo acompanha o Painel Premium, Vistorias anteriores — 2024/2025, Consulta inteligente, Ficha modular/compacta, ações rápidas, PET, CEP opcional, conferência inteligente, menu Mais e Acessos úteis.</div>
         <div class="system-manual-update-note"><strong>Regra operacional:</strong> alertas de prazo e estimativas ajudam no acompanhamento, mas não substituem a situação oficial no INFOSCIP quando a conferência for necessária.</div>
         <div class="system-manual-update-note"><strong>Continuidade offline:</strong> rascunhos e itens pendentes devem ser preservados até a sincronização; não limpe o armazenamento do navegador enquanto houver conteúdo operacional não enviado.</div>
@@ -935,8 +970,8 @@
       </div>
 
       <div class="dashboard-operational-alerts gpv-operational-overview" aria-label="Resumo operacional do dia">
-        <button type="button" class="ddu-summary-card dashboard-ddu-summary-card" id="dduSummaryCard" aria-label="Abrir DDU pendentes para vistoria">
-          <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99hn" alt=""></span>
+        <button type="button" class="ddu-summary-card dashboard-ddu-summary-card" id="dduSummaryCard" hidden aria-label="Abrir DDU pendentes para vistoria">
+          <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ho" alt=""></span>
           <span class="ddu-summary-copy"><strong>DDU aguardando vistoria</strong><small id="dduSummaryText">Carregando demandas...</small></span>
           <span class="ddu-summary-count" id="dduSummaryCount">—</span>
         </button>
@@ -947,7 +982,7 @@
           <span class="programmed-summary-count" id="dashboardProgrammedSummaryCount">—</span>
         </button>
 
-        <button type="button" class="programmed-summary-card dashboard-programmed-summary-card dashboard-aux-summary-card" id="dashboardDraftSummaryCard" aria-label="Abrir rascunhos">
+        <button type="button" class="programmed-summary-card dashboard-programmed-summary-card dashboard-aux-summary-card" id="dashboardDraftSummaryCard" hidden aria-label="Abrir rascunhos">
           <span class="programmed-summary-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>
           <span class="programmed-summary-copy"><strong>Rascunhos</strong><small id="dashboardDraftSummaryText">Verificando rascunhos...</small></span>
           <span class="programmed-summary-count" id="dashboardDraftSummaryCount">—</span>
@@ -1180,7 +1215,7 @@
           <div class="operational-shortcuts-grid" aria-label="Pendências operacionais">
             <div class="programmed-summary-row ddu-vistoria-summary-row" id="dduVistoriaSummaryRow" hidden>
               <button type="button" class="ddu-summary-card vistoria-ddu-summary-card" id="dduVistoriaSummaryCard" aria-label="Abrir DDU pendentes para vistoria">
-                <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99hn" alt=""></span>
+                <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ho" alt=""></span>
                 <span class="ddu-summary-copy"><strong>DDU aguardando vistoria</strong><small id="dduVistoriaSummaryText">Carregando demandas...</small></span>
                 <span class="ddu-summary-count" id="dduVistoriaSummaryCount">—</span>
               </button>
@@ -1244,7 +1279,7 @@
                 <span class="home-operational-metric-value" id="homeOperationalProgrammed">0</span>
                 <span class="home-operational-metric-label">Programadas</span>
               </div>
-              <div class="home-operational-metric" role="listitem">
+              <div class="home-operational-metric" id="homeOperationalDraftMetric" role="listitem" hidden>
                 <span class="home-operational-metric-value" id="homeOperationalDrafts">0</span>
                 <span class="home-operational-metric-label">Rascunhos</span>
               </div>
@@ -1263,7 +1298,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99hn</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99ho</div>
           </section>
         </div>
       </section>
@@ -1988,22 +2023,22 @@
               <input id="altura" name="altura" inputmode="decimal" placeholder="Altura">
             </div>
             <div class="field wide occupancy-field">
-              <label for="ocupacao">Ocupação / atividade — CBMMG</label>
+              <label>Ocupação / atividade — CBMMG</label>
+              <input type="hidden" id="ocupacao" name="ocupacao" value="">
               <div class="occupancy-selected" id="ocupacoesSelecionadasBox">
                 <div class="occupancy-selected-title">Ocupações selecionadas</div>
                 <div class="occupancy-chip-list" id="ocupacoesSelecionadasLista"></div>
               </div>
-              <div class="occupancy-input-wrap">
-                <input id="ocupacao" name="ocupacao" autocomplete="off"
-                       placeholder="Digite ou selecione uma ocupação...">
-                <button type="button" class="occupancy-toggle" id="ocupacaoToggle"
-                        aria-label="Mostrar lista de ocupações" aria-expanded="false" aria-controls="ocupacaoResultados">
-                  <span aria-hidden="true">⌄</span>
-                </button>
-              </div>
-              <div class="hint">Você pode digitar para pesquisar ou tocar na seta para selecionar na lista. É possível adicionar mais de uma ocupação. Você pode digitar D-1 ou simplesmente D1; o app entende os dois formatos.</div>
-              <div class="occupancy-results" id="ocupacaoResultados" role="listbox" aria-label="Sugestões de ocupação"></div>
-              <div class="occupancy-meta" id="ocupacaoMeta"></div>
+              <button type="button" class="btn btn-secondary occupancy-select-trigger" id="ocupacaoToggle" aria-haspopup="dialog" aria-controls="ocupacaoSelectorModal">
+                <span class="occupancy-select-trigger-copy">
+                  <strong>Selecionar ocupação</strong>
+                  <small id="ocupacaoSelectionSummary">Nenhuma ocupação selecionada</small>
+                </span>
+                <span class="occupancy-select-trigger-arrow" aria-hidden="true">›</span>
+              </button>
+              <div class="hint">Selecione uma ou mais ocupações oficiais do CBMMG. Use a busca da lista para localizar por grupo, divisão ou atividade.</div>
+              <div class="occupancy-results" id="ocupacaoResultados" hidden aria-hidden="true"></div>
+              <div class="occupancy-meta" id="ocupacaoMeta" hidden></div>
             </div>
             <div class="field wide project-measures-field" id="medidasProjetoPrevistasBox" hidden>
               <input type="hidden" id="medidasProjetoPrevistas" name="medidasProjetoPrevistas">
@@ -2614,7 +2649,7 @@
 
   <div class="review-overlay" id="dduRegisterModal" hidden>
     <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="dduRegisterTitle">
-      <div class="review-head ddu-register-head"><div class="ddu-register-title-wrap"><span class="ddu-register-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99hn" alt=""></span><div><h2 id="dduRegisterTitle">Cadastrar DDU</h2><p>Demanda recebida pelo DDU — Disque Denúncia Unificado. Após salvar, o DDU ficará disponível para toda a equipe do GPV até a conclusão da vistoria.</p></div></div><button class="icon-btn" id="dduRegisterCloseBtn" type="button">×</button></div>
+      <div class="review-head ddu-register-head"><div class="ddu-register-title-wrap"><span class="ddu-register-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ho" alt=""></span><div><h2 id="dduRegisterTitle">Cadastrar DDU</h2><p>Demanda recebida pelo DDU — Disque Denúncia Unificado. Após salvar, o DDU ficará disponível para toda a equipe do GPV até a conclusão da vistoria.</p></div></div><button class="icon-btn" id="dduRegisterCloseBtn" type="button">×</button></div>
       <div class="review-body"><div class="grid prepare-grid">
         <div class="field"><label for="dduNumero">Nº / identificação do DDU</label><input id="dduNumero" autocomplete="off"></div>
         <div class="field"><label for="dduRecebimento">Data de recebimento</label><input id="dduRecebimento" type="date"></div>
@@ -2695,7 +2730,7 @@
   <div class="review-overlay" id="dduListModal" hidden>
     <div class="review-card ddu-list-card" role="dialog" aria-modal="true" aria-labelledby="dduListTitle">
       <div class="review-head ddu-list-head">
-        <div class="ddu-list-title-wrap"><span class="ddu-list-title-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99hn" alt=""></span><div><h2 id="dduListTitle">DDU — Disque Denúncia Unificado</h2><small>Demandas compartilhadas pela equipe do GPV • 181</small></div></div>
+        <div class="ddu-list-title-wrap"><span class="ddu-list-title-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ho" alt=""></span><div><h2 id="dduListTitle">DDU — Disque Denúncia Unificado</h2><small>Demandas compartilhadas pela equipe do GPV • 181</small></div></div>
         <button class="icon-btn" id="dduListCloseBtn" type="button" aria-label="Fechar DDU">×</button>
       </div>
       <div class="review-body ddu-list-body"><div id="dduListStatus" class="ddu-list-status"></div><div id="dduList" class="ddu-list"></div></div>
@@ -2765,7 +2800,7 @@
     <section class="review-card registered-inspection-detail-card" role="dialog" aria-modal="true" aria-labelledby="registeredInspectionDetailTitle">
       <div class="review-head registered-inspection-detail-head">
         <div class="registered-inspection-detail-title-wrap">
-          <span class="registered-inspection-detail-brand" id="registeredInspectionDetailBrand" aria-hidden="true" hidden><img src="assets/logo-ddu-181.webp?v=23.9.99hn" alt=""></span>
+          <span class="registered-inspection-detail-brand" id="registeredInspectionDetailBrand" aria-hidden="true" hidden><img src="assets/logo-ddu-181.webp?v=23.9.99ho" alt=""></span>
           <div>
             <div class="registered-inspection-detail-eyebrow-row">
               <span class="registered-inspection-detail-kicker" id="registeredInspectionDetailKicker">Vistoria cadastrada</span>
@@ -2882,6 +2917,31 @@
     </section>
   </div>
 
+  <div class="review-overlay occupancy-selector-overlay" id="ocupacaoSelectorModal" hidden>
+    <section class="review-card occupancy-selector-card" role="dialog" aria-modal="true" aria-labelledby="ocupacaoSelectorTitle">
+      <header class="review-header">
+        <div>
+          <span>Classificação da edificação</span>
+          <h2 id="ocupacaoSelectorTitle">Selecionar ocupação</h2>
+          <p class="review-subtitle">Marque uma ou mais ocupações/divisões oficiais do CBMMG.</p>
+        </div>
+        <button class="review-close" id="ocupacaoSelectorCloseBtn" type="button" aria-label="Fechar seleção de ocupações">×</button>
+      </header>
+      <div class="occupancy-selector-body">
+        <div class="occupancy-selector-search">
+          <input id="ocupacaoSearch" type="search" autocomplete="off" placeholder="Buscar: F-6, escola, comércio..." aria-label="Pesquisar ocupações do CBMMG">
+        </div>
+        <div class="occupancy-selector-status" id="ocupacaoSelectorStatus" role="status" aria-live="polite">Selecione as ocupações aplicáveis.</div>
+        <div class="occupancy-selector-list" id="ocupacaoSelectorList" role="group" aria-label="Ocupações disponíveis"></div>
+      </div>
+      <div class="occupancy-selector-actions">
+        <button class="btn btn-secondary" id="ocupacaoSelectorClearBtn" type="button">Desmarcar todas</button>
+        <button class="btn btn-secondary" id="ocupacaoSelectorCancelBtn" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="ocupacaoSelectorApplyBtn" type="button">Aplicar seleção</button>
+      </div>
+    </section>
+  </div>
+
   <div class="review-overlay" id="reviewModal" hidden>
     <section class="review-card" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
       <header class="review-header">
@@ -2927,7 +2987,7 @@
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
         <a class="useful-link-card" data-link-tone="blue" href="https://web.sids.mg.gov.br/ddu/#/dashboard" target="_blank" rel="noopener noreferrer">
-          <span class="useful-link-icon useful-link-ddu-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99hn" alt=""></span>
+          <span class="useful-link-icon useful-link-ddu-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ho" alt=""></span>
           <span><strong>DDU</strong><small>Painel e consultas operacionais</small></span>
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
@@ -3268,13 +3328,13 @@
     <picture class="gpv-splash-picture" aria-hidden="true">
       <source
         media="(min-width: 900px)"
-        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99hn"
+        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ho"
         width="1672"
         height="941"
       >
       <img
         class="gpv-splash-art"
-        src="assets/splash-app-vistoriador.webp?v=23.9.99hn"
+        src="assets/splash-app-vistoriador.webp?v=23.9.99ho"
         alt=""
         width="941"
         height="1672"
@@ -3428,10 +3488,10 @@
 
   <!-- V23.9.99ga — Ficha Premium Colorida; mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99hn"></script>
-  <script src="ocupacoes.js?v=23.9.99hn"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99hn"></script>
-  <script src="app.js?v=23.9.99hn"></script>
+  <script src="config.js?v=23.9.99ho"></script>
+  <script src="ocupacoes.js?v=23.9.99ho"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99ho"></script>
+  <script src="app.js?v=23.9.99ho"></script>
 
 </body>
 </html>

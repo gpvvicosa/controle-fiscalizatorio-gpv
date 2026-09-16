@@ -1,3 +1,4 @@
+// V23.9.99ho — DDU/Rascunhos só aparecem com pendência; ocupação da vistoria passa a seleção múltipla oficial por caixas de seleção.
 // V23.9.99hn — resumo operacional do Painel carregado antes da abertura: Programadas, DDU, Rascunhos e Sincronização visíveis desde o início.
 // V23.9.99hm — após a abertura confiável, novas versões são preparadas em segundo plano e só assumem na próxima abertura ou por atualização manual.
 // V23.9.99hl — abertura confiável com saudação, atualização visível e continuidade de vistorias recém-confirmadas.
@@ -31,7 +32,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hn';
+      const APP_VERSION = '23.9.99ho';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -1309,23 +1310,20 @@
         homeOperationalToday.textContent = String(hoje);
         homeOperationalProgrammed.textContent = programadas == null ? '—' : String(programadas);
         homeOperationalDrafts.textContent = String(rascunhos.length);
+        if (homeOperationalDraftMetric) homeOperationalDraftMetric.hidden = rascunhos.length === 0;
         homeOperationalPending.textContent = pendentes ? String(pendentes) : '✓';
         homeOperationalPending.closest('.home-operational-metric')?.classList.toggle('is-warning', pendentes > 0);
 
-        // V23.9.99hn — o Painel inicial também apresenta o estado operacional
-        // imediatamente após a saudação. Estes dois cards usam apenas dados locais
-        // já conhecidos e, portanto, não dependem de nova chamada ao servidor.
+        // V23.9.99ho — rascunhos só ocupam espaço no Painel quando existe
+        // trabalho efetivamente preservado para continuação.
         if (dashboardDraftSummaryCard) {
-          dashboardDraftSummaryCard.hidden = !usuarioPodeOperar_();
-          dashboardDraftSummaryCard.classList.toggle('operational-summary-ready', usuarioPodeOperar_());
-          dashboardDraftSummaryCard.classList.toggle('is-warning', rascunhos.length > 0);
+          const mostrarRascunhos = usuarioPodeOperar_() && rascunhos.length > 0;
+          dashboardDraftSummaryCard.hidden = !mostrarRascunhos;
+          dashboardDraftSummaryCard.classList.toggle('operational-summary-ready', mostrarRascunhos);
+          dashboardDraftSummaryCard.classList.toggle('is-warning', mostrarRascunhos);
           if (dashboardDraftSummaryCount) dashboardDraftSummaryCount.textContent = String(rascunhos.length);
-          if (dashboardDraftSummaryText) dashboardDraftSummaryText.textContent = rascunhos.length
-            ? `${rascunhos.length} rascunho${rascunhos.length === 1 ? '' : 's'} para continuar`
-            : 'Nenhum rascunho em andamento';
-          dashboardDraftSummaryCard.setAttribute('aria-label', rascunhos.length
-            ? `Abrir rascunhos. ${rascunhos.length} rascunho${rascunhos.length === 1 ? '' : 's'} em andamento.`
-            : 'Abrir rascunhos. Nenhum rascunho em andamento.');
+          if (dashboardDraftSummaryText) dashboardDraftSummaryText.textContent = `${rascunhos.length} rascunho${rascunhos.length === 1 ? '' : 's'} para continuar`;
+          dashboardDraftSummaryCard.setAttribute('aria-label', `Abrir rascunhos. ${rascunhos.length} rascunho${rascunhos.length === 1 ? '' : 's'} em andamento.`);
         }
         if (dashboardSyncSummaryCard) {
           dashboardSyncSummaryCard.hidden = !usuarioPodeOperar_();
@@ -2487,6 +2485,7 @@
       const homeOperationalToday = document.getElementById('homeOperationalToday');
       const homeOperationalProgrammed = document.getElementById('homeOperationalProgrammed');
       const homeOperationalDrafts = document.getElementById('homeOperationalDrafts');
+      const homeOperationalDraftMetric = document.getElementById('homeOperationalDraftMetric');
       const homeOperationalPending = document.getElementById('homeOperationalPending');
       const homeOperationalContextCard = document.getElementById('homeOperationalContextCard');
       const homeOperationalContextTitle = document.getElementById('homeOperationalContextTitle');
@@ -2630,6 +2629,15 @@
       const ocupacaoMeta = document.getElementById('ocupacaoMeta');
       const ocupacoesSelecionadasBox = document.getElementById('ocupacoesSelecionadasBox');
       const ocupacoesSelecionadasLista = document.getElementById('ocupacoesSelecionadasLista');
+      const ocupacaoSelectionSummary = document.getElementById('ocupacaoSelectionSummary');
+      const ocupacaoSelectorModal = document.getElementById('ocupacaoSelectorModal');
+      const ocupacaoSelectorCloseBtn = document.getElementById('ocupacaoSelectorCloseBtn');
+      const ocupacaoSelectorCancelBtn = document.getElementById('ocupacaoSelectorCancelBtn');
+      const ocupacaoSelectorApplyBtn = document.getElementById('ocupacaoSelectorApplyBtn');
+      const ocupacaoSelectorClearBtn = document.getElementById('ocupacaoSelectorClearBtn');
+      const ocupacaoSearch = document.getElementById('ocupacaoSearch');
+      const ocupacaoSelectorList = document.getElementById('ocupacaoSelectorList');
+      const ocupacaoSelectorStatus = document.getElementById('ocupacaoSelectorStatus');
       const reviewModal = document.getElementById('reviewModal');
       const reviewList = document.getElementById('reviewList');
       const reviewIntelligentNotice = document.getElementById('reviewIntelligentNotice');
@@ -2808,7 +2816,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hn';
+      const APP_REVISION_UI_ = '23.9.99ho';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4944,7 +4952,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hn', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ho', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5011,6 +5019,7 @@
       let ocupacoesExistentes = [];
       let ocupacaoSelecionada = null;
       let ocupacoesSelecionadas = [];
+      let ocupacoesSelecaoTemporaria_ = new Set();
       let currentRecordId = criarIdRegistro();
       let sendingQueue = false;
       let pendingCache = [];
@@ -6914,6 +6923,7 @@
         if (elementoVisivelNavegacao_(recordResultCorrectionModal)) return { id: 'record-result-correction', fechar: () => fecharCorrecaoResultadoVistoria_() };
         if (elementoVisivelNavegacao_(recordStatusUpdateModal)) return { id: 'status-infoscip', fechar: () => fecharAtualizacaoSituacaoInfoscip_() };
         if (elementoVisivelNavegacao_(notificationReviewModal)) return { id: 'notification-review', fechar: () => notificationReviewBackBtn?.click() };
+        if (elementoVisivelNavegacao_(ocupacaoSelectorModal)) return { id: 'occupancy-selector', fechar: () => fecharSeletorOcupacao_() };
         if (elementoVisivelNavegacao_(reviewModal)) return { id: 'review', fechar: () => reviewCancelBtn?.click() };
         if (elementoVisivelNavegacao_(cityCheckModal)) return { id: 'city-check', fechar: () => cityCheckKeepBtn?.click() };
         if (elementoVisivelNavegacao_(changePinModal)) return { id: 'change-pin', fechar: () => fecharAlterarSenha_() };
@@ -13132,6 +13142,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function renderizarOcupacoesSelecionadas() {
         ocupacoesSelecionadasLista.innerHTML = '';
+        if (ocupacaoInput) ocupacaoInput.value = ocupacoesSelecionadas.map(registro => registro.valor).join(' | ');
+        if (ocupacaoSelectionSummary) ocupacaoSelectionSummary.textContent = ocupacoesSelecionadas.length
+          ? `${ocupacoesSelecionadas.length} ocupação${ocupacoesSelecionadas.length === 1 ? '' : 'ões'} selecionada${ocupacoesSelecionadas.length === 1 ? '' : 's'}`
+          : 'Nenhuma ocupação selecionada';
         if (!ocupacoesSelecionadas.length) {
           ocupacoesSelecionadasBox.classList.remove('show');
           atualizarEstimativaMultaVistoria_();
@@ -13164,10 +13178,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           remover.setAttribute('aria-label', 'Remover ocupação');
           remover.textContent = '×';
           remover.addEventListener('click', () => {
+            ativarInicioEfetivoVistoria_('alteração de ocupação');
             ocupacoesSelecionadas.splice(indice, 1);
             renderizarOcupacoesSelecionadas();
             scheduleDraftSave();
-            pesquisarOcupacoes(ocupacaoInput.value);
+            if (ocupacaoSelectorModal && !ocupacaoSelectorModal.hidden) {
+              ocupacoesSelecaoTemporaria_ = new Set(ocupacoesSelecionadas.filter(registro => registro.item || localizarOcupacaoPorValor(registro.valor)).map(registro => normalize(registro.valor)));
+              renderizarSeletorOcupacao_();
+            }
           });
 
           linha.appendChild(principal);
@@ -13195,34 +13213,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function adicionarOcupacaoItem(item) {
         if (!item) return;
+        ativarInicioEfetivoVistoria_('seleção de ocupação');
         adicionarOcupacaoValor(valorOcupacao(item), item);
-        ocupacaoInput.value = '';
         ocupacaoSelecionada = null;
         mostrarMetaOcupacao(null);
         esconderResultadosOcupacao();
-        setTimeout(() => ocupacaoInput.focus(), 0);
       }
 
       function adicionarOcupacaoManual(texto) {
         const valor = String(texto || '').trim();
         if (!valor) return;
+        ativarInicioEfetivoVistoria_('alteração de ocupação');
         separarOcupacoesTexto(valor).forEach(parte => adicionarOcupacaoValor(parte, localizarOcupacaoPorValor(parte), false));
         renderizarOcupacoesSelecionadas();
-        ocupacaoInput.value = '';
         ocupacaoSelecionada = null;
         mostrarMetaOcupacao(null);
         esconderResultadosOcupacao();
         scheduleDraftSave();
-        setTimeout(() => ocupacaoInput.focus(), 0);
       }
 
       function ocupacaoTextoFinal() {
-        const valores = ocupacoesSelecionadas.map(registro => registro.valor);
-        const pendente = String(ocupacaoInput.value || '').trim();
-        if (pendente && !valores.some(valor => normalize(valor) === normalize(pendente))) {
-          valores.push(pendente);
-        }
-        return valores.join(' | ');
+        return ocupacoesSelecionadas.map(registro => registro.valor).filter(Boolean).join(' | ');
       }
 
       function restaurarOcupacoesSelecionadas(texto) {
@@ -13345,8 +13356,102 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacaoToggle?.setAttribute('aria-expanded', 'true');
       }
 
+      function ocupacoesOficiaisSelecionadasNormalizadas_() {
+        return new Set(ocupacoesSelecionadas
+          .filter(registro => registro?.item || localizarOcupacaoPorValor(registro?.valor))
+          .map(registro => normalize(registro.valor)));
+      }
+
+      function renderizarSeletorOcupacao_() {
+        if (!ocupacaoSelectorList || !ocupacaoSelectorStatus) return;
+        const q = normalizarTermoOcupacao(ocupacaoSearch?.value || '');
+        const filtradas = q
+          ? OCUPACOES_CBMMG.filter(item => pontuarOcupacao(item, q) > 0)
+          : [...OCUPACOES_CBMMG];
+
+        ocupacaoSelectorList.innerHTML = '';
+        if (!filtradas.length) {
+          ocupacaoSelectorList.innerHTML = '<div class="occupancy-selector-empty"><strong>Nenhuma ocupação encontrada.</strong><br>Altere a busca e tente novamente.</div>';
+        } else {
+          let ultimoGrupo = '';
+          filtradas.forEach(item => {
+            const grupo = letraGrupoOcupacao(item);
+            if (grupo !== ultimoGrupo) {
+              ultimoGrupo = grupo;
+              const titulo = document.createElement('div');
+              titulo.className = 'occupancy-selector-group';
+              titulo.textContent = `Grupo ${grupo} — ${GRUPOS_OCUPACAO_CBMMG[grupo] || item.grupo || ''}`;
+              ocupacaoSelectorList.appendChild(titulo);
+            }
+
+            const valor = valorOcupacao(item);
+            const chave = normalize(valor);
+            const label = document.createElement('label');
+            label.className = 'occupancy-check-option';
+            label.classList.toggle('is-checked', ocupacoesSelecaoTemporaria_.has(chave));
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = ocupacoesSelecaoTemporaria_.has(chave);
+            checkbox.dataset.ocupacaoValor = valor;
+            checkbox.setAttribute('aria-label', `${item.divisao} — ${item.descricao}`);
+
+            const copy = document.createElement('span');
+            copy.className = 'occupancy-check-copy';
+            copy.innerHTML =
+              '<strong>' + escapeHtml(item.divisao + ' — ' + item.grupo) + '</strong>' +
+              '<span>' + escapeHtml(item.descricao) + '</span>' +
+              '<small>Carga de incêndio: ' + escapeHtml(cargaLabel(item.carga)) + '</small>';
+
+            label.appendChild(checkbox);
+            label.appendChild(copy);
+            ocupacaoSelectorList.appendChild(label);
+          });
+        }
+
+        const total = ocupacoesSelecaoTemporaria_.size;
+        ocupacaoSelectorStatus.textContent = total
+          ? `${total} ocupação${total === 1 ? '' : 'ões'} marcada${total === 1 ? '' : 's'}.`
+          : 'Nenhuma ocupação marcada.';
+      }
+
+      function abrirSeletorOcupacao_() {
+        if (!ocupacaoSelectorModal) return;
+        ocupacoesSelecaoTemporaria_ = ocupacoesOficiaisSelecionadasNormalizadas_();
+        if (ocupacaoSearch) ocupacaoSearch.value = '';
+        renderizarSeletorOcupacao_();
+        ocupacaoSelectorModal.hidden = false;
+        document.body.classList.add('occupancy-selector-open');
+        agendarSincronizacaoNavegacao_();
+        setTimeout(() => ocupacaoSearch?.focus(), 30);
+      }
+
+      function fecharSeletorOcupacao_() {
+        if (!ocupacaoSelectorModal) return;
+        ocupacaoSelectorModal.hidden = true;
+        document.body.classList.remove('occupancy-selector-open');
+        if (ocupacaoToggle) ocupacaoToggle.classList.remove('invalid');
+        agendarSincronizacaoNavegacao_();
+      }
+
+      function aplicarSeletorOcupacao_() {
+        const antes = ocupacaoTextoFinal();
+        const manuaisLegados = ocupacoesSelecionadas.filter(registro => !(registro?.item || localizarOcupacaoPorValor(registro?.valor)));
+        const oficiais = OCUPACOES_CBMMG
+          .filter(item => ocupacoesSelecaoTemporaria_.has(normalize(valorOcupacao(item))))
+          .map(item => ({ valor: valorOcupacao(item), item }));
+        ocupacoesSelecionadas = [...oficiais, ...manuaisLegados];
+        renderizarOcupacoesSelecionadas();
+        const depois = ocupacaoTextoFinal();
+        if (normalize(antes) !== normalize(depois)) {
+          ativarInicioEfetivoVistoria_('seleção de ocupação');
+          scheduleDraftSave();
+        }
+        fecharSeletorOcupacao_();
+      }
+
       function sincronizarMetaOcupacao() {
-        const item = localizarOcupacaoPorValor(ocupacaoInput.value);
+        const item = localizarOcupacaoPorValor(ocupacoesSelecionadas[0]?.valor || '');
         mostrarMetaOcupacao(item);
       }
 
@@ -16278,7 +16383,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               first = first || validadeEl;
             }
             if (!String(ocupacaoTextoFinal() || '').trim()) {
-              const ocupacaoEl = document.getElementById('ocupacaoSearch') || document.getElementById('ocupacao');
+              const ocupacaoEl = document.getElementById('ocupacaoToggle') || document.getElementById('ocupacaoSearch');
               ocupacaoEl?.classList.add('invalid');
               missing.push('Ocupação do PET');
               first = first || ocupacaoEl;
@@ -24979,14 +25084,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           card?.setAttribute('aria-busy', verificando ? 'true' : 'false');
         });
 
-        // V23.9.99gu — card operacional só existe visualmente quando a pendência
-        // foi confirmada. Durante verificação/erro não mostramos um card vazio.
+        // V23.9.99ho — DDU só aparece quando há demanda ativa confirmada.
+        // Durante verificação ou falha de comunicação, não exibimos um card zero/vazio.
         if (verificando || falhou) {
-          // V23.9.99hn — no Painel o card permanece visível para o militar saber
-          // que o DDU está sendo confirmado. Na área Vistoria continua oculto até
-          // existir uma pendência real, preservando o comportamento já aprovado.
           if (dduSummaryCard) {
-            dduSummaryCard.hidden = !usuarioPodeOperar_();
+            dduSummaryCard.hidden = true;
             dduSummaryCard.classList.remove('operational-summary-ready','is-danger','is-warning');
           }
           if (dduSummaryCount) dduSummaryCount.textContent = '—';
@@ -25012,12 +25114,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } else {
           ativos.forEach(x=>{const p=classificarPrazoDdu_(x.dataLimite); if(p.c==='is-overdue')vencidos++; else if(p.c==='is-today')criticos++;});
         }
-        // A área operacional mostra somente DDU pendente/em andamento. A retenção
-        // de anexos concluídos continua no backend sem manter demanda encerrada ativa.
-        // No Painel, o cartão permanece visível mesmo quando o total é zero. Isso
-        // transforma a ausência de DDU em informação confirmada, não em espaço vazio.
-        if (dduSummaryCard) dduSummaryCard.hidden = !usuarioPodeOperar_();
-        if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = confirmado ? totalAtivos === 0 : true;
+        // V23.9.99ho — a área operacional mostra DDU somente quando existe
+        // pendência ativa. A mesma regra vale no Painel e na aba Vistorias.
+        const mostrarDdu = usuarioPodeOperar_() && confirmado && totalAtivos > 0;
+        if (dduSummaryCard) dduSummaryCard.hidden = !mostrarDdu;
+        if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = !mostrarDdu;
         if(dduSummaryCount)dduSummaryCount.textContent=String(totalAtivos);
         if(dduVistoriaSummaryCount)dduVistoriaSummaryCount.textContent=String(totalAtivos);
         const base=totalAtivos===1?'1 DDU aguardando vistoria':`${totalAtivos} DDUs aguardando vistoria`;
@@ -28449,42 +28550,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ativarInicioEfetivoVistoria_('uso de dados históricos do responsável');
         aplicarResponsavelEncontrado_(responsaveisCpfLookupAtual[indice], { forcar: false });
       });
-      ocupacaoInput.addEventListener('focus', () => pesquisarOcupacoes(ocupacaoInput.value));
-      ocupacaoInput.addEventListener('input', () => {
-        ocupacaoSelecionada = localizarOcupacaoPorValor(ocupacaoInput.value);
-        mostrarMetaOcupacao(ocupacaoSelecionada);
-        pesquisarOcupacoes(ocupacaoInput.value);
-        atualizarEstimativaMultaVistoria_();
-      });
-      ocupacaoInput.addEventListener('blur', () => {
-        setTimeout(() => {
-          if (!document.activeElement?.closest?.('.occupancy-field')) esconderResultadosOcupacao();
-        }, 280);
-      });
       ocupacaoToggle?.addEventListener('click', event => {
         event.preventDefault();
-        if (ocupacaoResultados.classList.contains('show') && ocupacaoToggle.getAttribute('aria-expanded') === 'true') {
-          esconderResultadosOcupacao();
-          return;
-        }
-        ocupacaoToggle.focus({ preventScroll: true });
-        pesquisarOcupacoes(ocupacaoInput.value, true);
-        ocupacaoResultados.scrollTop = 0;
+        abrirSeletorOcupacao_();
       });
-      ocupacaoResultados.addEventListener('touchstart', event => {
-        ocupacaoArrastando = false;
-        ocupacaoTouchStartY = event.touches && event.touches[0] ? event.touches[0].clientY : null;
-      }, { passive: true });
-      ocupacaoResultados.addEventListener('touchmove', event => {
-        if (ocupacaoTouchStartY == null || !event.touches || !event.touches[0]) return;
-        if (Math.abs(event.touches[0].clientY - ocupacaoTouchStartY) > 8) ocupacaoArrastando = true;
-      }, { passive: true });
-      ocupacaoResultados.addEventListener('touchend', () => {
-        ocupacaoTouchStartY = null;
-        if (ocupacaoArrastando) setTimeout(() => { ocupacaoArrastando = false; }, 120);
-      }, { passive: true });
-      document.addEventListener('click', event => {
-        if (!event.target.closest('.occupancy-field')) esconderResultadosOcupacao();
+      ocupacaoSelectorCloseBtn?.addEventListener('click', fecharSeletorOcupacao_);
+      ocupacaoSelectorCancelBtn?.addEventListener('click', fecharSeletorOcupacao_);
+      ocupacaoSelectorApplyBtn?.addEventListener('click', aplicarSeletorOcupacao_);
+      ocupacaoSelectorClearBtn?.addEventListener('click', () => {
+        ocupacoesSelecaoTemporaria_.clear();
+        renderizarSeletorOcupacao_();
+      });
+      ocupacaoSearch?.addEventListener('input', renderizarSeletorOcupacao_);
+      ocupacaoSelectorList?.addEventListener('change', event => {
+        const checkbox = event.target.closest('input[type="checkbox"][data-ocupacao-valor]');
+        if (!checkbox) return;
+        const chave = normalize(checkbox.dataset.ocupacaoValor || '');
+        if (checkbox.checked) ocupacoesSelecaoTemporaria_.add(chave);
+        else ocupacoesSelecaoTemporaria_.delete(chave);
+        checkbox.closest('.occupancy-check-option')?.classList.toggle('is-checked', checkbox.checked);
+        const total = ocupacoesSelecaoTemporaria_.size;
+        if (ocupacaoSelectorStatus) ocupacaoSelectorStatus.textContent = total
+          ? `${total} ocupação${total === 1 ? '' : 'ões'} marcada${total === 1 ? '' : 's'}.`
+          : 'Nenhuma ocupação marcada.';
+      });
+      ocupacaoSelectorModal?.addEventListener('click', event => {
+        if (event.target === ocupacaoSelectorModal) fecharSeletorOcupacao_();
       });
       submitBtn.addEventListener('click', submit);
       clearBtn.addEventListener('click', async () => {
@@ -29255,7 +29346,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hn', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ho', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
