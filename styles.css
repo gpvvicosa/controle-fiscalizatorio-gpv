@@ -22992,3 +22992,28 @@ body.records-mode .records-status.loading .panel-loading-visual{
     grid-template-columns:1fr 1fr;
   }
 }
+
+
+/* V23.9.99hb — responsáveis das Vistorias Programadas e quantidade por usuário. */
+.programmed-summary-assignees{
+  color:#344054!important;
+  font-size:.76rem!important;
+  line-height:1.22!important;
+  font-weight:700;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.user-manager-programmed{
+  color:#175cd3!important;
+  font-weight:700;
+}
+.user-manager-programmed.is-empty{
+  color:#98a2b3!important;
+  font-weight:600;
+}
+@media (max-width: 720px){
+  .programmed-summary-assignees{
+    font-size:.68rem!important;
+    line-height:1.16!important;
+  }
+}

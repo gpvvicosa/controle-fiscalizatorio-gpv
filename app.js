@@ -1,4 +1,4 @@
-// V23.9.99ha — ficha de vistoria cadastrada reorganizada para leitura operacional; preserva desempenho/validação da V23.9.99gz.
+// V23.9.99hb — responsáveis das Vistorias Programadas no card e no gerenciamento de usuários; preserva a ficha otimizada da V23.9.99ha.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
@@ -22,7 +22,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ha';
+      const APP_VERSION = '23.9.99hb';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2425,6 +2425,8 @@
       const dashboardProgrammedSummaryCard = document.getElementById('dashboardProgrammedSummaryCard');
       const dashboardProgrammedSummaryText = document.getElementById('dashboardProgrammedSummaryText');
       const dashboardProgrammedSummaryCount = document.getElementById('dashboardProgrammedSummaryCount');
+      const programmedSummaryAssignees = document.getElementById('programmedSummaryAssignees');
+      const dashboardProgrammedSummaryAssignees = document.getElementById('dashboardProgrammedSummaryAssignees');
       const inspectionSuggestionsCard = document.getElementById('inspectionSuggestionsCard');
       const inspectionSuggestionsText = document.getElementById('inspectionSuggestionsText');
       const inspectionSuggestionsCount = document.getElementById('inspectionSuggestionsCount');
@@ -2756,7 +2758,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ha';
+      const APP_REVISION_UI_ = '23.9.99hb';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4831,7 +4833,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ha', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hb', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8122,7 +8124,7 @@
 
 
       function chaveResumoOperacionalLocal_() {
-        return `gpv_operational_summary_v2:${normalize(authState.usuario?.nome || 'anonimo')}`;
+        return `gpv_operational_summary_v3:${normalize(authState.usuario?.nome || 'anonimo')}`;
       }
 
       function aplicarResumoOperacionalLocalRecente_() {
@@ -21821,6 +21823,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             <div class="user-manager-item-copy">
               <strong>${escapeHtml(u.nome)}</strong>
               <span>Nº BM ${escapeHtml(u.bm)}${u.celular ? ` · Cel. ${escapeHtml(formatarCelularAcessoCliente_(u.celular))}` : ''}${u.provisorio ? ' · provisório' : ''}${ehAtual ? ' · conectado' : ''} · ${u.senhaConfigurada ? 'senha ativa' : 'senha a criar'} · ${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}</span>
+              <span class="user-manager-programmed${Number(u.programadasAtribuidas || 0) > 0 ? '' : ' is-empty'}">${Number(u.programadasAtribuidas || 0) > 0 ? `${Number(u.programadasAtribuidas || 0)} vistoria${Number(u.programadasAtribuidas || 0) === 1 ? '' : 's'} programada${Number(u.programadasAtribuidas || 0) === 1 ? '' : 's'} atribuída${Number(u.programadasAtribuidas || 0) === 1 ? '' : 's'}` : 'Nenhuma vistoria programada atribuída'}</span>
             </div>
             <div class="user-manager-item-actions">
               <button type="button" class="user-edit-btn" data-user-edit="${escapeHtml(u.id)}" data-user-name="${escapeHtml(u.nome)}" data-user-bm="${escapeHtml(u.bm)}" data-user-phone="${escapeHtml(u.celular || '')}" data-user-profile="${escapeHtml(String(u.perfil || 'GPV').toUpperCase())}">Editar</button>
@@ -22532,7 +22535,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99ha';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hb';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23570,7 +23573,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return `<div class="registered-inspection-detail-field${opcoes.largo ? ' is-wide' : ''}"><span>${escapeHtml(rotulo)}</span><${tag}>${escapeHtml(texto)}</${tag}></div>`;
       }
 
-      // V23.9.99ha — apresentação operacional compacta da ficha cadastrada.
+      // V23.9.99hb — apresentação operacional compacta da ficha cadastrada.
       function temValorDetalheCadastrado_(valor) {
         return String(valor == null ? '' : valor).trim() !== '';
       }
@@ -25406,6 +25409,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         programDeadlineNotice.innerHTML = partes.length ? `<strong>⚠ Atenção aos prazos:</strong> ${escapeHtml(partes.join(' • '))}` : '';
       }
 
+      function resumoResponsaveisProgramadas_(resumoRapido = null, listaAtual = preparacoesVistoria) {
+        let itens = [];
+        if (Array.isArray(resumoRapido?.porResponsavel) && resumoRapido.porResponsavel.length) {
+          itens = resumoRapido.porResponsavel.map(item => ({
+            nome: String(item?.nome || '').trim() || 'Sem responsável',
+            quantidade: Math.max(0, Number(item?.quantidade || 0))
+          })).filter(item => item.quantidade > 0);
+        } else {
+          const mapa = new Map();
+          (Array.isArray(listaAtual) ? listaAtual : []).forEach(item => {
+            const nome = String(item?.vistoriadorResponsavel || '').trim() || 'Sem responsável';
+            const chave = normalize(nome) || '__sem_responsavel__';
+            const atual = mapa.get(chave) || { nome, quantidade:0 };
+            atual.quantidade += 1;
+            mapa.set(chave, atual);
+          });
+          itens = Array.from(mapa.values());
+        }
+        itens.sort((a,b) => Number(b.quantidade || 0) - Number(a.quantidade || 0) || String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+        if (!itens.length) return '';
+        const exibidos = itens.slice(0, 3);
+        const partes = exibidos.map(item => `${item.nome} ${item.quantidade}`);
+        if (itens.length > exibidos.length) partes.push(`+${itens.length - exibidos.length} responsável${itens.length - exibidos.length === 1 ? '' : 'is'}`);
+        return partes.join(' · ');
+      }
+
       function atualizarVisibilidadeProgramadasMobile_() {
         const lista = Array.isArray(preparacoesVistoria) ? preparacoesVistoria : [];
         const verificando = programadasConsultaEstado_ === 'loading';
@@ -25425,6 +25454,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (dashboardProgrammedSummaryCard) dashboardProgrammedSummaryCard.hidden = true;
           [programmedSummaryCard,dashboardProgrammedSummaryCard].forEach(card => card?.classList.remove('is-danger','operational-summary-ready'));
           if (homeOperationalProgrammed) homeOperationalProgrammed.textContent = '—';
+          [programmedSummaryAssignees, dashboardProgrammedSummaryAssignees].forEach(el => {
+            if (!el) return;
+            el.hidden = true;
+            el.textContent = '';
+          });
           return;
         }
 
@@ -25462,6 +25496,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (dashboardProgrammedSummaryText) dashboardProgrammedSummaryText.textContent = total
           ? `${total} programada${total === 1 ? '' : 's'}${minhas ? ` · ${minhas} atribuída${minhas === 1 ? '' : 's'} a você` : ''}`
           : 'Nenhuma vistoria programada';
+
+        const responsaveisTexto = total > 0 ? resumoResponsaveisProgramadas_(resumoRapido, lista) : '';
+        [programmedSummaryAssignees, dashboardProgrammedSummaryAssignees].forEach(el => {
+          if (!el) return;
+          el.hidden = !responsaveisTexto;
+          el.textContent = responsaveisTexto;
+          if (responsaveisTexto) el.setAttribute('aria-label', `Distribuição das vistorias programadas: ${responsaveisTexto}`);
+          else el.removeAttribute('aria-label');
+        });
         atualizarResumoOperacionalHome_();
       }
 
@@ -28682,7 +28725,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ha', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
