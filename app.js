@@ -1,3 +1,4 @@
+// V23.9.99hm — após a abertura confiável, novas versões são preparadas em segundo plano e só assumem na próxima abertura ou por atualização manual.
 // V23.9.99hl — abertura confiável com saudação, atualização visível e continuidade de vistorias recém-confirmadas.
 // V23.9.99hk — Metas: backend estável HG restaurado com cache HK e diagnóstico de Eventos declaratórios.
 // V23.9.99hj — Metas voltam ao contrato estável do gateway; backend HI permanece validado.
@@ -29,7 +30,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hl';
+      const APP_VERSION = '23.9.99hm';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2772,7 +2773,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hl';
+      const APP_REVISION_UI_ = '23.9.99hm';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4674,12 +4675,37 @@
         return false;
       }
 
+      function registrarAtualizacaoSegundoPlano_() {
+        swAtualizacaoPendente_ = true;
+        if (!swAppLiberadoParaUso_) return false;
+
+        // A versão nova já pode ficar instalada/controlando os próximos carregamentos,
+        // mas a página atual continua estável. O aviso é único e não bloqueante.
+        if (!swAtualizacaoSegundoPlanoAvisada_) {
+          swAtualizacaoSegundoPlanoAvisada_ = true;
+          if (appStatus) appStatus.textContent = 'Nova versão preparada em segundo plano. Será aplicada na próxima abertura do app.';
+          mostrarFeedbackPremium_(
+            'Nova versão preparada em segundo plano. Será aplicada na próxima abertura do app.',
+            'warning'
+          );
+        }
+        return true;
+      }
+
       function appPodeAplicarAtualizacaoSilenciosa_() {
         if (!swAtualizacaoPendente_ || swRecarregamentoAtualizacaoEmCurso_) return false;
+        // V23.9.99hm — a aplicação automática com recarga só pertence à fase de
+        // abertura. Depois que o app foi liberado, a atualização fica para a próxima
+        // abertura (ou para Mais → Atualizar app, se o militar optar por aplicar agora).
+        if (swAppLiberadoParaUso_) return false;
         return !appTemInteracaoCriticaParaAtualizacao_();
       }
 
       function mostrarAtualizacaoAutomatica_() {
+        if (swAppLiberadoParaUso_) {
+          registrarAtualizacaoSegundoPlano_();
+          return;
+        }
         document.documentElement.classList.add('gpv-booting');
 
         // V23.9.99gw — no primeiro acesso do dia, a própria saudação acompanha a
@@ -4725,7 +4751,7 @@
       }
 
       function agendarNovaTentativaAtualizacaoSilenciosa_() {
-        if (!swAtualizacaoPendente_ || swTimerAtualizacaoAdiada_) return;
+        if (!swAtualizacaoPendente_ || swTimerAtualizacaoAdiada_ || swAppLiberadoParaUso_) return;
 
         swTimerAtualizacaoAdiada_ = setTimeout(() => {
           swTimerAtualizacaoAdiada_ = null;
@@ -4735,6 +4761,14 @@
 
       function aplicarAtualizacaoSilenciosaSeSeguro_() {
         if (!swAtualizacaoPendente_) return false;
+
+        // Depois da abertura, nunca toma a tela nem recarrega por conta própria.
+        // O Service Worker pode concluir a atualização em segundo plano; o novo shell
+        // será usado na próxima abertura do PWA ou pela ação manual Atualizar app.
+        if (swAppLiberadoParaUso_) {
+          registrarAtualizacaoSegundoPlano_();
+          return false;
+        }
 
         if (!appPodeAplicarAtualizacaoSilenciosa_()) {
           agendarNovaTentativaAtualizacaoSilenciosa_();
@@ -4779,7 +4813,7 @@
         worker.__gpvObservadoAtualizacao = true;
 
         const veioDeAtualizacao = Boolean(swControladorExistiaNaAbertura_ || navigator.serviceWorker.controller);
-        if (veioDeAtualizacao && swVerificacaoAberturaEmCurso_) {
+        if (veioDeAtualizacao && !swAppLiberadoParaUso_) {
           swAtualizacaoDetectadaNaAbertura_ = true;
           swWorkerAtualizacaoAbertura_ = worker;
           mostrarAtualizacaoAutomatica_();
@@ -4787,17 +4821,18 @@
 
         worker.addEventListener('statechange', () => {
           if (worker.state === 'installed' && (swControladorExistiaNaAbertura_ || navigator.serviceWorker.controller)) {
-            if (swVerificacaoAberturaEmCurso_) {
+            swAtualizacaoPendente_ = true;
+            if (!swAppLiberadoParaUso_) {
               swAtualizacaoDetectadaNaAbertura_ = true;
               swWorkerAtualizacaoAbertura_ = worker;
               mostrarAtualizacaoAutomatica_();
+            } else {
+              registrarAtualizacaoSegundoPlano_();
             }
-            // O novo SW ainda pode estar concluindo a ativação. Marca como
-            // pendente, mas deixa controllerchange/activated efetuar a recarga.
-            swAtualizacaoPendente_ = true;
           }
           if (worker.state === 'activated' && swAtualizacaoPendente_) {
-            aplicarAtualizacaoSilenciosaSeSeguro_();
+            if (swAppLiberadoParaUso_) registrarAtualizacaoSegundoPlano_();
+            else aplicarAtualizacaoSilenciosaSeSeguro_();
           }
         });
       }
@@ -4874,7 +4909,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hl', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hm', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4971,6 +5006,11 @@
       let swVerificacaoAberturaEmCurso_ = true;
       let swAtualizacaoDetectadaNaAbertura_ = false;
       let swWorkerAtualizacaoAbertura_ = null;
+      // V23.9.99hm — depois que a saudação libera o ambiente, uma nova versão pode
+      // ser baixada/ativada pelo Service Worker, mas nunca reabre a tela de saudação
+      // nem recarrega a interface enquanto o militar está trabalhando.
+      let swAppLiberadoParaUso_ = false;
+      let swAtualizacaoSegundoPlanoAvisada_ = false;
       const swControladorExistiaNaAbertura_ = Boolean(navigator.serviceWorker?.controller);
       let sancaoDefinidaAutomaticamente = false;
       let sancaoAntesDoAutomatico = '';
@@ -21945,6 +21985,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const mostrar = forcar || jaVisivel || Boolean(authState.usuario?.id || authState.usuario?.bm) || deveMostrarMotivacionalHoje_() || deveRetomarMotivacional_();
         if (!mostrar) {
           await loadInitialData();
+          swAppLiberadoParaUso_ = true;
           return;
         }
 
@@ -21983,6 +22024,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         document.body.classList.remove('daily-motivational-open');
         document.documentElement.classList.remove('gpv-booting');
         limparRetomadaMotivacional_();
+        // A partir daqui a sessão está interativa: qualquer versão descoberta depois
+        // permanece em segundo plano e não faz a saudação reaparecer automaticamente.
+        swAppLiberadoParaUso_ = true;
         if (erroCarga) throw erroCarga;
       }
 
@@ -28957,9 +29001,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           agendarAtualizacaoPainelAoRetornar_('retorno ao primeiro plano');
           agendarAtualizacaoListasOperacionaisAoRetornar_('retorno ao primeiro plano', 260, { forcar: ficouForaPor >= 5 * 60 * 1000 });
 
-          // Reabrir o PWA é uma oportunidade explícita de conferir a versão.
-          // Mesmo uma ausência curta pode coincidir com a publicação de uma correção.
-          // A promessa compartilhada acima impede consultas duplicadas em cascata.
+          // Retornar ao PWA continua sendo oportunidade de conferir a versão,
+          // mas, depois da abertura inicial, qualquer nova versão fica em segundo plano
+          // e não toma a tela do militar enquanto ele estiver trabalhando.
           const forcarVerificacao = Boolean(appOcultadoEm_ && ficouForaPor >= 1000);
 
           verificarAtualizacaoSilenciosaPwa_(forcarVerificacao);
@@ -29113,22 +29157,24 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          // Na primeira instalação não há versão anterior para substituir; evita
-          // uma recarga sem necessidade. Nas atualizações, aplica automaticamente.
+          // Na primeira instalação não há versão anterior para substituir. Durante a
+          // abertura confiável, a nova versão ainda pode assumir automaticamente. Depois
+          // que o app foi liberado, apenas registra a atualização para a próxima abertura.
           if (!swControladorExistiaNaAbertura_ && !swAtualizacaoDetectadaNaAbertura_ && !swAtualizacaoPendente_) return;
           swAtualizacaoPendente_ = true;
-          aplicarAtualizacaoSilenciosaSeSeguro_();
+          if (swAppLiberadoParaUso_) registrarAtualizacaoSegundoPlano_();
+          else aplicarAtualizacaoSilenciosaSeSeguro_();
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hl', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hm', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
-            // Verificação periódica para aparelhos/abas que permanecem abertos
-            // por muitas horas ou dias. Atualizações encontradas durante uma
-            // vistoria ficam preparadas e só entram quando a interação for segura.
+            // Verificação periódica para aparelhos/abas que permanecem abertos por
+            // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
+            // preparada em segundo plano e será usada na próxima abertura.
             setInterval(() => {
               verificarAtualizacaoSilenciosaPwa_();
-              aplicarAtualizacaoSilenciosaSeSeguro_();
+              if (!swAppLiberadoParaUso_) aplicarAtualizacaoSilenciosaSeSeguro_();
             }, 30 * 60 * 1000);
           } catch (e) {}
         });
