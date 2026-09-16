@@ -1,3 +1,4 @@
+// V23.9.99he — atualização automática reforçada na abertura/retorno e isolamento total dos dados do responsável entre vistorias.
 // V23.9.99hd — abertura local-first, Metas independentes/sempre revalidadas e Painel recente em cache; metas valem para toda a área atendida pelo app.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
@@ -22,7 +23,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hd';
+      const APP_VERSION = '23.9.99he';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2761,7 +2762,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hd';
+      const APP_REVISION_UI_ = '23.9.99he';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4635,18 +4636,29 @@
       function appTemInteracaoCriticaParaAtualizacao_() {
         if (sendingQueue || submitting) return true;
 
-        // Enquanto a tela de vistoria estiver aberta, qualquer atualização fica
-        // adiada, mesmo antes do primeiro salvamento automático do rascunho.
+        // Uma vistoria que já recebeu a primeira alteração operacional não pode
+        // ser interrompida por recarga. Porém, apenas abrir um formulário novo ou
+        // uma Programada/DDU ainda sem edição não bloqueia a atualização automática.
+        // Isso garante que, ao abrir o app, uma versão nova possa assumir o controle
+        // antes do trabalho de campo começar efetivamente.
         if (
           authState.sessionToken &&
-          vistaAtualNavegacao_() === 'form'
+          vistaAtualNavegacao_() === 'form' &&
+          !vistoriaAguardandoPrimeiraEdicao_
         ) {
           return true;
         }
 
         // Não recarrega enquanto houver uma etapa/modal operacional aberta.
+        // Exceção: o formulário recém-aberto e ainda sem primeira edição é apenas
+        // uma preparação de tela; não existe trabalho operacional para perder.
         try {
-          if (camadaNavegacaoAtiva_()) return true;
+          const camada = camadaNavegacaoAtiva_();
+          if (camada) {
+            const formularioAindaNaoIniciado = vistoriaAguardandoPrimeiraEdicao_ &&
+              ['inspection-flow', 'programmed-form', 'view-form'].includes(String(camada.id || ''));
+            if (!formularioAindaNaoIniciado) return true;
+          }
         } catch (e) {}
 
         return false;
@@ -4813,16 +4825,32 @@
 
       async function verificarAtualizacaoSilenciosaPwa_(forcar = false) {
         if (!navigator.onLine || !('serviceWorker' in navigator)) return;
+
+        // Focus, pageshow e visibilitychange podem ocorrer quase juntos ao abrir o
+        // PWA. Compartilhar a mesma promessa evita três consultas simultâneas ao SW,
+        // sem deixar de fazer a verificação obrigatória quando o app volta ao uso.
+        if (swVerificacaoSilenciosaPromise_) return swVerificacaoSilenciosaPromise_;
+
         const agora = Date.now();
         if (!forcar && agora - swUltimaVerificacaoSilenciosa_ < 10 * 60 * 1000) return;
         swUltimaVerificacaoSilenciosa_ = agora;
-        try {
-          const registro = swRegistroSilencioso_ || await navigator.serviceWorker.getRegistration();
-          if (registro) {
-            swRegistroSilencioso_ = registro;
-            await registro.update();
+
+        swVerificacaoSilenciosaPromise_ = (async () => {
+          try {
+            const registro = swRegistroSilencioso_ || await navigator.serviceWorker.getRegistration();
+            if (registro) {
+              observarAtualizacaoSilenciosaPwa_(registro);
+              swRegistroSilencioso_ = registro;
+              await registro.update();
+            }
+          } catch (e) {
+            // Rede ruim não impede o uso do shell já instalado.
+          } finally {
+            swVerificacaoSilenciosaPromise_ = null;
           }
-        } catch (e) {}
+        })();
+
+        return swVerificacaoSilenciosaPromise_;
       }
 
       async function prepararAtualizacaoAutomaticaNaAbertura_() {
@@ -4836,7 +4864,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hd', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99he', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4893,6 +4921,7 @@
       let responsavelBuscaCruzadaTimer_ = null;
       let responsavelBuscaCruzadaSequencia_ = 0;
       let responsavelBuscaCruzadaAssinatura_ = '';
+      let responsavelAutofillProtecaoAte_ = 0;
       const RESPONSAVEL_LOOKUP_FIELDS_ = new Set(['telefone','cpf','rg','email','nomeResponsavel','mae','nascimento']);
       let cpfResponsavelAssociado = '';
       let responsaveisLookupAtual = [];
@@ -4923,6 +4952,7 @@
       let duvidasPerguntaEmCurso_ = '';
       let swRegistroSilencioso_ = null;
       let swUltimaVerificacaoSilenciosa_ = 0;
+      let swVerificacaoSilenciosaPromise_ = null;
       let swAtualizacaoPendente_ = false;
       let swRecarregamentoAtualizacaoEmCurso_ = false;
       let swTimerAtualizacaoAdiada_ = null;
@@ -18784,6 +18814,108 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         responsavelBuscaCruzadaAssinatura_ = '';
       }
 
+      // V23.9.99he — cada nova vistoria começa com um contexto de responsável
+      // completamente independente. Não reaproveita valores, sugestões, associação
+      // de telefone/CPF nem autofill do navegador da vistoria anterior.
+      function limparEstadoResponsavelParaNovaVistoria_() {
+        invalidarConsultasResponsavel_();
+        responsavelLookupAplicacaoId_ += 1;
+        preenchendoResponsavelLookup = true;
+        try {
+          RESPONSAVEL_EDITABLE_FIELDS_.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = '';
+            // Esses campos não possuem valor inicial legítimo. Zerar defaultValue
+            // também impede que form.reset() restaure um valor reaproveitado pelo
+            // navegador durante a mesma sessão do PWA.
+            if ('defaultValue' in el) el.defaultValue = '';
+            el.setAttribute('autocomplete', 'off');
+            el.classList.remove('responsible-manual-edited', 'invalid', 'cpf-synced-from-identifier');
+            el.removeAttribute('aria-invalid');
+          });
+
+          telefoneResponsavelAssociado = '';
+          cpfResponsavelAssociado = '';
+          cpfCopiadoDoIdentificador = '';
+          responsavelCamposEditadosManual_.clear();
+          responsavelEdicaoManualAtiva_ = false;
+          responsaveisLookupAtual = [];
+          responsaveisCpfLookupAtual = [];
+
+          const mesmoEndereco = document.getElementById('mesmoEnderecoResponsavel');
+          if (mesmoEndereco) mesmoEndereco.checked = false;
+          if (eventoResponsavelEhOrganizadorCheck) eventoResponsavelEhOrganizadorCheck.checked = false;
+
+          const enderecoResponsavel = document.getElementById('enderecoResponsavel');
+          if (enderecoResponsavel) {
+            enderecoResponsavel.readOnly = false;
+            enderecoResponsavel.style.background = '';
+          }
+          if (cpfInput) cpfInput.readOnly = false;
+
+          esconderResponsavelLookupResultados_();
+          esconderResponsavelCpfLookupResultados_();
+          clearResponsavelLookupStatus_();
+          clearResponsavelCpfLookupStatus_();
+          statusCepContexto_('responsavel', '');
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+      }
+
+      function campoResponsavelAutofillNavegador_(el) {
+        if (!el || !RESPONSAVEL_EDITABLE_FIELDS_.has(String(el.id || ''))) return false;
+        try {
+          if (el.matches(':-webkit-autofill')) return true;
+        } catch (_) {}
+        try {
+          if (el.matches(':-moz-autofill')) return true;
+        } catch (_) {}
+        return false;
+      }
+
+      function limparAutofillResponsavelSeNecessario_() {
+        if (Date.now() > responsavelAutofillProtecaoAte_) return;
+        preenchendoResponsavelLookup = true;
+        try {
+          RESPONSAVEL_EDITABLE_FIELDS_.forEach(id => {
+            const el = document.getElementById(id);
+            if (!campoResponsavelAutofillNavegador_(el)) return;
+            el.value = '';
+            el.classList.remove('responsible-manual-edited');
+          });
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+      }
+
+      function armarProtecaoAutofillResponsavelNovaVistoria_() {
+        responsavelAutofillProtecaoAte_ = Date.now() + 1800;
+        requestAnimationFrame(() => limparAutofillResponsavelSeNecessario_());
+        setTimeout(() => limparAutofillResponsavelSeNecessario_(), 120);
+        setTimeout(() => limparAutofillResponsavelSeNecessario_(), 500);
+      }
+
+      function bloquearEventoAutofillResponsavelNovaVistoria_(event) {
+        if (Date.now() > responsavelAutofillProtecaoAte_) return false;
+        const el = event?.target;
+        if (!campoResponsavelAutofillNavegador_(el)) return false;
+
+        // Não deixa o autofill ser interpretado como "primeira alteração operacional",
+        // o que poderia iniciar/salvar uma nova vistoria com o responsável anterior.
+        event.stopImmediatePropagation();
+        if (event.cancelable) event.preventDefault();
+        preenchendoResponsavelLookup = true;
+        try {
+          el.value = '';
+          el.classList.remove('responsible-manual-edited');
+        } finally {
+          preenchendoResponsavelLookup = false;
+        }
+        return true;
+      }
+
       function limparTodosDadosResponsavel_() {
         invalidarConsultasResponsavel_();
         preenchendoResponsavelLookup = true;
@@ -20419,7 +20551,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           sincronizarRascunhoCompartilhado_('em_andamento', true).catch(() => {});
         }
         resetForm(true);
+        limparEstadoResponsavelParaNovaVistoria_();
         armarInicioEfetivoVistoria_(origem);
+        armarProtecaoAutofillResponsavelNovaVistoria_();
         atualizarResumoRascunhosLocais_();
         if (appStatus) appStatus.textContent = `${origem}: formulário aberto para consulta/preenchimento. A vistoria só será iniciada após a primeira alteração operacional.`;
         return true;
@@ -22629,7 +22763,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hd';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99he';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -27625,6 +27759,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }, true);
 
       form.addEventListener('input', event => {
+        bloquearEventoAutofillResponsavelNovaVistoria_(event);
+      }, true);
+
+      form.addEventListener('input', event => {
         if (event.isTrusted) ativarInicioEfetivoVistoria_('preenchimento do formulário');
         if (RESPONSAVEL_EDITABLE_FIELDS_.has(String(event.target?.id || '')) && !preenchendoResponsavelLookup) {
           marcarCampoResponsavelEditadoManual_(event.target.id);
@@ -28663,7 +28801,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           agendarAtualizacaoPainelAoRetornar_('retorno ao primeiro plano');
           agendarAtualizacaoListasOperacionaisAoRetornar_('retorno ao primeiro plano', 260, { forcar: ficouForaPor >= 5 * 60 * 1000 });
 
-          const forcarVerificacao = ficouForaPor >= 15 * 60 * 1000;
+          // Reabrir o PWA é uma oportunidade explícita de conferir a versão.
+          // Mesmo uma ausência curta pode coincidir com a publicação de uma correção.
+          // A promessa compartilhada acima impede consultas duplicadas em cascata.
+          const forcarVerificacao = Boolean(appOcultadoEm_ && ficouForaPor >= 1000);
 
           verificarAtualizacaoSilenciosaPwa_(forcarVerificacao);
           aplicarAtualizacaoSilenciosaSeSeguro_();
@@ -28823,7 +28964,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hd', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99he', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

@@ -1,7 +1,8 @@
-const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hd-local-first';
+const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-he-auto-update-responsavel-isolado';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99hd';
+const VERSION = '23.9.99he';
 
+// V23.9.99he — atualização automática reforçada na abertura/retorno; novo shell assume o controle com segurança.
 // V23.9.99hd — abertura local-first, atualização silenciosa e Metas revalidadas sem bloquear o Painel.
 // V23.9.99gx — mantém instalação leve; otimização do Painel ocorre no app/backend.
 // V23.9.99gw — instalação leve: somente o núcleo necessário para abrir/operar o PWA.
