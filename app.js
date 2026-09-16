@@ -1,4 +1,4 @@
-// V23.9.99he — atualização automática reforçada na abertura/retorno e isolamento total dos dados do responsável entre vistorias.
+// V23.9.99hf — endereço como identidade principal do local + dados complementares opcionais em Fiscalização/DDU; preserva atualização automática e isolamento do responsável.
 // V23.9.99hd — abertura local-first, Metas independentes/sempre revalidadas e Painel recente em cache; metas valem para toda a área atendida pelo app.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
@@ -23,7 +23,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99he';
+      const APP_VERSION = '23.9.99hf';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2762,7 +2762,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99he';
+      const APP_REVISION_UI_ = '23.9.99hf';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4864,7 +4864,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99he', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hf', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -18669,7 +18669,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             consulta: 'estabelecimento_historico',
             filtros: {
               identificador: tipo ? identificador : '',
-              nome: tipo ? '' : nome
+              nome: tipo ? '' : nome,
+              cidade: cityValue(),
+              endereco: value('endereco'),
+              numero: value('numero')
             }
           }, 30000);
           if (sequencia !== estabelecimentoLookupSequencia) return;
@@ -18814,7 +18817,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         responsavelBuscaCruzadaAssinatura_ = '';
       }
 
-      // V23.9.99he — cada nova vistoria começa com um contexto de responsável
+      // V23.9.99hf — cada nova vistoria começa com um contexto de responsável
       // completamente independente. Não reaproveita valores, sugestões, associação
       // de telefone/CPF nem autofill do navegador da vistoria anterior.
       function limparEstadoResponsavelParaNovaVistoria_() {
@@ -20008,7 +20011,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (prepare) preparePfCandidatos = candidatos;
         else {
           processoPfCandidatos = candidatos;
-          renderizarAlertaProcessoAnterior_(candidatos);
+          const confirmadosNoLocal = candidatos.filter(item => !normalize(item?.criterio || '').includes(normalize('confirmar endereço')));
+          renderizarAlertaProcessoAnterior_(confirmadosNoLocal);
         }
         if (!resultados) return;
         if ((!prepare && ehEventoDeclaratorio_()) || (prepare && ehEventoDeclaratorioPreparacao_())) {
@@ -20057,7 +20061,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         }
 
-        if (candidatos.length === 1) {
+        if (candidatos.length === 1 && !normalize(candidatos[0]?.criterio || '').includes(normalize('confirmar endereço'))) {
           aplicarPfLocalizado_(origem, candidatos[0], true);
           return;
         }
@@ -20115,6 +20119,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             atualizarVisibilidadeConferenciaMulta_();
           }
           renderizarCandidatosProcessoPf_(origem, candidatos);
+          if (!candidatos.length && resposta?.documentoEmOutroEndereco && status) {
+            status.textContent = 'Este CNPJ/CPF possui registro em outro endereço. O histórico daquele local não foi vinculado à vistoria atual.';
+            status.className = 'lookup-status show info';
+          }
         } catch (erro) {
           if ((prepare ? preparePfLookupSequencia : processoPfLookupSequencia) !== seq) return;
           if (!prepare) {
@@ -22763,7 +22771,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99he';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hf';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -23529,7 +23537,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const nomeLabel = document.getElementById('prepareNomeFantasiaLabel');
         const projetoWrap = document.getElementById('prepareLiberacaoProjetoWrap');
 
-        if (projetoWrap) projetoWrap.hidden = tipoSelecionado !== 'liberacao';
+        if (projetoWrap) projetoWrap.hidden = pet || !['liberacao','fiscalizacao'].includes(tipoSelecionado);
         if (pscipWrap) {
           pscipWrap.hidden = evento;
           pscipWrap.classList.toggle('is-required-prep', liberacao && !evento);
@@ -23958,6 +23966,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campos.push(campoDetalheCadastrado_('Nome Fantasia', item.nomeFantasia));
           campos.push(campoDetalheCadastrado_('Razão Social', item.razaoSocial));
           campos.push(campoDetalheCadastrado_('Área', item.area ? `${item.area} m²` : 'Não informada'));
+          if (temValorDetalheCadastrado_(item.ocupacao)) campos.push(campoDetalheCadastrado_('Ocupação / divisão', item.ocupacao));
+          if (temValorDetalheCadastrado_(item.pavimentos)) campos.push(campoDetalheCadastrado_('Pavimentos', item.pavimentos));
+          const dduAlturaValida = valorNumericoPositivoDetalhe_(item.altura);
+          if (dduAlturaValida) campos.push(campoDetalheCadastrado_('Altura', `${dduAlturaValida} m`));
+          if (temValorDetalheCadastrado_(item.medidasProjetoPrevistas)) campos.push(campoDetalheCadastrado_('Medidas de segurança previstas / conhecidas', item.medidasProjetoPrevistas, { largo: true }));
           campos.push(campoDetalheCadastrado_('Cidade', item.cidade));
           campos.push(campoDetalheCadastrado_('CEP', formatarCepCliente_(item.cep || '')));
           campos.push(campoDetalheCadastrado_('Endereço', [item.endereco, item.numero].filter(Boolean).join(', '), { largo: true }));
@@ -24021,17 +24034,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           edificacao.push(campoSeInformadoDetalhe_('Nome Fantasia', item.nomeFantasia));
           edificacao.push(campoSeInformadoDetalhe_('Razão Social', item.razaoSocial));
           if (temValorDetalheCadastrado_(item.area)) edificacao.push(campoDetalheCadastrado_('Área', `${item.area} m²`));
-          if (liberacao && temValorDetalheCadastrado_(item.pavimentos)) edificacao.push(campoDetalheCadastrado_('Pavimentos previstos', item.pavimentos));
-          const alturaValida = liberacao ? valorNumericoPositivoDetalhe_(item.altura) : '';
-          if (alturaValida) edificacao.push(campoDetalheCadastrado_('Altura prevista', `${alturaValida} m`));
+          if (!pet && temValorDetalheCadastrado_(item.pavimentos)) edificacao.push(campoDetalheCadastrado_(liberacao ? 'Pavimentos previstos' : 'Pavimentos', item.pavimentos));
+          const alturaValida = !pet ? valorNumericoPositivoDetalhe_(item.altura) : '';
+          if (alturaValida) edificacao.push(campoDetalheCadastrado_(liberacao ? 'Altura prevista' : 'Altura', `${alturaValida} m`));
 
-          const ocupacoes = liberacao ? listaUnicaDetalheCadastrado_(item.ocupacao) : [];
+          const ocupacoes = !pet ? listaUnicaDetalheCadastrado_(item.ocupacao) : [];
           if (ocupacoes.length) {
-            edificacao.push(`<div class="registered-inspection-detail-field is-wide registered-detail-chip-field"><span>Ocupação / divisão prevista</span>${chipsDetalheCadastrado_(ocupacoes, 'is-occupancy')}</div>`);
+            edificacao.push(`<div class="registered-inspection-detail-field is-wide registered-detail-chip-field"><span>${liberacao ? 'Ocupação / divisão prevista' : 'Ocupação / divisão'}</span>${chipsDetalheCadastrado_(ocupacoes, 'is-occupancy')}</div>`);
           }
           campos.push(blocoDetalheCadastrado_('Dados da edificação', `<div class="registered-detail-section-grid">${edificacao.filter(Boolean).join('')}</div>`));
 
-          const medidasProjeto = liberacao ? separarMedidasProjetoPrevistas_(item.medidasProjetoPrevistas || '') : [];
+          const medidasProjeto = !pet ? separarMedidasProjetoPrevistas_(item.medidasProjetoPrevistas || '') : [];
           const medidasUnicas = [];
           const medidasVistas = new Set();
           medidasProjeto.forEach(medida => {
@@ -24042,9 +24055,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           });
           if (medidasUnicas.length) {
             campos.push(blocoDetalheCadastrado_(
-              'Medidas de segurança previstas no projeto',
+              liberacao ? 'Medidas de segurança previstas no projeto' : 'Medidas de segurança previstas / conhecidas',
               `<div class="registered-detail-measures">${chipsDetalheCadastrado_(medidasUnicas, 'is-measure')}</div>`,
-              { subtitulo:'Informações do projeto. A conferência em campo ocorre separadamente durante a vistoria.' }
+              { subtitulo: liberacao ? 'Informações do projeto. A conferência em campo ocorre separadamente durante a vistoria.' : 'Informações complementares do cadastro. A conferência em campo ocorre separadamente durante a vistoria.' }
             ));
           }
 
@@ -24201,13 +24214,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (seq !== dduCadastroCruzadoSeq_) return false;
           const candidatos = Array.isArray(resposta?.candidatos) ? resposta.candidatos : [];
           if (!candidatos.length) {
+            const outroEndereco = Boolean(resposta?.documentoEmOutroEndereco);
             showDduCadastroCruzadoStatus_(pfDigitado.length >= 5
               ? `Nenhum cadastro localizado para o Nº do PF ${pfDigitado}.`
-              : 'Nenhum cadastro anterior localizado por CNPJ/CPF, PSCIP ou endereço.', 'info');
+              : (outroEndereco
+                ? 'Este CNPJ/CPF possui registro em outro endereço. Nenhum processo foi vinculado a esta demanda; o endereço informado é tratado como um local independente.'
+                : 'Nenhum cadastro anterior localizado por CNPJ/CPF, PSCIP ou endereço.'), 'info');
             return false;
           }
           if (candidatos.length > 1) {
-            showDduCadastroCruzadoStatus_(`${candidatos.length} processos compatíveis encontrados. Informe o Nº do PF para definir o processo correto.`, 'info');
+            showDduCadastroCruzadoStatus_(`${candidatos.length} processos compatíveis encontrados. Informe o endereço completo ou o Nº do PF para definir o processo correto.`, 'info');
+            return false;
+          }
+          if (normalize(candidatos[0]?.criterio || '').includes(normalize('confirmar endereço'))) {
+            const rotulo = candidatos[0]?.criterio || 'Documento localizado';
+            showDduCadastroCruzadoStatus_(`${rotulo}. O processo não foi vinculado porque o endereço físico ainda não foi confirmado. Informe cidade, endereço e número ou o Nº do PF.`, 'info');
             return false;
           }
           const alterados = preencherDduComCadastroCruzado_(candidatos[0]);
@@ -24232,7 +24253,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         dduCadastroIdPendente_ = '';
         const hoje = new Date();
         const iso = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0,10);
-        const ids = ['dduNumero','dduPrazo','dduCnpj','dduPf','dduNomeFantasia','dduRazaoSocial','dduArea','dduCep','dduEndereco','dduEnderecoNumero','dduBairro','dduComplemento','dduRotaUrl','dduObservacao'];
+        const ids = ['dduNumero','dduPrazo','dduCnpj','dduPf','dduNomeFantasia','dduRazaoSocial','dduArea','dduOcupacao','dduPavimentos','dduAltura','dduMedidasProjetoPrevistas','dduCep','dduEndereco','dduEnderecoNumero','dduBairro','dduComplemento','dduRotaUrl','dduObservacao'];
         ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         const recebimento = document.getElementById('dduRecebimento'); if (recebimento) recebimento.value = iso;
         const cidade = document.getElementById('dduCidade'); if (cidade) cidade.value = 'Viçosa';
@@ -24266,22 +24287,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             return true;
           };
           let alterados = 0;
+          // V23.9.99hf — CNPJ/CPF identifica a pessoa/empresa, não a edificação.
+          // Pelo documento sozinho, somente dados cadastrais não espaciais podem ser sugeridos.
+          // Endereço, PF, PSCIP e dados técnicos só são vinculados depois da conferência do local.
           alterados += setSeVazio('dduNomeFantasia', item.nomeFantasia) ? 1 : 0;
           alterados += setSeVazio('dduRazaoSocial', item.razaoSocial) ? 1 : 0;
-          alterados += setSeVazio('dduCidade', item.cidade) ? 1 : 0;
-          alterados += setSeVazio('dduCep', formatarCepCliente_(item.cep)) ? 1 : 0;
-          alterados += setSeVazio('dduEndereco', item.endereco) ? 1 : 0;
-          alterados += setSeVazio('dduEnderecoNumero', item.numero) ? 1 : 0;
-          alterados += setSeVazio('dduBairro', item.bairro) ? 1 : 0;
-          alterados += setSeVazio('dduArea', item.area) ? 1 : 0;
-          alterados += setSeVazio('dduPf', item.pf) ? 1 : 0;
-          const pscip = projetoPscipOperacional_(item.pscip || '');
-          const pscipEl = document.getElementById('dduPscip');
-          if (pscip && pscipEl && (!String(pscipEl.value || '').trim() || String(pscipEl.value || '').trim() === 'PRJ')) {
-            pscipEl.value = pscip;
-            alterados += 1;
-          }
-          if (alterados) showDduCnpjStatus_('Dados complementados pelo histórico do local. Confira antes de salvar.', 'success');
+          if (alterados) showDduCnpjStatus_('Empresa localizada no histórico. Endereço e processo não foram reaproveitados automaticamente; confirme o local da demanda.', 'info');
           return alterados > 0;
         } catch (_) {
           return false;
@@ -24301,18 +24312,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           dduCidade: primeiro(dados.cidade, dados.municipio, dados.nome_municipio)
         };
         const camposEmpresa = new Set(['dduRazaoSocial','dduNomeFantasia']);
-        const localJaInformado = ['dduEndereco','dduEnderecoNumero','dduBairro'].some(id => String(document.getElementById(id)?.value || '').trim());
         let alterados = 0;
         Object.entries(mapa).forEach(([id, valor]) => {
+          if (!camposEmpresa.has(id)) return;
           const el = document.getElementById(id);
           if (!el || !valor) return;
-          if (id === 'dduCep' && localJaInformado) return;
           const atual = String(el.value || '').trim();
-          if (!camposEmpresa.has(id) && atual) return;
-          const padronizado = ['dduRazaoSocial','dduNomeFantasia','dduEndereco','dduBairro'].includes(id)
-            ? padronizarTextoCadastroCliente_(valor)
-            : String(valor);
-          if (atual !== padronizado) { el.value = padronizado; alterados += 1; }
+          const padronizado = padronizarTextoCadastroCliente_(valor);
+          if (!atual && atual !== padronizado) { el.value = padronizado; alterados += 1; }
         });
         return alterados;
       }
@@ -24338,7 +24345,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const resultado = await apiRequest('cnpj', { cnpj }, 30000);
             if (sequencia !== dduCnpjConsultaSequencia || digits(input?.value || '') !== cnpj) return false;
             const alterados = preencherDadosCnpjDdu_(resultado);
-            showDduCnpjStatus_(alterados ? 'CNPJ localizado. Dados cadastrais preenchidos como sugestão.' : 'CNPJ localizado. Confira e complete os dados do local.', 'success');
+            showDduCnpjStatus_(alterados ? 'CNPJ localizado. Nome empresarial preenchido; confirme manualmente o endereço físico desta demanda.' : 'CNPJ localizado. Confirme o endereço físico desta demanda antes de salvar.', 'success');
             await preencherDduComHistorico_(cnpj);
             agendarConsultaCadastroCruzadoDdu_(80);
             return true;
@@ -24395,6 +24402,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('dduNomeFantasia', item.nomeFantasia);
         set('dduRazaoSocial', item.razaoSocial);
         set('dduArea', item.area);
+        set('dduOcupacao', item.ocupacao);
+        set('dduPavimentos', item.pavimentos);
+        set('dduAltura', item.altura);
+        set('dduMedidasProjetoPrevistas', item.medidasProjetoPrevistas);
         set('dduCidade', item.cidade || 'Viçosa');
         set('dduCep', formatarCepCliente_(item.cep || ''));
         set('dduEndereco', item.endereco);
@@ -24973,6 +24984,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             nomeFantasia:padronizarTextoCadastroCliente_(document.getElementById('dduNomeFantasia')?.value || ''),
             razaoSocial:padronizarTextoCadastroCliente_(document.getElementById('dduRazaoSocial')?.value || ''),
             area:document.getElementById('dduArea')?.value || '',
+            ocupacao:padronizarTextoCadastroCliente_(document.getElementById('dduOcupacao')?.value || ''),
+            pavimentos:String(document.getElementById('dduPavimentos')?.value || '').replace(/\D/g,'').slice(0,3),
+            altura:document.getElementById('dduAltura')?.value || '',
+            medidasProjetoPrevistas:String(document.getElementById('dduMedidasProjetoPrevistas')?.value || '').replace(/\s+/g,' ').trim(),
             cidade,
             cep:formatarCepCliente_(document.getElementById('dduCep')?.value || ''),
             endereco:padronizarTextoCadastroCliente_(endereco),
@@ -25055,6 +25070,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('nomeFantasia',item.nomeFantasia);
         set('razaoSocial',item.razaoSocial);
         set('area',item.area);
+        set('pavimentos',item.pavimentos);
+        set('altura',item.altura);
+        if (item.ocupacao) restaurarOcupacoesSelecionadas(item.ocupacao);
+        renderizarMedidasProjetoPrevistasCampo_(item.medidasProjetoPrevistas || '');
         set('cep',item.cep);
         set('endereco',item.endereco);
         set('numero',item.numero);
@@ -25186,10 +25205,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           nomeFantasia: padronizarTextoCadastroCliente_(g('prepareNomeFantasia')),
           razaoSocial: padronizarTextoCadastroCliente_(g('prepareRazaoSocial')),
           area: g('prepareArea'),
-          ocupacao: (!pet && tipo === 'liberacao') ? padronizarTextoCadastroCliente_(g('prepareOcupacao')) : '',
-          pavimentos: (!pet && tipo === 'liberacao') ? g('preparePavimentos').replace(/\D/g, '').slice(0, 3) : '',
-          altura: (!pet && tipo === 'liberacao') ? g('prepareAltura') : '',
-          medidasProjetoPrevistas: (!pet && tipo === 'liberacao') ? medidasProjetoPreparacaoSelecionadas_().join(' | ') : '',
+          ocupacao: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? padronizarTextoCadastroCliente_(g('prepareOcupacao')) : '',
+          pavimentos: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('preparePavimentos').replace(/\D/g, '').slice(0, 3) : '',
+          altura: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('prepareAltura') : '',
+          medidasProjetoPrevistas: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? medidasProjetoPreparacaoSelecionadas_().join(' | ') : '',
           cep: formatarCepCliente_(g('prepareCep')),
           endereco: padronizarTextoCadastroCliente_(g('prepareEndereco')),
           numero: g('prepareNumero'),
@@ -25227,24 +25246,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             alterados += 1;
           }
           alterados += setSeVazio('prepareRazaoSocial', item.razaoSocial) ? 1 : 0;
-          alterados += setSeVazio('prepareCidade', item.cidade) ? 1 : 0;
-          alterados += setSeVazio('prepareCep', formatarCepCliente_(item.cep)) ? 1 : 0;
-          alterados += setSeVazio('prepareEndereco', item.endereco) ? 1 : 0;
-          alterados += setSeVazio('prepareNumero', item.numero) ? 1 : 0;
-          alterados += setSeVazio('prepareBairro', item.bairro) ? 1 : 0;
-          alterados += setSeVazio('prepareArea', item.area) ? 1 : 0;
-          alterados += setSeVazio('prepareOcupacao', item.ocupacao) ? 1 : 0;
-          alterados += setSeVazio('preparePavimentos', item.pavimentos) ? 1 : 0;
-          alterados += setSeVazio('prepareAltura', item.altura) ? 1 : 0;
 
-          const pscip = projetoPscipOperacional_(item.pscip || '');
-          const pscipAtual = String(document.getElementById('preparePscip')?.value || '').trim();
-          // Cada PET é uma nova solicitação. O PSCIP de PET anterior não é
-          // reaproveitado automaticamente por CNPJ/endereço.
-          if (!petPreparacao && pscip && (!pscipAtual || pscipAtual === 'PRJ')) {
-            document.getElementById('preparePscip').value = pscip;
-            alterados += 1;
-          }
+          // V23.9.99hf — o documento sozinho não autoriza copiar o endereço ou o
+          // processo de outra unidade da mesma empresa. Dados do local são recuperados
+          // pela busca cruzada somente depois que cidade + logradouro + número forem informados.
 
           if (alterados && item.historico2024_2025) {
             showPrepareCnpjStatus_(
@@ -25297,25 +25302,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         };
         const camposEmpresa = new Set(['prepareRazaoSocial', 'prepareNomeFantasia']);
         let alterados = 0;
-        const localPreparacaoJaInformado = ['prepareEndereco','prepareNumero','prepareBairro'].some(id => String(document.getElementById(id)?.value || '').trim());
         Object.entries(mapa).forEach(([id, valor]) => {
+          if (!camposEmpresa.has(id)) return;
           const el = document.getElementById(id);
           if (!el || !valor) return;
-          if (id === 'prepareCep' && localPreparacaoJaInformado) return;
           const atual = String(el.value || '').trim();
-          // Razão Social/Nome Fantasia pertencem ao CNPJ e podem ser atualizados.
-          // Endereço, número, bairro e cidade são apenas sugestões e nunca
-          // substituem um local já informado pelo vistoriador.
-          if (!camposEmpresa.has(id) && atual) return;
-          const padronizado = ['prepareRazaoSocial','prepareNomeFantasia','prepareEndereco','prepareBairro'].includes(id)
-            ? padronizarTextoCadastroCliente_(valor)
-            : String(valor);
-          if (atual !== padronizado) {
+          const padronizado = padronizarTextoCadastroCliente_(valor);
+          if (!atual) {
             el.value = padronizado;
             if (id === 'prepareNomeFantasia') prepareNomeFantasiaCnpjSugerido_ = padronizado;
             el.dispatchEvent(new Event('change', { bubbles: true }));
             alterados += 1;
-          } else if (id === 'prepareNomeFantasia' && padronizado) {
+          } else if (id === 'prepareNomeFantasia' && padronizado && normalize(atual) === normalize(padronizado)) {
             prepareNomeFantasiaCnpjSugerido_ = padronizado;
           }
         });
@@ -25356,8 +25354,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
             showPrepareCnpjStatus_(
               alterados > 0
-                ? `CNPJ localizado. ${alterados} dado(s) cadastral(is) preenchido(s). O endereço é apenas uma sugestão e permanece editável.`
-                : 'CNPJ localizado. O endereço cadastral é apenas uma sugestão; informe o local real da vistoria ou do PET.',
+                ? `CNPJ localizado. ${alterados} dado(s) da empresa preenchido(s). O endereço físico deve ser informado pelo vistoriador.`
+                : 'CNPJ localizado. Informe o endereço físico real da vistoria; o CNPJ não define o local do processo.',
               'success'
             );
             await preencherPreparacaoComHistorico_(cnpj);
@@ -28964,7 +28962,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99he', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hf', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
