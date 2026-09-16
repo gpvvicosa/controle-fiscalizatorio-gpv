@@ -1,3 +1,4 @@
+// V23.9.99hr — Vistorias Programadas: mobile compacto, sem cadastro no modal e ação explícita Ver vistoria.
 // V23.9.99hq — Vistorias Programadas local-first, atualização em segundo plano, retry e modal responsivo profissional.
 // V23.9.99hp — Home mais limpa: card de Sincronização só aparece quando há pendência ou aparelho offline.
 // V23.9.99ho — DDU/Rascunhos só aparecem com pendência; ocupação da vistoria passa a seleção múltipla oficial por caixas de seleção.
@@ -34,7 +35,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hq';
+      const APP_VERSION = '23.9.99hr';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2835,7 +2836,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hq';
+      const APP_REVISION_UI_ = '23.9.99hr';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4971,7 +4972,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hq', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hr', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -26870,7 +26871,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           preparedInspectionsList.innerHTML = estadoProgramadasHtml_(
             'empty',
             filtroPreparacoes === 'minhas' ? 'Nenhuma vistoria atribuída a você' : 'Nenhuma vistoria neste filtro',
-            filtroPreparacoes === 'minhas' ? 'Quando uma vistoria for atribuída ao seu usuário, ela aparecerá aqui.' : 'Altere o filtro ou cadastre uma nova vistoria programada.'
+            filtroPreparacoes === 'minhas' ? 'Quando uma vistoria for atribuída ao seu usuário, ela aparecerá aqui.' : 'Altere o filtro ou aguarde uma nova programação.'
           );
           return;
         }
@@ -26885,7 +26886,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const titulo = item.nomeFantasia || item.razaoSocial || (eventoDeclaratorio ? item.eventoDeclaracaoNumero : pscipCard) || 'Vistoria programada';
           const endereco = [item.endereco, item.numero, item.bairro, item.cidade].filter(Boolean).join(', ');
           const prazo = classificarPrazoProgramacao_(item);
-          return `<article class="prepared-card programmed-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-preparacao-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="Ver detalhes da vistoria cadastrada: ${escapeAttr(titulo)}">
+          return `<article class="prepared-card programmed-card ${prazo.classe}${liberacao ? ' is-release' : ''}">
             <div class="prepared-card-main">
               <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${pet ? 'PET' : (liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização'))}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
               ${liberacao && item.retornoLiberacao ? '<div><span class="prepared-kind release">Retorno de vistoria de liberação</span></div>' : ''}
@@ -26899,7 +26900,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               <button type="button" class="btn btn-secondary prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
               <button type="button" class="btn btn-secondary prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
               ${item.vistoriaIniciada ? `<button type="button" class="btn btn-secondary prepared-cancel-fill-btn" data-preparacao-cancel-fill-id="${escapeAttr(item.id)}">Cancelar preenchimento</button>` : ''}
-              <button type="button" class="btn btn-primary prepared-open-btn" data-preparacao-id="${escapeAttr(item.id)}">${item.vistoriaIniciada ? 'Ver / continuar' : 'Ver detalhes'}</button>
+              <button type="button" class="btn btn-primary prepared-open-btn programmed-view-btn" data-preparacao-id="${escapeAttr(item.id)}" aria-label="Ver vistoria programada de ${escapeAttr(titulo)}">Ver vistoria</button>
             </div>
           </article>`;
         };
@@ -29538,7 +29539,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hr', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
