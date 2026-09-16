@@ -1,4 +1,4 @@
-// V23.9.99hb — responsáveis das Vistorias Programadas no card e no gerenciamento de usuários; preserva a ficha otimizada da V23.9.99ha.
+// V23.9.99hc — Metas leves sob demanda, Eventos declaratórios em toda a área atendida e remoção do card redundante de operação; preserva V23.9.99hb.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
 // V23.9.99gw — saudação diária animada integrada à verificação/atualização do PWA.
 (() => {
@@ -22,7 +22,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hb';
+      const APP_VERSION = '23.9.99hc';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2724,6 +2724,8 @@
       let vistoriaEstadoInicialTimer_ = null;
       let metasMensaisAtual = null;
       let metasCarregando = false;
+      let metasDetalhesCarregados = false;
+      let metasDetalhesCarregando = false;
       let preparacaoEditandoId = '';
       let preparacaoAnexosExistentes_ = [];
       let preparacaoAnexosRemover_ = new Set();
@@ -2758,7 +2760,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hb';
+      const APP_REVISION_UI_ = '23.9.99hc';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4833,7 +4835,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hb', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hc', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7603,7 +7605,7 @@
         }
 
         if (goalsModalTitle) goalsModalTitle.textContent = `Metas de ${titulo}`;
-        if (goalsModalSubtitle) goalsModalSubtitle.textContent = `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa.`;
+        if (goalsModalSubtitle) goalsModalSubtitle.textContent = `${realizadoTotal} de ${metaTotal} contabilizadas na meta mensal de Viçosa. Eventos declaratórios consideram toda a área atendida pelo GPV.`;
         if (goalsModalSummary) goalsModalSummary.innerHTML = `<div class="goals-modal-overall-card"><div class="goals-modal-overall-top"><div><span>Progresso geral</span><strong>${Math.round(percentual)}%</strong></div><div class="goals-modal-overall-count"><span>Realizado / meta</span><strong>${realizadoTotal}/${metaTotal}</strong></div></div><div class="goals-modal-overall-progress"><span style="width:${Math.max(0, Math.min(100, percentual))}%"></span></div><div class="goals-modal-overall-foot"><span>${realizadoTotal >= metaTotal ? 'Meta mensal atingida' : `Faltam ${Math.max(0, metaTotal-realizadoTotal)} para a meta mensal`}</span><span>Viçosa</span></div></div>`;
         if (goalsModalList) {
           goalsModalList.innerHTML = categorias.map(item => {
@@ -7622,6 +7624,10 @@
         }
 
         if (goalsModalDetails) {
+          if (!metasDetalhesCarregados) {
+            goalsModalDetails.innerHTML = '<div class="goals-details-empty"><strong>Detalhes carregados somente quando necessários.</strong><span>Abra a aba Detalhes para buscar os locais contabilizados sem atrasar a abertura do Painel.</span></div>';
+            return;
+          }
           const gruposComRegistros = categorias.filter(item => Array.isArray(item?.detalhes) && item.detalhes.length);
           goalsModalDetails.innerHTML = gruposComRegistros.length ? gruposComRegistros.map(item => {
             const detalhes = item.detalhes || [];
@@ -7664,7 +7670,34 @@
         if (goalsDetailsPanel) goalsDetailsPanel.hidden = !detalhes;
       }
 
-      async function carregarMetas_(forcar = false) {
+      async function carregarMetas_(forcar = false, incluirDetalhes = false) {
+        if (incluirDetalhes) {
+          if (metasDetalhesCarregando) return;
+          if (metasDetalhesCarregados && metasMensaisAtual && !forcar) {
+            renderizarMetas_(metasMensaisAtual);
+            return;
+          }
+          if (!navigator.onLine) {
+            if (goalsModalDetails) goalsModalDetails.innerHTML = '<div class="goals-details-empty"><strong>Sem internet para carregar os detalhes.</strong><span>O resumo disponível continua acessível. Tente novamente quando houver conexão.</span></div>';
+            return;
+          }
+
+          metasDetalhesCarregando = true;
+          if (goalsModalDetails) goalsModalDetails.innerHTML = '<div class="goals-details-empty"><strong>Carregando locais contabilizados...</strong><span>Os detalhes são buscados somente agora para manter o Painel rápido.</span></div>';
+          try {
+            const resposta = await apiRequest('config', { consulta: 'metas', incluirDetalhes: true }, 30000);
+            metasMensaisAtual = resposta || {};
+            metasDetalhesCarregados = true;
+            renderizarMetas_(metasMensaisAtual);
+          } catch (erro) {
+            metasDetalhesCarregados = false;
+            if (goalsModalDetails) goalsModalDetails.innerHTML = '<div class="goals-details-empty"><strong>Não foi possível carregar os detalhes agora.</strong><span>O resumo das metas permanece disponível. Tente novamente em instantes.</span></div>';
+          } finally {
+            metasDetalhesCarregando = false;
+          }
+          return;
+        }
+
         if (metasCarregando) return;
         const cache = lerStorageJson_(GOALS_CACHE_STORAGE, {});
         const idadeCache = cache?.salvoEm ? Math.max(0, Date.now() - Number(cache.salvoEm)) : Infinity;
@@ -7678,6 +7711,7 @@
 
         if (!metasMensaisAtual && cacheDisponivel) {
           metasMensaisAtual = cache.resposta;
+          metasDetalhesCarregados = false;
           renderizarMetas_(metasMensaisAtual);
           if (!cacheFresco && dashboardGoalsSubtitle) {
             dashboardGoalsSubtitle.textContent += ' Última atualização salva; conferindo dados atuais...';
@@ -7692,8 +7726,9 @@
         }
         metasCarregando = true;
         try {
-          const resposta = await apiRequest('config', { consulta: 'metas' }, 30000);
+          const resposta = await apiRequest('config', { consulta: 'metas', incluirDetalhes: false }, 12000);
           metasMensaisAtual = resposta || {};
+          metasDetalhesCarregados = false;
           gravarStorageJson_(GOALS_CACHE_STORAGE, { salvoEm: Date.now(), resposta: metasMensaisAtual });
           renderizarMetas_(metasMensaisAtual);
         } catch (erro) {
@@ -7712,7 +7747,12 @@
         fecharMenuMais_();
         selecionarAbaMetas_('resumo');
         if (goalsModal) goalsModal.hidden = false;
-        void carregarMetas_(true);
+        void carregarMetas_(false, false);
+      }
+
+      async function abrirDetalhesMetas_() {
+        selecionarAbaMetas_('detalhes');
+        if (!metasDetalhesCarregados) await carregarMetas_(true, true);
       }
 
       function dataHoraImpressaoMetas_() {
@@ -7754,6 +7794,14 @@
         );
 
         if (!modo) return;
+
+        if (modo === 'completo' && !metasDetalhesCarregados) {
+          await carregarMetas_(true, true);
+          if (!metasDetalhesCarregados) {
+            await avisarGpv_('Não foi possível carregar os detalhes dos locais. Tente novamente antes de gerar o relatório completo.', 'Metas mensais', { tom: 'warning' });
+            return;
+          }
+        }
 
         const resumoEstavaOculto = Boolean(goalsSummaryPanel?.hidden);
         const detalhesEstavamOcultos = Boolean(goalsDetailsPanel?.hidden);
@@ -8013,6 +8061,8 @@
         sugestoesFiscalizacao = [];
         sugestoesFiscalizacaoGeradoEm = '';
         metasMensaisAtual = null;
+        metasDetalhesCarregados = false;
+        metasDetalhesCarregando = false;
       }
 
       function atualizarCampoCriticoCacheFicha_(registro, rotulo, valor) {
@@ -22535,7 +22585,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hb';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hc';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -27098,7 +27148,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       goalsModalCloseBtn?.addEventListener('click', fecharMetas_);
       goalsModalPrintBtn?.addEventListener('click', imprimirOuSalvarMetas_);
       goalsTabSummaryBtn?.addEventListener('click', () => selecionarAbaMetas_('resumo'));
-      goalsTabDetailsBtn?.addEventListener('click', () => selecionarAbaMetas_('detalhes'));
+      goalsTabDetailsBtn?.addEventListener('click', () => { void abrirDetalhesMetas_(); });
       goalsModalDetails?.addEventListener('click', event => {
         const btn = event.target.closest('[data-goal-open-record]');
         if (!btn) return;
@@ -28725,7 +28775,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hb', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hc', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
