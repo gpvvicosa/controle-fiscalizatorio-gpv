@@ -1,3 +1,4 @@
+// V23.9.99hg — Metas local-first resilientes na abertura + contabilização robusta de Eventos declaratórios.
 // V23.9.99hf — endereço como identidade principal do local + dados complementares opcionais em Fiscalização/DDU; preserva atualização automática e isolamento do responsável.
 // V23.9.99hd — abertura local-first, Metas independentes/sempre revalidadas e Painel recente em cache; metas valem para toda a área atendida pelo app.
 // V23.9.99gx — painel com índice cronológico e pré-carregamento silencioso do histórico.
@@ -23,7 +24,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hf';
+      const APP_VERSION = '23.9.99hg';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2728,6 +2729,8 @@
       let metasCarregando = false;
       let metasDetalhesCarregados = false;
       let metasDetalhesCarregando = false;
+      let metasResumoRetryTimer_ = null;
+      let metasResumoRetryTentativas_ = 0;
       let preparacaoEditandoId = '';
       let preparacaoAnexosExistentes_ = [];
       let preparacaoAnexosRemover_ = new Set();
@@ -2762,7 +2765,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hf';
+      const APP_REVISION_UI_ = '23.9.99hg';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4864,7 +4867,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hf', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hg', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6098,9 +6101,11 @@
           limparCachesConsulta_();
           const atualizacaoPlanilha = atualizarPlanilhaEmSegundoPlano();
           agendarAtualizacoesPainelAposEnvio_();
+          setTimeout(() => { if (navigator.onLine) void carregarMetas_(true, false); }, 650);
           void atualizacaoPlanilha.then(atualizou => {
             if (!atualizou || !navigator.onLine) return;
             limparCachesConsulta_();
+            setTimeout(() => { if (navigator.onLine) void carregarMetas_(true, false); }, 350);
             if (document.body.classList.contains('records-mode')) {
               void carregarRegistros_(true, { substituirSeAntiga: true, motivo: 'planilha atualizada' });
             } else {
@@ -7701,6 +7706,24 @@
         if (goalsDetailsPanel) goalsDetailsPanel.hidden = !detalhes;
       }
 
+      function cancelarRetryMetasResumo_() {
+        if (metasResumoRetryTimer_) {
+          clearTimeout(metasResumoRetryTimer_);
+          metasResumoRetryTimer_ = null;
+        }
+      }
+
+      function agendarRetryMetasResumo_() {
+        if (!navigator.onLine || metasResumoRetryTimer_ || metasResumoRetryTentativas_ >= 2) return;
+        const atraso = metasResumoRetryTentativas_ === 0 ? 1800 : 4500;
+        metasResumoRetryTentativas_ += 1;
+        metasResumoRetryTimer_ = setTimeout(() => {
+          metasResumoRetryTimer_ = null;
+          if (!navigator.onLine) return;
+          void carregarMetas_(true, false);
+        }, atraso);
+      }
+
       async function carregarMetas_(forcar = false, incluirDetalhes = false) {
         if (incluirDetalhes) {
           if (metasDetalhesCarregando) return;
@@ -7719,6 +7742,9 @@
             const resposta = await apiRequest('config', { consulta: 'metas', incluirDetalhes: true }, 30000);
             metasMensaisAtual = resposta || {};
             metasDetalhesCarregados = true;
+            gravarStorageJson_(GOALS_CACHE_STORAGE, { salvoEm: Date.now(), resposta: metasMensaisAtual });
+            cancelarRetryMetasResumo_();
+            metasResumoRetryTentativas_ = 0;
             renderizarMetas_(metasMensaisAtual);
           } catch (erro) {
             metasDetalhesCarregados = false;
@@ -7729,14 +7755,14 @@
           return;
         }
 
-        if (metasCarregando) return;
         const cache = lerStorageJson_(GOALS_CACHE_STORAGE, {});
         const idadeCache = cache?.salvoEm ? Math.max(0, Date.now() - Number(cache.salvoEm)) : Infinity;
         const cacheDisponivel = Boolean(cache?.resposta && cache?.salvoEm && idadeCache <= GOALS_CACHE_STALE_MS);
         const cacheFresco = cacheDisponivel && idadeCache <= GOALS_CACHE_TTL_MS;
 
-        // V23.9.99hd — o cache serve somente para abrir rápido. Mesmo com um
-        // resumo já visível, a fonte online é sempre consultada em segundo plano.
+        // V23.9.99hg — a apresentação do último resumo válido ocorre antes da trava
+        // de consulta. Assim, chamadas concorrentes do Painel nunca deixam o card
+        // preso em “Carregando metas...” enquanto uma revalidação está em andamento.
         if (metasMensaisAtual && !forcar) {
           renderizarMetas_(metasMensaisAtual);
         } else if (cacheDisponivel) {
@@ -7748,6 +7774,7 @@
           dashboardGoalsSubtitle.textContent += ' Última atualização salva; conferindo dados atuais...';
         }
 
+        if (metasCarregando || metasDetalhesCarregando) return;
         if (!navigator.onLine) {
           if (!cacheDisponivel && dashboardGoalsSubtitle) {
             dashboardGoalsSubtitle.textContent = 'Conecte-se à internet para atualizar as metas.';
@@ -7756,10 +7783,14 @@
         }
         metasCarregando = true;
         try {
-          const resposta = await apiRequest('config', { consulta: 'metas', incluirDetalhes: false }, 12000);
+          // O resumo é leve e não bloqueia a abertura do Painel. Um prazo maior evita
+          // falso timeout em Apps Script frio; a API ainda mantém repetição segura.
+          const resposta = await apiRequest('config', { consulta: 'metas', incluirDetalhes: false }, 22000);
           metasMensaisAtual = resposta || {};
           metasDetalhesCarregados = false;
           gravarStorageJson_(GOALS_CACHE_STORAGE, { salvoEm: Date.now(), resposta: metasMensaisAtual });
+          cancelarRetryMetasResumo_();
+          metasResumoRetryTentativas_ = 0;
           renderizarMetas_(metasMensaisAtual);
         } catch (erro) {
           if (cacheDisponivel && metasMensaisAtual) {
@@ -7768,8 +7799,9 @@
               dashboardGoalsSubtitle.textContent += ' Últimos dados válidos mantidos; atualização temporariamente indisponível.';
             }
           } else if (dashboardGoalsSubtitle) {
-            dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora. O sistema tentará novamente na próxima atualização.';
+            dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora. Nova tentativa automática em instantes.';
           }
+          agendarRetryMetasResumo_();
         } finally { metasCarregando = false; }
       }
 
@@ -8116,7 +8148,8 @@
       function limparCachesConsulta_() {
         invalidarCachePainelOperacional_();
         try { localStorage.removeItem(RECORD_CACHE_STORAGE); } catch (erro) {}
-        try { localStorage.removeItem(GOALS_CACHE_STORAGE); } catch (erro) {}
+        // V23.9.99hg — o último resumo válido das metas é preservado para a abertura
+        // local-first. A revalidação online substitui esse resumo assim que possível.
         try { localStorage.removeItem(SUGGESTIONS_CACHE_STORAGE); } catch (erro) {}
         sugestoesFiscalizacaoCarregadas = false;
         sugestoesFiscalizacao = [];
@@ -22771,7 +22804,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hf';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hg';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -28924,6 +28957,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         setTimeout(() => { void sincronizarSituacoesCriticasProcessos_({ atualizarFichaAberta: true }); }, 650);
         if (document.body.classList.contains('records-mode')) {
+          setTimeout(() => { void carregarMetas_(true, false); }, 320);
           setTimeout(() => agendarAtualizacaoPainelAoRetornar_('internet restabelecida', { forcar: true, atraso: 80 }), 900);
         }
         setTimeout(() => verificarAtualizacaoSilenciosaPwa_(true), 1200);
@@ -28962,7 +28996,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hf', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hg', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma

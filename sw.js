@@ -1,7 +1,8 @@
-const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hf-endereco-principal-dados-complementares';
+const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hg-metas-resilientes-eventos';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99hf';
+const VERSION = '23.9.99hg';
 
+// V23.9.99hg — novo shell publica a correção de Metas sem alterar o cache documental sob demanda.
 // V23.9.99hf — atualização automática reforçada na abertura/retorno; novo shell assume o controle com segurança.
 // V23.9.99hd — abertura local-first, atualização silenciosa e Metas revalidadas sem bloquear o Painel.
 // V23.9.99gx — mantém instalação leve; otimização do Painel ocorre no app/backend.
