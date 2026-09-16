@@ -1,7 +1,8 @@
-const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hi-metas-eventos-atual';
+const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hj-metas-gateway-estavel';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99hi';
+const VERSION = '23.9.99hj';
 
+// V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
 // V23.9.99hh — Metas iniciadas diretamente em toda entrada do Painel.
 // V23.9.99hg — novo shell publica a correção de Metas sem alterar o cache documental sob demanda.

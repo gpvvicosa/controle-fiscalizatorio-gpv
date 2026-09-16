@@ -1,3 +1,4 @@
+// V23.9.99hj — Metas voltam ao contrato estável do gateway; backend HI permanece validado.
 // V23.9.99hi — Metas revalidadas contra backend HI, cache local renovado e atualização real dos Eventos declaratórios.
 // V23.9.99hh — Metas iniciadas diretamente em toda entrada do Painel, inclusive F5/link direto.
 // V23.9.99hg — Metas local-first resilientes na abertura + contabilização robusta de Eventos declaratórios.
@@ -26,7 +27,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hi';
+      const APP_VERSION = '23.9.99hj';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2767,7 +2768,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hi';
+      const APP_REVISION_UI_ = '23.9.99hj';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4869,7 +4870,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hi', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hj', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7759,9 +7760,7 @@
           try {
             const resposta = validarRespostaMetasHi_(await apiRequest('config', {
               consulta: 'metas',
-              incluirDetalhes: true,
-              forcarAtualizacao: true,
-              versaoClienteMetas: '23.9.99hi'
+              incluirDetalhes: true
             }, 30000));
             metasMensaisAtual = resposta || {};
             metasDetalhesCarregados = true;
@@ -7810,11 +7809,7 @@
           // falso timeout em Apps Script frio; a API ainda mantém repetição segura.
           const resposta = validarRespostaMetasHi_(await apiRequest('config', {
             consulta: 'metas',
-            incluirDetalhes: false,
-            // Sem um cache local HI fresco, a primeira confirmação online ignora
-            // também o cache curto do Apps Script. Isso impede reaproveitar 0/1 antigo.
-            forcarAtualizacao: Boolean(forcar || !cacheFresco),
-            versaoClienteMetas: '23.9.99hi'
+            incluirDetalhes: false
           }, 22000));
           metasMensaisAtual = resposta || {};
           metasDetalhesCarregados = false;
@@ -29028,7 +29023,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hi', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hj', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
