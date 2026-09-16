@@ -1,3 +1,4 @@
+// V23.9.99hh — Metas iniciadas diretamente em toda entrada do Painel, inclusive F5/link direto.
 // V23.9.99hg — Metas local-first resilientes na abertura + contabilização robusta de Eventos declaratórios.
 // V23.9.99hf — endereço como identidade principal do local + dados complementares opcionais em Fiscalização/DDU; preserva atualização automática e isolamento do responsável.
 // V23.9.99hd — abertura local-first, Metas independentes/sempre revalidadas e Painel recente em cache; metas valem para toda a área atendida pelo app.
@@ -24,7 +25,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hg';
+      const APP_VERSION = '23.9.99hh';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2765,7 +2766,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hg';
+      const APP_REVISION_UI_ = '23.9.99hh';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4867,7 +4868,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hg', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hh', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7013,6 +7014,14 @@
         atualizarVistaNaUrl_('records');
         if (opcoes.busca != null && recordsSearch) recordsSearch.value = String(opcoes.busca || '');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // V23.9.99hh — Metas fazem parte da própria entrada do Painel.
+        // Isso cobre F5/link direto/retorno ao Painel mesmo quando os registros
+        // são reaproveitados sem uma nova consulta (opcoes.carregar === false).
+        // carregarMetas_ já exibe o último resumo local antes de revalidar online
+        // e possui trava própria contra consultas concorrentes.
+        void carregarMetas_(false, false);
+
         if (opcoes.carregar !== false) carregarRegistros_(true, { motivo: 'abertura do Painel' });
       }
 
@@ -22804,7 +22813,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       const TECHNICAL_SEARCH_RECENT_KEY_ = 'gpvTechnicalSearchRecentV1';
-      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hg';
+      const TECHNICAL_MANUAL_INDEX_URL_ = './assets/infoscip-fiscalizacao-search-index.json?v=23.9.99hh';
       let technicalManualIndex_ = [];
       let technicalManualIndexPromise_ = null;
       let technicalSearchFilter_ = 'todos';
@@ -28996,7 +29005,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hg', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hh', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
