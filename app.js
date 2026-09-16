@@ -1,3 +1,4 @@
+// V23.9.99hp — Home mais limpa: card de Sincronização só aparece quando há pendência ou aparelho offline.
 // V23.9.99ho — DDU/Rascunhos só aparecem com pendência; ocupação da vistoria passa a seleção múltipla oficial por caixas de seleção.
 // V23.9.99hn — resumo operacional do Painel carregado antes da abertura: Programadas, DDU, Rascunhos e Sincronização visíveis desde o início.
 // V23.9.99hm — após a abertura confiável, novas versões são preparadas em segundo plano e só assumem na próxima abertura ou por atualização manual.
@@ -32,7 +33,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ho';
+      const APP_VERSION = '23.9.99hp';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -1326,16 +1327,25 @@
           dashboardDraftSummaryCard.setAttribute('aria-label', `Abrir rascunhos. ${rascunhos.length} rascunho${rascunhos.length === 1 ? '' : 's'} em andamento.`);
         }
         if (dashboardSyncSummaryCard) {
-          dashboardSyncSummaryCard.hidden = !usuarioPodeOperar_();
-          dashboardSyncSummaryCard.classList.toggle('operational-summary-ready', usuarioPodeOperar_() && pendentes === 0);
-          dashboardSyncSummaryCard.classList.toggle('is-warning', pendentes > 0 || !navigator.onLine);
-          if (dashboardSyncSummaryCount) dashboardSyncSummaryCount.textContent = pendentes ? String(pendentes) : '✓';
-          if (dashboardSyncSummaryText) dashboardSyncSummaryText.textContent = pendentes
-            ? `${resumoPendenciasSincronizacao_(pendentesVistorias, pendentesFotos)} aguardando envio`
-            : (navigator.onLine ? 'Tudo sincronizado' : 'Sem pendências locais · offline');
+          // V23.9.99hp — sincronização normal não ocupa espaço no Painel.
+          // O card reaparece somente quando existe algo que exige atenção:
+          // envio pendente ou aparelho offline. O detalhamento continua na Central
+          // de Sincronização/Diagnóstico.
+          const mostrarSincronizacao = usuarioPodeOperar_() && (pendentes > 0 || !navigator.onLine);
+          dashboardSyncSummaryCard.hidden = !mostrarSincronizacao;
+          dashboardSyncSummaryCard.classList.remove('operational-summary-ready');
+          dashboardSyncSummaryCard.classList.toggle('is-warning', mostrarSincronizacao);
+          if (dashboardSyncSummaryCount) {
+            dashboardSyncSummaryCount.textContent = pendentes ? String(pendentes) : '!';
+          }
+          if (dashboardSyncSummaryText) {
+            dashboardSyncSummaryText.textContent = pendentes
+              ? `${resumoPendenciasSincronizacao_(pendentesVistorias, pendentesFotos)} aguardando envio`
+              : 'Sem conexão · dados preservados neste aparelho';
+          }
           dashboardSyncSummaryCard.setAttribute('aria-label', pendentes
             ? `Abrir sincronização. ${resumoPendenciasSincronizacao_(pendentesVistorias, pendentesFotos)} aguardando envio.`
-            : 'Abrir sincronização. Tudo sincronizado.');
+            : 'Abrir sincronização. Aparelho offline; dados preservados neste aparelho.');
         }
 
         homeOperationalContext_ = null;
@@ -2816,7 +2826,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ho';
+      const APP_REVISION_UI_ = '23.9.99hp';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4952,7 +4962,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ho', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hp', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -29346,7 +29356,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ho', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hp', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
