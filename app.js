@@ -1,3 +1,4 @@
+// V23.9.99hn — resumo operacional do Painel carregado antes da abertura: Programadas, DDU, Rascunhos e Sincronização visíveis desde o início.
 // V23.9.99hm — após a abertura confiável, novas versões são preparadas em segundo plano e só assumem na próxima abertura ou por atualização manual.
 // V23.9.99hl — abertura confiável com saudação, atualização visível e continuidade de vistorias recém-confirmadas.
 // V23.9.99hk — Metas: backend estável HG restaurado com cache HK e diagnóstico de Eventos declaratórios.
@@ -30,7 +31,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hm';
+      const APP_VERSION = '23.9.99hn';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -1311,6 +1312,34 @@
         homeOperationalPending.textContent = pendentes ? String(pendentes) : '✓';
         homeOperationalPending.closest('.home-operational-metric')?.classList.toggle('is-warning', pendentes > 0);
 
+        // V23.9.99hn — o Painel inicial também apresenta o estado operacional
+        // imediatamente após a saudação. Estes dois cards usam apenas dados locais
+        // já conhecidos e, portanto, não dependem de nova chamada ao servidor.
+        if (dashboardDraftSummaryCard) {
+          dashboardDraftSummaryCard.hidden = !usuarioPodeOperar_();
+          dashboardDraftSummaryCard.classList.toggle('operational-summary-ready', usuarioPodeOperar_());
+          dashboardDraftSummaryCard.classList.toggle('is-warning', rascunhos.length > 0);
+          if (dashboardDraftSummaryCount) dashboardDraftSummaryCount.textContent = String(rascunhos.length);
+          if (dashboardDraftSummaryText) dashboardDraftSummaryText.textContent = rascunhos.length
+            ? `${rascunhos.length} rascunho${rascunhos.length === 1 ? '' : 's'} para continuar`
+            : 'Nenhum rascunho em andamento';
+          dashboardDraftSummaryCard.setAttribute('aria-label', rascunhos.length
+            ? `Abrir rascunhos. ${rascunhos.length} rascunho${rascunhos.length === 1 ? '' : 's'} em andamento.`
+            : 'Abrir rascunhos. Nenhum rascunho em andamento.');
+        }
+        if (dashboardSyncSummaryCard) {
+          dashboardSyncSummaryCard.hidden = !usuarioPodeOperar_();
+          dashboardSyncSummaryCard.classList.toggle('operational-summary-ready', usuarioPodeOperar_() && pendentes === 0);
+          dashboardSyncSummaryCard.classList.toggle('is-warning', pendentes > 0 || !navigator.onLine);
+          if (dashboardSyncSummaryCount) dashboardSyncSummaryCount.textContent = pendentes ? String(pendentes) : '✓';
+          if (dashboardSyncSummaryText) dashboardSyncSummaryText.textContent = pendentes
+            ? `${resumoPendenciasSincronizacao_(pendentesVistorias, pendentesFotos)} aguardando envio`
+            : (navigator.onLine ? 'Tudo sincronizado' : 'Sem pendências locais · offline');
+          dashboardSyncSummaryCard.setAttribute('aria-label', pendentes
+            ? `Abrir sincronização. ${resumoPendenciasSincronizacao_(pendentesVistorias, pendentesFotos)} aguardando envio.`
+            : 'Abrir sincronização. Tudo sincronizado.');
+        }
+
         homeOperationalContext_ = null;
         const ultimoRascunho = rascunhos[0] || null;
         const proxima = resumoProgramadas?.proxima || (programadasConfirmadas ? proximaProgramacaoOperacional_() : null);
@@ -2436,6 +2465,12 @@
       const dashboardProgrammedSummaryCard = document.getElementById('dashboardProgrammedSummaryCard');
       const dashboardProgrammedSummaryText = document.getElementById('dashboardProgrammedSummaryText');
       const dashboardProgrammedSummaryCount = document.getElementById('dashboardProgrammedSummaryCount');
+      const dashboardDraftSummaryCard = document.getElementById('dashboardDraftSummaryCard');
+      const dashboardDraftSummaryText = document.getElementById('dashboardDraftSummaryText');
+      const dashboardDraftSummaryCount = document.getElementById('dashboardDraftSummaryCount');
+      const dashboardSyncSummaryCard = document.getElementById('dashboardSyncSummaryCard');
+      const dashboardSyncSummaryText = document.getElementById('dashboardSyncSummaryText');
+      const dashboardSyncSummaryCount = document.getElementById('dashboardSyncSummaryCount');
       const programmedSummaryAssignees = document.getElementById('programmedSummaryAssignees');
       const dashboardProgrammedSummaryAssignees = document.getElementById('dashboardProgrammedSummaryAssignees');
       const inspectionSuggestionsCard = document.getElementById('inspectionSuggestionsCard');
@@ -2773,7 +2808,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hm';
+      const APP_REVISION_UI_ = '23.9.99hn';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4909,7 +4944,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hm', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hn', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8362,6 +8397,12 @@
         const forcar = opcoes.forcar === true;
         const idade = Date.now() - Number(resumoOperacionalRapido_?.atualizadoEm || 0);
         if (!forcar && idade >= 0 && idade < 60 * 1000 && (resumoOperacionalRapido_?.ddu || resumoOperacionalRapido_?.programadas)) {
+          // Reaplica o resumo já confirmado para que nenhum carregamento auxiliar
+          // posterior devolva os cards ao estado visual de “carregando”.
+          aplicarResumoOperacionalRapido_({
+            ddu: resumoOperacionalRapido_?.ddu || null,
+            programadas: resumoOperacionalRapido_?.programadas || null
+          });
           return resumoOperacionalRapido_;
         }
         if (!navigator.onLine || !authState.sessionToken) {
@@ -24941,7 +24982,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // V23.9.99gu — card operacional só existe visualmente quando a pendência
         // foi confirmada. Durante verificação/erro não mostramos um card vazio.
         if (verificando || falhou) {
-          if (dduSummaryCard) dduSummaryCard.hidden = true;
+          // V23.9.99hn — no Painel o card permanece visível para o militar saber
+          // que o DDU está sendo confirmado. Na área Vistoria continua oculto até
+          // existir uma pendência real, preservando o comportamento já aprovado.
+          if (dduSummaryCard) {
+            dduSummaryCard.hidden = !usuarioPodeOperar_();
+            dduSummaryCard.classList.remove('operational-summary-ready','is-danger','is-warning');
+          }
+          if (dduSummaryCount) dduSummaryCount.textContent = '—';
+          if (dduSummaryText) dduSummaryText.textContent = verificando
+            ? 'Confirmando DDUs pendentes…'
+            : 'Não foi possível confirmar agora';
           if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = true;
           if (dduList) dduList.innerHTML = verificando
             ? '<div class="prepared-empty operational-check-state">Verificando DDUs atuais no servidor…</div>'
@@ -24963,7 +25014,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         // A área operacional mostra somente DDU pendente/em andamento. A retenção
         // de anexos concluídos continua no backend sem manter demanda encerrada ativa.
-        if (dduSummaryCard) dduSummaryCard.hidden = confirmado ? totalAtivos === 0 : true;
+        // No Painel, o cartão permanece visível mesmo quando o total é zero. Isso
+        // transforma a ausência de DDU em informação confirmada, não em espaço vazio.
+        if (dduSummaryCard) dduSummaryCard.hidden = !usuarioPodeOperar_();
         if (dduVistoriaSummaryRow) dduVistoriaSummaryRow.hidden = confirmado ? totalAtivos === 0 : true;
         if(dduSummaryCount)dduSummaryCount.textContent=String(totalAtivos);
         if(dduVistoriaSummaryCount)dduVistoriaSummaryCount.textContent=String(totalAtivos);
@@ -25867,10 +25920,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
 
         if (verificando || falhou) {
-          // Mesmo padrão do DDU: só mostrar o card após confirmar que há pendência.
+          // V23.9.99hn — o Painel mostra que Programadas estão sendo confirmadas;
+          // a área Vistoria continua aparecendo somente quando houver programação real.
           if (programmedSummaryRow) programmedSummaryRow.hidden = true;
-          if (dashboardProgrammedSummaryCard) dashboardProgrammedSummaryCard.hidden = true;
-          [programmedSummaryCard,dashboardProgrammedSummaryCard].forEach(card => card?.classList.remove('is-danger','operational-summary-ready'));
+          if (dashboardProgrammedSummaryCard) {
+            dashboardProgrammedSummaryCard.hidden = !usuarioPodeOperar_();
+            dashboardProgrammedSummaryCard.classList.remove('is-danger','operational-summary-ready');
+          }
+          if (dashboardProgrammedSummaryCount) dashboardProgrammedSummaryCount.textContent = '—';
+          if (dashboardProgrammedSummaryText) dashboardProgrammedSummaryText.textContent = verificando
+            ? 'Confirmando vistorias programadas…'
+            : 'Não foi possível confirmar agora';
+          programmedSummaryCard?.classList.remove('is-danger','operational-summary-ready');
           if (homeOperationalProgrammed) homeOperationalProgrammed.textContent = '—';
           [programmedSummaryAssignees, dashboardProgrammedSummaryAssignees].forEach(el => {
             if (!el) return;
@@ -25903,7 +25964,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : 'Nenhuma vistoria programada';
 
         if (dashboardProgrammedSummaryCard) {
-          dashboardProgrammedSummaryCard.hidden = confirmado ? total === 0 : true;
+          dashboardProgrammedSummaryCard.hidden = !usuarioPodeOperar_();
           dashboardProgrammedSummaryCard.classList.toggle('is-danger', criticas > 0);
           dashboardProgrammedSummaryCard.classList.toggle('operational-summary-ready', confirmado && total > 0);
           dashboardProgrammedSummaryCard.setAttribute('aria-label', total
@@ -27251,8 +27312,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         // V23.9.99gu — os cards recebem primeiro um resumo operacional leve em
         // uma única chamada. Os detalhes completos só são carregados ao abrir a lista.
-        programadasConsultaEstado_ = 'loading';
-        ddusConsultaEstado_ = 'loading';
+        // Não rebaixa para “loading” um resumo que já foi confirmado durante a
+        // saudação de abertura. Isso evita o efeito de o Painel abrir pronto e, logo
+        // em seguida, voltar a mostrar Programadas/DDU como se ainda estivessem carregando.
+        if (!['ready','offline','summary'].includes(programadasConsultaEstado_)) programadasConsultaEstado_ = 'loading';
+        if (!['ready','offline','summary'].includes(ddusConsultaEstado_)) ddusConsultaEstado_ = 'loading';
         renderizarPreparacoesVistoria_();
         renderizarDdUs_();
 
@@ -27357,6 +27421,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (usuarioPodeOperar_() && totalPendenciasSincronizacao_()) setTimeout(() => { void sincronizarTudoPendente_(true); }, 900);
         }
 
+        // V23.9.99hn — durante a abertura confiável, Programadas e DDU fazem
+        // parte do estado mínimo necessário antes de liberar o Painel. Assim a tela
+        // inicial não nasce vazia para depois preencher esses cards alguns segundos
+        // mais tarde. Em falha de rede, a promessa conclui e os caches locais seguros
+        // permanecem disponíveis sem bloquear indefinidamente a entrada.
+        const promessaOperacionalInicial = usuarioPodeOperar_()
+          ? carregarResumoOperacionalSeparado_({ forcar:false })
+          : Promise.resolve(null);
+        const promessaPendenciasLocaisInicial = aguardarInicialConfiavel && usuarioPodeOperar_()
+          ? atualizarContagemFotosPendentes_().catch(() => null)
+          : Promise.resolve(null);
+
         const vistaForcada = vistaInicialDaUrl_();
         const vistaInicial = usuarioPodeOperar_() ? (vistaForcada || vistaInicialPorDispositivo_()) : 'records';
 
@@ -27364,8 +27440,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (vistaForcada) {
             if (aguardarInicialConfiavel) {
               mostrarVistaPlanilha_({ carregar:false });
-              atualizarStatusMotivacional_('Atualizando o Painel Fiscalizatório...', 'Confirmando os dados recentes antes de liberar a tela.');
-              await Promise.allSettled([carregarMetas_(false, false), carregarRegistros_(true, { motivo:'abertura confiável do Painel' })]);
+              atualizarStatusMotivacional_('Atualizando o Painel Fiscalizatório...', 'Confirmando registros recentes, metas, Vistorias Programadas e DDUs antes de liberar a tela.');
+              await Promise.allSettled([
+                carregarMetas_(false, false),
+                carregarRegistros_(true, { motivo:'abertura confiável do Painel' }),
+                promessaOperacionalInicial,
+                promessaPendenciasLocaisInicial
+              ]);
             } else {
               mostrarVistaPlanilha_();
             }
@@ -27374,14 +27455,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             // V23.9.99hd — restaura imediatamente os registros e as metas salvos,
             // depois confirma cada fonte de forma independente em segundo plano.
             const tinhaRecentesLocais = aplicarCacheRecentesPainel_();
-            atualizarStatusMotivacional_('Atualizando o Painel Fiscalizatório...', 'Confirmando registros recentes e metas antes de liberar a tela.');
+            atualizarStatusMotivacional_('Atualizando o Painel Fiscalizatório...', 'Confirmando registros recentes, metas, Vistorias Programadas e DDUs antes de liberar a tela.');
             const promessaMetas = carregarMetas_(false, false);
             const promessaRegistros = carregarRegistros_(true, { silenciosa: tinhaRecentesLocais, motivo: 'restauração do Painel' });
-            if (aguardarInicialConfiavel) await Promise.allSettled([promessaMetas, promessaRegistros]);
+            if (aguardarInicialConfiavel) await Promise.allSettled([promessaMetas, promessaRegistros, promessaOperacionalInicial, promessaPendenciasLocaisInicial]);
           }
         } else {
           marcarAbaApp_('form');
+          if (aguardarInicialConfiavel) {
+            atualizarStatusMotivacional_('Preparando o resumo operacional...', 'Confirmando Vistorias Programadas e DDUs antes de liberar o ambiente.');
+            await Promise.allSettled([promessaOperacionalInicial, promessaPendenciasLocaisInicial]);
+          }
         }
+        atualizarResumoOperacionalHome_();
         inicializarNavegacaoGlobal_(vistaInicial);
 
         // Central de Notificações: usa cache imediatamente e confirma online sem
@@ -27555,6 +27641,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       dduVistoriaSummaryCard?.addEventListener('click', abrirListaDdus_);
       programmedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
       dashboardProgrammedSummaryCard?.addEventListener('click', () => abrirListaProgramadas_(true));
+      dashboardDraftSummaryCard?.addEventListener('click', () => { void abrirGerenciadorRascunhosLocais_(); });
+      dashboardSyncSummaryCard?.addEventListener('click', abrirCentralSincronizacao_);
       inspectionSuggestionsCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       inspectionSuggestionsVistoriaCard?.addEventListener('click', abrirSugestoesFiscalizacao_);
       inspectionSuggestionsRefreshBtn?.addEventListener('click', () => carregarSugestoesFiscalizacao_(true));
@@ -29167,7 +29255,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hm', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hn', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
