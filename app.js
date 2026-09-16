@@ -1,3 +1,4 @@
+// V23.9.99hq — Vistorias Programadas local-first, atualização em segundo plano, retry e modal responsivo profissional.
 // V23.9.99hp — Home mais limpa: card de Sincronização só aparece quando há pendência ou aparelho offline.
 // V23.9.99ho — DDU/Rascunhos só aparecem com pendência; ocupação da vistoria passa a seleção múltipla oficial por caixas de seleção.
 // V23.9.99hn — resumo operacional do Painel carregado antes da abertura: Programadas, DDU, Rascunhos e Sincronização visíveis desde o início.
@@ -33,7 +34,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hp';
+      const APP_VERSION = '23.9.99hq';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2503,6 +2504,7 @@
       const homeOperationalContextAction = document.getElementById('homeOperationalContextAction');
       const homeOperationalConnection = document.getElementById('homeOperationalConnection');
       const inspectionSuggestionsRefreshBtn = document.getElementById('inspectionSuggestionsRefreshBtn');
+      const programmedRefreshBtn = document.getElementById('programmedRefreshBtn');
       const programmedQuickAddBtn = document.getElementById('programmedQuickAddBtn');
       const programmedListModal = document.getElementById('programmedListModal');
       const programmedListCloseBtn = document.getElementById('programmedListCloseBtn');
@@ -2748,6 +2750,13 @@
       let preparacoesVistoria = [];
       let programadasConsultaEstado_ = 'idle';
       let programadasCarregamentoPromise_ = null;
+      let programadasAtualizandoSegundoPlano_ = false;
+      let programadasCacheEmUso_ = false;
+      let programadasUltimaFalha_ = '';
+      let programadasRequestController_ = null;
+      const PROGRAMADAS_CACHE_STORAGE_ = 'gpv_preparacoes_cache_v1';
+      const PROGRAMADAS_CACHE_META_STORAGE_ = 'gpv_preparacoes_cache_meta_v2';
+      const PROGRAMADAS_REVALIDACAO_MS_ = 90 * 1000;
       let inicioRapidoPromise_ = null;
       let inicioRapidoUltimaResposta_ = null;
       let inicioRapidoAtualizadoEm_ = 0;
@@ -2826,7 +2835,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hp';
+      const APP_REVISION_UI_ = '23.9.99hq';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4962,7 +4971,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hp', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hq', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21514,7 +21523,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           try {
             const cache = JSON.parse(localStorage.getItem('gpv_preparacoes_cache_v1') || '[]');
             const limpo = (Array.isArray(cache) ? cache : []).filter(item => String(item?.id || '') !== prepId);
-            localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(limpo));
+            salvarCachePreparacoesLocal_(limpo);
           } catch (_) {}
           renderizarPreparacoesVistoria_();
         }
@@ -21809,20 +21818,68 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (inspectionSuggestionsRefreshBtn) {
           inspectionSuggestionsRefreshBtn.hidden = filtroPreparacoes !== 'sugestoes';
         }
+        if (programmedRefreshBtn) programmedRefreshBtn.hidden = filtroPreparacoes === 'sugestoes';
+        atualizarBotaoProgramadas_();
+      }
+
+      function lerCachePreparacoesLocal_() {
+        let itens = [];
+        let salvoEm = 0;
+        try {
+          const bruto = JSON.parse(localStorage.getItem(PROGRAMADAS_CACHE_STORAGE_) || '[]');
+          itens = Array.isArray(bruto) ? bruto : (Array.isArray(bruto?.itens) ? bruto.itens : []);
+        } catch (_) { itens = []; }
+        try {
+          const meta = JSON.parse(localStorage.getItem(PROGRAMADAS_CACHE_META_STORAGE_) || '{}');
+          salvoEm = Number(meta?.salvoEm || 0);
+        } catch (_) { salvoEm = 0; }
+        return { itens, salvoEm };
+      }
+
+      function salvarCachePreparacoesLocal_(itens) {
+        const lista = Array.isArray(itens) ? itens : [];
+        try { localStorage.setItem(PROGRAMADAS_CACHE_STORAGE_, JSON.stringify(lista)); } catch (_) {}
+        try { localStorage.setItem(PROGRAMADAS_CACHE_META_STORAGE_, JSON.stringify({ salvoEm: Date.now(), versao: APP_VERSION })); } catch (_) {}
+      }
+
+      function aplicarCachePreparacoesParaAbertura_() {
+        if (Array.isArray(preparacoesVistoria) && preparacoesVistoria.length && ['ready','offline'].includes(programadasConsultaEstado_)) return false;
+        const cache = lerCachePreparacoesLocal_();
+        if (!cache.itens.length) return false;
+        preparacoesVistoria = cache.itens;
+        programadasConsultaEstado_ = 'ready';
+        programadasCacheEmUso_ = true;
+        programadasUltimaFalha_ = '';
+        resumoProgramadasDaListaAtual_();
+        return true;
+      }
+
+      function atualizarBotaoProgramadas_() {
+        if (!programmedRefreshBtn) return;
+        const atualizando = Boolean(programadasAtualizandoSegundoPlano_ || programadasConsultaEstado_ === 'loading');
+        programmedRefreshBtn.disabled = atualizando;
+        programmedRefreshBtn.classList.toggle('is-loading', atualizando);
+        programmedRefreshBtn.setAttribute('aria-busy', atualizando ? 'true' : 'false');
+        const texto = programmedRefreshBtn.querySelector('span');
+        if (texto) texto.textContent = atualizando ? 'Atualizando' : 'Atualizar';
       }
 
       function abrirListaProgramadas_(preferirMinhas = true, filtroInicial = '') {
+        const cacheAplicado = aplicarCachePreparacoesParaAbertura_();
         const minhas = preparacoesDoUsuarioLogado_();
         const minhasResumo = programadasConsultaEstado_ === 'summary' ? Number(resumoOperacionalRapido_?.programadas?.minhas || 0) : 0;
         if (filtroInicial === 'sugestoes') definirFiltroPreparacoes_('sugestoes');
         else definirFiltroPreparacoes_(preferirMinhas && (minhas.length || minhasResumo > 0) ? 'minhas' : 'todas');
-        renderizarPreparacoesVistoria_();
         if (programmedListModal) programmedListModal.hidden = false;
+        renderizarPreparacoesVistoria_();
+        atualizarBotaoProgramadas_();
         if (navigator.onLine) {
           if (filtroPreparacoes === 'sugestoes') {
             carregarSugestoesFiscalizacao_().catch(() => {});
           } else {
-            carregarPreparacoesVistoria_().catch(() => {});
+            // V23.9.99hq — a lista em cache é exibida imediatamente e a confirmação
+            // online ocorre em segundo plano, sem apagar cards já utilizáveis.
+            carregarPreparacoesVistoria_({ silencioso: cacheAplicado || preparacoesVistoria.length > 0 }).catch(() => {});
             carregarResumoSugestoesFiscalizacao_().catch(() => {});
           }
         }
@@ -26706,6 +26763,47 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (titulo) titulo.textContent = 'Programar fiscalização sugerida';
       }
 
+      function skeletonProgramadasHtml_(quantidade = 3) {
+        const total = Math.max(2, Math.min(4, Number(quantidade || 3)));
+        return `<div class="programmed-skeleton-list" role="status" aria-live="polite" aria-label="Carregando vistorias programadas">${Array.from({ length: total }, (_, i) => `
+          <article class="programmed-skeleton-card" aria-hidden="true">
+            <div class="programmed-skeleton-top"><span></span><span></span></div>
+            <div class="programmed-skeleton-line is-title"></div>
+            <div class="programmed-skeleton-line"></div>
+            <div class="programmed-skeleton-line is-short"></div>
+          </article>`).join('')}</div>`;
+      }
+
+      function estadoProgramadasHtml_(tipo, titulo, texto, comRetry = false) {
+        const icone = tipo === 'error' ? '!' : (tipo === 'empty' ? '✓' : '↻');
+        return `<div class="programmed-state programmed-state--${escapeAttr(tipo)}" role="${tipo === 'error' ? 'alert' : 'status'}">
+          <span class="programmed-state-icon" aria-hidden="true">${icone}</span>
+          <div class="programmed-state-copy"><strong>${escapeHtml(titulo)}</strong><span>${escapeHtml(texto)}</span></div>
+          ${comRetry ? '<button type="button" class="btn btn-secondary programmed-retry-btn" data-programmed-retry="1">Tentar novamente</button>' : ''}
+        </div>`;
+      }
+
+      function atualizarStatusListaProgramadas_() {
+        if (!preparedInspectionsStatus) return;
+        const total = Array.isArray(preparacoesVistoria) ? preparacoesVistoria.length : 0;
+        if (programadasAtualizandoSegundoPlano_) {
+          preparedInspectionsStatus.className = 'hint programmed-list-status is-updating';
+          preparedInspectionsStatus.innerHTML = `<span class="programmed-status-dot" aria-hidden="true"></span><strong>${programadasCacheEmUso_ ? 'Mostrando a última informação disponível.' : 'Lista disponível.'}</strong> Confirmando dados atuais em segundo plano.`;
+          return;
+        }
+        if (programadasUltimaFalha_ && total) {
+          preparedInspectionsStatus.className = 'hint programmed-list-status is-warning';
+          preparedInspectionsStatus.innerHTML = `<span class="programmed-status-dot" aria-hidden="true"></span><strong>Dados preservados.</strong> Não foi possível confirmar uma atualização agora. <button type="button" data-programmed-retry="1">Tentar novamente</button>`;
+          return;
+        }
+        preparedInspectionsStatus.className = 'hint programmed-list-status';
+        if (programadasConsultaEstado_ === 'offline') {
+          preparedInspectionsStatus.textContent = total ? 'Offline — mostrando dados armazenados neste aparelho.' : 'Offline — nenhuma programação armazenada neste aparelho.';
+        } else {
+          preparedInspectionsStatus.textContent = total === 1 ? '1 vistoria programada pendente.' : (total ? `${total} vistorias programadas pendentes.` : 'Nenhuma vistoria programada pendente.');
+        }
+      }
+
       function renderizarPreparacoesVistoria_() {
         if (filtroPreparacoes === 'sugestoes') {
           renderizarSugestoesFiscalizacao_();
@@ -26717,21 +26815,30 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             const verificando = programadasConsultaEstado_ === 'loading';
             preparedInspectionsList.classList.toggle('is-loading', verificando);
             preparedInspectionsList.innerHTML = verificando
-              ? '<div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Verificando vistorias programadas"><span class="prepared-loading-track-knob" aria-hidden="true"></span></div>'
-              : '<div class="prepared-empty operational-check-state is-error">Não foi possível confirmar as Vistorias Programadas atuais. Toque no card novamente para tentar de novo.</div>';
+              ? skeletonProgramadasHtml_(3)
+              : estadoProgramadasHtml_('error', 'Não foi possível atualizar agora', 'A conexão com as Vistorias Programadas não foi confirmada. Você pode tentar novamente sem sair desta tela.', true);
           }
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = programadasConsultaEstado_ === 'loading'
-            ? 'Verificando Vistorias Programadas…'
-            : 'Não foi possível confirmar as Vistorias Programadas atuais.';
+          if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.className = `hint programmed-list-status ${programadasConsultaEstado_ === 'error' ? 'is-warning' : 'is-updating'}`;
+            preparedInspectionsStatus.textContent = programadasConsultaEstado_ === 'loading'
+              ? 'Buscando as Vistorias Programadas mais recentes…'
+              : 'A lista não pôde ser confirmada neste momento.';
+          }
+          atualizarBotaoProgramadas_();
           return;
         }
         if (programadasConsultaEstado_ === 'summary') {
           atualizarIndicadorPreparacoesUsuario_();
           if (preparedInspectionsList) {
             preparedInspectionsList.classList.add('is-loading');
-            preparedInspectionsList.innerHTML = '<div class="prepared-loading-track" role="status" aria-live="polite" aria-label="Carregando detalhes das vistorias programadas"><span class="prepared-loading-track-knob" aria-hidden="true"></span></div>';
+            const estimativa = Math.max(2, Math.min(4, Number(resumoOperacionalRapido_?.programadas?.total || 3)));
+            preparedInspectionsList.innerHTML = skeletonProgramadasHtml_(estimativa);
           }
-          if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Resumo confirmado. Carregando detalhes somente quando necessário.';
+          if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.className = 'hint programmed-list-status is-updating';
+            preparedInspectionsStatus.textContent = 'Resumo confirmado. Carregando os detalhes das programações…';
+          }
+          atualizarBotaoProgramadas_();
           return;
         }
         atualizarIndicadorPreparacoesUsuario_();
@@ -26756,8 +26863,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (aLib !== bLib) return aLib - bLib;
             return String(a?.dataPrevista || '9999-12-31').localeCompare(String(b?.dataPrevista || '9999-12-31'));
           });
+        preparedInspectionsList.classList.remove('is-loading');
+        atualizarStatusListaProgramadas_();
+        atualizarBotaoProgramadas_();
         if (!lista.length) {
-          preparedInspectionsList.innerHTML = '<div class="prepared-empty">Nenhuma vistoria programada neste filtro.</div>';
+          preparedInspectionsList.innerHTML = estadoProgramadasHtml_(
+            'empty',
+            filtroPreparacoes === 'minhas' ? 'Nenhuma vistoria atribuída a você' : 'Nenhuma vistoria neste filtro',
+            filtroPreparacoes === 'minhas' ? 'Quando uma vistoria for atribuída ao seu usuário, ela aparecerá aqui.' : 'Altere o filtro ou cadastre uma nova vistoria programada.'
+          );
           return;
         }
         const card = item => {
@@ -26803,55 +26917,94 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      async function carregarPreparacoesVistoria_() {
-        if (programadasCarregamentoPromise_) return programadasCarregamentoPromise_;
+      async function carregarPreparacoesVistoria_(opcoes = {}) {
+        const forcar = opcoes?.forcar === true;
+        if (programadasCarregamentoPromise_ && !forcar) return programadasCarregamentoPromise_;
+        if (programadasCarregamentoPromise_ && forcar) {
+          try { programadasRequestController_?.abort(); } catch (_) {}
+          try { await programadasCarregamentoPromise_; } catch (_) {}
+        }
+
         programadasCarregamentoPromise_ = (async () => {
-          const inicioLoadingProgramadas = Date.now();
-          const tempoMinimoLoading = 120;
-          const cacheKey = 'gpv_preparacoes_cache_v1';
-          let cachePreparacoes = [];
-          try { cachePreparacoes = JSON.parse(localStorage.getItem(cacheKey) || '[]') || []; } catch (e) { cachePreparacoes = []; }
-          const cacheDisponivel = Array.isArray(cachePreparacoes) && cachePreparacoes.length > 0;
+          const cache = lerCachePreparacoesLocal_();
+          const agora = Date.now();
+          const cacheRecente = cache.salvoEm > 0 && (agora - cache.salvoEm) < PROGRAMADAS_REVALIDACAO_MS_;
+
+          if (!preparacoesVistoria.length && cache.itens.length) {
+            preparacoesVistoria = cache.itens;
+            programadasConsultaEstado_ = 'ready';
+            programadasCacheEmUso_ = true;
+            resumoProgramadasDaListaAtual_();
+          }
 
           if (!navigator.onLine) {
+            programadasAtualizandoSegundoPlano_ = false;
+            programadasUltimaFalha_ = '';
             programadasConsultaEstado_ = 'offline';
-            if (cacheDisponivel) {
-              preparacoesVistoria = cachePreparacoes;
-              resumoProgramadasDaListaAtual_();
-              renderizarPreparacoesVistoria_();
-              if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Dados salvos neste aparelho — podem estar desatualizados.';
-            } else {
-              preparacoesVistoria = [];
-              renderizarPreparacoesVistoria_();
-              if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = 'Offline — nenhuma programação armazenada neste aparelho.';
-            }
+            if (!preparacoesVistoria.length && cache.itens.length) preparacoesVistoria = cache.itens;
+            resumoProgramadasDaListaAtual_();
+            renderizarPreparacoesVistoria_();
+            atualizarStatusListaProgramadas_();
             return;
           }
 
-          // Online: não converte uma situação ainda desconhecida em zero pendências.
-          // A lista anterior permanece apenas em memória até o servidor confirmar a atual.
-          programadasConsultaEstado_ = 'loading';
+          // Evita uma nova consulta pesada quando a lista já foi confirmada há poucos segundos.
+          if (!forcar && cacheRecente && programadasConsultaEstado_ === 'ready' && !programadasCacheEmUso_) {
+            programadasAtualizandoSegundoPlano_ = false;
+            programadasUltimaFalha_ = '';
+            renderizarPreparacoesVistoria_();
+            atualizarStatusListaProgramadas_();
+            return;
+          }
+
+          const temListaVisivel = Array.isArray(preparacoesVistoria) && preparacoesVistoria.length > 0;
+          const estadoAntesDaConsulta = programadasConsultaEstado_;
+          const preservarResumoSilencioso = opcoes?.silencioso === true && estadoAntesDaConsulta === 'summary';
+          programadasAtualizandoSegundoPlano_ = temListaVisivel || preservarResumoSilencioso;
+          programadasUltimaFalha_ = '';
+          if (!temListaVisivel && !preservarResumoSilencioso) programadasConsultaEstado_ = 'loading';
           renderizarPreparacoesVistoria_();
+          atualizarBotaoProgramadas_();
+
+          const controller = new AbortController();
+          programadasRequestController_ = controller;
           try {
-            const r = await apiRequest('config', { consulta: 'programadas' }, 20000);
-            const novasPreparacoes = Array.isArray(r?.itens) ? r.itens : [];
-            const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-            if (espera) await new Promise(resolve => setTimeout(resolve, espera));
-            preparacoesVistoria = novasPreparacoes;
+            const r = await apiRequest('config', { consulta: 'programadas' }, 15000, {
+              signal: controller.signal,
+              silentSuccess: true,
+              timeoutMessage: 'A atualização das Vistorias Programadas está demorando mais que o esperado.'
+            });
+            if (controller.signal.aborted) return;
+            preparacoesVistoria = Array.isArray(r?.itens) ? r.itens : [];
             programadasConsultaEstado_ = 'ready';
+            programadasAtualizandoSegundoPlano_ = false;
+            programadasCacheEmUso_ = false;
+            programadasUltimaFalha_ = '';
             resumoProgramadasDaListaAtual_();
-            try { localStorage.setItem(cacheKey, JSON.stringify(preparacoesVistoria)); } catch (e) {}
-            preparedInspectionsList?.classList.remove('is-loading');
+            salvarCachePreparacoesLocal_(preparacoesVistoria);
             renderizarPreparacoesVistoria_();
-            if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = preparacoesVistoria.length === 1
-              ? '1 vistoria pendente.'
-              : (preparacoesVistoria.length ? `${preparacoesVistoria.length} vistorias pendentes.` : 'Nenhuma vistoria programada pendente.');
+            atualizarStatusListaProgramadas_();
           } catch (erro) {
-            const espera = Math.max(0, tempoMinimoLoading - (Date.now() - inicioLoadingProgramadas));
-            if (espera) await new Promise(resolve => setTimeout(resolve, espera));
-            programadasConsultaEstado_ = 'error';
-            preparedInspectionsList?.classList.remove('is-loading');
+            if (String(erro?.code || '') === 'REQUEST_CANCELLED') return;
+            programadasAtualizandoSegundoPlano_ = false;
+            programadasUltimaFalha_ = String(erro?.message || 'Não foi possível confirmar as Vistorias Programadas.');
+            // V23.9.99hq — se já existe informação local utilizável, ela permanece
+            // visível. Uma falha de revalidação não transforma dados preservados em tela vazia.
+            if (Array.isArray(preparacoesVistoria) && preparacoesVistoria.length) {
+              programadasConsultaEstado_ = 'ready';
+              programadasCacheEmUso_ = true;
+            } else if (opcoes?.silencioso === true && estadoAntesDaConsulta === 'summary') {
+              // O resumo leve já foi confirmado. Uma falha ao pré-carregar detalhes
+              // não degrada o card da Home nem interrompe o usuário.
+              programadasConsultaEstado_ = 'summary';
+            } else {
+              programadasConsultaEstado_ = 'error';
+            }
             renderizarPreparacoesVistoria_();
+            atualizarStatusListaProgramadas_();
+          } finally {
+            if (programadasRequestController_ === controller) programadasRequestController_ = null;
+            atualizarBotaoProgramadas_();
           }
         })();
         try { return await programadasCarregamentoPromise_; }
@@ -26875,7 +27028,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         try {
           await apiRequest('config', { consulta: 'programada_excluir', id: String(item.id) }, 20000);
           preparacoesVistoria = preparacoesVistoria.filter(p => String(p.id) !== String(item.id));
-          try { localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(preparacoesVistoria)); } catch (e) {}
+          salvarCachePreparacoesLocal_(preparacoesVistoria);
           renderizarPreparacoesVistoria_();
           if (preparedInspectionsStatus) preparedInspectionsStatus.textContent = preparacoesVistoria.length === 1 ? '1 vistoria pendente.' : `${preparacoesVistoria.length} vistorias pendentes.`;
           appStatus.textContent = 'Programação excluída.';
@@ -27118,9 +27271,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (String(p.id) !== preparacaoId) return p;
             return { ...p, vistoriaIniciada: false, rascunhoId: '' };
           });
-          try {
-            localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(preparacoesVistoria));
-          } catch (e) {}
+          salvarCachePreparacoesLocal_(preparacoesVistoria);
 
           resetForm(true);
           renderizarPreparacoesVistoria_();
@@ -27170,9 +27321,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             if (String(p.id) !== preparacaoId) return p;
             return { ...p, vistoriaIniciada: false, rascunhoId: '' };
           });
-          try {
-            localStorage.setItem('gpv_preparacoes_cache_v1', JSON.stringify(preparacoesVistoria));
-          } catch (e) {}
+          salvarCachePreparacoesLocal_(preparacoesVistoria);
 
           renderizarPreparacoesVistoria_();
           if (programmedListModal) programmedListModal.hidden = false;
@@ -27433,8 +27582,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         const longaPausa = appRetomadaAposLongaPausa_;
         const atrasos = longaPausa
-          ? { usuarios: 900, resumo: 120, painel: 16000 }
-          : { usuarios: 350, resumo: 60, painel: 8000 };
+          ? { usuarios: 900, resumo: 120, programadas: 3200, painel: 16000 }
+          : { usuarios: 350, resumo: 60, programadas: 1800, painel: 8000 };
 
         setTimeout(() => { if (document.visibilityState === 'visible' && navigator.onLine) void carregarUsuariosVistoriadores_(); }, atrasos.usuarios);
         setTimeout(() => {
@@ -27442,6 +27591,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           void carregarResumoOperacionalSeparado_({ forcar:false });
           if (document.body.classList.contains('records-mode')) void carregarInicioRapido_({ aplicarPainel:true });
         }, atrasos.resumo);
+        // V23.9.99hq — pré-aquece os detalhes das Programadas depois que a Home já
+        // está utilizável. Assim, ao abrir o modal, a lista tende a estar pronta e
+        // uma rede lenta não bloqueia a navegação.
+        setTimeout(() => {
+          if (
+            document.visibilityState === 'visible' &&
+            navigator.onLine &&
+            usuarioPodeOperar_() &&
+            conexaoAdequadaParaPreaquecimento_()
+          ) void carregarPreparacoesVistoria_({ silencioso:true });
+        }, atrasos.programadas);
         setTimeout(() => {
           if (
             document.visibilityState === 'visible' &&
@@ -28004,12 +28164,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         solicitarConsultaCnpjPreparacao_(numero).catch(() => {});
       });
+      programmedRefreshBtn?.addEventListener('click', () => {
+        if (!navigator.onLine) {
+          avisarGpv_('Conecte o aparelho à internet para atualizar as Vistorias Programadas.', 'Sem internet', { tom:'warning' });
+          return;
+        }
+        carregarPreparacoesVistoria_({ forcar:true }).catch(() => {});
+      });
       document.querySelectorAll('[data-prepared-filter]').forEach(btn => btn.addEventListener('click', () => {
         definirFiltroPreparacoes_(btn.dataset.preparedFilter || 'todas');
         renderizarPreparacoesVistoria_();
         if (filtroPreparacoes === 'sugestoes' && navigator.onLine) carregarSugestoesFiscalizacao_().catch(() => {});
       }));
       preparedInspectionsList?.addEventListener('click', event => {
+        const retryProgramadas = event.target.closest('[data-programmed-retry]');
+        if (retryProgramadas) {
+          event.preventDefault();
+          event.stopPropagation();
+          carregarPreparacoesVistoria_({ forcar:true }).catch(() => {});
+          return;
+        }
         const observarSugestao = event.target.closest('[data-note-suggestion-id]');
         if (observarSugestao) {
           event.preventDefault();
@@ -28133,6 +28307,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const btn = event.target.closest('[data-ficha-program-suggestion]');
         if (!btn || !recordStatusRegistroAtual?.sugestaoFiscalizacao) return;
         abrirSugestaoComoPreparacao_(recordStatusRegistroAtual.sugestaoFiscalizacao);
+      });
+
+
+      preparedInspectionsStatus?.addEventListener('click', event => {
+        const retryProgramadas = event.target.closest('[data-programmed-retry]');
+        if (!retryProgramadas) return;
+        event.preventDefault();
+        carregarPreparacoesVistoria_({ forcar:true }).catch(() => {});
       });
 
       preparedInspectionsList?.addEventListener('keydown', event => {
@@ -29356,7 +29538,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hp', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
