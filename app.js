@@ -1,3 +1,4 @@
+// V23.9.99hl — abertura confiável com saudação, atualização visível e continuidade de vistorias recém-confirmadas.
 // V23.9.99hk — Metas: backend estável HG restaurado com cache HK e diagnóstico de Eventos declaratórios.
 // V23.9.99hj — Metas voltam ao contrato estável do gateway; backend HI permanece validado.
 // V23.9.99hi — Metas revalidadas contra backend HI, cache local renovado e atualização real dos Eventos declaratórios.
@@ -28,7 +29,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hk';
+      const APP_VERSION = '23.9.99hl';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -46,6 +47,8 @@
       const PANEL_RECENT_CACHE_STORAGE = 'gpvPainelRecentesV23_9_99hd';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV3_hk';
+      const RECENT_CONFIRMED_STORAGE = 'gpvPainelConfirmadosRecentesV1';
+      const RECENT_CONFIRMED_MAX_AGE_MS = 30 * 60 * 1000;
       const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV2Cronologica';
       const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
       const PANEL_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -2769,7 +2772,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hk';
+      const APP_REVISION_UI_ = '23.9.99hl';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4810,7 +4813,7 @@
         });
       }
 
-      function esperarWorkerAtualizacaoAbertura_(worker, timeoutMs = 6500) {
+      function esperarWorkerAtualizacaoAbertura_(worker, timeoutMs = 150000) {
         if (!worker) return Promise.resolve();
         if (['activated', 'redundant'].includes(worker.state)) return Promise.resolve();
         return new Promise(resolve => {
@@ -4871,7 +4874,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hk', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hl', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -4883,12 +4886,13 @@
 
           if (!navigator.onLine || !registro) return;
 
-          // A abertura nunca fica presa indefinidamente por uma rede ruim. A checagem
-          // tem janela curta; se o download continuar em segundo plano, a aplicação
-          // só recarrega quando estiver seguro (nunca no meio de uma vistoria).
+          // V23.9.99hl — na abertura autenticada, a saudação permanece visível
+          // enquanto a checagem de versão realmente termina. Isso evita liberar uma
+          // interface antiga/incompleta enquanto o novo shell ainda está sendo preparado.
+          atualizarStatusMotivacional_('Verificando a versão do aplicativo...', 'Aguarde enquanto confirmamos a versão mais recente.');
           await Promise.race([
             registro.update().catch(() => null),
-            new Promise(resolve => setTimeout(resolve, 1400))
+            new Promise(resolve => setTimeout(resolve, 150000))
           ]);
 
           if (registro.installing) {
@@ -4897,7 +4901,7 @@
           }
 
           if (swAtualizacaoDetectadaNaAbertura_ && swWorkerAtualizacaoAbertura_ && !swRecarregamentoAtualizacaoEmCurso_) {
-            await esperarWorkerAtualizacaoAbertura_(swWorkerAtualizacaoAbertura_, 6500);
+            await esperarWorkerAtualizacaoAbertura_(swWorkerAtualizacaoAbertura_, 150000);
           }
         } catch (e) {
           // Falha de rede/checagem não impede a abertura: o shell em cache continua válido.
@@ -4958,6 +4962,7 @@
       let duvidasCarregamentoTimer_ = null;
       let duvidasPerguntaEmCurso_ = '';
       let swRegistroSilencioso_ = null;
+      let swPreparacaoAberturaPromise_ = null;
       let swUltimaVerificacaoSilenciosa_ = 0;
       let swVerificacaoSilenciosaPromise_ = null;
       let swAtualizacaoPendente_ = false;
@@ -6080,6 +6085,7 @@
                 atualizarBotaoPlanilhaSucesso_();
               }
               if (String(item?.payload?._appDduId || '').trim()) dduConcluidoEnviado = true;
+              registrarConfirmadoRecentePainel_(item, resultadoServidor || {});
               removerPendente(item.id);
               enviados += 1;
             } catch (erro) {
@@ -7281,6 +7287,7 @@
       // V23.9.68 — concentra prazo e próxima providência e respeita a conferência manual do INFOSCIP.
       // Prioriza textos já gravados pelo sistema/planilha e só usa descrições neutras como contingência.
       function proximaAcaoPainel_(item) {
+        if (item?.confirmacaoServidorPendentePainel) return { principal: 'Vistoria registrada', detalhe: 'Atualizando o Painel Fiscalizatório' };
         if (item?.sincronizacaoPendente) return { principal: 'Sincronizando com a planilha', detalhe: 'Registro já salvo neste aparelho' };
         const acaoSugerida = String(item?.acaoSugerida || '').trim();
         const alertaPrazo = String(item?.alertaPrazo || '').trim();
@@ -7487,7 +7494,7 @@
           const titulo = item.origemHistorica ? `${tituloBase} · histórico 2024-2025` : tituloBase;
           const selecionado = recordsState.chaveSelecionada && recordsState.chaveSelecionada === item.chave ? ' selected' : '';
           const proximaAcao = proximaAcaoPainel_(item);
-          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" data-record-pending="${item.sincronizacaoPendente ? 'true' : 'false'}" tabindex="0" aria-label="${item.sincronizacaoPendente ? 'Registro salvo no aparelho e aguardando sincronização' : `Abrir ficha de ${escapeAttr(titulo)}`}">
+          return `<tr class="records-table-row${selecionado}" data-record-key="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" data-record-pending="${item.sincronizacaoPendente ? 'true' : 'false'}" tabindex="0" aria-label="${item.confirmacaoServidorPendentePainel ? 'Vistoria registrada e aguardando confirmação visual no Painel' : (item.sincronizacaoPendente ? 'Registro salvo no aparelho e aguardando sincronização' : `Abrir ficha de ${escapeAttr(titulo)}`)}">
             <td>${escapeHtml(formatarDataPainel_(item.carimbo))}</td>
             <td><strong>${destacarBuscaPainelHtml_(titulo)}</strong>${item.razaoSocial && normalize(item.razaoSocial) !== normalize(tituloBase) ? `<small>${destacarBuscaPainelHtml_(padronizarTextoCadastroCliente_(item.razaoSocial))}</small>` : ''}</td>
             <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${destacarBuscaPainelHtml_(formatarEnderecoPainel_(item))}</td>
@@ -7526,7 +7533,7 @@
             ${alertaCidadeDivergentePainelHtml_(item)}
             ${atalhosCardPainelHtml_(item)}
             <div class="records-card-action"><span>Próxima ação</span><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</div>
-            <button type="button" class="records-card-cta" ${item.sincronizacaoPendente ? 'disabled aria-label="Aguardando sincronização"' : `data-record-open aria-label="Abrir ficha de ${escapeAttr(titulo)}"`}><span>${item.sincronizacaoPendente ? 'Sincronizando...' : 'Ver ficha completa'}</span><span class="records-card-cta-icon" aria-hidden="true">${item.sincronizacaoPendente ? '↻' : '→'}</span></button>
+            <button type="button" class="records-card-cta" ${item.sincronizacaoPendente ? 'disabled aria-label="Aguardando sincronização"' : `data-record-open aria-label="Abrir ficha de ${escapeAttr(titulo)}"`}><span>${item.confirmacaoServidorPendentePainel ? 'Registrada · atualizando...' : (item.sincronizacaoPendente ? 'Sincronizando...' : 'Ver ficha completa')}</span><span class="records-card-cta-icon" aria-hidden="true">${item.sincronizacaoPendente ? '↻' : '→'}</span></button>
           </article>`;
         }).join('') : '';
       }
@@ -8582,6 +8589,68 @@
         }, PANEL_PERIODIC_REFRESH_MS);
       }
 
+      // V23.9.99hl — depois que o servidor confirma uma vistoria, a cópia local
+      // permanece visível no Painel até a mesma chave aparecer no retorno oficial.
+      // Isso elimina a janela em que uma vistoria já salva poderia sumir temporariamente
+      // enquanto a planilha/índice secundário ainda terminava de atualizar.
+      function lerConfirmadosRecentesPainel_() {
+        let lista = [];
+        try {
+          const bruto = JSON.parse(localStorage.getItem(RECENT_CONFIRMED_STORAGE) || '[]');
+          if (Array.isArray(bruto)) lista = bruto;
+        } catch (_) {}
+        const limite = Date.now() - RECENT_CONFIRMED_MAX_AGE_MS;
+        const validos = lista.filter(item => item && Number(item.confirmadoEm || 0) >= limite && item.payload);
+        if (validos.length !== lista.length) {
+          try { localStorage.setItem(RECENT_CONFIRMED_STORAGE, JSON.stringify(validos)); } catch (_) {}
+        }
+        return validos;
+      }
+
+      function salvarConfirmadosRecentesPainel_(lista) {
+        try { localStorage.setItem(RECENT_CONFIRMED_STORAGE, JSON.stringify((Array.isArray(lista) ? lista : []).slice(0, 20))); } catch (_) {}
+      }
+
+      function registrarConfirmadoRecentePainel_(item, respostaServidor = {}) {
+        if (!item?.payload) return;
+        const chaveConsulta = String(respostaServidor?.chaveConsulta || '').trim();
+        const id = String(item?.id || item?.payload?._appRegistroId || '').trim();
+        const lista = lerConfirmadosRecentesPainel_().filter(x => {
+          if (chaveConsulta && String(x?.chaveConsulta || '') === chaveConsulta) return false;
+          return !id || String(x?.id || '') !== id;
+        });
+        lista.unshift({
+          id,
+          criadoEm: Number(item?.criadoEm || Date.now()),
+          confirmadoEm: Date.now(),
+          chaveConsulta,
+          linha: Number(respostaServidor?.linha || 0),
+          payload: { ...(item.payload || {}) }
+        });
+        salvarConfirmadosRecentesPainel_(lista);
+      }
+
+      function reconciliarConfirmadosRecentesPainel_(servidor = []) {
+        const chavesServidor = new Set((Array.isArray(servidor) ? servidor : []).map(x => String(x?.chave || '').trim()).filter(Boolean));
+        const atuais = lerConfirmadosRecentesPainel_();
+        const restantes = atuais.filter(item => !item?.chaveConsulta || !chavesServidor.has(String(item.chaveConsulta)));
+        if (restantes.length !== atuais.length) salvarConfirmadosRecentesPainel_(restantes);
+        return restantes;
+      }
+
+      function itemPainelConfirmadoRecente_(item) {
+        const base = itemPainelPendenteLocal_(item);
+        return {
+          ...base,
+          linha: Number(item?.linha || 0),
+          chave: `CONFIRMADO:${String(item?.chaveConsulta || item?.id || base.chave || '')}`,
+          origem: 'Vistoria registrada — atualizando Painel',
+          sincronizacaoPendente: true,
+          confirmacaoServidorPendentePainel: true,
+          chaveOficialPendente: String(item?.chaveConsulta || '')
+        };
+      }
+
       // V23.9.99fq — Painel local-first após concluir uma vistoria.
       // Enquanto a fila ainda aguarda a confirmação do servidor, a vistoria já aparece
       // no Painel deste aparelho com estado "Sincronizando". Assim que o backend confirma,
@@ -8654,16 +8723,24 @@
         const filtrosAtivos = Object.values(filtrosConsultaAtuais_()).some(valor => Boolean(String(valor || '').trim()));
         if (filtrosAtivos || Number(recordsState.pagina || 1) !== 1) return base;
         const fila = [...obterPendentes()].sort((a, b) => Number(b?.criadoEm || 0) - Number(a?.criadoEm || 0));
-        if (!fila.length) return base;
-        const locais = fila.map(itemPainelPendenteLocal_);
         const servidor = Array.isArray(base.itens) ? base.itens : [];
+        const confirmados = reconciliarConfirmadosRecentesPainel_(servidor)
+          .sort((a, b) => Number(b?.confirmadoEm || 0) - Number(a?.confirmadoEm || 0));
+        const idsPendentes = new Set(fila.map(x => String(x?.id || '')).filter(Boolean));
+        const confirmadosSemFila = confirmados.filter(x => !idsPendentes.has(String(x?.id || '')));
+        const locais = [
+          ...confirmadosSemFila.map(itemPainelConfirmadoRecente_),
+          ...fila.map(itemPainelPendenteLocal_)
+        ];
+        if (!locais.length) return base;
         const limiteVisivel = recordsState.modoProgressivo ? 200 : recordsState.limite;
         return {
           ...base,
           itens: [...locais, ...servidor].slice(0, limiteVisivel),
           total: Number(base.total || 0) + locais.length,
           resumo: resumoPainelComPendentesLocais_(base.resumo || {}, locais),
-          _pendentesLocais: locais.length
+          _pendentesLocais: locais.length,
+          _confirmadosRecentes: confirmadosSemFila.length
         };
       }
 
@@ -8706,7 +8783,11 @@
         recordsStatus.className = (origemCache || somenteLocal) ? 'records-status cached' : 'records-status';
         if (somenteLocal) {
           const qtd = Number(respostaComLocal?._pendentesLocais || 0);
-          recordsStatus.innerHTML = `<strong>${qtd === 1 ? 'Vistoria salva neste aparelho.' : `${qtd} vistorias salvas neste aparelho.`}</strong> ${navigator.onLine ? 'Sincronizando com a planilha...' : 'Aguardando internet para sincronizar...'} <span class="records-freshness is-cached">Dados locais</span>`;
+          const confirmados = Number(respostaComLocal?._confirmadosRecentes || 0);
+          const textoLocal = confirmados
+            ? (confirmados === 1 ? 'Vistoria já registrada no servidor.' : `${confirmados} vistorias já registradas no servidor.`)
+            : (qtd === 1 ? 'Vistoria salva neste aparelho.' : `${qtd} vistorias salvas neste aparelho.`);
+          recordsStatus.innerHTML = `<strong>${textoLocal}</strong> ${navigator.onLine ? 'Atualizando o Painel Fiscalizatório...' : 'Os dados locais permanecem preservados até a próxima conexão.'} <span class="records-freshness is-cached">Dados preservados</span>`;
           return;
         }
         if (origemCache) {
@@ -8746,7 +8827,7 @@
       function prepararPainelParaConfirmacaoOnline_(filtros = {}) {
         const semFiltros = !Object.values(filtros || {}).some(valor => Boolean(String(valor || '').trim()));
         const primeiraPagina = Number(recordsState.pagina || 1) === 1;
-        const temPendenciasLocais = obterPendentes().length > 0 && semFiltros && primeiraPagina;
+        const temPendenciasLocais = (obterPendentes().length > 0 || lerConfirmadosRecentesPainel_().length > 0) && semFiltros && primeiraPagina;
 
         if (temPendenciasLocais) {
           aplicarRespostaPainel_({ itens: [], total: 0, resumo: {}, filtrosDisponiveis: {} }, { localOnly: true });
@@ -8808,11 +8889,11 @@
 
         if (!navigator.onLine) {
           if (cache?.resposta) aplicarRespostaPainel_(cache.resposta, { cache: true, salvoEm: cache.salvoEm });
-          else if (obterPendentes().length && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1) {
+          else if ((obterPendentes().length || lerConfirmadosRecentesPainel_().length) && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1) {
             aplicarRespostaPainel_({ itens: [], total: 0, resumo: {}, filtrosDisponiveis: {} }, { localOnly: true });
           }
           definirBuscaPainelEmAndamento_(false);
-          const temPendenciasLocais = obterPendentes().length > 0 && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1;
+          const temPendenciasLocais = (obterPendentes().length > 0 || lerConfirmadosRecentesPainel_().length > 0) && !Object.values(filtros).some(valor => Boolean(String(valor || '').trim())) && Number(recordsState.pagina || 1) === 1;
           if (!cache?.resposta && !temPendenciasLocais && !cacheRecenteAplicado) {
             recordsStatus.className = 'records-status error';
             recordsStatus.textContent = 'Sem internet e sem consulta recente salva neste aparelho.';
@@ -21680,10 +21761,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         'Seu trabalho no GPV transforma conhecimento técnico em prevenção efetiva.'
       ];
 
-      // V23.9.99gw — saudação diária também acompanha a checagem/atualização do PWA.
-      // O objetivo é deixar claro que o aplicativo está trabalhando sem bloquear a abertura
-      // indefinidamente em rede lenta. A mensagem aparece uma vez por dia por usuário/aparelho.
+      // V23.9.99hl — a saudação acompanha toda abertura autenticada e funciona como
+      // tela de preparação confiável. A frase motivacional continua estável ao longo do dia,
+      // enquanto os estados abaixo informam versão, dados e Painel até a liberação da interface.
       const MOTIVACIONAL_RESUME_STORAGE_ = 'gpv_motivacional_abertura_v2';
+      const MOTIVACIONAL_MIN_VISIBLE_MS_ = 5000;
+      const MOTIVACIONAL_READY_HOLD_MS_ = 850;
       let motivacionalAbertoEm_ = 0;
 
       function dataLocalChaveMotivacional_() {
@@ -21751,9 +21834,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return 'Boa noite';
       }
 
-      function primeiroNomeMotivacional_() {
-        const nome = String(authState.usuario?.nome || '').trim();
-        return nome ? nome.split(/\s+/)[0] : 'militar';
+      function nomeMilitarMotivacional_() {
+        const nome = String(authState.usuario?.nome || '').replace(/\s+/g, ' ').trim();
+        return nome || 'militar';
       }
 
       function indiceMensagemMotivacional_() {
@@ -21788,7 +21871,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!overlay) return;
         const greeting = overlay.querySelector('#dailyMotivationalGreeting');
         const message = overlay.querySelector('#dailyMotivationalMessage');
-        if (greeting) greeting.textContent = `${saudacaoPorHorarioMotivacional_()}, ${primeiroNomeMotivacional_()}!`;
+        if (greeting) greeting.textContent = `${saudacaoPorHorarioMotivacional_()}, ${nomeMilitarMotivacional_()}!`;
         if (message) message.textContent = MENSAGENS_MOTIVACIONAIS_DIARIAS_[indiceMensagemMotivacional_()];
       }
 
@@ -21831,8 +21914,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!authState.usuario?.id && !authState.usuario?.bm) return false;
         if (!String(authState.sessionToken || '').trim() || sessaoTokenExpiradaBm_(authState.sessionToken)) return false;
 
+        // V23.9.99hl — toda abertura autenticada usa a saudação como tela de
+        // preparação confiável, não apenas a primeira abertura do dia.
         const retomar = deveRetomarMotivacional_();
-        if (!retomar && !deveMostrarMotivacionalHoje_()) return false;
 
         let atualizadoRecentemente = false;
         try {
@@ -21858,7 +21942,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const forcar = Boolean(opcoes.forcar);
         const overlayExistente = document.getElementById('dailyMotivationalOverlay');
         const jaVisivel = Boolean(overlayExistente?.classList.contains('show'));
-        const mostrar = forcar || jaVisivel || deveMostrarMotivacionalHoje_() || deveRetomarMotivacional_();
+        const mostrar = forcar || jaVisivel || Boolean(authState.usuario?.id || authState.usuario?.bm) || deveMostrarMotivacionalHoje_() || deveRetomarMotivacional_();
         if (!mostrar) {
           await loadInitialData();
           return;
@@ -21874,17 +21958,20 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const inicio = motivacionalAbertoEm_ || Date.now();
         let erroCarga = null;
         try {
-          await loadInitialData();
+          atualizarStatusMotivacional_('Verificando a versão do aplicativo...', 'Mantendo o app atualizado antes de liberar o ambiente.');
+          if (swPreparacaoAberturaPromise_) await swPreparacaoAberturaPromise_;
+          atualizarStatusMotivacional_('Preparando seus dados...', 'Restaurando sessão, rascunhos, fila offline e registros recentes.');
+          await loadInitialData({ aguardarInicialConfiavel: true });
         } catch (erro) {
           erroCarga = erro;
         }
 
-        if (!erroCarga) atualizarStatusMotivacional_('✓ Ambiente pronto.', 'Bom serviço!', 'ready');
-        else atualizarStatusMotivacional_('Não foi possível concluir toda a preparação.', 'O aplicativo continuará com os recursos disponíveis neste momento.');
+        if (!erroCarga) atualizarStatusMotivacional_('✓ Tudo pronto.', 'Bom trabalho!', 'ready');
+        else atualizarStatusMotivacional_('Preparação concluída com ressalvas.', 'Os dados locais seguros foram preservados; recursos online podem continuar atualizando em segundo plano.');
 
-        const restante = Math.max(0, 1650 - (Date.now() - inicio));
+        const restante = Math.max(0, MOTIVACIONAL_MIN_VISIBLE_MS_ - (Date.now() - inicio));
         if (restante) await new Promise(resolve => setTimeout(resolve, restante));
-        if (!erroCarga) await new Promise(resolve => setTimeout(resolve, 280));
+        if (!erroCarga) await new Promise(resolve => setTimeout(resolve, MOTIVACIONAL_READY_HOLD_MS_));
 
         const overlay = document.getElementById('dailyMotivationalOverlay');
         if (overlay) {
@@ -27146,7 +27233,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }, atrasos.painel);
       }
 
-      async function loadInitialData() {
+      async function loadInitialData(opcoes = {}) {
+        const aguardarInicialConfiavel = opcoes?.aguardarInicialConfiavel === true;
         let cached = null;
         try { cached = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || 'null'); } catch (e) {}
         aplicarConfig(cached || DEFAULT_CONFIG);
@@ -27229,14 +27317,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const vistaInicial = usuarioPodeOperar_() ? (vistaForcada || vistaInicialPorDispositivo_()) : 'records';
 
         if (vistaInicial === 'records') {
-          if (vistaForcada) mostrarVistaPlanilha_();
-          else {
+          if (vistaForcada) {
+            if (aguardarInicialConfiavel) {
+              mostrarVistaPlanilha_({ carregar:false });
+              atualizarStatusMotivacional_('Atualizando o Painel Fiscalizatório...', 'Confirmando os dados recentes antes de liberar a tela.');
+              await Promise.allSettled([carregarMetas_(false, false), carregarRegistros_(true, { motivo:'abertura confiável do Painel' })]);
+            } else {
+              mostrarVistaPlanilha_();
+            }
+          } else {
             marcarAbaApp_('records');
             // V23.9.99hd — restaura imediatamente os registros e as metas salvos,
             // depois confirma cada fonte de forma independente em segundo plano.
             const tinhaRecentesLocais = aplicarCacheRecentesPainel_();
-            void carregarMetas_(false, false);
-            carregarRegistros_(true, { silenciosa: tinhaRecentesLocais, motivo: 'restauração do Painel' });
+            atualizarStatusMotivacional_('Atualizando o Painel Fiscalizatório...', 'Confirmando registros recentes e metas antes de liberar a tela.');
+            const promessaMetas = carregarMetas_(false, false);
+            const promessaRegistros = carregarRegistros_(true, { silenciosa: tinhaRecentesLocais, motivo: 'restauração do Painel' });
+            if (aguardarInicialConfiavel) await Promise.allSettled([promessaMetas, promessaRegistros]);
           }
         } else {
           marcarAbaApp_('form');
@@ -29024,7 +29121,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hk', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hl', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
@@ -29047,14 +29144,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       carregarSessaoLocalBm_();
 
       (async () => {
-        // V23.9.99gw — se já existe sessão válida e é o primeiro acesso do dia,
-        // a saudação aparece imediatamente e acompanha a própria checagem de versão.
+        // V23.9.99hl — com sessão válida, a saudação aparece em toda abertura e
+        // acompanha a checagem de versão até o ambiente estar confiável para uso.
         preparacaoMotivacionalNaAbertura_();
 
-        // V23.9.99hd — a verificação do Service Worker não bloqueia mais a
-        // abertura. Interface, sessão e cache local entram primeiro; a atualização
-        // continua em paralelo e só é aplicada quando estiver seguro.
-        void prepararAtualizacaoAutomaticaNaAbertura_().catch(() => null);
+        // A promessa é compartilhada com a preparação autenticada. Se houver nova
+        // versão, a saudação permanece visível até o shell ficar pronto para assumir.
+        swPreparacaoAberturaPromise_ = prepararAtualizacaoAutomaticaNaAbertura_().catch(() => null);
         try {
           await inicializarFilaOffline();
         } catch (e) {}

@@ -1,7 +1,8 @@
+// V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hk-metas-rollback-estavel';
+const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hl-abertura-confiavel';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99hk';
+const VERSION = '23.9.99hl';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
