@@ -1,8 +1,9 @@
-const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hh-metas-na-entrada-painel';
+const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hi-metas-eventos-atual';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99hh';
+const VERSION = '23.9.99hi';
 
-// V23.9.99hh — novo shell garante carregamento das Metas em toda entrada do Painel.
+// V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
+// V23.9.99hh — Metas iniciadas diretamente em toda entrada do Painel.
 // V23.9.99hg — novo shell publica a correção de Metas sem alterar o cache documental sob demanda.
 // V23.9.99hf — atualização automática reforçada na abertura/retorno; novo shell assume o controle com segurança.
 // V23.9.99hd — abertura local-first, atualização silenciosa e Metas revalidadas sem bloquear o Painel.

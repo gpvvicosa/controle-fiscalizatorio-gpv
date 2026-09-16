@@ -1,3 +1,4 @@
+// V23.9.99hi — Metas revalidadas contra backend HI, cache local renovado e atualização real dos Eventos declaratórios.
 // V23.9.99hh — Metas iniciadas diretamente em toda entrada do Painel, inclusive F5/link direto.
 // V23.9.99hg — Metas local-first resilientes na abertura + contabilização robusta de Eventos declaratórios.
 // V23.9.99hf — endereço como identidade principal do local + dados complementares opcionais em Fiscalização/DDU; preserva atualização automática e isolamento do responsável.
@@ -25,7 +26,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hh';
+      const APP_VERSION = '23.9.99hi';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -42,7 +43,7 @@
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const PANEL_RECENT_CACHE_STORAGE = 'gpvPainelRecentesV23_9_99hd';
       const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
-      const GOALS_CACHE_STORAGE = 'gpvMetasCacheV1';
+      const GOALS_CACHE_STORAGE = 'gpvMetasCacheV2_hi';
       const SUGGESTIONS_CACHE_STORAGE = 'gpvSugestoesFiscalizacaoCacheV2Cronologica';
       const PANEL_CACHE_TTL_MS = 10 * 60 * 1000;
       const PANEL_CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -2766,7 +2767,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hh';
+      const APP_REVISION_UI_ = '23.9.99hi';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4868,7 +4869,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hh', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hi', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7733,6 +7734,14 @@
         }, atraso);
       }
 
+      function validarRespostaMetasHi_(resposta) {
+        const versao = String(resposta?.versaoCalculoMetas || '').trim();
+        if (versao === '23.9.99hi') return resposta;
+        const erro = new Error('O cálculo de Metas do servidor ainda não está na versão 23.9.99hi. Atualize a implantação do Google Apps Script.');
+        erro.code = 'METAS_BACKEND_DESATUALIZADO';
+        throw erro;
+      }
+
       async function carregarMetas_(forcar = false, incluirDetalhes = false) {
         if (incluirDetalhes) {
           if (metasDetalhesCarregando) return;
@@ -7748,7 +7757,12 @@
           metasDetalhesCarregando = true;
           if (goalsModalDetails) goalsModalDetails.innerHTML = '<div class="goals-details-empty"><strong>Carregando locais contabilizados...</strong><span>Os detalhes são buscados somente agora para manter o Painel rápido.</span></div>';
           try {
-            const resposta = await apiRequest('config', { consulta: 'metas', incluirDetalhes: true }, 30000);
+            const resposta = validarRespostaMetasHi_(await apiRequest('config', {
+              consulta: 'metas',
+              incluirDetalhes: true,
+              forcarAtualizacao: true,
+              versaoClienteMetas: '23.9.99hi'
+            }, 30000));
             metasMensaisAtual = resposta || {};
             metasDetalhesCarregados = true;
             gravarStorageJson_(GOALS_CACHE_STORAGE, { salvoEm: Date.now(), resposta: metasMensaisAtual });
@@ -7794,7 +7808,14 @@
         try {
           // O resumo é leve e não bloqueia a abertura do Painel. Um prazo maior evita
           // falso timeout em Apps Script frio; a API ainda mantém repetição segura.
-          const resposta = await apiRequest('config', { consulta: 'metas', incluirDetalhes: false }, 22000);
+          const resposta = validarRespostaMetasHi_(await apiRequest('config', {
+            consulta: 'metas',
+            incluirDetalhes: false,
+            // Sem um cache local HI fresco, a primeira confirmação online ignora
+            // também o cache curto do Apps Script. Isso impede reaproveitar 0/1 antigo.
+            forcarAtualizacao: Boolean(forcar || !cacheFresco),
+            versaoClienteMetas: '23.9.99hi'
+          }, 22000));
           metasMensaisAtual = resposta || {};
           metasDetalhesCarregados = false;
           gravarStorageJson_(GOALS_CACHE_STORAGE, { salvoEm: Date.now(), resposta: metasMensaisAtual });
@@ -7808,9 +7829,11 @@
               dashboardGoalsSubtitle.textContent += ' Últimos dados válidos mantidos; atualização temporariamente indisponível.';
             }
           } else if (dashboardGoalsSubtitle) {
-            dashboardGoalsSubtitle.textContent = 'Não foi possível atualizar as metas agora. Nova tentativa automática em instantes.';
+            dashboardGoalsSubtitle.textContent = erro?.code === 'METAS_BACKEND_DESATUALIZADO'
+              ? 'O Google Apps Script das Metas ainda não está na versão atual. Publique a implantação 23.9.99hi.'
+              : 'Não foi possível atualizar as metas agora. Nova tentativa automática em instantes.';
           }
-          agendarRetryMetasResumo_();
+          if (erro?.code !== 'METAS_BACKEND_DESATUALIZADO') agendarRetryMetasResumo_();
         } finally { metasCarregando = false; }
       }
 
@@ -29005,7 +29028,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hh', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hi', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos
             // por muitas horas ou dias. Atualizações encontradas durante uma
