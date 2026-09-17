@@ -1,3 +1,4 @@
+// V23.9.99hy — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
 // V23.9.99hx — WhatsApp pós-fiscalização adapta automaticamente as orientações quando houver irregularidade de Brigada de Incêndio.
 // V23.9.99hw — Fiscalização registra irregularidades constatadas em campo e oferece relatórios próprios de Brigada para INFOSCIP/REDS.
 // V23.9.99hu — validação final de cidade cruza GPS, CEP, endereço físico e CNPJ antes de registrar a vistoria.
@@ -40,7 +41,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hx';
+      const APP_VERSION = '23.9.99hy';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2180,6 +2181,8 @@
       const recordStatusUpdateMessage = document.getElementById('recordStatusUpdateMessage');
       const recordCorrectionPanel = document.getElementById('recordCorrectionPanel');
       const recordCorrectionBtn = document.getElementById('recordCorrectionBtn');
+      const recordIrregularitiesCorrectionPanel = document.getElementById('recordIrregularitiesCorrectionPanel');
+      const recordIrregularitiesCorrectionBtn = document.getElementById('recordIrregularitiesCorrectionBtn');
       const recordCorrectionModal = document.getElementById('recordCorrectionModal');
       const recordCorrectionCloseBtn = document.getElementById('recordCorrectionCloseBtn');
       const recordCorrectionCancelBtn = document.getElementById('recordCorrectionCancelBtn');
@@ -2856,7 +2859,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hx';
+      const APP_REVISION_UI_ = '23.9.99hy';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4992,7 +4995,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hx', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hy', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -11439,6 +11442,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campo('clcbMotivoIrregularidadeDocumental', 'processo', 'Motivo da irregularidade documental do CLCB', ['Motivo da irregularidade documental do CLCB'], { mostrar: fiscalizacao && !acessoria, wide: true }),
           campo('clcbSeraAnuladoInfoscip', 'processo', 'O CLCB SERÁ anulado no INFOSCIP?', ['CLCB será anulado no INFOSCIP'], { mostrar: fiscalizacao && !acessoria, tipo: 'select', opcoes: ['Sim', 'Não'] }),
           campo('clcbFoiAnuladoInfoscip', 'processo', 'O CLCB FOI anulado no INFOSCIP?', ['CLCB foi anulado no INFOSCIP'], { mostrar: fiscalizacao, tipo: 'select', opcoes: ['Sim', 'Não'] }),
+          campo('irregularidadesFiscalizacaoStatus', 'irregularidades', 'Condição constatada na fiscalização', ['Condição constatada na fiscalização'], {
+            mostrar: fiscalizacao && !acessoria,
+            tipo: 'select',
+            opcoes: ['Nenhuma irregularidade constatada', 'Irregularidades constatadas'],
+            opcoesEstritas: true
+          }),
+          campo('irregularidadesFiscalizacao', 'irregularidades', 'Irregularidades constatadas', ['Irregularidades constatadas'], {
+            mostrar: fiscalizacao && !acessoria,
+            tipo: 'irregularidades',
+            wide: true
+          }),
           campo('situacaoPscip', 'processo', 'Situação atual do PSCIP', ['Situação atual do PSCIP'], { mostrar: !evento }),
           campo('pendenciaDocumental', 'processo', 'Pendência documental', ['Pendência documental'], { mostrar: liberacao, tipo: 'select', opcoes: ['Sim', 'Não'] }),
           campo('nDdu', 'processo', 'Nº DDU', ['Nº DDU'], { mostrar: ddu }),
@@ -11536,10 +11550,72 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return base;
       }
 
+      function catalogoIrregularidadesFiscalizacaoCorrecao_() {
+        const valores = irregularidadesFiscalizacaoChecks.map(check => String(check.value || '').trim()).filter(Boolean);
+        return valores.length ? valores : [
+          'Acesso de viaturas',
+          'Brigada de Incêndio — certificado não válido',
+          'Controle de Materiais de Acabamento e Revestimento',
+          'Detecção de incêndio', 'Alarme de incêndio', 'Iluminação de Emergência',
+          'Saídas de Emergência', 'Sinalização de Emergência', 'Extintores',
+          'Hidrantes e mangotinhos', 'Chuveiros automáticos', 'SPDA', 'Compartimentação',
+          'Controle de fumaça', 'Documentação/licenciamento', 'Ocupação/divisão divergente',
+          'Outras irregularidades'
+        ];
+      }
+
+      function parseIrregularidadesFiscalizacaoCorrecao_(resumoBruto) {
+        const catalogo = catalogoIrregularidadesFiscalizacaoCorrecao_();
+        const mapa = new Map();
+        const desconhecidas = [];
+        String(resumoBruto || '').trim().split(/\s+\|\s+/).map(item => item.trim()).filter(Boolean).forEach(item => {
+          const tipo = catalogo.find(opcao => item === opcao || item.startsWith(`${opcao}:`));
+          if (!tipo) { desconhecidas.push(item); return; }
+          const detalhe = item === tipo ? '' : item.slice(tipo.length + 1).trim();
+          mapa.set(tipo, detalhe);
+        });
+        if (desconhecidas.length) {
+          const outras = catalogo.find(v => normalize(v) === normalize('Outras irregularidades')) || 'Outras irregularidades';
+          const atual = mapa.get(outras) || '';
+          mapa.set(outras, [atual, desconhecidas.join(' / ')].filter(Boolean).join(' / '));
+        }
+        return mapa;
+      }
+
+      function serializarIrregularidadesFiscalizacaoCorrecao_(root) {
+        if (!root) return '';
+        return Array.from(root.querySelectorAll('[data-correction-irregularidade]')).filter(check => check.checked).map(check => {
+          const tipo = String(check.value || '').trim();
+          const detalhe = Array.from(root.querySelectorAll('[data-correction-irregularidade-detalhe]')).find(el => String(el.dataset.correctionIrregularidadeDetalhe || '') === tipo);
+          const texto = limparTextoDetalheIrregularidade_(detalhe?.value || '');
+          return texto ? `${tipo}: ${texto}` : tipo;
+        }).join(' | ');
+      }
+
+      function atualizarValorIrregularidadesFiscalizacaoCorrecao_(root) {
+        if (!root) return;
+        const hidden = root.querySelector('[data-correction-id="irregularidadesFiscalizacao"]');
+        if (!hidden) return;
+        hidden.value = serializarIrregularidadesFiscalizacaoCorrecao_(root);
+        hidden.dataset.correctionTouched = '1';
+      }
+
       function htmlCampoCorrecao_(campo, valorAtual) {
         const id = `record-correction-${campo.id}`;
         const comum = `data-correction-id="${escapeAttr(campo.id)}" data-correction-label="${escapeAttr(campo.rotulo)}"`;
         const classe = `record-correction-field${campo.wide ? ' wide' : ''}`;
+        if (campo.tipo === 'irregularidades') {
+          const selecionadas = parseIrregularidadesFiscalizacaoCorrecao_(valorAtual);
+          const itens = catalogoIrregularidadesFiscalizacaoCorrecao_().map(tipo => {
+            const marcado = selecionadas.has(tipo);
+            const detalhe = selecionadas.get(tipo) || '';
+            return `<div class="record-correction-irregularidade-item">
+              <label><input type="checkbox" data-correction-irregularidade value="${escapeAttr(tipo)}"${marcado ? ' checked' : ''}> <span>${escapeHtml(tipo)}</span></label>
+              <textarea rows="2" data-correction-irregularidade-detalhe="${escapeAttr(tipo)}"${marcado ? '' : ' hidden'} placeholder="Detalhamento opcional do que foi constatado.">${escapeHtml(detalhe)}</textarea>
+            </div>`;
+          }).join('');
+          return `<div class="${classe}" data-correction-irregularidades-root><span>${escapeHtml(campo.rotulo)}</span><div class="prepare-measures-panel"><div class="prepare-measures-grid">${itens}</div></div><small>Marque uma ou mais irregularidades. Ao selecionar Brigada de Incêndio, os relatórios e a mensagem específica passam a ficar disponíveis na Ficha.</small><textarea id="${escapeAttr(id)}" ${comum} hidden>${escapeHtml(valorAtual)}</textarea></div>`;
+        }
         if (campo.tipo === 'select') {
           const opcoes = opcoesCampoCorrecao_(campo, valorAtual);
           const selecionadoValido = opcoes.some(v => normalize(v) === normalize(valorAtual));
@@ -11570,6 +11646,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         processo: {
           titulo: 'Processo e vistoria',
           descricao: 'PSCIP, PF, Auto, licenciamento, DDU e demais dados processuais.'
+        },
+        irregularidades: {
+          titulo: 'Irregularidades constatadas',
+          descricao: 'Registro técnico do que foi constatado em campo. Pode ser incluído posteriormente em Fiscalizações já realizadas e fica registrado na auditoria.'
         },
         local: {
           titulo: 'Edificação / local',
@@ -11657,6 +11737,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           titulo: 'Editar dados do Responsável',
           descricao: 'Altere somente os dados de identificação, contato e endereço do responsável exibidos nesta aba.',
           grupos: ['responsavel'],
+          ids: []
+        },
+        irregularidades: {
+          titulo: 'Editar irregularidades constatadas',
+          descricao: 'Inclua ou ajuste, de forma retroativa, irregularidades realmente constatadas em uma Vistoria de Fiscalização já realizada. A alteração fica registrada na auditoria com usuário e data.',
+          grupos: ['irregularidades'],
           ids: []
         }
       });
@@ -11824,11 +11910,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function configurarCorrecaoFicha_(registro) {
         recordCorrectionRegistroAtual = registro || null;
-        if (!recordCorrectionPanel || !recordCorrectionBtn) return;
         const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
         const permitido = usuarioPodeOperar_() && !historico;
-        recordCorrectionPanel.hidden = !permitido;
-        recordCorrectionBtn.disabled = !permitido;
+        if (recordCorrectionPanel) recordCorrectionPanel.hidden = !permitido;
+        if (recordCorrectionBtn) recordCorrectionBtn.disabled = !permitido;
+
+        const fiscalizacaoComum = Boolean(registro && !registroEhEventoDeclaratorio_(registro) && !registroEhLiberacao_(registro) && !registroEhAcessoria_(registro));
+        const permitirIrregularidades = permitido && fiscalizacaoComum;
+        if (recordIrregularitiesCorrectionPanel) recordIrregularitiesCorrectionPanel.hidden = !permitirIrregularidades;
+        if (recordIrregularitiesCorrectionBtn) recordIrregularitiesCorrectionBtn.disabled = !permitirIrregularidades;
       }
 
       function abrirCorrecaoRegistro_(opcoes = {}) {
@@ -11850,7 +11940,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordCorrectionReason) {
           recordCorrectionReason.value = '';
           recordCorrectionReason.placeholder = configSecao
-            ? `Ex.: Correção dos dados da aba ${secao === 'local' ? 'Local' : (secao === 'processo' ? 'Processo' : 'Responsável')} após conferência.`
+            ? (secao === 'irregularidades'
+                ? 'Ex.: Inclusão posterior de irregularidade efetivamente constatada durante a fiscalização.'
+                : `Ex.: Correção dos dados da aba ${secao === 'local' ? 'Local' : (secao === 'processo' ? 'Processo' : 'Responsável')} após conferência.`)
             : 'Ex.: Correção após conferência do PSCIP e dos dados apresentados pelo responsável.';
         }
         if (recordCorrectionMessage) { recordCorrectionMessage.textContent = ''; recordCorrectionMessage.className = 'record-correction-message'; }
@@ -11947,6 +12039,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (item.id === 'localizacaoOrigem' && valor && !['gps_auto','gps','mapa'].includes(valor)) {
             return 'A origem da localização deve ser gps_auto, gps ou mapa.';
           }
+        }
+
+        const statusIrregularidadesEl = recordCorrectionFields?.querySelector('[data-correction-id="irregularidadesFiscalizacaoStatus"]');
+        const resumoIrregularidadesEl = recordCorrectionFields?.querySelector('[data-correction-id="irregularidadesFiscalizacao"]');
+        if (statusIrregularidadesEl && resumoIrregularidadesEl) {
+          const status = normalize(statusIrregularidadesEl.value || '');
+          const resumo = String(resumoIrregularidadesEl.value || '').trim();
+          if (status === normalize('Irregularidades constatadas') && !resumo) return 'Marque pelo menos uma irregularidade constatada.';
+          if (status === normalize('Nenhuma irregularidade constatada') && resumo) return 'Remova as irregularidades marcadas ou altere a condição para Irregularidades constatadas.';
         }
 
         const latEl = recordCorrectionFields?.querySelector('[data-correction-id="localizacaoLatitude"]');
@@ -12562,6 +12663,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Motivo da irregularidade documental do CLCB', valorCampoFicha_(registro, 'Motivo da irregularidade documental do CLCB')],
           ['CLCB será anulado no INFOSCIP', valorCampoFicha_(registro, 'CLCB será anulado no INFOSCIP')],
           ['CLCB foi anulado no INFOSCIP', valorCampoFicha_(registro, 'CLCB foi anulado no INFOSCIP')],
+          ['Condição constatada na fiscalização', valorCampoFicha_(registro, 'Condição constatada na fiscalização')],
+          ['Irregularidades constatadas', valorCampoFicha_(registro, 'Irregularidades constatadas')],
           ['Documento de licenciamento', valorCampoFicha_(registro, 'Documento de licenciamento da acessória')],
           ['CLCB será anulado na vistoria acessória', valorCampoFicha_(registro, 'CLCB será anulado na vistoria acessória')],
           ['CLCB anulado na vistoria acessória', valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')],
@@ -29600,6 +29703,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordQuickNewPetBtn?.addEventListener('click', () => { void iniciarNovaVistoriaDaFicha_({ pet: true }); });
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
       recordCorrectionBtn?.addEventListener('click', () => abrirCorrecaoRegistro_());
+      recordIrregularitiesCorrectionBtn?.addEventListener('click', () => abrirCorrecaoRegistro_({ secao: 'irregularidades' }));
       recordResultCorrectionBtn?.addEventListener('click', abrirCorrecaoResultadoVistoria_);
       recordResultCorrectionCloseBtn?.addEventListener('click', fecharCorrecaoResultadoVistoria_);
       recordResultCorrectionCancelBtn?.addEventListener('click', fecharCorrecaoResultadoVistoria_);
@@ -29612,8 +29716,34 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordCorrectionFields?.addEventListener('change', event => {
         const campo = event.target.closest?.('[data-correction-id]');
         if (campo) campo.dataset.correctionTouched = '1';
+
+        const checkIrregularidade = event.target.closest?.('[data-correction-irregularidade]');
+        if (checkIrregularidade) {
+          const root = checkIrregularidade.closest('[data-correction-irregularidades-root]');
+          const tipo = String(checkIrregularidade.value || '');
+          const detalhe = Array.from(root?.querySelectorAll('[data-correction-irregularidade-detalhe]') || []).find(el => String(el.dataset.correctionIrregularidadeDetalhe || '') === tipo);
+          if (detalhe) detalhe.hidden = !checkIrregularidade.checked;
+          const status = recordCorrectionFields.querySelector('[data-correction-id="irregularidadesFiscalizacaoStatus"]');
+          if (checkIrregularidade.checked && status) {
+            status.value = 'Irregularidades constatadas';
+            status.dataset.correctionTouched = '1';
+          }
+          atualizarValorIrregularidadesFiscalizacaoCorrecao_(root);
+        }
+
+        if (campo?.dataset?.correctionId === 'irregularidadesFiscalizacaoStatus' && normalize(campo.value) === normalize('Nenhuma irregularidade constatada')) {
+          const root = recordCorrectionFields.querySelector('[data-correction-irregularidades-root]');
+          root?.querySelectorAll('[data-correction-irregularidade]').forEach(check => { check.checked = false; });
+          root?.querySelectorAll('[data-correction-irregularidade-detalhe]').forEach(textarea => { textarea.value = ''; textarea.hidden = true; });
+          atualizarValorIrregularidadesFiscalizacaoCorrecao_(root);
+        }
+
         const fotoInput = event.target.closest?.('[data-correction-photo-add]');
         if (fotoInput) void adicionarFotoCorrecao_(fotoInput);
+      });
+      recordCorrectionFields?.addEventListener('input', event => {
+        const detalheIrregularidade = event.target.closest?.('[data-correction-irregularidade-detalhe]');
+        if (detalheIrregularidade) atualizarValorIrregularidadesFiscalizacaoCorrecao_(detalheIrregularidade.closest('[data-correction-irregularidades-root]'));
       });
       recordCorrectionFields?.addEventListener('click', event => {
         const manter = event.target.closest?.('[data-correction-photo-toggle]');
@@ -30182,7 +30312,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hx', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hy', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
