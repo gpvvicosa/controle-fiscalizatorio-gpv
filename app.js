@@ -1,3 +1,4 @@
+// V23.9.99hu — validação final de cidade cruza GPS, CEP, endereço físico e CNPJ antes de registrar a vistoria.
 // V23.9.99ht — redesenho estrutural das Vistorias Programadas e ação Ver vistoria consistente em todos os filtros.
 // V23.9.99hs — acabamento premium e responsivo do modal de Vistorias Programadas, sem alterar regras ou carregamento.
 // V23.9.99hr — Vistorias Programadas: mobile compacto, sem cadastro no modal e ação explícita Ver vistoria.
@@ -37,7 +38,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ht';
+      const APP_VERSION = '23.9.99hu';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2838,7 +2839,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ht';
+      const APP_REVISION_UI_ = '23.9.99hu';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4974,7 +4975,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ht', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hu', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -16628,11 +16629,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       // endereço apenas geram uma sugestão. O militar pode continuar digitando
       // normalmente e confirmar a divergência antes de registrar.
       const CIDADE_EVIDENCIA_PRIORIDADE_ = Object.freeze({
-        endereco: 20,
-        cadastro: 30,
-        cnpj: 32,
-        cep: 35,
-        gps: 40
+        cadastro: 20,
+        cnpj: 30,
+        endereco: 40,
+        cep: 45,
+        gps: 50
       });
       let cidadeUltimaEvidencia_ = null;
       let cidadeSugestaoAtual_ = null;
@@ -16641,6 +16642,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       let cidadeSugestaoEnderecoTimer_ = 0;
       let cidadeSugestaoConsultaSeq_ = 0;
       let cidadeSugestaoGpsSeq_ = 0;
+      let cidadeCnpjConferida_ = { documento: '', cidade: '', verificadaEm: 0 };
 
       function rotuloFonteCidade_(fonte) {
         const chave = String(fonte || '').toLowerCase();
@@ -16843,6 +16845,203 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return true;
         }
         cidadeSugestaoConfirmadaChave_ = chaveConfirmacaoCidade_(cityValue(), s.cidade, s.prioridade);
+        esconderSugestaoCidade_();
+        return true;
+      }
+
+      // V23.9.99hu — conferência final do município antes da gravação.
+      // O local físico prevalece: GPS > CEP > endereço geocodificado > CNPJ.
+      // O CNPJ participa como evidência secundária, pois a sede cadastral pode ser
+      // diferente do endereço efetivamente vistoriado.
+      function criarEvidenciaCidadeFinal_(cidade, fonte, detalhe = '') {
+        const padronizada = padronizarCidadeCadastroCliente_(cidade);
+        if (!padronizada) return null;
+        return {
+          cidade: padronizada,
+          fonte: String(fonte || 'endereco'),
+          detalhe: String(detalhe || '').trim(),
+          prioridade: Number(CIDADE_EVIDENCIA_PRIORIDADE_[fonte] || 10)
+        };
+      }
+
+      function adicionarEvidenciaCidadeFinal_(lista, cidade, fonte, detalhe = '') {
+        const evidencia = criarEvidenciaCidadeFinal_(cidade, fonte, detalhe);
+        if (!evidencia) return;
+        const repetida = lista.some(item => item.fonte === evidencia.fonte && normalize(item.cidade) === normalize(evidencia.cidade));
+        if (!repetida) lista.push(evidencia);
+      }
+
+      function unirRotulosCidadeFinal_(itens = []) {
+        const rotulos = [...new Set(itens.map(item => rotuloFonteCidade_(item.fonte)).filter(Boolean))];
+        if (!rotulos.length) return 'conferência automática';
+        if (rotulos.length === 1) return rotulos[0];
+        if (rotulos.length === 2) return `${rotulos[0]} e ${rotulos[1]}`;
+        return `${rotulos.slice(0, -1).join(', ')} e ${rotulos[rotulos.length - 1]}`;
+      }
+
+      async function coletarEvidenciasCidadeFinal_() {
+        const evidencias = [];
+        const tarefas = [];
+        const opcoesConsulta = { noRetry: true, silentSuccess: true };
+        const coords = extrairCoordenadasMapa_(
+          localizacaoLatitudeInput?.value,
+          localizacaoLongitudeInput?.value,
+          localizacaoCoordenadasInput?.value
+        );
+        const cep = normalizarCepCliente_(value('cep'));
+        const cnpj = digits(value('cnpj'));
+        const endereco = String(value('endereco') || '').trim();
+        const numero = String(value('numero') || '').trim();
+        const bairro = String(value('bairro') || '').trim();
+
+        if (cidadeUltimaEvidencia_?.cidade) {
+          adicionarEvidenciaCidadeFinal_(
+            evidencias,
+            cidadeUltimaEvidencia_.cidade,
+            cidadeUltimaEvidencia_.fonte,
+            cidadeUltimaEvidencia_.detalhe
+          );
+        }
+
+        if (cnpj.length === 14 &&
+            cidadeCnpjConferida_.documento === cnpj &&
+            cidadeCnpjConferida_.cidade &&
+            Date.now() - Number(cidadeCnpjConferida_.verificadaEm || 0) < 6 * 60 * 60 * 1000) {
+          adicionarEvidenciaCidadeFinal_(evidencias, cidadeCnpjConferida_.cidade, 'cnpj', `CNPJ ${cnpj}`);
+        }
+
+        if (coords) {
+          tarefas.push({
+            fonte: 'gps',
+            executar: async () => {
+              const resposta = await apiRequest('config', {
+                consulta: 'geocodificar_localizacao',
+                latitude: coords.lat,
+                longitude: coords.lon
+              }, 5500, opcoesConsulta);
+              return criarEvidenciaCidadeFinal_(resposta?.cidade, 'gps', resposta?.enderecoIdentificado || formatarCoordenadasMapa_(coords));
+            }
+          });
+        }
+
+        if (cep.length === 8) {
+          tarefas.push({
+            fonte: 'cep',
+            executar: async () => {
+              const resposta = await apiRequest('config', { consulta: 'cep', cep }, 5500, opcoesConsulta);
+              return criarEvidenciaCidadeFinal_(resposta?.cidade, 'cep', `CEP ${formatarCepCliente_(resposta?.cep || cep)}`);
+            }
+          });
+        }
+
+        // Sem uma referência geográfica mais precisa, o endereço digitado também é
+        // conferido sem enviar a cidade atual, evitando que "Viçosa" contamine a busca.
+        if (!coords && cep.length !== 8 && endereco.length >= 4) {
+          tarefas.push({
+            fonte: 'endereco',
+            executar: async () => {
+              const resposta = await apiRequest('config', {
+                consulta: 'geocodificar_localizacao',
+                endereco,
+                numero,
+                bairro,
+                cidade: '',
+                uf: 'MG'
+              }, 5500, opcoesConsulta);
+              if (!resposta?.encontrada && !resposta?.ok) return null;
+              return criarEvidenciaCidadeFinal_(resposta?.cidade, 'endereco', resposta?.enderecoIdentificado || [endereco, numero, bairro].filter(Boolean).join(', '));
+            }
+          });
+        }
+
+        if (cnpj.length === 14 && !(cidadeCnpjConferida_.documento === cnpj && cidadeCnpjConferida_.cidade)) {
+          tarefas.push({
+            fonte: 'cnpj',
+            executar: async () => {
+              const resposta = await apiRequest('cnpj', { cnpj }, 5500, opcoesConsulta);
+              const cidade = padronizarCidadeCadastroCliente_(resposta?.cidade || '');
+              if (cidade) cidadeCnpjConferida_ = { documento: cnpj, cidade, verificadaEm: Date.now() };
+              return criarEvidenciaCidadeFinal_(cidade, 'cnpj', `CNPJ ${cnpj}`);
+            }
+          });
+        }
+
+        if (tarefas.length) {
+          const resultados = await Promise.allSettled(tarefas.map(item => item.executar()));
+          resultados.forEach((resultado, indice) => {
+            if (resultado.status !== 'fulfilled' || !resultado.value) return;
+            adicionarEvidenciaCidadeFinal_(
+              evidencias,
+              resultado.value.cidade,
+              resultado.value.fonte || tarefas[indice].fonte,
+              resultado.value.detalhe
+            );
+          });
+        }
+
+        return evidencias;
+      }
+
+      function escolherCidadeFinal_(evidencias = []) {
+        const validas = (Array.isArray(evidencias) ? evidencias : []).filter(item => item?.cidade);
+        if (!validas.length) return null;
+        const ordenadas = [...validas].sort((a, b) => Number(b.prioridade || 0) - Number(a.prioridade || 0));
+        const principal = ordenadas[0];
+        const concordantes = validas.filter(item => normalize(item.cidade) === normalize(principal.cidade));
+        const divergentes = validas.filter(item => normalize(item.cidade) !== normalize(principal.cidade));
+        return { principal, concordantes, divergentes };
+      }
+
+      async function conferirCidadeFinalAntesRegistro_() {
+        if (!navigator.onLine) return confirmarCidadePendenteAntesRegistro_();
+
+        let evidencias = [];
+        try {
+          appStatus.textContent = 'Preparando registro — conferindo cidade do local...';
+          evidencias = await coletarEvidenciasCidadeFinal_();
+        } catch (_) {
+          evidencias = [];
+        }
+
+        const escolha = escolherCidadeFinal_(evidencias);
+        if (!escolha?.principal?.cidade) return confirmarCidadePendenteAntesRegistro_();
+
+        const sugerida = escolha.principal.cidade;
+        const atual = padronizarCidadeCadastroCliente_(cityValue());
+        registrarEvidenciaCidade_(sugerida, escolha.principal.fonte, escolha.principal.detalhe);
+
+        if (!atual || normalize(atual) === normalize(sugerida)) {
+          esconderSugestaoCidade_();
+          return true;
+        }
+
+        const fontesConcordantes = unirRotulosCidadeFinal_(escolha.concordantes);
+        let mensagem = `${fontesConcordantes} ${escolha.concordantes.length > 1 ? 'indicam' : 'indica'} ${sugerida}, mas a cidade selecionada é ${atual}.`;
+
+        if (escolha.divergentes.length) {
+          const conflitos = escolha.divergentes
+            .map(item => `${rotuloFonteCidade_(item.fonte)}: ${item.cidade}`)
+            .filter(Boolean);
+          if (conflitos.length) {
+            mensagem += ` Há outra referência divergente (${conflitos.join('; ')}). Para a vistoria, o local físico confirmado por GPS, CEP ou endereço tem prioridade sobre o endereço cadastral da empresa.`;
+          }
+        } else if (escolha.principal.fonte === 'cnpj') {
+          mensagem += ' O CNPJ é usado como referência de conferência; confirme se este é também o local efetivamente vistoriado.';
+        }
+
+        const resultado = await confirmarCidadeSugerida_(
+          sugerida,
+          fontesConcordantes,
+          { contextoFinal: true, mensagemBase: mensagem }
+        );
+
+        if (resultado?.alterada) {
+          cidadeSugestaoConfirmadaChave_ = '';
+          esconderSugestaoCidade_();
+          return true;
+        }
+
+        cidadeSugestaoConfirmadaChave_ = chaveConfirmacaoCidade_(cityValue(), sugerida, escolha.principal.prioridade);
         esconderSugestaoCidade_();
         return true;
       }
@@ -18604,7 +18803,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         const origem = String(fonte || 'conferência automática').trim();
         const contextoFinal = Boolean(opcoes?.contextoFinal);
-        const mensagemBase = `${origem} indica ${retornada}, mas a cidade selecionada é ${atual}.`;
+        const mensagemPersonalizada = String(opcoes?.mensagemBase || '').trim();
+        const mensagemBase = mensagemPersonalizada || `${origem} indica ${retornada}, mas a cidade selecionada é ${atual}.`;
         const complemento = contextoFinal
           ? ' Confirme o município antes de registrar a vistoria.'
           : ` Deseja alterar a cidade da vistoria para ${retornada}?`;
@@ -18700,6 +18900,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         ultimoCnpjConsultado = '';
         cnpjAssociadoDadosEmpresa = String(novoCnpj || '');
+        cidadeCnpjConferida_ = { documento: '', cidade: '', verificadaEm: 0 };
         esconderHistoricoEstabelecimento_();
         scheduleDraftSave();
       }
@@ -18772,6 +18973,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
           ultimoCnpjConsultado = cnpj;
           cnpjAssociadoDadosEmpresa = cnpj;
+          const cidadeCnpj = padronizarCidadeCadastroCliente_(result?.cidade || '');
+          if (cidadeCnpj) {
+            cidadeCnpjConferida_ = { documento: cnpj, cidade: cidadeCnpj, verificadaEm: Date.now() };
+          }
           const alterados = fillFromCnpj(result || {});
 
           // Confere novamente antes de abrir a confirmação de cidade.
@@ -21589,7 +21794,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         }
         if (!validateRequired(true)) return;
-        if (!(await confirmarCidadePendenteAntesRegistro_())) return;
+        if (!(await conferirCidadeFinalAntesRegistro_())) return;
 
         const nascimentoAtual = document.getElementById('nascimento');
         if (nascimentoAtual && !dataNascimentoValida_(nascimentoAtual.value)) {
@@ -29556,7 +29761,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ht', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hu', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
