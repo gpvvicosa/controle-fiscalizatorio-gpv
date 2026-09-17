@@ -1,4 +1,4 @@
-// V23.9.99hy — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
+// V23.9.99hz — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
 // V23.9.99hx — WhatsApp pós-fiscalização adapta automaticamente as orientações quando houver irregularidade de Brigada de Incêndio.
 // V23.9.99hw — Fiscalização registra irregularidades constatadas em campo e oferece relatórios próprios de Brigada para INFOSCIP/REDS.
 // V23.9.99hu — validação final de cidade cruza GPS, CEP, endereço físico e CNPJ antes de registrar a vistoria.
@@ -41,7 +41,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hy';
+      const APP_VERSION = '23.9.99hz';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2859,7 +2859,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hy';
+      const APP_REVISION_UI_ = '23.9.99hz';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4995,7 +4995,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hy', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hz', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6402,7 +6402,9 @@
         linhas.push('');
         linhas.push('📬 *COMO VOCÊ SERÁ AVISADO*');
         linhas.push('');
-        linhas.push('Primeiramente, será formalmente comunicado o *Auto de Infração*, por meio do procedimento previsto no processo fiscalizatório.');
+        linhas.push('O *Auto de Infração será enviado pelos Correios* ao endereço da edificação, por meio de correspondência com *Aviso de Recebimento – AR*.');
+        linhas.push('');
+        linhas.push('Essa correspondência constitui a comunicação formal da autuação e conterá as informações necessárias para acompanhamento do processo fiscalizatório.');
         linhas.push('');
         linhas.push('Caso a defesa contra o Auto de Infração seja indeferida ou não conhecida, ou não haja manifestação no prazo previsto, será aplicada a *Advertência Escrita*, contendo, entre outras informações, prazo para correção da irregularidade e orientação sobre as próximas etapas do processo.');
         linhas.push('');
@@ -12116,15 +12118,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function verificarCorrecaoAplicadaAposDemora_(chave, linhaHint, alteracoes) {
         let ultimoRegistro = null;
-        for (let tentativa = 0; tentativa < 2; tentativa += 1) {
+        // HZ: a Planilha/Apps Script pode confirmar a gravação alguns segundos depois da resposta inicial.
+        // Fazemos conferências progressivas antes de concluir que a atualização ainda não apareceu no servidor.
+        const atrasosMs = [0, 1200, 2200, 3500, 5200, 7500];
+        for (let tentativa = 0; tentativa < atrasosMs.length; tentativa += 1) {
           try {
-            if (tentativa) await esperarApi_(850);
+            if (atrasosMs[tentativa]) await esperarApi_(atrasosMs[tentativa]);
             ultimoRegistro = await apiRequest('config', {
               consulta: 'registro',
               chave,
               linhaHint: Number(linhaHint || 0),
               modoRapido: true
-            }, 9000, { noRetry:true });
+            }, 12000, { noRetry:true, silentSuccess:true });
             if (alteracoesConfirmadasNoRegistro_(ultimoRegistro, alteracoes)) {
               return { confirmada:true, registro:ultimoRegistro };
             }
@@ -12222,10 +12227,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             operacaoId,
             dispositivo: nomeDispositivo_(),
             alteracoes: Object.fromEntries(alteracoes.map(item => [item.id, item.novo]))
-          }, 30000, {
+          }, 45000, {
             noRetry:true,
             silentSuccess:true,
-            timeoutMessage:'A confirmação da correção está demorando. Verificando se a alteração foi efetivada...'
+            timeoutMessage:'A gravação está demorando mais que o normal. O app continuará conferindo no servidor antes de pedir nova tentativa.'
           });
           await concluirCorrecaoRegistroSucesso_(resposta, chaveAnterior, linhaHint, alteracoes);
         } catch (erro) {
@@ -12234,20 +12239,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const possivelmenteJaAplicada = /nenhuma alteração efetiva foi identificada/i.test(mensagemErro);
           if ((demoraOuRede || possivelmenteJaAplicada) && navigator.onLine) {
             if (recordCorrectionMessage) {
-              recordCorrectionMessage.textContent = 'A resposta demorou. Conferindo no servidor se a correção foi efetivada...';
+              recordCorrectionMessage.textContent = 'Alteração enviada. Confirmando a gravação no servidor...';
               recordCorrectionMessage.className = 'record-correction-message warning';
             }
-            mostrarFeedbackPremium_('A resposta demorou. Conferindo se a correção foi efetivada...', 'warning');
+            mostrarFeedbackPremium_('Alteração enviada. Confirmando a gravação no servidor...', 'warning');
+            if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.textContent = 'Confirmando...';
             const verificacao = await verificarCorrecaoAplicadaAposDemora_(chaveAnterior, linhaHint, alteracoes);
             if (verificacao.confirmada) {
               await concluirCorrecaoRegistroSucesso_(verificacao.registro || {}, chaveAnterior, linhaHint, alteracoes);
               return;
             }
             if (recordCorrectionMessage) {
-              recordCorrectionMessage.textContent = 'A correção ainda não foi confirmada pelo servidor. Os valores permanecem nesta tela. Toque em “Revisar e salvar” para tentar novamente.';
+              recordCorrectionMessage.textContent = 'A solicitação foi enviada, mas o app ainda não conseguiu confirmar a atualização. Os valores permanecem nesta tela. Aguarde alguns segundos e reabra a Ficha para conferir antes de tentar salvar novamente.';
               recordCorrectionMessage.className = 'record-correction-message warning';
             }
-            mostrarFeedbackPremium_('Correção ainda não confirmada. Os dados continuam preenchidos para uma nova tentativa.', 'warning');
+            mostrarFeedbackPremium_('Solicitação enviada; confirmação ainda pendente. Confira a Ficha antes de reenviar.', 'warning');
           } else {
             const mensagem = erro?.message || 'Não foi possível salvar as correções.';
             if (recordCorrectionMessage) {
@@ -30312,7 +30318,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hy', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
