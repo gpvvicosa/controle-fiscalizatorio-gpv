@@ -1,3 +1,4 @@
+// V23.9.99ht — redesenho estrutural das Vistorias Programadas e ação Ver vistoria consistente em todos os filtros.
 // V23.9.99hs — acabamento premium e responsivo do modal de Vistorias Programadas, sem alterar regras ou carregamento.
 // V23.9.99hr — Vistorias Programadas: mobile compacto, sem cadastro no modal e ação explícita Ver vistoria.
 // V23.9.99hq — Vistorias Programadas local-first, atualização em segundo plano, retry e modal responsivo profissional.
@@ -36,7 +37,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hs';
+      const APP_VERSION = '23.9.99ht';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2837,7 +2838,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hs';
+      const APP_REVISION_UI_ = '23.9.99ht';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4973,7 +4974,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hs', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ht', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -26887,21 +26888,36 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const titulo = item.nomeFantasia || item.razaoSocial || (eventoDeclaratorio ? item.eventoDeclaracaoNumero : pscipCard) || 'Vistoria programada';
           const endereco = [item.endereco, item.numero, item.bairro, item.cidade].filter(Boolean).join(', ');
           const prazo = classificarPrazoProgramacao_(item);
-          return `<article class="prepared-card programmed-card ${prazo.classe}${liberacao ? ' is-release' : ''}">
-            <div class="prepared-card-main">
-              <div class="prepared-card-top"><span class="prepared-kind ${liberacao ? 'release' : 'inspection'}">${pet ? 'PET' : (liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização'))}</span><span class="program-deadline-badge ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span><strong>${escapeHtml(formatarDataPreparacao_(item.dataPrevista))}</strong></div>
-              ${liberacao && item.retornoLiberacao ? '<div><span class="prepared-kind release">Retorno de vistoria de liberação</span></div>' : ''}
-              <h3>${escapeHtml(titulo)}</h3>
-              <p class="prepared-identifiers">${escapeHtml(identificadorPrincipal)}${item.pf ? ` <span aria-hidden="true">•</span> PF ${escapeHtml(item.pf)}` : ''}${item.area && !eventoDeclaratorio ? ` <span aria-hidden="true">•</span> ${escapeHtml(item.area)} m²` : ''}</p>
-              <p class="prepared-address">${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
-              <p class="prepared-inspector"><b>Vistoriador:</b> ${escapeHtml(item.vistoriadorResponsavel || 'Não definido')}</p>
+          const tipoRotulo = pet ? 'PET' : (liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização'));
+          const dataRotulo = formatarDataPreparacao_(item.dataPrevista);
+          const responsavelRotulo = item.vistoriadorResponsavel || 'Não definido';
+          return `<article class="programmed-v2-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-programmed-card-id="${escapeAttr(item.id)}">
+            <div class="programmed-v2-main">
+              <div class="programmed-v2-heading">
+                <div class="programmed-v2-badges">
+                  <span class="programmed-v2-kind ${liberacao ? 'release' : 'inspection'}">${escapeHtml(tipoRotulo)}</span>
+                  <span class="programmed-v2-deadline ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span>
+                  ${liberacao && item.retornoLiberacao ? '<span class="programmed-v2-return">Retorno</span>' : ''}
+                </div>
+                <time class="programmed-v2-date">${escapeHtml(dataRotulo)}</time>
+              </div>
+              <div class="programmed-v2-content">
+                <h3>${escapeHtml(titulo)}</h3>
+                <div class="programmed-v2-meta">
+                  <span>${escapeHtml(identificadorPrincipal)}</span>
+                  ${item.pf ? `<span>PF ${escapeHtml(item.pf)}</span>` : ''}
+                  ${item.area && !eventoDeclaratorio ? `<span>${escapeHtml(item.area)} m²</span>` : ''}
+                </div>
+                <p class="programmed-v2-address">${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
+                <p class="programmed-v2-inspector"><span>Vistoriador</span><strong>${escapeHtml(responsavelRotulo)}</strong></p>
+              </div>
             </div>
-            <div class="prepared-card-actions">
-              ${item.arquivoDwgUrl ? `<a class="btn btn-secondary" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir arquivo</a>` : ''}
-              <button type="button" class="btn btn-secondary prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
-              <button type="button" class="btn btn-secondary prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
-              ${item.vistoriaIniciada ? `<button type="button" class="btn btn-secondary prepared-cancel-fill-btn" data-preparacao-cancel-fill-id="${escapeAttr(item.id)}">Cancelar preenchimento</button>` : ''}
-              <button type="button" class="btn btn-primary prepared-open-btn programmed-view-btn" data-preparacao-id="${escapeAttr(item.id)}" aria-label="Ver vistoria programada de ${escapeAttr(titulo)}">Ver vistoria</button>
+            <div class="programmed-v2-actions" aria-label="Ações da vistoria programada">
+              <button type="button" class="btn btn-primary programmed-v2-view programmed-view-btn" data-preparacao-id="${escapeAttr(item.id)}" aria-label="Ver vistoria programada de ${escapeAttr(titulo)}">Ver vistoria</button>
+              <button type="button" class="btn btn-secondary programmed-v2-edit prepared-edit-btn" data-preparacao-edit-id="${escapeAttr(item.id)}" aria-label="Editar programação de ${escapeAttr(titulo)}">Editar</button>
+              <button type="button" class="btn btn-secondary programmed-v2-delete prepared-delete-btn" data-preparacao-delete-id="${escapeAttr(item.id)}" aria-label="Excluir programação de ${escapeAttr(titulo)}">Excluir</button>
+              ${item.arquivoDwgUrl ? `<a class="btn btn-secondary programmed-v2-file" href="${escapeAttr(item.arquivoDwgUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir arquivo</a>` : ''}
+              ${item.vistoriaIniciada ? `<button type="button" class="btn btn-secondary programmed-v2-cancel prepared-cancel-fill-btn" data-preparacao-cancel-fill-id="${escapeAttr(item.id)}">Cancelar preenchimento</button>` : ''}
             </div>
           </article>`;
         };
@@ -29540,7 +29556,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hs', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ht', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
