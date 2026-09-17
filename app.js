@@ -1,4 +1,4 @@
-// V23.9.99hv — Programadas usam cidade estruturada da área de cobertura e ocupações oficiais com seleção múltipla no cadastro/edição.
+// V23.9.99hw — Fiscalização registra irregularidades constatadas em campo e oferece relatórios próprios de Brigada para INFOSCIP/REDS.
 // V23.9.99hu — validação final de cidade cruza GPS, CEP, endereço físico e CNPJ antes de registrar a vistoria.
 // V23.9.99ht — redesenho estrutural das Vistorias Programadas e ação Ver vistoria consistente em todos os filtros.
 // V23.9.99hs — acabamento premium e responsivo do modal de Vistorias Programadas, sem alterar regras ou carregamento.
@@ -39,7 +39,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hv';
+      const APP_VERSION = '23.9.99hw';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -1000,7 +1000,7 @@
         const campos = [
           'tipoVistoria','nomeFantasia','razaoSocial','cnpj','pf','reds','endereco','numero','bairro','localizacaoCoordenadas',
           'demandaPrincipal','sancao','responsavel','nomeResponsavel','cpf','telefone','pscip','ocupacao',
-          'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado','acessoriaTipoLicenca','acessoriaClcbAnulado','acessoriaClcbSeraAnulado','tipoLicenciamentoFiscalizacao','clcbIrregularidadeDocumental','clcbMotivoIrregularidadeDocumental','clcbSeraAnuladoInfoscip',
+          'eventoDeclaracaoNumero','eventoNome','eventoOrganizador','dduProtocol','acessoriaResultado','acessoriaTipoLicenca','acessoriaClcbAnulado','acessoriaClcbSeraAnulado','tipoLicenciamentoFiscalizacao','clcbIrregularidadeDocumental','clcbMotivoIrregularidadeDocumental','clcbSeraAnuladoInfoscip','irregularidadesFiscalizacaoStatus','irregularidadesFiscalizacao',
           '_appPreparacaoId','_appDduId','_appAcessoriaPfVinculado'
         ];
         if (campos.some(chave => String(p[chave] == null ? '' : p[chave]).trim())) return true;
@@ -2372,6 +2372,14 @@
       const eventoTelefoneOrganizadorInput = document.getElementById('eventoTelefoneOrganizador');
       const eventoResponsavelEhOrganizadorCheck = document.getElementById('eventoResponsavelEhOrganizador');
       const eventoResponsavelEhOrganizadorHint = document.getElementById('eventoResponsavelEhOrganizadorHint');
+      const irregularidadesFiscalizacaoSecao = document.getElementById('irregularidadesFiscalizacaoSecao');
+      const irregularidadesFiscalizacaoStatus = document.getElementById('irregularidadesFiscalizacaoStatus');
+      const irregularidadesFiscalizacaoListaWrap = document.getElementById('irregularidadesFiscalizacaoListaWrap');
+      const irregularidadesFiscalizacaoLista = document.getElementById('irregularidadesFiscalizacaoLista');
+      const irregularidadesFiscalizacaoDetalhes = document.getElementById('irregularidadesFiscalizacaoDetalhes');
+      const brigadaIrregularidadeRelatoriosAviso = document.getElementById('brigadaIrregularidadeRelatoriosAviso');
+      const irregularidadesFiscalizacaoChecks = Array.from(document.querySelectorAll('[data-irregularidade-fiscalizacao]'));
+      const irregularidadesFiscalizacaoDetalhesMap_ = new Map();
       const notificacoesLiberacaoSecao = document.getElementById('notificacoesLiberacaoSecao');
       const notificacoesLiberacaoLista = document.getElementById('notificacoesLiberacaoLista');
       const fotosGeraisSecao = document.getElementById('fotosGeraisSecao');
@@ -2847,7 +2855,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hv';
+      const APP_REVISION_UI_ = '23.9.99hw';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4983,7 +4991,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hv', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hw', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -9675,12 +9683,12 @@ DURANTE VISTORIA DE FISCALIZAÇÃO VINCULADA AO PROCESSO FISCALIZATÓRIO Nº {{P
 O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
         },
         brigadaVencida: {
-          titulo: 'Fiscalização — brigada vencida',
+          titulo: 'Fiscalização — Brigada de Incêndio sem certificado válido',
           texto: `EM AÇÃO FISCALIZADORA, COMPARECEMOS AO ENDEREÇO MENCIONADO NESTE RELATÓRIO PARA A REALIZAÇÃO DE VISTORIA DE FISCALIZAÇÃO, NOS TERMOS DO ART. 4º, INCISO III, DO DECRETO ESTADUAL Nº 47.998/2020 E DO ITEM 5.1 DA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
-DURANTE A VISTORIA, FOI CONSTATADO QUE A EDIFICAÇÃO APRESENTA IRREGULARIDADES (NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO), AS QUAIS FORAM REGISTRADAS NO PROCESSO FISCALIZATÓRIO Nº {{PF}}, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
+DURANTE A VISTORIA VINCULADA AO PROCESSO FISCALIZATÓRIO Nº {{PF}}, FOI CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO, EM DESACORDO COM A PORTARIA CBMMG Nº 51/2020, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA NOS TERMOS DO DECRETO ESTADUAL Nº 47.998/2020, TENDO SIDO EMITIDO, NO SISTEMA INFOSCIP, O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº {{AUTO}}.
 
-O RESPONSÁVEL FOI ORIENTADO SOBRE A NECESSIDADE DE REGULARIZAÇÃO, E CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
+O RESPONSÁVEL FOI CIENTIFICADO DE QUE A AUTUAÇÃO SERÁ FORMALMENTE COMUNICADA POR MEIO DE CORRESPONDÊNCIA ENVIADA VIA AVISO DE RECEBIMENTO (AR) AO ENDEREÇO DA EDIFICAÇÃO.`
         },
         renovacaoAvcb: {
           titulo: 'Fiscalização — Renovação AVCB',
@@ -9828,8 +9836,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA EM ATENDIMENTO A DEMANDA RECEBIDA PELO DDU. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI AVCB/CLCB VÁLIDO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
         },
         brigadaVencida: {
-          titulo: 'Fiscalização — brigada vencida',
-          texto: `VISTORIA DE FISCALIZAÇÃO REALIZADA. CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA, NOS TERMOS DO ITEM 5.2 DA INSTRUÇÃO TÉCNICA Nº 45 (1ª EDIÇÃO) DO CBMMG. RESPONSÁVEL ORIENTADO QUANTO À NECESSIDADE DE REGULARIZAÇÃO.`
+          titulo: 'Fiscalização — Brigada de Incêndio sem certificado válido',
+          texto: `DURANTE VISTORIA DE FISCALIZAÇÃO, FOI CONSTATADO QUE A EDIFICAÇÃO NÃO POSSUI CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO, EM DESACORDO COM A PORTARIA CBMMG Nº 51/2020, CARACTERIZANDO INFRAÇÃO ADMINISTRATIVA NOS TERMOS DO DECRETO ESTADUAL Nº 47.998/2020.`
         },
         renovacaoAvcb: {
           titulo: 'Fiscalização — Renovação AVCB',
@@ -10321,6 +10329,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const projeto = valorPscipOperacionalFicha_(registro);
         const licenciamento = normalize(valorCampoFicha_(registro, 'Situação do licenciamento'));
         const acessoria = demanda.includes(normalize('Vistoria Acessória'));
+        const irregularidadesConstatadas = normalize(valorCampoFicha_(registro, 'Irregularidades constatadas'));
+        const brigadaConstatada = irregularidadesConstatadas.includes(normalize('Brigada de Incêndio'));
         if (acessoria) {
           const resultado = normalize(valorCampoFicha_(registro, 'Resultado da vistoria acessória'));
           const tipoLicenca = String(valorCampoFicha_(registro, 'Documento de licenciamento da acessória') || '').toUpperCase();
@@ -10339,6 +10349,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             ? ([normalize('dispensado'), normalize('Dispensado de licenciamento')].includes(licenciamento) ? 'acessoriaDispensado' : 'acessoriaLicenciado')
             : '';
         }
+        if (brigadaConstatada) return 'brigadaVencida';
         const tipoLicenciamentoFiscalizacao = String(valorCampoFicha_(registro, 'Tipo do licenciamento') || '').toUpperCase();
         const clcbIrregularidadeDocumental = normalize(valorCampoFicha_(registro, 'Irregularidade documental no CLCB')) === normalize('Sim');
         const clcbSeraAnulado = normalize(valorCampoFicha_(registro, 'CLCB será anulado no INFOSCIP')) === normalize('Sim');
@@ -10402,7 +10413,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ...(!ehAcessoria ? [
             ['clcbFoiAnulado', 'Fiscalização — CLCB anulado por irregularidade documental'],
             ['ddu', 'DDU — fiscalização autuada'],
-            ['brigadaVencida', 'Fiscalização — brigada vencida'],
+            ['brigadaVencida', 'Fiscalização — Brigada de Incêndio sem certificado válido'],
             ['avcbVencido', 'Fiscalização — AVCB vencido'],
             ['comPscipSemAvcb', 'Fiscalização — Autuado — com PSCIP — sem AVCB'],
             ['irregular', 'Fiscalização — irregularidade / autuação'],
@@ -13873,6 +13884,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (ddu && dduProtocolInput && !dduProtocolInput.value && dduEmUsoNumero) dduProtocolInput.value = dduEmUsoNumero;
         sincronizarVistoriaAcessoria_();
         sincronizarTipoLiberacao_();
+        atualizarIrregularidadesFiscalizacaoUi_({ preservarSelecao: true });
       }
 
       function formatarDocumentoEvento_(valor) {
@@ -14254,6 +14266,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (f === 'liberacao') etapaSegura('retorno de liberação', () => agendarConsultaRetornoLiberacao_(300));
         else etapaSegura('limpeza retorno de liberação', resetarRetornoLiberacao_);
         etapaSegura('modo evento declaratório', () => aplicarModoEventoDeclaratorio_({ silencioso: true }));
+        etapaSegura('irregularidades da fiscalização', () => atualizarIrregularidadesFiscalizacaoUi_({ preservarSelecao: true }));
         etapaSegura('situação Notificado', syncNotificado);
         etapaSegura('verificação de metas', atualizarVerificacaoMetasFiscalizacao_);
         etapaSegura('estimativa de multa', atualizarEstimativaMultaVistoria_);
@@ -16219,6 +16232,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           clcbIrregularidadeDocumental: (!eventoDeclaratorio && ehFluxoFiscalizacao_() && !acessoria && String(value('tipoLicenciamentoFiscalizacao') || '').toUpperCase() === 'CLCB') ? value('clcbIrregularidadeDocumental') : '',
           clcbMotivoIrregularidadeDocumental: (!eventoDeclaratorio && ehFluxoFiscalizacao_() && !acessoria && normalize(value('clcbIrregularidadeDocumental')) === normalize('sim')) ? value('clcbMotivoIrregularidadeDocumental') : '',
           clcbSeraAnuladoInfoscip: (!eventoDeclaratorio && ehFluxoFiscalizacao_() && !acessoria && normalize(value('clcbIrregularidadeDocumental')) === normalize('sim')) ? value('clcbSeraAnuladoInfoscip') : '',
+          irregularidadesFiscalizacaoStatus: (ehFluxoFiscalizacao_() && !acessoria) ? statusIrregularidadesFiscalizacaoNormalizado_() : '',
+          irregularidadesFiscalizacao: (ehFluxoFiscalizacao_() && !acessoria) ? serializarIrregularidadesFiscalizacao_() : '',
           _appPossuiPscip: eventoDeclaratorio ? '' : value('possuiPscip'),
           situacaoPscip: eventoDeclaratorio ? '' : value('situacaoPscip'),
           _appSancaoAntesAuto: sancaoAntesDoAutomatico,
@@ -16577,6 +16592,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               first = first || clcbSeraAnuladoInfoscipSelect;
             }
           }
+        }
+        if (ehFluxoFiscalizacao_() && !ehVistoriaAcessoria_() && statusIrregularidadesFiscalizacaoNormalizado_() === 'sim' && tiposIrregularidadesFiscalizacaoSelecionados_().length === 0) {
+          irregularidadesFiscalizacaoStatus?.classList.add('invalid');
+          return mostrarPendenciaValidacaoGuiada_(
+            irregularidadesFiscalizacaoStatus,
+            'Você informou que existem irregularidades. Selecione ao menos uma irregularidade ou altere para “Nenhuma irregularidade constatada”.',
+            1,
+            showMessage,
+            irregularidadesFiscalizacaoSecao
+          );
         }
         if (ehVistoriaAcessoria_()) {
           const pfAtual = String(value('pf') || '').trim();
@@ -17199,6 +17224,102 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const mostrarAnulacao = mostrarIrregularidade && irregularidade;
         if (clcbSeraAnuladoInfoscipWrap) clcbSeraAnuladoInfoscipWrap.hidden = !mostrarAnulacao;
         if (!mostrarAnulacao && clcbSeraAnuladoInfoscipSelect) clcbSeraAnuladoInfoscipSelect.value = '';
+      }
+
+      function statusIrregularidadesFiscalizacaoNormalizado_(valor = irregularidadesFiscalizacaoStatus?.value || '') {
+        const n = normalize(valor);
+        if ([normalize('sim'), normalize('Irregularidades constatadas')].includes(n)) return 'sim';
+        if ([normalize('nenhuma'), normalize('Nenhuma irregularidade constatada')].includes(n)) return 'nenhuma';
+        return '';
+      }
+
+      function limparTextoDetalheIrregularidade_(texto) {
+        return String(texto || '').replace(/[|\r\n]+/g, ' / ').replace(/\s+/g, ' ').trim();
+      }
+
+      function tiposIrregularidadesFiscalizacaoSelecionados_() {
+        return irregularidadesFiscalizacaoChecks.filter(check => check.checked).map(check => String(check.value || '').trim()).filter(Boolean);
+      }
+
+      function irregularidadeBrigadaFiscalizacaoSelecionada_() {
+        return tiposIrregularidadesFiscalizacaoSelecionados_().some(tipo => normalize(tipo).includes(normalize('Brigada de Incêndio')));
+      }
+
+      function serializarIrregularidadesFiscalizacao_() {
+        if (!ehFluxoFiscalizacao_() || ehVistoriaAcessoria_() || statusIrregularidadesFiscalizacaoNormalizado_() !== 'sim') return '';
+        return tiposIrregularidadesFiscalizacaoSelecionados_().map(tipo => {
+          const detalhe = limparTextoDetalheIrregularidade_(irregularidadesFiscalizacaoDetalhesMap_.get(tipo) || '');
+          return detalhe ? `${tipo}: ${detalhe}` : tipo;
+        }).join(' | ');
+      }
+
+      function renderizarDetalhesIrregularidadesFiscalizacao_() {
+        if (!irregularidadesFiscalizacaoDetalhes) return;
+        const selecionadas = tiposIrregularidadesFiscalizacaoSelecionados_();
+        irregularidadesFiscalizacaoDetalhes.innerHTML = '';
+        irregularidadesFiscalizacaoDetalhes.hidden = selecionadas.length === 0;
+        selecionadas.forEach((tipo, indice) => {
+          const bloco = document.createElement('div');
+          bloco.className = 'field wide';
+          const id = `irregularidadeFiscalizacaoDetalhe_${indice}`;
+          const detalhe = irregularidadesFiscalizacaoDetalhesMap_.get(tipo) || '';
+          bloco.innerHTML = `<label for="${id}">Detalhar — ${escapeHtml(tipo)} <span class="field-optional">opcional</span></label><textarea id="${id}" rows="2" data-irregularidade-fiscalizacao-detalhe="${escapeHtml(tipo)}" placeholder="Descreva objetivamente o que foi constatado em campo.">${escapeHtml(detalhe)}</textarea>`;
+          irregularidadesFiscalizacaoDetalhes.appendChild(bloco);
+        });
+      }
+
+      function atualizarIrregularidadesFiscalizacaoUi_(opcoes = {}) {
+        const mostrarSecao = ehFluxoFiscalizacao_() && !ehVistoriaAcessoria_();
+        if (irregularidadesFiscalizacaoSecao) irregularidadesFiscalizacaoSecao.hidden = !mostrarSecao;
+        const status = statusIrregularidadesFiscalizacaoNormalizado_();
+        const mostrarLista = mostrarSecao && status === 'sim';
+        if (irregularidadesFiscalizacaoListaWrap) irregularidadesFiscalizacaoListaWrap.hidden = !mostrarLista;
+        if (mostrarSecao && status === 'nenhuma' && !opcoes.preservarSelecao) {
+          irregularidadesFiscalizacaoChecks.forEach(check => { check.checked = false; });
+          irregularidadesFiscalizacaoDetalhesMap_.clear();
+        }
+        if (mostrarLista) renderizarDetalhesIrregularidadesFiscalizacao_();
+        else if (irregularidadesFiscalizacaoDetalhes) {
+          irregularidadesFiscalizacaoDetalhes.innerHTML = '';
+          irregularidadesFiscalizacaoDetalhes.hidden = true;
+        }
+        if (brigadaIrregularidadeRelatoriosAviso) brigadaIrregularidadeRelatoriosAviso.hidden = !(mostrarLista && irregularidadeBrigadaFiscalizacaoSelecionada_());
+      }
+
+      function restaurarIrregularidadesFiscalizacao_(statusBruto, resumoBruto) {
+        irregularidadesFiscalizacaoDetalhesMap_.clear();
+        irregularidadesFiscalizacaoChecks.forEach(check => { check.checked = false; });
+        const status = statusIrregularidadesFiscalizacaoNormalizado_(statusBruto);
+        if (irregularidadesFiscalizacaoStatus) irregularidadesFiscalizacaoStatus.value = status;
+        const resumo = String(resumoBruto || '').trim();
+        const partes = resumo ? resumo.split(/\s+\|\s+/).map(item => item.trim()).filter(Boolean) : [];
+        const desconhecidas = [];
+        partes.forEach(item => {
+          const check = irregularidadesFiscalizacaoChecks.find(opcao => {
+            const tipo = String(opcao.value || '').trim();
+            return item === tipo || item.startsWith(`${tipo}:`);
+          });
+          if (!check) { desconhecidas.push(item); return; }
+          check.checked = true;
+          const tipo = String(check.value || '').trim();
+          const detalhe = item === tipo ? '' : item.slice(tipo.length + 1).trim();
+          if (detalhe) irregularidadesFiscalizacaoDetalhesMap_.set(tipo, detalhe);
+        });
+        if (desconhecidas.length) {
+          const outras = irregularidadesFiscalizacaoChecks.find(check => normalize(check.value) === normalize('Outras irregularidades'));
+          if (outras) {
+            outras.checked = true;
+            irregularidadesFiscalizacaoDetalhesMap_.set('Outras irregularidades', desconhecidas.join(' / '));
+          }
+        }
+        atualizarIrregularidadesFiscalizacaoUi_({ preservarSelecao: true });
+      }
+
+      function resetarIrregularidadesFiscalizacao_() {
+        if (irregularidadesFiscalizacaoStatus) irregularidadesFiscalizacaoStatus.value = '';
+        irregularidadesFiscalizacaoChecks.forEach(check => { check.checked = false; });
+        irregularidadesFiscalizacaoDetalhesMap_.clear();
+        atualizarIrregularidadesFiscalizacaoUi_({ preservarSelecao: true });
       }
 
       function syncLicenciamento() {
@@ -21180,7 +21301,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (cityOptions.includes(p.cidade)) citySelect.value = p.cidade;
         else if (p.cidade) { citySelect.value = 'Outro'; otherCity.value = p.cidade; }
         Object.entries(p).forEach(([key, val]) => {
-          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key.startsWith('_app')) return;
+          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key === 'irregularidadesFiscalizacaoStatus' || key === 'irregularidadesFiscalizacao' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
         // V23.9.99gp — o campo visual da acessória mantém o id histórico para não
@@ -21192,6 +21313,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         protegerCamposResponsavelPreenchidos_();
         restaurarNotificacoesLiberacao_(p.notificacoesLiberacao);
         restaurarFotosGerais_(p.fotosGerais);
+        restaurarIrregularidadesFiscalizacao_(p.irregularidadesFiscalizacaoStatus, p.irregularidadesFiscalizacao);
         restaurarRetornoLiberacaoDoPayload_(p);
         restaurarOcupacoesSelecionadas(p.ocupacao);
         renderizarMedidasProjetoPrevistasCampo_(p._appMedidasProjetoPrevistas || '');
@@ -21324,6 +21446,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         dduEmUsoNumero = '';
         processoAcessoriaVinculado = null;
         form.reset();
+        resetarIrregularidadesFiscalizacao_();
         renderizarMedidasProjetoPrevistasCampo_('');
         if (limpezaForte) limparCamposFormularioEncerrado_();
         limparStatusLocalizacao_();
@@ -21521,6 +21644,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         }
 
+        if (irregularidadeBrigadaFiscalizacaoSelecionada_()) {
+          if (!String(value('pf') || '').trim()) adicionarAlerta('Brigada de Incêndio: o relatório do REDS ficará com o Nº do Processo Fiscalizatório pendente até o PF ser informado.');
+          adicionarAlerta('Brigada de Incêndio: confira na Ficha os textos específicos do INFOSCIP Fiscalização e do REDS. O Nº do Auto pode ser informado posteriormente após emissão no INFOSCIP.');
+        }
+
         return { bloqueios, alertas };
       }
 
@@ -21677,6 +21805,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ['Área da edificação', payload?.area ? `${payload.area} m²` : '—'],
               ['Situação pretendida', situacaoPretendida],
               [usuarioPodeOperar_() ? 'Situação final' : 'Situação no treinamento', situacaoFinal],
+              ...(String(payload?.irregularidadesFiscalizacaoStatus || '').trim() ? [['Condição constatada em campo', statusIrregularidadesFiscalizacaoNormalizado_(payload.irregularidadesFiscalizacaoStatus) === 'sim' ? 'Irregularidades constatadas' : 'Nenhuma irregularidade constatada']] : []),
+              ...(String(payload?.irregularidadesFiscalizacao || '').trim() ? [['Irregularidades constatadas', payload.irregularidadesFiscalizacao]] : []),
               ...(normalize(payload?.tipoLiberacao || '') === normalize('parcial') ? [
                 ['Tipo da liberação', 'Parcial'],
                 ['Área/trecho liberado', payload?.liberacaoParcialDescricao || '—'],
@@ -28809,6 +28939,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       clcbIrregularidadeDocumentalSelect?.addEventListener('change', () => { sincronizarClcbFiscalizacao_(); scheduleDraftSave(); });
       clcbMotivoIrregularidadeDocumentalInput?.addEventListener('input', scheduleDraftSave);
       clcbSeraAnuladoInfoscipSelect?.addEventListener('change', scheduleDraftSave);
+      irregularidadesFiscalizacaoStatus?.addEventListener('change', () => {
+        atualizarIrregularidadesFiscalizacaoUi_();
+        scheduleDraftSave();
+      });
+      irregularidadesFiscalizacaoLista?.addEventListener('change', event => {
+        const check = event.target.closest?.('[data-irregularidade-fiscalizacao]');
+        if (!check) return;
+        const tipo = String(check.value || '').trim();
+        if (!check.checked) irregularidadesFiscalizacaoDetalhesMap_.delete(tipo);
+        renderizarDetalhesIrregularidadesFiscalizacao_();
+        if (brigadaIrregularidadeRelatoriosAviso) brigadaIrregularidadeRelatoriosAviso.hidden = !irregularidadeBrigadaFiscalizacaoSelecionada_();
+        scheduleDraftSave();
+      });
+      irregularidadesFiscalizacaoDetalhes?.addEventListener('input', event => {
+        const campo = event.target.closest?.('[data-irregularidade-fiscalizacao-detalhe]');
+        if (!campo) return;
+        irregularidadesFiscalizacaoDetalhesMap_.set(String(campo.dataset.irregularidadeFiscalizacaoDetalhe || ''), campo.value || '');
+        scheduleDraftSave();
+      });
       tipoLiberacaoSelect?.addEventListener('change', () => { sincronizarTipoLiberacao_(); scheduleDraftSave(); });
       acessoriaResultadoSelect?.addEventListener('change', () => { atualizarOpcoesSancaoPorFluxo_(); sincronizarVistoriaAcessoria_(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
       acessoriaTipoLicencaSelect?.addEventListener('change', () => { sincronizarVistoriaAcessoria_(); scheduleDraftSave(); });
@@ -29902,7 +30051,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hv', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hw', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas

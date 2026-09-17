@@ -1,4 +1,4 @@
-// V23.9.99hv — shell das Programadas com cidade estruturada e seleção oficial de ocupações.
+// V23.9.99hw — shell com irregularidades estruturadas da Fiscalização e relatórios próprios de Brigada.
 // V23.9.99hu — shell da validação cruzada de cidade por GPS, CEP, endereço físico e CNPJ.
 // V23.9.99ht — shell do redesenho estrutural de Vistorias Programadas.
 // V23.9.99hs — shell do acabamento premium e responsivo de Vistorias Programadas.
@@ -10,9 +10,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20260916-v23-9-99-hu-validacao-cidade';
+const CACHE_NAME = 'gpv-vistorias-shell-20260917-v23-9-99-hw-irregularidades-fiscalizacao';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99hv';
+const VERSION = '23.9.99hw';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
