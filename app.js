@@ -1,3 +1,4 @@
+// V23.9.99hv — Programadas usam cidade estruturada da área de cobertura e ocupações oficiais com seleção múltipla no cadastro/edição.
 // V23.9.99hu — validação final de cidade cruza GPS, CEP, endereço físico e CNPJ antes de registrar a vistoria.
 // V23.9.99ht — redesenho estrutural das Vistorias Programadas e ação Ver vistoria consistente em todos os filtros.
 // V23.9.99hs — acabamento premium e responsivo do modal de Vistorias Programadas, sem alterar regras ou carregamento.
@@ -38,7 +39,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hu';
+      const APP_VERSION = '23.9.99hv';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2527,6 +2528,12 @@
       const prepareTipo = document.getElementById('prepareTipo');
       const prepareData = document.getElementById('prepareData');
       const prepareVistoriador = document.getElementById('prepareVistoriador');
+      const prepareCidade = document.getElementById('prepareCidade');
+      const prepareOcupacaoInput = document.getElementById('prepareOcupacao');
+      const prepareOcupacaoToggle = document.getElementById('prepareOcupacaoToggle');
+      const prepareOcupacaoSelectionSummary = document.getElementById('prepareOcupacaoSelectionSummary');
+      const prepareOcupacoesSelecionadasBox = document.getElementById('prepareOcupacoesSelecionadasBox');
+      const prepareOcupacoesSelecionadasLista = document.getElementById('prepareOcupacoesSelecionadasLista');
       const preparePfInput = document.getElementById('preparePf');
       const preparePfLookupStatus = document.getElementById('preparePfLookupStatus');
       const preparePfLookupResults = document.getElementById('preparePfLookupResults');
@@ -2654,6 +2661,7 @@
       const ocupacaoSearch = document.getElementById('ocupacaoSearch');
       const ocupacaoSelectorList = document.getElementById('ocupacaoSelectorList');
       const ocupacaoSelectorStatus = document.getElementById('ocupacaoSelectorStatus');
+      const ocupacaoSelectorTitle = document.getElementById('ocupacaoSelectorTitle');
       const reviewModal = document.getElementById('reviewModal');
       const reviewList = document.getElementById('reviewList');
       const reviewIntelligentNotice = document.getElementById('reviewIntelligentNotice');
@@ -2839,7 +2847,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hu';
+      const APP_REVISION_UI_ = '23.9.99hv';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4975,7 +4983,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hu', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hv', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5043,6 +5051,8 @@
       let ocupacaoSelecionada = null;
       let ocupacoesSelecionadas = [];
       let ocupacoesSelecaoTemporaria_ = new Set();
+      let ocupacaoSelectorContexto_ = 'vistoria';
+      let prepareOcupacoesSelecionadas_ = [];
       let currentRecordId = criarIdRegistro();
       let sendingQueue = false;
       let pendingCache = [];
@@ -5446,6 +5456,38 @@
         ].filter(cidade => cidade && normalize(cidade) !== 'outro');
         const oficial = cidades.find(cidade => normalize(cidade) === normalize(texto));
         return oficial || padronizarTextoCadastroCliente_(texto);
+      }
+
+      function cidadesCoberturaPreparacao_() {
+        const fonte = [
+          ...(Array.isArray(appConfig?.opcoes?.cidade) ? appConfig.opcoes.cidade : []),
+          ...(Array.isArray(DEFAULT_CONFIG?.opcoes?.cidade) ? DEFAULT_CONFIG.opcoes.cidade : [])
+        ];
+        const vistas = new Set();
+        return fonte
+          .map(v => String(v || '').trim())
+          .filter(v => v && normalize(v) !== normalize('Outro'))
+          .filter(v => {
+            const chave = normalize(v);
+            if (!chave || vistas.has(chave)) return false;
+            vistas.add(chave);
+            return true;
+          });
+      }
+
+      function preencherCidadesPreparacao_(valorSelecionado = '') {
+        if (!prepareCidade) return;
+        const preferido = padronizarCidadeCadastroCliente_(valorSelecionado || prepareCidade.value || appConfig?.padroes?.cidade || 'Viçosa');
+        const cidades = cidadesCoberturaPreparacao_();
+        if (preferido && !cidades.some(cidade => normalize(cidade) === normalize(preferido))) cidades.push(preferido);
+        prepareCidade.innerHTML = cidades.map(cidade => `<option value="${escapeAttr(cidade)}">${escapeHtml(cidade)}</option>`).join('');
+        const correspondente = cidades.find(cidade => normalize(cidade) === normalize(preferido));
+        prepareCidade.value = correspondente || cidades[0] || 'Viçosa';
+      }
+
+      function definirCidadePreparacao_(valor) {
+        preencherCidadesPreparacao_(valor || appConfig?.padroes?.cidade || 'Viçosa');
+        return String(prepareCidade?.value || '').trim();
       }
 
       function padronizarCampoFichaCliente_(rotulo, valor) {
@@ -12732,7 +12774,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareEndereco', dados.endereco);
         set('prepareNumero', dados.numero);
         set('prepareBairro', dados.bairro);
-        set('prepareCidade', dados.cidade || 'Viçosa');
+        definirCidadePreparacao_(dados.cidade || appConfig?.padroes?.cidade || 'Viçosa');
         set('prepareTipo', '');
         set('prepareDemanda', '');
         set('preparePscip', 'PRJ');
@@ -13379,6 +13421,77 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacaoToggle?.setAttribute('aria-expanded', 'true');
       }
 
+      function ocupacaoPreparacaoJaSelecionada_(valor) {
+        const alvo = normalize(valor);
+        return prepareOcupacoesSelecionadas_.some(registro => normalize(registro?.valor) === alvo);
+      }
+
+      function ocupacaoPreparacaoTextoFinal_() {
+        return prepareOcupacoesSelecionadas_.map(registro => String(registro?.valor || '').trim()).filter(Boolean).join(' | ');
+      }
+
+      function renderizarOcupacoesPreparacaoSelecionadas_() {
+        if (prepareOcupacaoInput) prepareOcupacaoInput.value = ocupacaoPreparacaoTextoFinal_();
+        if (prepareOcupacaoSelectionSummary) prepareOcupacaoSelectionSummary.textContent = prepareOcupacoesSelecionadas_.length
+          ? `${prepareOcupacoesSelecionadas_.length} ocupação${prepareOcupacoesSelecionadas_.length === 1 ? '' : 'ões'} selecionada${prepareOcupacoesSelecionadas_.length === 1 ? '' : 's'}`
+          : 'Nenhuma ocupação selecionada';
+        if (!prepareOcupacoesSelecionadasLista || !prepareOcupacoesSelecionadasBox) return;
+        prepareOcupacoesSelecionadasLista.innerHTML = '';
+        if (!prepareOcupacoesSelecionadas_.length) {
+          prepareOcupacoesSelecionadasBox.classList.remove('show');
+          return;
+        }
+        prepareOcupacoesSelecionadas_.forEach((registro, indice) => {
+          const item = registro?.item || localizarOcupacaoPorValor(registro?.valor);
+          const linha = document.createElement('div');
+          linha.className = 'occupancy-chip';
+          const principal = document.createElement('div');
+          principal.className = 'occupancy-chip-main';
+          if (item) {
+            principal.innerHTML =
+              '<strong>Grupo ' + escapeHtml(letraGrupoOcupacao(item)) + ' • ' + escapeHtml(item.divisao + ' — ' + item.grupo) + '</strong>' +
+              '<span>' + escapeHtml(item.descricao) + '</span>' +
+              '<small>Carga de incêndio: ' + escapeHtml(cargaLabel(item.carga)) + '</small>';
+          } else {
+            principal.innerHTML = '<strong>Ocupação preservada do cadastro anterior</strong><span>' + escapeHtml(registro?.valor || '') + '</span>';
+          }
+          const remover = document.createElement('button');
+          remover.type = 'button';
+          remover.className = 'occupancy-chip-remove';
+          remover.setAttribute('aria-label', 'Remover ocupação da vistoria programada');
+          remover.textContent = '×';
+          remover.addEventListener('click', () => {
+            prepareOcupacoesSelecionadas_.splice(indice, 1);
+            renderizarOcupacoesPreparacaoSelecionadas_();
+            if (ocupacaoSelectorModal && !ocupacaoSelectorModal.hidden && ocupacaoSelectorContexto_ === 'prepare') {
+              ocupacoesSelecaoTemporaria_ = new Set(prepareOcupacoesSelecionadas_
+                .filter(reg => reg?.item || localizarOcupacaoPorValor(reg?.valor))
+                .map(reg => normalize(reg.valor)));
+              renderizarSeletorOcupacao_();
+            }
+          });
+          linha.appendChild(principal);
+          linha.appendChild(remover);
+          prepareOcupacoesSelecionadasLista.appendChild(linha);
+        });
+        prepareOcupacoesSelecionadasBox.classList.add('show');
+      }
+
+      function restaurarOcupacoesPreparacao_(texto) {
+        prepareOcupacoesSelecionadas_ = [];
+        separarOcupacoesTexto(texto).forEach(valor => {
+          if (!valor || ocupacaoPreparacaoJaSelecionada_(valor)) return;
+          prepareOcupacoesSelecionadas_.push({ valor, item: localizarOcupacaoPorValor(valor) });
+        });
+        renderizarOcupacoesPreparacaoSelecionadas_();
+      }
+
+      function ocupacoesOficiaisPreparacaoNormalizadas_() {
+        return new Set(prepareOcupacoesSelecionadas_
+          .filter(registro => registro?.item || localizarOcupacaoPorValor(registro?.valor))
+          .map(registro => normalize(registro.valor)));
+      }
+
       function ocupacoesOficiaisSelecionadasNormalizadas_() {
         return new Set(ocupacoesSelecionadas
           .filter(registro => registro?.item || localizarOcupacaoPorValor(registro?.valor))
@@ -13438,10 +13551,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : 'Nenhuma ocupação marcada.';
       }
 
-      function abrirSeletorOcupacao_() {
+      function abrirSeletorOcupacao_(contexto = 'vistoria') {
         if (!ocupacaoSelectorModal) return;
-        ocupacoesSelecaoTemporaria_ = ocupacoesOficiaisSelecionadasNormalizadas_();
+        ocupacaoSelectorContexto_ = contexto === 'prepare' ? 'prepare' : 'vistoria';
+        ocupacoesSelecaoTemporaria_ = ocupacaoSelectorContexto_ === 'prepare'
+          ? ocupacoesOficiaisPreparacaoNormalizadas_()
+          : ocupacoesOficiaisSelecionadasNormalizadas_();
         if (ocupacaoSearch) ocupacaoSearch.value = '';
+        if (ocupacaoSelectorTitle) ocupacaoSelectorTitle.textContent = ocupacaoSelectorContexto_ === 'prepare'
+          ? 'Selecionar ocupação da vistoria programada'
+          : 'Selecionar ocupação';
         renderizarSeletorOcupacao_();
         ocupacaoSelectorModal.hidden = false;
         document.body.classList.add('occupancy-selector-open');
@@ -13454,10 +13573,23 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacaoSelectorModal.hidden = true;
         document.body.classList.remove('occupancy-selector-open');
         if (ocupacaoToggle) ocupacaoToggle.classList.remove('invalid');
+        if (prepareOcupacaoToggle) prepareOcupacaoToggle.classList.remove('invalid');
+        ocupacaoSelectorContexto_ = 'vistoria';
+        if (ocupacaoSelectorTitle) ocupacaoSelectorTitle.textContent = 'Selecionar ocupação';
         agendarSincronizacaoNavegacao_();
       }
 
       function aplicarSeletorOcupacao_() {
+        if (ocupacaoSelectorContexto_ === 'prepare') {
+          const manuaisLegados = prepareOcupacoesSelecionadas_.filter(registro => !(registro?.item || localizarOcupacaoPorValor(registro?.valor)));
+          const oficiais = OCUPACOES_CBMMG
+            .filter(item => ocupacoesSelecaoTemporaria_.has(normalize(valorOcupacao(item))))
+            .map(item => ({ valor: valorOcupacao(item), item }));
+          prepareOcupacoesSelecionadas_ = [...oficiais, ...manuaisLegados];
+          renderizarOcupacoesPreparacaoSelecionadas_();
+          fecharSeletorOcupacao_();
+          return;
+        }
         const antes = ocupacaoTextoFinal();
         const manuaisLegados = ocupacoesSelecionadas.filter(registro => !(registro?.item || localizarOcupacaoPorValor(registro?.valor)));
         const oficiais = OCUPACOES_CBMMG
@@ -17935,7 +18067,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         const campo = document.getElementById(cfg.cidadeId);
         if (!campo) return;
-        campo.value = valor;
+        if (cfg.cidadeId === 'prepareCidade') definirCidadePreparacao_(valor);
+        else campo.value = valor;
         campo.dispatchEvent(new Event('input', { bubbles: true }));
         campo.dispatchEvent(new Event('change', { bubbles: true }));
       }
@@ -24050,6 +24183,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function aplicarConfig(data) {
         appConfig = data || DEFAULT_CONFIG;
         populateOptions(appConfig.opcoes || {});
+        preencherCidadesPreparacao_(prepareCidade?.value || appConfig?.padroes?.cidade || 'Viçosa');
         atualizarLinkPlanilha_(appConfig?.planilhaUrl || '');
         if (!value('enderecoCorrespondencia')) document.getElementById('enderecoCorrespondencia').value = appConfig?.padroes?.enderecoCorrespondencia || 'O Mesmo';
       }
@@ -24201,7 +24335,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
         preparacaoCadastroIdPendente = '';
-        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','prepareOcupacao','preparePavimentos','prepareAltura','prepareMedidasProjetoOutras','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareRotaUrl','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
+        ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','preparePavimentos','prepareAltura','prepareMedidasProjetoOutras','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareRotaUrl','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
@@ -24212,7 +24346,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
         if (prepareDwgStatus) prepareDwgStatus.textContent = '';
         if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
-        const cidade = document.getElementById('prepareCidade'); if (cidade) cidade.value = 'Viçosa';
+        definirCidadePreparacao_(appConfig?.padroes?.cidade || 'Viçosa');
+        prepareOcupacoesSelecionadas_ = [];
+        renderizarOcupacoesPreparacaoSelecionadas_();
         const pscip = document.getElementById('preparePscip'); if (pscip) pscip.value = 'PRJ';
         const titulo = document.getElementById('prepareInspectionTitle'); if (titulo) titulo.textContent = 'Cadastrar vistoria';
         if (prepareInspectionSaveBtn) prepareInspectionSaveBtn.textContent = usuarioPodeOperar_() ? 'Cadastrar vistoria' : 'Finalizar treinamento';
@@ -25741,7 +25877,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareTipo', normalize(item.demandaPrincipal || '') === normalize('PET') ? 'pet' : (item.tipoPreparacao || ''));
         set('prepareData', item.dataPrevista || '');
         set('prepareVistoriador', item.vistoriadorResponsavel || '');
-        set('prepareCidade', item.cidade || 'Viçosa');
+        definirCidadePreparacao_(item.cidade || appConfig?.padroes?.cidade || 'Viçosa');
         set('prepareDemanda', item.demandaPrincipal || (item.eventoDeclaracaoNumero ? 'Eventos declaratórios' : ''));
         set('preparePscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
         set('prepareEventoDeclaracaoNumero', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero || ''));
@@ -25750,7 +25886,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
-        set('prepareOcupacao', item.ocupacao || '');
+        restaurarOcupacoesPreparacao_(item.ocupacao || '');
         set('preparePavimentos', item.pavimentos || '');
         set('prepareAltura', item.altura || '');
         aplicarMedidasProjetoPreparacao_(item.medidasProjetoPrevistas || '');
@@ -25826,7 +25962,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           nomeFantasia: padronizarTextoCadastroCliente_(g('prepareNomeFantasia')),
           razaoSocial: padronizarTextoCadastroCliente_(g('prepareRazaoSocial')),
           area: g('prepareArea'),
-          ocupacao: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? padronizarTextoCadastroCliente_(g('prepareOcupacao')) : '',
+          ocupacao: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? ocupacaoPreparacaoTextoFinal_() : '',
           pavimentos: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('preparePavimentos').replace(/\D/g, '').slice(0, 3) : '',
           altura: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('prepareAltura') : '',
           medidasProjetoPrevistas: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? medidasProjetoPreparacaoSelecionadas_().join(' | ') : '',
@@ -26927,7 +27063,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         };
 
         set('prepareTipo', 'fiscalizacao');
-        set('prepareCidade', item.cidade || 'Viçosa');
+        definirCidadePreparacao_(item.cidade || appConfig?.padroes?.cidade || 'Viçosa');
         set('prepareDemanda', item.demandaPrincipal || 'Iniciativa');
         set('preparePscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
         set('prepareCnpj', item.cnpj || '');
@@ -28330,7 +28466,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       document.getElementById('prepareEventoDeclaracaoNumero')?.addEventListener('input', event => { event.target.value = formatarDeclaracaoEvento_(event.target.value); });
       instalarMascaraDataRenovacaoAvcb_(document.getElementById('prepareDataRenovacaoAvcb'));
-      ['prepareCidade','prepareEndereco','prepareNumero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('prepare')));
+      ['prepareEndereco','prepareNumero'].forEach(id => document.getElementById(id)?.addEventListener('input', () => agendarConsultaProcessoPf_('prepare')));
+      prepareCidade?.addEventListener('change', () => agendarConsultaProcessoPf_('prepare', 100));
       let timerConsultaCnpjPreparacao = null;
       let ultimoCnpjPreparacaoConsultado = '';
       const prepareCnpjInput = document.getElementById('prepareCnpj');
@@ -28967,7 +29104,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       ocupacaoToggle?.addEventListener('click', event => {
         event.preventDefault();
-        abrirSeletorOcupacao_();
+        abrirSeletorOcupacao_('vistoria');
+      });
+      prepareOcupacaoToggle?.addEventListener('click', event => {
+        event.preventDefault();
+        abrirSeletorOcupacao_('prepare');
       });
       ocupacaoSelectorCloseBtn?.addEventListener('click', fecharSeletorOcupacao_);
       ocupacaoSelectorCancelBtn?.addEventListener('click', fecharSeletorOcupacao_);
@@ -29761,7 +29902,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hu', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hv', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
