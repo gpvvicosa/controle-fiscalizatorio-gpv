@@ -1,3 +1,4 @@
+// V23.9.99hx — WhatsApp pós-fiscalização adapta automaticamente as orientações quando houver irregularidade de Brigada de Incêndio.
 // V23.9.99hw — Fiscalização registra irregularidades constatadas em campo e oferece relatórios próprios de Brigada para INFOSCIP/REDS.
 // V23.9.99hu — validação final de cidade cruza GPS, CEP, endereço físico e CNPJ antes de registrar a vistoria.
 // V23.9.99ht — redesenho estrutural das Vistorias Programadas e ação Ver vistoria consistente em todos os filtros.
@@ -39,7 +40,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99hw';
+      const APP_VERSION = '23.9.99hx';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2855,7 +2856,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99hw';
+      const APP_REVISION_UI_ = '23.9.99hx';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4991,7 +4992,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99hw', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99hx', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6363,6 +6364,131 @@
         return linhas.join('\n');
       }
 
+      function irregularidadeBrigadaFiscalizacaoNoPayload_(p) {
+        const resumo = [
+          p?.irregularidadesFiscalizacao,
+          p?.irregularidadesConstatadas,
+          p?.['Irregularidades constatadas']
+        ].map(valor => String(valor || '').trim()).filter(Boolean).join(' | ');
+        if (!resumo) return false;
+        return normalize(resumo).includes(normalize('Brigada de Incêndio'));
+      }
+
+      function montarMensagemBrigadaFiscalizacaoWhatsApp_(p) {
+        const nome = String(p?.nomeResponsavel || '').trim();
+        const estabelecimento = String(p?.nomeFantasia || p?.razaoSocial || '').trim();
+        const data = dataOrientacao_(p?._appCriadoEm);
+        const linhas = [];
+
+        linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
+        linhas.push('');
+        linhas.push(
+          `Foi realizada uma *Vistoria de Fiscalização pelo Corpo de Bombeiros Militar de Minas Gerais – CBMMG*${estabelecimento ? ` na edificação *${estabelecimento}*` : ' na edificação'}${data ? `, em *${data}*` : ''}.`
+        );
+        linhas.push('');
+        linhas.push('🔥 *IRREGULARIDADE CONSTATADA — BRIGADA DE INCÊNDIO*');
+        linhas.push('');
+        linhas.push('Durante a vistoria, foi constatado que a edificação *não possui Certificado válido de Brigada de Incêndio*.');
+        linhas.push('');
+        linhas.push('É necessário providenciar a *regularização da Brigada de Incêndio*, incluindo a formação, o treinamento ou a reciclagem dos brigadistas, conforme o caso, e a obtenção do respectivo *Certificado válido de Brigada de Incêndio*.');
+        linhas.push('');
+        linhas.push('Essa irregularidade pode ser constatada *mesmo quando a edificação possui AVCB válido*, pois se refere à condição encontrada no momento da fiscalização.');
+        linhas.push('');
+        linhas.push('🚒 *FOI AUTUADO PELO CORPO DE BOMBEIROS?*');
+        linhas.push('Veja abaixo as principais orientações.');
+        linhas.push('');
+        linhas.push('📬 *COMO VOCÊ SERÁ AVISADO*');
+        linhas.push('');
+        linhas.push('Primeiramente, será formalmente comunicado o *Auto de Infração*, por meio do procedimento previsto no processo fiscalizatório.');
+        linhas.push('');
+        linhas.push('Caso a defesa contra o Auto de Infração seja indeferida ou não conhecida, ou não haja manifestação no prazo previsto, será aplicada a *Advertência Escrita*, contendo, entre outras informações, prazo para correção da irregularidade e orientação sobre as próximas etapas do processo.');
+        linhas.push('');
+        linhas.push('⚠️ *ATENÇÃO AO PRAZO*');
+        linhas.push('');
+        linhas.push('Persistindo a irregularidade e transcorridos *no mínimo 60 dias da aplicação da Advertência Escrita*, a edificação poderá ficar sujeita à aplicação da *1ª multa*, observadas as regras e os prazos do processo administrativo fiscalizatório.');
+        linhas.push('');
+        linhas.push('Por isso, é importante providenciar a regularização da Brigada de Incêndio *o quanto antes*, sem aguardar o término desse prazo.');
+        linhas.push('');
+        linhas.push('⚠️ *Não recebeu a comunicação esperada ou possui dúvidas sobre o processo?*');
+        linhas.push('');
+        linhas.push('Entre em contato com o *GPV Viçosa* pelo WhatsApp:');
+        linhas.push('📲 (31) 3612-3894');
+        linhas.push('');
+        linhas.push('📘 *IMPORTANTE*');
+        linhas.push('');
+        linhas.push('Consulte o *Manual do Autuado*, que contém orientações sobre o procedimento de fiscalização, defesa, recursos, prazos, regularização e comunicação da correção da irregularidade.');
+        linhas.push('');
+        linhas.push('https://drive.google.com/file/d/1ruWxhB-8QVlOAV6o6eItqOeHgjUyKvt0/view?usp=sharing');
+        linhas.push('');
+        linhas.push('👨‍🚒 *PRIMEIRO PASSO FUNDAMENTAL*');
+        linhas.push('');
+        linhas.push('O responsável pela edificação deverá procurar *Centro de Formação ou profissional/instrutor habilitado para formação e reciclagem de Brigada de Incêndio*, conforme as exigências aplicáveis do CBMMG.');
+        linhas.push('');
+        linhas.push('O profissional ou estabelecimento responsável poderá verificar a situação dos brigadistas, orientar quanto à formação ou reciclagem necessária e adotar os procedimentos pertinentes para regularização da Brigada.');
+        linhas.push('');
+        linhas.push('Quando necessário, poderá também ser consultado o *responsável técnico pela segurança contra incêndio da edificação* para auxiliar na verificação das exigências aplicáveis.');
+        linhas.push('');
+        linhas.push('A regularização da Brigada deve ser tratada especificamente, ainda que a edificação possua *AVCB válido*.');
+        linhas.push('');
+        linhas.push('✅ *PASSO A PASSO*');
+        linhas.push('');
+        linhas.push('*1️⃣ Verifique a situação atual da Brigada de Incêndio*');
+        linhas.push('');
+        linhas.push('Confira a validade do certificado e a situação dos brigadistas que atualmente compõem a Brigada da edificação.');
+        linhas.push('');
+        linhas.push('*2️⃣ Procure profissional ou Centro de Formação habilitado*');
+        linhas.push('');
+        linhas.push('Providencie a formação, o treinamento ou a reciclagem dos brigadistas conforme a necessidade da edificação e as exigências aplicáveis.');
+        linhas.push('');
+        linhas.push('*3️⃣ Realize o treinamento ou a reciclagem necessária*');
+        linhas.push('');
+        linhas.push('Caso a Brigada esteja com treinamento vencido, irregular ou inexistente, providencie a regularização dos brigadistas.');
+        linhas.push('');
+        linhas.push('*4️⃣ Obtenha o Certificado válido de Brigada de Incêndio*');
+        linhas.push('');
+        linhas.push('Após a regularização, mantenha o respectivo certificado atualizado e disponível para comprovação.');
+        linhas.push('');
+        linhas.push('*5️⃣ COMUNIQUE A CORREÇÃO DA IRREGULARIDADE*');
+        linhas.push('');
+        linhas.push('Após regularizar a Brigada de Incêndio e obter a documentação comprobatória, é necessário realizar a *Comunicação de Correção da Irregularidade pelo INFOSCIP Fiscalização*.');
+        linhas.push('');
+        linhas.push('Na comunicação, apresente os documentos e demais elementos que comprovem a regularização, especialmente o *Certificado válido de Brigada de Incêndio*.');
+        linhas.push('');
+        linhas.push('🌐 *Acesse o INFOSCIP Fiscalização:*');
+        linhas.push('fiscalizacaobombeiros.mg.gov.br');
+        linhas.push('');
+        linhas.push('🔑 Entre utilizando sua conta *gov.br*, localize o respectivo processo fiscalizatório e siga as orientações para comunicar a correção.');
+        linhas.push('');
+        linhas.push('📘 Em caso de dúvida sobre esse procedimento, consulte o *Manual do Autuado*.');
+        linhas.push('');
+        linhas.push('*6️⃣ ACOMPANHE O PROCESSO DE FISCALIZAÇÃO*');
+        linhas.push('');
+        linhas.push('Mesmo após comunicar a regularização, acompanhe o processo no INFOSCIP para verificar eventuais comunicações, decisões e demais providências.');
+        linhas.push('');
+        linhas.push('*7️⃣ NÃO DEIXE PARA O FINAL DO PRAZO*');
+        linhas.push('');
+        linhas.push('✔️ regularize a Brigada de Incêndio;');
+        linhas.push('✔️ providencie a formação ou reciclagem necessária dos brigadistas;');
+        linhas.push('✔️ obtenha e mantenha o Certificado de Brigada válido;');
+        linhas.push('✔️ comunique a correção pelo INFOSCIP Fiscalização;');
+        linhas.push('✔️ apresente a documentação comprobatória;');
+        linhas.push('✔️ cumpra eventuais outras determinações constantes do processo;');
+        linhas.push('✔️ acompanhe os prazos e comunicações.');
+        linhas.push('');
+        linhas.push('⚠️ *LEMBRE-SE*');
+        linhas.push('');
+        linhas.push('A realização do treinamento ou da reciclagem, por si só, *não encerra automaticamente o processo fiscalizatório*. Após corrigir a irregularidade, é importante *comunicar formalmente a correção pelo INFOSCIP Fiscalização*, conforme as orientações do Manual do Autuado.');
+        linhas.push('');
+        linhas.push('A regularização realizada posteriormente também *não apaga automaticamente atos ou sanções já aplicados anteriormente no processo*.');
+        linhas.push('');
+        linhas.push('Esta mensagem possui caráter *orientativo e complementar* e não substitui as comunicações oficiais realizadas no processo de fiscalização.');
+        linhas.push('');
+        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais – CBMMG*');
+        linhas.push('*GPV — 3º Pelotão Viçosa*');
+
+        return linhas.join('\n');
+      }
+
       function montarMensagemOrientacoesAutuado_(p) {
         const nome = String(p?.nomeResponsavel || '').trim();
         const estabelecimento = String(p?.nomeFantasia || p?.razaoSocial || '').trim();
@@ -6440,6 +6566,9 @@
           const situacao = normalize(p?.sancao || p?.situacaoAtual || '');
           if (situacao === normalize('Liberado')) return montarMensagemLiberadoWhatsApp_(p);
           if (situacao === normalize('Notificado')) return montarMensagemNotificadoWhatsApp_(p);
+        }
+        if (irregularidadeBrigadaFiscalizacaoNoPayload_(p)) {
+          return montarMensagemBrigadaFiscalizacaoWhatsApp_(p);
         }
         return montarMensagemOrientacoesAutuado_(p);
       }
@@ -10729,6 +10858,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           tipoVistoria: valorCampoFicha_(registro, 'Tipo de vistoria'),
           sancao: String(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '').trim(),
           pscip: valorPscipOperacionalFicha_(registro) || valorCampoFicha_(registro, 'Nº do PSCIP', 'Nº do PSCIP / Projeto'),
+          irregularidadesFiscalizacaoStatus: valorCampoFicha_(registro, 'Condição constatada em campo'),
+          irregularidadesFiscalizacao: valorCampoFicha_(registro, 'Irregularidades constatadas'),
           _appCriadoEm: dataRegistro
         };
       }
@@ -30051,7 +30182,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hw', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99hx', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
