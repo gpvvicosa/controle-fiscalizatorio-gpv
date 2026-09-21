@@ -1,3 +1,4 @@
+// V23.9.99ie — shell com início direto de nova vistoria também pelo Painel; preserva as correções da versão ID.
 // V23.9.99id — shell com AVCB vencido nas irregularidades e mensagem específica de WhatsApp.
 // V23.9.99ic — shell com acessos diretos aos Manuais do Autuado e do Militar — INFOSCIP em HTML interativo.
 // V23.9.99hz — shell com inclusão retroativa de irregularidades constatadas pela Ficha.
@@ -14,9 +15,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20260921-v23-9-99-id-avcb-vencido';
+const CACHE_NAME = 'gpv-vistorias-shell-20260921-v23-9-99-ie-iniciar-vistoria-painel';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99id';
+const VERSION = '23.9.99ie';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.

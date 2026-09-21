@@ -1,3 +1,4 @@
+// V23.9.99ie — Painel passa a oferecer ação direta "Iniciar vistoria", reutilizando o mesmo fluxo seguro da área Vistorias; preserva AVCB vencido e demais recursos da ID.
 // V23.9.99id — Fiscalização inclui AVCB vencido nas irregularidades constatadas, mensagem objetiva de WhatsApp e seleção automática do modelo de REDS/INFOSCIP.
 // V23.9.99ic — Acessos diretos aos Manuais do Autuado e do Militar — INFOSCIP em HTML interativo pelo menu Mais.
 // V23.9.99hz — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
@@ -43,7 +44,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99id';
+      const APP_VERSION = '23.9.99ie';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2128,6 +2129,7 @@
       const recordsLoadOlderBtn = document.getElementById('recordsLoadOlderBtn');
       const recordsProgressiveNote = document.getElementById('recordsProgressiveNote');
       const dashboardNewInspectionBtn = document.getElementById('dashboardNewInspectionBtn');
+      const dashboardStartInspectionBtn = document.getElementById('dashboardStartInspectionBtn');
       const kpiTotal = document.getElementById('kpiTotal');
       const kpiAutuado = document.getElementById('kpiAutuado');
       const kpiAdvertencia = document.getElementById('kpiAdvertencia');
@@ -2861,7 +2863,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99id';
+      const APP_REVISION_UI_ = '23.9.99ie';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4997,7 +4999,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99id', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ie', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -29605,10 +29607,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
-      dashboardNewInspectionBtn?.addEventListener('click', async () => {
+      const iniciarNovaVistoriaDireto_ = async () => {
         if (!prepararFormularioNovaVistoria_('Nova vistoria')) return;
         await mostrarVistaFormulario_();
-      });
+      };
+      dashboardNewInspectionBtn?.addEventListener('click', iniciarNovaVistoriaDireto_);
+      dashboardStartInspectionBtn?.addEventListener('click', iniciarNovaVistoriaDireto_);
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false, { forcar: true, motivo: 'atualização manual' }));
       iniciarFiltrosPainelPremium_();
@@ -30379,7 +30383,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99id', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ie', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
