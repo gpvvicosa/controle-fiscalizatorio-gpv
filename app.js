@@ -1,3 +1,4 @@
+// V23.9.99id — Fiscalização inclui AVCB vencido nas irregularidades constatadas, mensagem objetiva de WhatsApp e seleção automática do modelo de REDS/INFOSCIP.
 // V23.9.99ic — Acessos diretos aos Manuais do Autuado e do Militar — INFOSCIP em HTML interativo pelo menu Mais.
 // V23.9.99hz — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
 // V23.9.99hx — WhatsApp pós-fiscalização adapta automaticamente as orientações quando houver irregularidade de Brigada de Incêndio.
@@ -42,7 +43,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ic';
+      const APP_VERSION = '23.9.99id';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2860,7 +2861,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ic';
+      const APP_REVISION_UI_ = '23.9.99id';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4996,7 +4997,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ic', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99id', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6378,6 +6379,59 @@
         return normalize(resumo).includes(normalize('Brigada de Incêndio'));
       }
 
+      function irregularidadeAvcbVencidoFiscalizacaoNoPayload_(p) {
+        const resumo = [
+          p?.irregularidadesFiscalizacao,
+          p?.irregularidadesConstatadas,
+          p?.['Irregularidades constatadas']
+        ].map(valor => String(valor || '').trim()).filter(Boolean).join(' | ');
+        if (!resumo) return false;
+        const n = normalize(resumo);
+        return n.includes(normalize('AVCB vencido')) || n.includes(normalize('AVCB/CLCB vencido'));
+      }
+
+      function montarMensagemAvcbVencidoFiscalizacaoWhatsApp_(p) {
+        const nome = String(p?.nomeResponsavel || '').trim();
+        const estabelecimento = String(p?.nomeFantasia || p?.razaoSocial || '').trim();
+        const data = dataOrientacao_(p?._appCriadoEm);
+        const linhas = [];
+
+        linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
+        linhas.push('');
+        linhas.push(`Durante Vistoria de Fiscalização realizada pelo CBMMG${estabelecimento ? ` na edificação *${estabelecimento}*` : ' na edificação'}${data ? `, em *${data}*` : ''}, foi constatado que o *AVCB encontra-se vencido*.`);
+        linhas.push('');
+        linhas.push('🚨 *IRREGULARIDADE CONSTATADA — AVCB VENCIDO*');
+        linhas.push('');
+        linhas.push('É necessário providenciar a *renovação do AVCB* o quanto antes.');
+        linhas.push('');
+        linhas.push('👷‍♂️ *O QUE FAZER*');
+        linhas.push('');
+        linhas.push('Procure o *responsável técnico ou profissional legalmente habilitado* para verificar o processo de segurança contra incêndio e orientar as providências necessárias para a renovação.');
+        linhas.push('');
+        linhas.push('📬 *AUTUAÇÃO*');
+        linhas.push('');
+        linhas.push('O *Auto de Infração será enviado pelos Correios* ao endereço da edificação, por correspondência com *Aviso de Recebimento – AR*.');
+        linhas.push('');
+        linhas.push('Caso a irregularidade permaneça, o processo poderá evoluir para *Advertência Escrita* e, após o prazo mínimo previsto, poderá haver aplicação de *multa*.');
+        linhas.push('');
+        linhas.push('✅ *APÓS REGULARIZAR*');
+        linhas.push('');
+        linhas.push('Depois de obter o *AVCB válido*, faça a *Comunicação de Correção da Irregularidade pelo INFOSCIP Fiscalização*, anexando a documentação que comprove a regularização.');
+        linhas.push('');
+        linhas.push('🌐 *INFOSCIP Fiscalização:*');
+        linhas.push('fiscalizacaobombeiros.mg.gov.br');
+        linhas.push('');
+        linhas.push('📘 Consulte também o *Manual do Autuado* para orientações sobre prazos, defesa e regularização:');
+        linhas.push('');
+        linhas.push('https://drive.google.com/file/d/1ruWxhB-8QVlOAV6o6eItqOeHgjUyKvt0/view?usp=sharing');
+        linhas.push('');
+        linhas.push('📲 Dúvidas: *GPV Viçosa — (31) 3612-3894*');
+        linhas.push('');
+        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais – CBMMG*');
+        linhas.push('*GPV — 3º Pelotão Viçosa*');
+        return linhas.join('\n');
+      }
+
       function montarMensagemBrigadaFiscalizacaoWhatsApp_(p) {
         const nome = String(p?.nomeResponsavel || '').trim();
         const estabelecimento = String(p?.nomeFantasia || p?.razaoSocial || '').trim();
@@ -6575,6 +6629,9 @@
         }
         if (irregularidadeBrigadaFiscalizacaoNoPayload_(p)) {
           return montarMensagemBrigadaFiscalizacaoWhatsApp_(p);
+        }
+        if (irregularidadeAvcbVencidoFiscalizacaoNoPayload_(p)) {
+          return montarMensagemAvcbVencidoFiscalizacaoWhatsApp_(p);
         }
         return montarMensagemOrientacoesAutuado_(p);
       }
@@ -10466,6 +10523,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const acessoria = demanda.includes(normalize('Vistoria Acessória'));
         const irregularidadesConstatadas = normalize(valorCampoFicha_(registro, 'Irregularidades constatadas'));
         const brigadaConstatada = irregularidadesConstatadas.includes(normalize('Brigada de Incêndio'));
+        const avcbVencidoConstatado = irregularidadesConstatadas.includes(normalize('AVCB vencido')) || irregularidadesConstatadas.includes(normalize('AVCB/CLCB vencido'));
         if (acessoria) {
           const resultado = normalize(valorCampoFicha_(registro, 'Resultado da vistoria acessória'));
           const tipoLicenca = String(valorCampoFicha_(registro, 'Documento de licenciamento da acessória') || '').toUpperCase();
@@ -10485,6 +10543,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : '';
         }
         if (brigadaConstatada) return 'brigadaVencida';
+        if (avcbVencidoConstatado) return 'avcbVencido';
         const tipoLicenciamentoFiscalizacao = String(valorCampoFicha_(registro, 'Tipo do licenciamento') || '').toUpperCase();
         const clcbIrregularidadeDocumental = normalize(valorCampoFicha_(registro, 'Irregularidade documental no CLCB')) === normalize('Sim');
         const clcbSeraAnulado = normalize(valorCampoFicha_(registro, 'CLCB será anulado no INFOSCIP')) === normalize('Sim');
@@ -11557,6 +11616,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const valores = irregularidadesFiscalizacaoChecks.map(check => String(check.value || '').trim()).filter(Boolean);
         return valores.length ? valores : [
           'Acesso de viaturas',
+          'AVCB vencido',
           'Brigada de Incêndio — certificado não válido',
           'Controle de Materiais de Acabamento e Revestimento',
           'Detecção de incêndio', 'Alarme de incêndio', 'Iluminação de Emergência',
@@ -11617,7 +11677,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               <textarea rows="2" data-correction-irregularidade-detalhe="${escapeAttr(tipo)}"${marcado ? '' : ' hidden'} placeholder="Detalhamento opcional do que foi constatado.">${escapeHtml(detalhe)}</textarea>
             </div>`;
           }).join('');
-          return `<div class="${classe}" data-correction-irregularidades-root><span>${escapeHtml(campo.rotulo)}</span><div class="prepare-measures-panel"><div class="prepare-measures-grid">${itens}</div></div><small>Marque uma ou mais irregularidades. Ao selecionar Brigada de Incêndio, os relatórios e a mensagem específica passam a ficar disponíveis na Ficha.</small><textarea id="${escapeAttr(id)}" ${comum} hidden>${escapeHtml(valorAtual)}</textarea></div>`;
+          return `<div class="${classe}" data-correction-irregularidades-root><span>${escapeHtml(campo.rotulo)}</span><div class="prepare-measures-panel"><div class="prepare-measures-grid">${itens}</div></div><small>Marque uma ou mais irregularidades. Brigada de Incêndio e AVCB vencido ativam automaticamente os modelos e orientações específicos disponíveis na Ficha.</small><textarea id="${escapeAttr(id)}" ${comum} hidden>${escapeHtml(valorAtual)}</textarea></div>`;
         }
         if (campo.tipo === 'select') {
           const opcoes = opcoesCampoCorrecao_(campo, valorAtual);
@@ -30319,7 +30379,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ic', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99id', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
