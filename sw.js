@@ -1,3 +1,4 @@
+// V23.9.99ij — abertura direta da orientação pelo WhatsApp na Ficha.
 // V23.9.99ii — navegação da Ficha reorganizada; preserva WhatsApp e cache operacional.
 // V23.9.99ih — atalho WhatsApp na barra da Ficha; cópia discreta do telefone no card Responsável.
 // V23.9.99ih — WhatsApp em destaque na Ficha e padronização da planilha pelo Apps Script.
@@ -18,9 +19,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20260923-v23-9-99-ii-ficha-historicos';
+const CACHE_NAME = 'gpv-vistorias-shell-20260923-v23-9-99-ij-whatsapp-direto';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99ii';
+const VERSION = '23.9.99ij';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.

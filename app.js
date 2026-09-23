@@ -1,3 +1,4 @@
+// V23.9.99ij — botão WhatsApp da Ficha abre a orientação diretamente, sem painel intermediário.
 // V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
 // V23.9.99ih — WhatsApp na barra principal da Ficha e cópia discreta do telefone pelo ícone do card Responsável.
 // V23.9.99ih — WhatsApp na Ficha e cópia local do telefone; mantém a padronização IF.
@@ -47,7 +48,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ii';
+      const APP_VERSION = '23.9.99ij';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2230,10 +2231,6 @@
       const recordAutoNumberSaveBtn = document.getElementById('recordAutoNumberSaveBtn');
       const recordAutoNumberStatus = document.getElementById('recordAutoNumberStatus');
       const recordWhatsappNavBtn = document.getElementById('recordWhatsappNavBtn');
-      const recordWhatsappPanel = document.getElementById('recordWhatsappPanel');
-      const recordWhatsappPhoneInput = document.getElementById('recordWhatsappPhoneInput');
-      const recordWhatsappSendBtn = document.getElementById('recordWhatsappSendBtn');
-      const recordWhatsappStatus = document.getElementById('recordWhatsappStatus');
       const recordNotificationsPanel = document.getElementById('recordNotificationsPanel');
       const recordNotificationsSummary = document.getElementById('recordNotificationsSummary');
       const recordNotificationsList = document.getElementById('recordNotificationsList');
@@ -2869,7 +2866,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ii';
+      const APP_REVISION_UI_ = '23.9.99ij';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3816,7 +3813,6 @@
           recordDetailSheetLink,
           recordInfoscipUpdatePanel,
           recordAutoNumberWrap,
-          recordWhatsappPanel,
           recordWhatsappNavBtn,
           pendingPanel,
           syncSummary
@@ -5006,7 +5002,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ii', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ij', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -9424,10 +9420,6 @@
         if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
-        if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
-        if (recordWhatsappPhoneInput) recordWhatsappPhoneInput.value = '';
-        if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
-        if (recordWhatsappNavBtn) { recordWhatsappNavBtn.classList.remove('is-open'); recordWhatsappNavBtn.setAttribute('aria-expanded', 'false'); }
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
         recordFineCheckRegistroAtual = null;
@@ -10969,58 +10961,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         };
       }
 
-      function atualizarWhatsAppFicha_() {
-        if (!recordWhatsappPanel || !recordWhatsappPhoneInput || !recordWhatsappSendBtn) return;
-        const numero = telefoneWhatsApp_(recordWhatsappPhoneInput.value);
-        recordWhatsappSendBtn.disabled = !numero;
-        if (recordWhatsappStatus) {
-          recordWhatsappStatus.textContent = numero
-            ? 'A mensagem será aberta no WhatsApp para conferência e envio.'
-            : 'Informe um telefone válido com DDD para habilitar o envio.';
-        }
-      }
-
       function renderizarWhatsAppFicha_(registro) {
-        if (!recordWhatsappPanel || !recordWhatsappPhoneInput || !recordWhatsappSendBtn) return;
-        const estavaAberto = !recordWhatsappPanel.hidden && Boolean(recordWhatsappRegistroAtual);
         recordWhatsappRegistroAtual = registro || null;
-        recordWhatsappPanel.hidden = !estavaAberto || !usuarioPodeOperar_();
-        if (recordWhatsappNavBtn) {
-          recordWhatsappNavBtn.classList.toggle('is-open', !recordWhatsappPanel.hidden);
-          recordWhatsappNavBtn.setAttribute('aria-expanded', recordWhatsappPanel.hidden ? 'false' : 'true');
-        }
-        recordWhatsappPhoneInput.value = valorCampoFicha_(registro, 'Telefone');
-        atualizarWhatsAppFicha_();
       }
 
-      function enviarWhatsAppFicha_() {
-        if (!recordWhatsappRegistroAtual || !recordWhatsappPhoneInput) return;
-        const telefone = String(recordWhatsappPhoneInput.value || '').trim();
-        const payload = payloadWhatsAppFicha_(recordWhatsappRegistroAtual, telefone);
-        const abriu = abrirMensagemWhatsAppResponsavel_(payload, telefone);
-        if (recordWhatsappStatus) {
-          recordWhatsappStatus.textContent = abriu
-            ? 'Abrindo o WhatsApp com a mensagem pronta...'
-            : 'Não foi possível abrir o WhatsApp. Confira o telefone e a conexão.';
-        }
-      }
-
-      // Ação independente das abas: exibe o formulário já existente para conferir o telefone
-      // e abrir a orientação. Não troca a seção ativa nem envia mensagem automaticamente.
+      // Ação direta da Ficha: prepara a mensagem com os dados do registro atual e
+      // abre o WhatsApp no gesto do vistoriador, sem aba/formulário intermediário.
       function abrirWhatsAppNavegacaoFicha_() {
-        if (!recordWhatsappPanel || !recordWhatsappRegistroAtual || !usuarioPodeOperar_()) return;
-        const abrir = recordWhatsappPanel.hidden;
-        recordWhatsappPanel.hidden = !abrir;
-        if (recordWhatsappNavBtn) {
-          recordWhatsappNavBtn.classList.toggle('is-open', abrir);
-          recordWhatsappNavBtn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-        }
-        if (abrir) {
-          requestAnimationFrame(() => recordWhatsappPanel.scrollIntoView({ behavior:'smooth', block:'nearest' }));
-        }
+        if (!recordWhatsappRegistroAtual || !usuarioPodeOperar_()) return;
+        const telefone = valorCampoFicha_(recordWhatsappRegistroAtual, 'Telefone');
+        const payload = payloadWhatsAppFicha_(recordWhatsappRegistroAtual, telefone);
+        abrirMensagemWhatsAppResponsavel_(payload, telefone);
       }
-
-
 
       function notificacoesDaFicha_(registro) {
         const bruto = String(registro?.notificacoesTemporarias || '').trim();
@@ -13338,9 +13290,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
         if (recordRedsReportPanel) recordRedsReportPanel.hidden = true;
         if (recordRedsReportText) recordRedsReportText.value = '';
-        if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
-        if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
-        if (recordWhatsappNavBtn) { recordWhatsappNavBtn.classList.remove('is-open'); recordWhatsappNavBtn.setAttribute('aria-expanded', 'false'); }
         recordWhatsappRegistroAtual = null;
 
         const cache = lerCacheFicha_(chave);
@@ -29375,8 +29324,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       recordAutoNumberInput?.addEventListener('input', atualizarTextoRelatorioRedsFiscalizacao_);
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
-      recordWhatsappPhoneInput?.addEventListener('input', atualizarWhatsAppFicha_);
-      recordWhatsappSendBtn?.addEventListener('click', enviarWhatsAppFicha_);
       recordWhatsappNavBtn?.addEventListener('click', abrirWhatsAppNavegacaoFicha_);
       recordNotificationsCopyAllBtn?.addEventListener('click', copiarTodasNotificacoesFicha_);
       recordNotificationsList?.addEventListener('click', event => {
@@ -30448,7 +30395,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ii', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ij', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
