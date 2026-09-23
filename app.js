@@ -1,4 +1,4 @@
-// V23.9.99ie — Painel passa a oferecer ação direta "Iniciar vistoria", reutilizando o mesmo fluxo seguro da área Vistorias; preserva AVCB vencido e demais recursos da ID.
+// V23.9.99if — padronização de nomes, demanda e sanção exibidos no Painel, sem alterar identificadores; preserva o fluxo direto da IE.
 // V23.9.99id — Fiscalização inclui AVCB vencido nas irregularidades constatadas, mensagem objetiva de WhatsApp e seleção automática do modelo de REDS/INFOSCIP.
 // V23.9.99ic — Acessos diretos aos Manuais do Autuado e do Militar — INFOSCIP em HTML interativo pelo menu Mais.
 // V23.9.99hz — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
@@ -44,7 +44,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ie';
+      const APP_VERSION = '23.9.99if';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2863,7 +2863,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ie';
+      const APP_REVISION_UI_ = '23.9.99if';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4999,7 +4999,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ie', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99if', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7560,8 +7560,28 @@
         return 'status-neutral';
       }
 
+      function padronizarDemandaPainelIF_(valor) {
+        const canonicas = { iniciativa:'Iniciativa', brigada:'Brigada', clcb:'CLCB', pet:'PET',
+          liberacao:'Liberação', 'alerta vermelho':'Alerta Vermelho',
+          'renovacao avcb':'Renovação AVCB', 'eventos declaratorios':'Eventos declaratórios',
+          'nivel de risco iii':'Nível de risco III', 'vistoria acessoria':'Vistoria Acessória' };
+        return String(valor || '').split('|').map(parte => {
+          const texto = String(parte || '').replace(/\s+/g,' ').trim();
+          return canonicas[normalize(texto)] || padronizarTextoCadastroCliente_(texto);
+        }).filter(Boolean).join(' | ');
+      }
+      function padronizarSancaoPainelIF_(valor) {
+        const canonicas = { autuado:'Autuado', advertencia:'Advertência', notificado:'Notificado',
+          regularizado:'Regularizado', liberado:'Liberado',
+          'pendente — multa em aberto':'Pendente — multa em aberto',
+          'pendente - multa em aberto':'Pendente — multa em aberto',
+          'pendente — conferir multa no infoscip':'Pendente — conferir multa no INFOSCIP',
+          'pendente - conferir multa no infoscip':'Pendente — conferir multa no INFOSCIP' };
+        const texto = String(valor || '').replace(/\s+/g,' ').trim();
+        return canonicas[normalize(texto)] || texto;
+      }
       function statusBadgeHtml_(valor) {
-        const texto = String(valor || 'Sem situação');
+        const texto = padronizarSancaoPainelIF_(valor) || 'Sem situação';
         return `<span class="status-badge ${classeStatus_(texto)}">${escapeHtml(texto)}</span>`;
       }
 
@@ -7852,7 +7872,7 @@
             <td class="records-address-cell" title="${escapeAttr(formatarEnderecoPainel_(item))}">${destacarBuscaPainelHtml_(formatarEnderecoPainel_(item))}</td>
             <td>${destacarBuscaPainelHtml_(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</td>
             <td class="records-mono">${destacarBuscaPainelHtml_(identificadorPainel_(item).valor)}</td>
-            <td>${escapeHtml(item.demanda || '—')}</td>
+            <td>${escapeHtml(padronizarDemandaPainelIF_(item.demanda) || '—')}</td>
             <td>${statusBadgeHtml_(item.sancao)}</td>
             <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
             <td class="records-mono">${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
@@ -7874,7 +7894,7 @@
             <div class="records-card-accent" aria-hidden="true"></div>
             <div class="records-card-top"><div class="records-card-title">${destacarBuscaPainelHtml_(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${destacarBuscaPainelHtml_(razao)}</div>` : ''}
-            <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span class="records-card-demand-chip">${escapeHtml(item.demanda || 'Sem demanda')}</span></div>
+            <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span class="records-card-demand-chip">${escapeHtml(padronizarDemandaPainelIF_(item.demanda) || 'Sem demanda')}</span></div>
             <div class="records-card-meta">
               <div class="records-meta-item records-meta-item--city"><span>Cidade</span><strong>${destacarBuscaPainelHtml_(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
               <div class="records-meta-item records-meta-item--doc"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${destacarBuscaPainelHtml_(identificadorPainel_(item).valor)}</strong></div>
@@ -30383,7 +30403,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ie', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99if', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
