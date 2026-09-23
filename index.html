@@ -18,8 +18,8 @@
   <meta property="og:title" content="App do Vistoriador">
   <meta property="og:description" content="Aplicativo de apoio a vistoria, com suporte offline.">
   <meta property="og:url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/">
-  <meta property="og:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ig">
-  <meta property="og:image:secure_url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ig">
+  <meta property="og:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ih">
+  <meta property="og:image:secure_url" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ih">
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="675">
@@ -29,7 +29,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="App do Vistoriador">
   <meta name="twitter:description" content="Aplicativo de apoio a vistoria, com suporte offline.">
-  <meta name="twitter:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ig">
+  <meta name="twitter:image" content="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/assets/miniatura-app-vistoriador-ch.jpg?v=23.9.99ih">
 
   <link rel="canonical" href="https://gpvvicosa.github.io/controle-fiscalizatorio-gpv/">
   <title>App do Vistoriador</title>
@@ -44,11 +44,11 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99ig">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99ig" media="(max-width: 899px)" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ig" media="(min-width: 900px)" fetchpriority="high">
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ig">
-  <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ig">
+  <link rel="manifest" href="app-vistoriador-ck.webmanifest?v=23.9.99ih">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador.webp?v=23.9.99ih" media="(max-width: 899px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ih" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ih">
+  <link rel="apple-touch-icon" href="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ih">
   <style id="gpv-critical-boot">
     html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif}
     html,body{background:#efe6dc}
@@ -56,7 +56,7 @@
     *,*::before,*::after{box-sizing:border-box}
     img{max-width:100%;height:auto}
     .hero-banner{display:block;width:100%;height:auto}
-    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99ig") center 28%/cover no-repeat}
+    .auth-gate{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,rgba(45,3,5,.82),rgba(45,3,5,.96)),url("assets/splash-app-vistoriador.webp?v=23.9.99ih") center 28%/cover no-repeat}
     .auth-gate.show{display:flex}
     .auth-card{width:min(440px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,rgba(76,10,12,.96),rgba(45,5,7,.98));border:1px solid rgba(246,190,55,.38);border-radius:24px;padding:24px 20px;text-align:center;color:#fff}
     .auth-logo-wrap{width:104px;height:104px;margin:0 auto 12px;border-radius:25px;overflow:hidden}
@@ -70,9 +70,9 @@
     .gpv-splash-status #loadingSubtext[hidden]{display:none!important}
     html.gpv-aux-entry body:not(.gpv-aux-auth-visible):not(.aux-notifications-mode)>*:not(#loadingOverlay):not(#authGate):not(#appStatus){visibility:hidden!important}
   </style>
-  <link rel="stylesheet" href="styles.css?v=23.9.99ig">
+  <link rel="stylesheet" href="styles.css?v=23.9.99ih">
   <style>
-    /* V23.9.99ig — comunicação visível na primeira área da Ficha; não interfere nos outros modais. */
+    /* V23.9.99ih — atalho de WhatsApp na navegação principal; painel sob demanda. */
     body.records-mode .record-whatsapp-panel--featured {
       margin: 0 0 14px !important;
       border: 1px solid #a5dcc0 !important;
@@ -81,24 +81,28 @@
     }
     body.records-mode .record-whatsapp-panel--featured .record-whatsapp-head h3 { color:#14532d; }
     body.records-mode .record-whatsapp-panel--featured .record-whatsapp-row {
-      grid-template-columns: minmax(0,1fr) auto auto;
+      grid-template-columns: minmax(0,1fr) auto;
       align-items: center;
     }
-    .record-whatsapp-panel--featured .record-whatsapp-copy-btn {
-      min-height:44px; border-radius:10px; border:1px solid #a4d2b2;
-      background:#fff; color:#175431; padding:8px 12px; font:inherit;
-      font-weight:800; cursor:pointer; white-space:nowrap;
+    body.records-mode #recordWhatsappNavBtn {
+      color:#126539!important;border-color:#8bd5a9!important;
+      background:linear-gradient(145deg,#e5faed,#bdf1d1)!important;
+      box-shadow:0 7px 18px rgba(18,101,57,.13)!important;
     }
-    .record-whatsapp-panel--featured .record-whatsapp-copy-btn:disabled { opacity:.52;cursor:default; }
-    .record-whatsapp-panel--featured .record-whatsapp-copy-btn.is-copied { border-color:#2c9956;background:#dff8e6; }
+    body.records-mode #recordWhatsappNavBtn .record-detail-section-icon {
+      color:#fff!important;background:linear-gradient(135deg,#17874d,#28b86d)!important;
+      box-shadow:0 5px 12px rgba(18,101,57,.22)!important;
+    }
+    body.records-mode #recordWhatsappNavBtn.is-open {border-width:2px!important;box-shadow:0 0 0 3px rgba(33,164,94,.12)!important}
+    body.records-mode #recordWhatsappPanel {scroll-margin-top:76px}
+    body.records-mode #recordWhatsappPanel[hidden] {display:none!important}
     @media(max-width:760px) {
       body.records-mode .record-whatsapp-panel--featured .record-whatsapp-row { grid-template-columns:1fr; }
-      .record-whatsapp-panel--featured .record-whatsapp-copy-btn { width:100%; }
     }
   </style>
 
   <style id="gpv-ia-medidas-projeto-compactas">
-    /* V23.9.99ig — Painel com ação direta para iniciar nova vistoria; mantém as melhorias da versão ID. */
+    /* V23.9.99ih — Painel com ação direta para iniciar nova vistoria; mantém as melhorias da versão ID. */
     /* V23.9.99id — AVCB vencido como irregularidade estruturada da Fiscalização e WhatsApp específico objetivo. */
     /* V23.9.99ic — acessos diretos aos Manuais do Autuado e do Militar — INFOSCIP em HTML interativo. */
     #prepareMedidasProjetoPanel{padding:10px 12px!important;border-radius:14px!important;background:linear-gradient(180deg,#fbfdff 0%,#f7fafc 100%)!important}
@@ -119,7 +123,7 @@
     }
   </style>
   <style id="gpv-ie-painel-iniciar-vistoria">
-    /* V23.9.99ig — ação explícita e responsiva para iniciar vistoria diretamente no Painel. */
+    /* V23.9.99ih — ação explícita e responsiva para iniciar vistoria diretamente no Painel. */
     .dashboard-start-inspection-row{padding:12px 16px 0;background:#fff}
     .dashboard-start-inspection-btn{width:100%;min-height:58px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;border:1px solid #d9e1ea;border-radius:14px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);color:#1f2937;text-align:left;box-shadow:0 2px 8px rgba(15,23,42,.055);cursor:pointer}
     .dashboard-start-inspection-btn:hover{border-color:#c7d2df;background:#fff;box-shadow:0 4px 12px rgba(15,23,42,.08)}
@@ -529,7 +533,7 @@
   <div class="auth-gate" id="authGate" aria-hidden="false">
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-logo-wrap" aria-hidden="true">
-        <img src="assets/app-vistoriador-icon-512-ck.png?v=23.9.99ig" width="512" height="512" alt="">
+        <img src="assets/app-vistoriador-icon-512-ck.png?v=23.9.99ih" width="512" height="512" alt="">
       </div>
       <span class="auth-kicker">Controle Fiscalizatório</span>
       <h1 id="authTitle">App do Vistoriador</h1>
@@ -589,7 +593,7 @@
   <header class="topbar app-header">
     <div class="topbar-inner">
       <div class="brand-mark" aria-hidden="true">
-        <img class="brand-form-logo" src="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ig" alt="">
+        <img class="brand-form-logo" src="assets/app-vistoriador-icon-192-ck.png?v=23.9.99ih" alt="">
         <img class="brand-dashboard-logo" src="assets/logo-cbmmg.png" alt="">
       </div>
 
@@ -1065,7 +1069,7 @@
           <button type="button" class="manual-back-index" data-manual-target="systemManualIndex">↑ Voltar ao índice</button>
         </section>
 
-        <div class="system-manual-revision">Última revisão: 23/09/2026 — V23.9.99ig.</div>
+        <div class="system-manual-revision">Última revisão: 23/09/2026 — V23.9.99ih.</div>
         <div class="system-manual-update-note"><strong>Padronização cadastral:</strong> os nomes, demandas e situações exibidos no Painel seguem o padrão oficial; a aba Processo Fiscalizatório também recupera automaticamente fonte e tamanho após edições ou alterações de formatação. O responsável pelo Apps Script deve instalar a rotina complementar PadronizacaoVisualIF.gs para ativar as correções na planilha e no histórico.</div>
         <div class="system-manual-update-note"><strong>Manual atualizado:</strong> este conteúdo acompanha o Painel Premium, Vistorias anteriores — 2024/2025, Consulta inteligente, Ficha modular/compacta, ações rápidas, PET, CEP opcional, conferência inteligente, menu Mais, Acessos úteis e os atalhos para os Manuais do Autuado e do Militar — Interativos.</div>
         <div class="system-manual-update-note"><strong>Regra operacional:</strong> alertas de prazo e estimativas ajudam no acompanhamento, mas não substituem a situação oficial no INFOSCIP quando a conferência for necessária.</div>
@@ -1394,7 +1398,7 @@
 
       <div class="dashboard-operational-alerts gpv-operational-overview" aria-label="Resumo operacional do dia">
         <button type="button" class="ddu-summary-card dashboard-ddu-summary-card" id="dduSummaryCard" hidden aria-label="Abrir DDU pendentes para vistoria">
-          <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ig" alt=""></span>
+          <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ih" alt=""></span>
           <span class="ddu-summary-copy"><strong>DDU aguardando vistoria</strong><small id="dduSummaryText">Carregando demandas...</small></span>
           <span class="ddu-summary-count" id="dduSummaryCount">—</span>
         </button>
@@ -1638,7 +1642,7 @@
           <div class="operational-shortcuts-grid" aria-label="Pendências operacionais">
             <div class="programmed-summary-row ddu-vistoria-summary-row" id="dduVistoriaSummaryRow" hidden>
               <button type="button" class="ddu-summary-card vistoria-ddu-summary-card" id="dduVistoriaSummaryCard" aria-label="Abrir DDU pendentes para vistoria">
-                <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ig" alt=""></span>
+                <span class="ddu-summary-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ih" alt=""></span>
                 <span class="ddu-summary-copy"><strong>DDU aguardando vistoria</strong><small id="dduVistoriaSummaryText">Carregando demandas...</small></span>
                 <span class="ddu-summary-count" id="dduVistoriaSummaryCount">—</span>
               </button>
@@ -1721,7 +1725,7 @@
               </span>
               <span class="home-operational-context-action" id="homeOperationalContextAction">Continuar →</span>
             </button>
-            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99ig</div>
+            <div class="home-operational-connection" id="homeOperationalConnection" role="status" aria-live="polite">Online · Tudo sincronizado · App 23.9.99ih</div>
           </section>
         </div>
       </section>
@@ -2639,6 +2643,16 @@
 
       <div class="record-detail-loading" id="recordDetailLoading">Selecione um processo na tabela para abrir a ficha.</div>
       <div class="record-detail-content">
+        <nav class="record-detail-section-nav" id="recordDetailSectionNav" aria-label="Seções da Ficha do Processo">
+          <button class="record-detail-section-btn is-active" id="recordDetailSectionLocalBtn" type="button" data-record-detail-section="local" aria-selected="true"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg></span><span id="recordDetailSectionLocalLabel">Local</span></button>
+          <button class="record-detail-section-btn" type="button" data-record-detail-section="processo" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Processo</span></button>
+          <button class="record-detail-section-btn" type="button" data-record-detail-section="responsavel" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c.6-4 2.8-6 6-6s5.4 2 6 6"/></svg></span><span>Responsável</span></button>
+          <button class="record-detail-section-btn" type="button" data-record-detail-section="historico" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4.8 9A8 8 0 1 1 5 15"/><path d="M4 5v5h5M12 8v5l3 2"/></svg></span><span>Histórico</span></button>
+          <button class="record-detail-section-btn" type="button" data-record-detail-section="relatorios" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3.5h7l3 3V20H7z"/><path d="M14 3.5v3h3M9.5 11h5M9.5 14h5M9.5 17h3"/></svg></span><span>Relatórios</span></button>
+          <button class="record-detail-section-btn" type="button" data-record-detail-section="acoes" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m14.5 6.5 3 3-8.8 8.8-3.5.5.5-3.5z"/><path d="m13 8 3 3"/></svg></span><span>Ações</span></button>
+          <button class="record-detail-section-btn" type="button" data-record-detail-section="localizacao" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="13" rx="2"/><path d="m8 6 1-2h6l1 2"/><circle cx="12" cy="12.5" r="3"/></svg></span><span>Localização e Fotos</span></button>
+          <button class="record-detail-section-btn record-whatsapp-nav-btn" id="recordWhatsappNavBtn" type="button" aria-controls="recordWhatsappPanel" aria-expanded="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a8.5 8.5 0 0 1-12.4 7.5L3 20l1.1-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.8 8.5c.1 2.7 3 5.5 5.7 5.7l1.2-1.2 1.5.8-.4 2c-3.8 1-9.6-4.8-8.6-8.6l2-.4.8 1.5z"/></svg></span><span>WhatsApp — Orientação</span></button>
+        </nav>
         <section class="record-whatsapp-panel record-whatsapp-panel--featured" id="recordWhatsappPanel" hidden>
           <div class="record-whatsapp-head">
             <div>
@@ -2650,20 +2664,10 @@
           <div class="record-whatsapp-row">
             <input id="recordWhatsappPhoneInput" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ex.: (31) 99999-9999">
             <button class="record-whatsapp-send-btn" id="recordWhatsappSendBtn" type="button">Abrir no WhatsApp</button>
-            <button class="record-whatsapp-copy-btn" id="recordWhatsappCopyBtn" type="button" data-copy-field-value="" data-copy-field-label="Telefone" disabled><span class="record-copy-value-label">Copiar sem DDD</span></button>
           </div>
           <div class="record-whatsapp-help">Você pode corrigir o número antes do envio. A alteração feita aqui é usada somente para abrir esta mensagem.</div>
           <div class="record-whatsapp-status" id="recordWhatsappStatus" role="status" aria-live="polite"></div>
         </section>
-        <nav class="record-detail-section-nav" id="recordDetailSectionNav" aria-label="Seções da Ficha do Processo">
-          <button class="record-detail-section-btn is-active" id="recordDetailSectionLocalBtn" type="button" data-record-detail-section="local" aria-selected="true"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg></span><span id="recordDetailSectionLocalLabel">Local</span></button>
-          <button class="record-detail-section-btn" type="button" data-record-detail-section="processo" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Processo</span></button>
-          <button class="record-detail-section-btn" type="button" data-record-detail-section="responsavel" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c.6-4 2.8-6 6-6s5.4 2 6 6"/></svg></span><span>Responsável</span></button>
-          <button class="record-detail-section-btn" type="button" data-record-detail-section="historico" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4.8 9A8 8 0 1 1 5 15"/><path d="M4 5v5h5M12 8v5l3 2"/></svg></span><span>Histórico</span></button>
-          <button class="record-detail-section-btn" type="button" data-record-detail-section="relatorios" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3.5h7l3 3V20H7z"/><path d="M14 3.5v3h3M9.5 11h5M9.5 14h5M9.5 17h3"/></svg></span><span>Relatórios</span></button>
-          <button class="record-detail-section-btn" type="button" data-record-detail-section="acoes" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m14.5 6.5 3 3-8.8 8.8-3.5.5.5-3.5z"/><path d="m13 8 3 3"/></svg></span><span>Ações</span></button>
-          <button class="record-detail-section-btn" type="button" data-record-detail-section="localizacao" aria-selected="false"><span class="record-detail-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="13" rx="2"/><path d="m8 6 1-2h6l1 2"/><circle cx="12" cy="12.5" r="3"/></svg></span><span>Localização e Fotos</span></button>
-        </nav>
 
         <div class="record-detail-section-hint" id="recordDetailSectionHint">Identificação e características do local vistoriado.</div>
         <div class="record-detail-section-tools" id="recordDetailSectionTools" hidden>
@@ -3149,7 +3153,7 @@
 
   <div class="review-overlay" id="dduRegisterModal" hidden>
     <div class="review-card prepare-modal-card" role="dialog" aria-modal="true" aria-labelledby="dduRegisterTitle">
-      <div class="review-head ddu-register-head"><div class="ddu-register-title-wrap"><span class="ddu-register-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ig" alt=""></span><div><h2 id="dduRegisterTitle">Cadastrar DDU</h2><p>Demanda recebida pelo DDU — Disque Denúncia Unificado. Após salvar, o DDU ficará disponível para toda a equipe do GPV até a conclusão da vistoria.</p></div></div><button class="icon-btn" id="dduRegisterCloseBtn" type="button">×</button></div>
+      <div class="review-head ddu-register-head"><div class="ddu-register-title-wrap"><span class="ddu-register-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ih" alt=""></span><div><h2 id="dduRegisterTitle">Cadastrar DDU</h2><p>Demanda recebida pelo DDU — Disque Denúncia Unificado. Após salvar, o DDU ficará disponível para toda a equipe do GPV até a conclusão da vistoria.</p></div></div><button class="icon-btn" id="dduRegisterCloseBtn" type="button">×</button></div>
       <div class="review-body"><div class="grid prepare-grid">
         <div class="field"><label for="dduNumero">Nº / identificação do DDU</label><input id="dduNumero" autocomplete="off"></div>
         <div class="field"><label for="dduRecebimento">Data de recebimento</label><input id="dduRecebimento" type="date"></div>
@@ -3230,7 +3234,7 @@
   <div class="review-overlay" id="dduListModal" hidden>
     <div class="review-card ddu-list-card" role="dialog" aria-modal="true" aria-labelledby="dduListTitle">
       <div class="review-head ddu-list-head">
-        <div class="ddu-list-title-wrap"><span class="ddu-list-title-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ig" alt=""></span><div><h2 id="dduListTitle">DDU — Disque Denúncia Unificado</h2><small>Demandas compartilhadas pela equipe do GPV • 181</small></div></div>
+        <div class="ddu-list-title-wrap"><span class="ddu-list-title-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ih" alt=""></span><div><h2 id="dduListTitle">DDU — Disque Denúncia Unificado</h2><small>Demandas compartilhadas pela equipe do GPV • 181</small></div></div>
         <button class="icon-btn" id="dduListCloseBtn" type="button" aria-label="Fechar DDU">×</button>
       </div>
       <div class="review-body ddu-list-body"><div id="dduListStatus" class="ddu-list-status"></div><div id="dduList" class="ddu-list"></div></div>
@@ -3300,7 +3304,7 @@
     <section class="review-card registered-inspection-detail-card" role="dialog" aria-modal="true" aria-labelledby="registeredInspectionDetailTitle">
       <div class="review-head registered-inspection-detail-head">
         <div class="registered-inspection-detail-title-wrap">
-          <span class="registered-inspection-detail-brand" id="registeredInspectionDetailBrand" aria-hidden="true" hidden><img src="assets/logo-ddu-181.webp?v=23.9.99ig" alt=""></span>
+          <span class="registered-inspection-detail-brand" id="registeredInspectionDetailBrand" aria-hidden="true" hidden><img src="assets/logo-ddu-181.webp?v=23.9.99ih" alt=""></span>
           <div>
             <div class="registered-inspection-detail-eyebrow-row">
               <span class="registered-inspection-detail-kicker" id="registeredInspectionDetailKicker">Vistoria cadastrada</span>
@@ -3491,7 +3495,7 @@
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
         <a class="useful-link-card" data-link-tone="blue" href="https://web.sids.mg.gov.br/ddu/#/dashboard" target="_blank" rel="noopener noreferrer">
-          <span class="useful-link-icon useful-link-ddu-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ig" alt=""></span>
+          <span class="useful-link-icon useful-link-ddu-brand" aria-hidden="true"><img src="assets/logo-ddu-181.webp?v=23.9.99ih" alt=""></span>
           <span><strong>DDU</strong><small>Painel e consultas operacionais</small></span>
           <span class="useful-link-arrow" aria-hidden="true">↗</span>
         </a>
@@ -3832,13 +3836,13 @@
     <picture class="gpv-splash-picture" aria-hidden="true">
       <source
         media="(min-width: 900px)"
-        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ig"
+        srcset="assets/splash-app-vistoriador-desktop.webp?v=23.9.99ih"
         width="1672"
         height="941"
       >
       <img
         class="gpv-splash-art"
-        src="assets/splash-app-vistoriador.webp?v=23.9.99ig"
+        src="assets/splash-app-vistoriador.webp?v=23.9.99ih"
         alt=""
         width="941"
         height="1672"
@@ -3992,10 +3996,10 @@
 
   <!-- V23.9.99ga — Ficha Premium Colorida; mantém os scripts após todos os modais e controles
        existirem no DOM, evitando referências nulas no seletor de localização. -->
-  <script src="config.js?v=23.9.99ig"></script>
-  <script src="ocupacoes.js?v=23.9.99ig"></script>
-  <script src="notificacoes-infoscip.js?v=23.9.99ig"></script>
-  <script src="app.js?v=23.9.99ig"></script>
+  <script src="config.js?v=23.9.99ih"></script>
+  <script src="ocupacoes.js?v=23.9.99ih"></script>
+  <script src="notificacoes-infoscip.js?v=23.9.99ih"></script>
+  <script src="app.js?v=23.9.99ih"></script>
 
 </body>
 </html>

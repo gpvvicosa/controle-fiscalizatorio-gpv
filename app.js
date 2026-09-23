@@ -1,5 +1,6 @@
-// V23.9.99ig — WhatsApp destacado na Ficha e cópia do telefone sem DDD; mantém a padronização IF.
-// V23.9.99ig — padronização de nomes, demanda e sanção exibidos no Painel, sem alterar identificadores; preserva o fluxo direto da IE.
+// V23.9.99ih — WhatsApp na barra principal da Ficha e cópia discreta do telefone pelo ícone do card Responsável.
+// V23.9.99ih — WhatsApp na Ficha e cópia local do telefone; mantém a padronização IF.
+// V23.9.99ih — padronização de nomes, demanda e sanção exibidos no Painel, sem alterar identificadores; preserva o fluxo direto da IE.
 // V23.9.99id — Fiscalização inclui AVCB vencido nas irregularidades constatadas, mensagem objetiva de WhatsApp e seleção automática do modelo de REDS/INFOSCIP.
 // V23.9.99ic — Acessos diretos aos Manuais do Autuado e do Militar — INFOSCIP em HTML interativo pelo menu Mais.
 // V23.9.99hz — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
@@ -45,7 +46,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ig';
+      const APP_VERSION = '23.9.99ih';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2225,10 +2226,10 @@
       const recordAutoNumberInput = document.getElementById('recordAutoNumberInput');
       const recordAutoNumberSaveBtn = document.getElementById('recordAutoNumberSaveBtn');
       const recordAutoNumberStatus = document.getElementById('recordAutoNumberStatus');
+      const recordWhatsappNavBtn = document.getElementById('recordWhatsappNavBtn');
       const recordWhatsappPanel = document.getElementById('recordWhatsappPanel');
       const recordWhatsappPhoneInput = document.getElementById('recordWhatsappPhoneInput');
       const recordWhatsappSendBtn = document.getElementById('recordWhatsappSendBtn');
-      const recordWhatsappCopyBtn = document.getElementById('recordWhatsappCopyBtn');
       const recordWhatsappStatus = document.getElementById('recordWhatsappStatus');
       const recordNotificationsPanel = document.getElementById('recordNotificationsPanel');
       const recordNotificationsSummary = document.getElementById('recordNotificationsSummary');
@@ -2865,7 +2866,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ig';
+      const APP_REVISION_UI_ = '23.9.99ih';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3813,6 +3814,7 @@
           recordInfoscipUpdatePanel,
           recordAutoNumberWrap,
           recordWhatsappPanel,
+          recordWhatsappNavBtn,
           pendingPanel,
           syncSummary
         ];
@@ -5001,7 +5003,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ig', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ih', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -9422,6 +9424,7 @@
         if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
         if (recordWhatsappPhoneInput) recordWhatsappPhoneInput.value = '';
         if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
+        if (recordWhatsappNavBtn) { recordWhatsappNavBtn.classList.remove('is-open'); recordWhatsappNavBtn.setAttribute('aria-expanded', 'false'); }
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
         recordFineCheckRegistroAtual = null;
@@ -9555,8 +9558,7 @@
           const label = botao.querySelector('.record-copy-value-label');
           if (label && !label.dataset.copyInitialLabel) label.dataset.copyInitialLabel = label.textContent;
           if (label) label.textContent = 'Copiado';
-          if (copia.semDdd) mostrarFeedbackPremium_('✓ Telefone copiado sem DDD para uso no REDS.', 'success');
-          else if (copia.semMascara) mostrarFeedbackPremium_(`✓ ${rotulo} copiado sem máscara para uso no REDS.`, 'success');
+          if (copia.semMascara && !copia.semDdd) mostrarFeedbackPremium_(`✓ ${rotulo} copiado sem máscara para uso no REDS.`, 'success');
           botao._copyFeedbackTimer = setTimeout(() => {
             botao.classList.remove('is-copied');
             botao.setAttribute('aria-label', `Copiar ${rotulo}`);
@@ -10968,10 +10970,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!recordWhatsappPanel || !recordWhatsappPhoneInput || !recordWhatsappSendBtn) return;
         const numero = telefoneWhatsApp_(recordWhatsappPhoneInput.value);
         recordWhatsappSendBtn.disabled = !numero;
-        if (recordWhatsappCopyBtn) {
-          recordWhatsappCopyBtn.disabled = !numero;
-          recordWhatsappCopyBtn.dataset.copyFieldValue = String(recordWhatsappPhoneInput.value || '').trim();
-        }
         if (recordWhatsappStatus) {
           recordWhatsappStatus.textContent = numero
             ? 'A mensagem será aberta no WhatsApp para conferência e envio.'
@@ -10981,8 +10979,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function renderizarWhatsAppFicha_(registro) {
         if (!recordWhatsappPanel || !recordWhatsappPhoneInput || !recordWhatsappSendBtn) return;
+        const estavaAberto = !recordWhatsappPanel.hidden && Boolean(recordWhatsappRegistroAtual);
         recordWhatsappRegistroAtual = registro || null;
-        recordWhatsappPanel.hidden = false;
+        recordWhatsappPanel.hidden = !estavaAberto || !usuarioPodeOperar_();
+        if (recordWhatsappNavBtn) {
+          recordWhatsappNavBtn.classList.toggle('is-open', !recordWhatsappPanel.hidden);
+          recordWhatsappNavBtn.setAttribute('aria-expanded', recordWhatsappPanel.hidden ? 'false' : 'true');
+        }
         recordWhatsappPhoneInput.value = valorCampoFicha_(registro, 'Telefone');
         atualizarWhatsAppFicha_();
       }
@@ -10996,6 +10999,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           recordWhatsappStatus.textContent = abriu
             ? 'Abrindo o WhatsApp com a mensagem pronta...'
             : 'Não foi possível abrir o WhatsApp. Confira o telefone e a conexão.';
+        }
+      }
+
+      // Ação independente das abas: exibe o formulário já existente para conferir o telefone
+      // e abrir a orientação. Não troca a seção ativa nem envia mensagem automaticamente.
+      function abrirWhatsAppNavegacaoFicha_() {
+        if (!recordWhatsappPanel || !recordWhatsappRegistroAtual || !usuarioPodeOperar_()) return;
+        const abrir = recordWhatsappPanel.hidden;
+        recordWhatsappPanel.hidden = !abrir;
+        if (recordWhatsappNavBtn) {
+          recordWhatsappNavBtn.classList.toggle('is-open', abrir);
+          recordWhatsappNavBtn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        }
+        if (abrir) {
+          requestAnimationFrame(() => recordWhatsappPanel.scrollIntoView({ behavior:'smooth', block:'nearest' }));
         }
       }
 
@@ -12719,6 +12737,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function atualizarNavegacaoFicha_(registro) {
         const pet = registroEhPetFicha_(registro);
         if (recordDetailSectionLocalLabel) recordDetailSectionLocalLabel.textContent = pet ? 'PET / Evento' : 'Local';
+        if (recordWhatsappNavBtn) recordWhatsappNavBtn.hidden = !usuarioPodeOperar_();
         if (recordDetailSectionLocalBtn) recordDetailSectionLocalBtn.title = pet ? 'Dados do PET e local do evento' : 'Dados da edificação ou local vistoriado';
 
         // Ações podem desaparecer para perfis sem permissão ou quando não houver nenhuma ação disponível.
@@ -13316,6 +13335,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordRedsReportText) recordRedsReportText.value = '';
         if (recordWhatsappPanel) recordWhatsappPanel.hidden = true;
         if (recordWhatsappStatus) recordWhatsappStatus.textContent = '';
+        if (recordWhatsappNavBtn) { recordWhatsappNavBtn.classList.remove('is-open'); recordWhatsappNavBtn.setAttribute('aria-expanded', 'false'); }
         recordWhatsappRegistroAtual = null;
 
         const cache = lerCacheFicha_(chave);
@@ -29352,6 +29372,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
       recordWhatsappPhoneInput?.addEventListener('input', atualizarWhatsAppFicha_);
       recordWhatsappSendBtn?.addEventListener('click', enviarWhatsAppFicha_);
+      recordWhatsappNavBtn?.addEventListener('click', abrirWhatsAppNavegacaoFicha_);
       recordNotificationsCopyAllBtn?.addEventListener('click', copiarTodasNotificacoesFicha_);
       recordNotificationsList?.addEventListener('click', event => {
         const botao = event.target.closest('[data-record-notification-copy]');
@@ -30420,7 +30441,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ig', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ih', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
