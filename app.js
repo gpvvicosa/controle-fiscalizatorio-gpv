@@ -1,3 +1,4 @@
+// V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
 // V23.9.99ih — WhatsApp na barra principal da Ficha e cópia discreta do telefone pelo ícone do card Responsável.
 // V23.9.99ih — WhatsApp na Ficha e cópia local do telefone; mantém a padronização IF.
 // V23.9.99ih — padronização de nomes, demanda e sanção exibidos no Painel, sem alterar identificadores; preserva o fluxo direto da IE.
@@ -46,7 +47,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ih';
+      const APP_VERSION = '23.9.99ii';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2165,6 +2166,8 @@
       const recordDetailStatusBadge = document.getElementById('recordDetailStatusBadge');
       const recordCurrentStatus = document.querySelector('.record-current-status');
       const recordQuickActionsPanel = document.getElementById('recordQuickActionsPanel');
+      const recordQuickHistoryBtn = document.getElementById('recordQuickHistoryBtn');
+      const recordHistoryBackBtn = document.getElementById('recordHistoryBackBtn');
       const recordQuickNewInspectionBtn = document.getElementById('recordQuickNewInspectionBtn');
       const recordQuickScheduleBtn = document.getElementById('recordQuickScheduleBtn');
       const recordQuickNewPetBtn = document.getElementById('recordQuickNewPetBtn');
@@ -2866,7 +2869,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ih';
+      const APP_REVISION_UI_ = '23.9.99ii';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5003,7 +5006,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ih', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ii', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -12681,8 +12684,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         processo: 'PSCIP, PF, REDS, licenciamento, demanda e demais dados processuais.',
         local: 'Identificação e características do local vistoriado.',
         responsavel: 'Dados completos da pessoa que acompanhou ou responde pela vistoria.',
-        historico: 'Linha do tempo e alterações registradas no processo.',
-        relatorios: 'Textos operacionais para REDS, INFOSCIP e comunicação ao responsável.',
+        historico: 'Histórico do processo: vistorias anteriores e alterações registradas.',
+        relatorios: 'Históricos prontos para conferência e utilização no REDS e no INFOSCIP.',
         acoes: 'Correções e atualizações operacionais permitidas para este processo.',
         localizacao: 'GPS, mapa e fotografias da vistoria.'
       };
@@ -12713,11 +12716,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function selecionarSecaoFicha_(secao = 'local', opcoes = {}) {
         if (!recordDetailScreen) return;
         const alvo = String(secao || 'local');
-        const botaoAlvo = recordDetailSectionNav?.querySelector(`[data-record-detail-section="${alvo}"]`);
+        // O histórico continua uma seção técnica, mas é acessado apenas dentro de Ações.
+        const secaoNav = alvo === 'historico' ? 'acoes' : alvo;
+        const botaoAlvo = recordDetailSectionNav?.querySelector(`[data-record-detail-section="${secaoNav}"]`);
         if (botaoAlvo?.hidden && alvo !== 'local') return selecionarSecaoFicha_('local', opcoes);
         recordDetailSectionActive_ = alvo;
         recordDetailSectionNav?.querySelectorAll('[data-record-detail-section]').forEach(botao => {
-          const ativo = botao.dataset.recordDetailSection === alvo;
+          const ativo = botao.dataset.recordDetailSection === secaoNav;
           botao.classList.toggle('is-active', ativo);
           botao.setAttribute('aria-selected', ativo ? 'true' : 'false');
           if (ativo && opcoes.focar) botao.focus({ preventScroll: true });
@@ -29827,6 +29832,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       });
       recordDetailCloseBtn?.addEventListener('click', fecharDetalheRegistro_);
       recordDetailSummaryCopyBtn?.addEventListener('click', copiarResumoOperacionalFicha_);
+      recordQuickHistoryBtn?.addEventListener('click', () => selecionarSecaoFicha_('historico'));
+      recordHistoryBackBtn?.addEventListener('click', () => selecionarSecaoFicha_('acoes', { focar: true }));
       recordQuickNewInspectionBtn?.addEventListener('click', () => { void iniciarNovaVistoriaDaFicha_(); });
       recordQuickScheduleBtn?.addEventListener('click', programarNovaVistoriaDaFicha_);
       recordQuickNewPetBtn?.addEventListener('click', () => { void iniciarNovaVistoriaDaFicha_({ pet: true }); });
@@ -30441,7 +30448,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ih', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ii', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
