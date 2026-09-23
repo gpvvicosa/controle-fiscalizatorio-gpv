@@ -1,4 +1,5 @@
-// V23.9.99if — padronização de nomes, demanda e sanção exibidos no Painel, sem alterar identificadores; preserva o fluxo direto da IE.
+// V23.9.99ig — WhatsApp destacado na Ficha e cópia do telefone sem DDD; mantém a padronização IF.
+// V23.9.99ig — padronização de nomes, demanda e sanção exibidos no Painel, sem alterar identificadores; preserva o fluxo direto da IE.
 // V23.9.99id — Fiscalização inclui AVCB vencido nas irregularidades constatadas, mensagem objetiva de WhatsApp e seleção automática do modelo de REDS/INFOSCIP.
 // V23.9.99ic — Acessos diretos aos Manuais do Autuado e do Militar — INFOSCIP em HTML interativo pelo menu Mais.
 // V23.9.99hz — Ficha permite incluir/ajustar retroativamente irregularidades constatadas em Vistorias de Fiscalização, com auditoria.
@@ -44,7 +45,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99if';
+      const APP_VERSION = '23.9.99ig';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2227,6 +2228,7 @@
       const recordWhatsappPanel = document.getElementById('recordWhatsappPanel');
       const recordWhatsappPhoneInput = document.getElementById('recordWhatsappPhoneInput');
       const recordWhatsappSendBtn = document.getElementById('recordWhatsappSendBtn');
+      const recordWhatsappCopyBtn = document.getElementById('recordWhatsappCopyBtn');
       const recordWhatsappStatus = document.getElementById('recordWhatsappStatus');
       const recordNotificationsPanel = document.getElementById('recordNotificationsPanel');
       const recordNotificationsSummary = document.getElementById('recordNotificationsSummary');
@@ -2863,7 +2865,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99if';
+      const APP_REVISION_UI_ = '23.9.99ig';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4999,7 +5001,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99if', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ig', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -9492,8 +9494,17 @@
       function valorCopiaRedsFicha_(rotulo, valor) {
         const original = String(valor == null ? '' : valor).trim();
         const chave = normalize(rotulo || '');
-        const somenteDigitos = /(cpf|cnpj|cep|telefone|celular)/.test(chave);
+        const telefone = /(telefone|celular)/.test(chave);
+        const somenteDigitos = /(cpf|cnpj|cep)/.test(chave);
         const rg = /(^|\s)rg($|\s)|registro geral/.test(chave);
+        if (telefone) {
+          const limpo = original.replace(/\D+/g, '');
+          // Copiar para o REDS: apenas o número local (8 ou 9 dígitos).
+          // País 55 e DDD são descartados somente quando o formato é inequívoco.
+          const nacional = /^55\d{10,11}$/.test(limpo) ? limpo.slice(2) : limpo;
+          const local = /^\d{10,11}$/.test(nacional) ? nacional.slice(2) : nacional;
+          return { valor: local || original, semMascara: Boolean(local && local !== original), semDdd: /^\d{8,9}$/.test(local) };
+        }
         if (somenteDigitos) {
           const limpo = original.replace(/\D+/g, '');
           return { valor: limpo || original, semMascara: Boolean(limpo && limpo !== original) };
@@ -9542,13 +9553,15 @@
           botao.setAttribute('aria-label', `${rotulo} copiado`);
           botao.setAttribute('title', `${rotulo} copiado`);
           const label = botao.querySelector('.record-copy-value-label');
+          if (label && !label.dataset.copyInitialLabel) label.dataset.copyInitialLabel = label.textContent;
           if (label) label.textContent = 'Copiado';
-          if (copia.semMascara) mostrarFeedbackPremium_(`✓ ${rotulo} copiado sem máscara para uso no REDS.`, 'success');
+          if (copia.semDdd) mostrarFeedbackPremium_('✓ Telefone copiado sem DDD para uso no REDS.', 'success');
+          else if (copia.semMascara) mostrarFeedbackPremium_(`✓ ${rotulo} copiado sem máscara para uso no REDS.`, 'success');
           botao._copyFeedbackTimer = setTimeout(() => {
             botao.classList.remove('is-copied');
             botao.setAttribute('aria-label', `Copiar ${rotulo}`);
             botao.setAttribute('title', `Copiar ${rotulo}`);
-            if (label) label.textContent = 'Copiar';
+            if (label) label.textContent = label.dataset.copyInitialLabel || 'Copiar';
           }, 1300);
         } catch (erro) {
           console.warn('Falha ao copiar valor da Ficha:', erro?.message || erro);
@@ -10955,6 +10968,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!recordWhatsappPanel || !recordWhatsappPhoneInput || !recordWhatsappSendBtn) return;
         const numero = telefoneWhatsApp_(recordWhatsappPhoneInput.value);
         recordWhatsappSendBtn.disabled = !numero;
+        if (recordWhatsappCopyBtn) {
+          recordWhatsappCopyBtn.disabled = !numero;
+          recordWhatsappCopyBtn.dataset.copyFieldValue = String(recordWhatsappPhoneInput.value || '').trim();
+        }
         if (recordWhatsappStatus) {
           recordWhatsappStatus.textContent = numero
             ? 'A mensagem será aberta no WhatsApp para conferência e envio.'
@@ -30403,7 +30420,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99if', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ig', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
