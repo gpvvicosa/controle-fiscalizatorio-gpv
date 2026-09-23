@@ -1,3 +1,4 @@
+// V23.9.99ik — rolagem ao topo ao iniciar vistoria pelo Painel ou Programadas.
 // V23.9.99ij — botão WhatsApp da Ficha abre a orientação diretamente, sem painel intermediário.
 // V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
 // V23.9.99ih — WhatsApp na barra principal da Ficha e cópia discreta do telefone pelo ícone do card Responsável.
@@ -48,7 +49,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ij';
+      const APP_VERSION = '23.9.99ik';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2866,7 +2867,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ij';
+      const APP_REVISION_UI_ = '23.9.99ik';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5002,7 +5003,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ij', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ik', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7350,6 +7351,22 @@
 
         // Usa o watchdog já existente como segunda barreira para overlays órfãos.
         try { repararInterfaceOrfa_('entrada na Vistoria', true); } catch (_) {}
+      }
+
+      // V23.9.99ik — após iniciar pela Ficha/Programadas/Painel, mostra o topo
+      // da página principal. Não desloca somente a rolagem interna dos modais.
+      function rolarTopoInicioVistoria_() {
+        const aplicar = () => {
+          try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch (_) { window.scrollTo(0, 0); }
+          const principal = document.scrollingElement;
+          if (principal) principal.scrollTop = 0;
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        };
+        aplicar();
+        // A rolagem interna da Programada é agendada para dois frames;
+        // reaplica o topo depois de o formulário e os modais mudarem de estado.
+        requestAnimationFrame(() => requestAnimationFrame(aplicar));
       }
 
       async function mostrarVistaFormulario_() {
@@ -25290,16 +25307,39 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function iniciarVistoriaPeloDetalheCadastrado_() {
         const atual = detalheVistoriaCadastradaAtual_;
-        if (!atual?.id) return;
-        if (atual.tipo === 'ddu') {
-          const item = ddusAtivos.find(x => String(x.id) === String(atual.id));
-          fecharDetalheVistoriaCadastrada_(false);
-          await iniciarDdu_(item);
-          return;
+        if (!atual?.id || registeredInspectionDetailStartBtn?.disabled) return;
+        const botao = registeredInspectionDetailStartBtn;
+        const rotuloAnterior = botao?.textContent || 'Iniciar vistoria';
+        if (botao) {
+          botao.disabled = true;
+          botao.textContent = 'Iniciando vistoria...';
+          botao.setAttribute('aria-busy', 'true');
         }
-        const item = preparacoesVistoria.find(x => String(x.id) === String(atual.id));
-        const abriu = await abrirPreparacaoComEscolha_(item);
-        if (abriu) fecharDetalheVistoriaCadastrada_(false);
+        try {
+          if (atual.tipo === 'ddu') {
+            const item = ddusAtivos.find(x => String(x.id) === String(atual.id));
+            try { botao?.blur(); } catch (_) {}
+            fecharDetalheVistoriaCadastrada_(false);
+            await iniciarDdu_(item);
+            if (vistaAtualNavegacao_() === 'form') rolarTopoInicioVistoria_();
+            return;
+          }
+          const item = preparacoesVistoria.find(x => String(x.id) === String(atual.id));
+          const abriu = await abrirPreparacaoComEscolha_(item);
+          if (!abriu) return;
+          try { botao?.blur(); } catch (_) {}
+          fecharDetalheVistoriaCadastrada_(false);
+          // Pode ter vindo do card Programadas do Painel: exibe a Vistoria
+          // antes de posicionar o topo, preservando o vínculo da Programada.
+          await mostrarVistaFormulario_();
+          rolarTopoInicioVistoria_();
+        } finally {
+          if (botao) {
+            botao.disabled = false;
+            botao.textContent = rotuloAnterior;
+            botao.removeAttribute('aria-busy');
+          }
+        }
       }
 
       function editarVistoriaPeloDetalheCadastrado_() {
@@ -29617,9 +29657,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       whatsappOrientacoesBtn?.addEventListener('click', abrirOrientacoesWhatsApp_);
       recordsSuccessBtn?.addEventListener('click', abrirRegistroSucessoNaPlanilha_);
       formTabBtn?.addEventListener('click', mostrarVistaFormulario_);
-      const iniciarNovaVistoriaDireto_ = async () => {
-        if (!prepararFormularioNovaVistoria_('Nova vistoria')) return;
-        await mostrarVistaFormulario_();
+      const iniciarNovaVistoriaDireto_ = async event => {
+        const botao = event?.currentTarget || dashboardStartInspectionBtn;
+        if (botao?.disabled) return;
+        const rotulo = botao === dashboardStartInspectionBtn ? botao.querySelector('strong') : null;
+        const rotuloAnterior = rotulo?.textContent || '';
+        if (botao) { botao.disabled = true; botao.setAttribute('aria-busy', 'true'); }
+        if (rotulo) rotulo.textContent = 'Iniciando vistoria...';
+        try {
+          if (!prepararFormularioNovaVistoria_('Nova vistoria')) return;
+          await mostrarVistaFormulario_();
+          rolarTopoInicioVistoria_();
+        } finally {
+          if (rotulo) rotulo.textContent = rotuloAnterior;
+          if (botao) { botao.disabled = false; botao.removeAttribute('aria-busy'); }
+        }
       };
       dashboardNewInspectionBtn?.addEventListener('click', iniciarNovaVistoriaDireto_);
       dashboardStartInspectionBtn?.addEventListener('click', iniciarNovaVistoriaDireto_);
@@ -30395,7 +30447,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ij', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ik', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
