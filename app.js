@@ -1,4 +1,4 @@
-// V23.9.99ik — rolagem ao topo ao iniciar vistoria pelo Painel ou Programadas.
+// V23.9.99il — refino visual dos cards de Vistorias Programadas, mantendo o fluxo operacional.
 // V23.9.99ij — botão WhatsApp da Ficha abre a orientação diretamente, sem painel intermediário.
 // V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
 // V23.9.99ih — WhatsApp na barra principal da Ficha e cópia discreta do telefone pelo ícone do card Responsável.
@@ -49,7 +49,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ik';
+      const APP_VERSION = '23.9.99il';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2867,7 +2867,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ik';
+      const APP_REVISION_UI_ = '23.9.99il';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5003,7 +5003,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ik', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99il', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -27716,15 +27716,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const tipoRotulo = pet ? 'PET' : (liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização'));
           const dataRotulo = formatarDataPreparacao_(item.dataPrevista);
           const responsavelRotulo = item.vistoriadorResponsavel || 'Não definido';
+          // V23.9.99il — "Sem data" fica somente à direita. Quando existe data,
+          // o badge mantém a leitura operacional (Hoje, Amanhã, Atrasada, Em X dias).
+          const exibirPrazoBadge = Boolean(String(item.dataPrevista || '').trim()) && prazo.classe !== 'sem-data';
           return `<article class="programmed-v2-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-programmed-card-id="${escapeAttr(item.id)}">
             <div class="programmed-v2-main">
               <div class="programmed-v2-heading">
                 <div class="programmed-v2-badges">
                   <span class="programmed-v2-kind ${liberacao ? 'release' : 'inspection'}">${escapeHtml(tipoRotulo)}</span>
-                  <span class="programmed-v2-deadline ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span>
+                  ${exibirPrazoBadge ? `<span class="programmed-v2-deadline ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span>` : ''}
                   ${liberacao && item.retornoLiberacao ? '<span class="programmed-v2-return">Retorno</span>' : ''}
                 </div>
-                <time class="programmed-v2-date">${escapeHtml(dataRotulo)}</time>
+                <time class="programmed-v2-date${prazo.classe === 'sem-data' ? ' is-empty' : ''}">${escapeHtml(dataRotulo)}</time>
               </div>
               <div class="programmed-v2-content">
                 <h3>${escapeHtml(titulo)}</h3>
@@ -27734,7 +27737,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                   ${item.area && !eventoDeclaratorio ? `<span>${escapeHtml(item.area)} m²</span>` : ''}
                 </div>
                 <p class="programmed-v2-address">${escapeHtml(endereco || 'Endereço ainda não informado')}</p>
-                <p class="programmed-v2-inspector"><span>Vistoriador</span><strong>${escapeHtml(responsavelRotulo)}</strong></p>
+                <p class="programmed-v2-inspector"><span>Vistoriador:</span><strong>${escapeHtml(responsavelRotulo)}</strong></p>
               </div>
             </div>
             <div class="programmed-v2-actions" aria-label="Ações da vistoria programada">
@@ -30447,7 +30450,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ik', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99il', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
