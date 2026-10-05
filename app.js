@@ -1,4 +1,4 @@
-// V23.9.99in — correção definitiva dos cards mobile das Vistorias Programadas; conteúdo sempre acima das ações.
+// V23.9.99io — correção do fluxo Revisar e salvar: resposta imediata, erros visíveis e validação guiada.
 // V23.9.99ij — botão WhatsApp da Ficha abre a orientação diretamente, sem painel intermediário.
 // V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
 // V23.9.99ih — WhatsApp na barra principal da Ficha e cópia discreta do telefone pelo ícone do card Responsável.
@@ -49,7 +49,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99in';
+      const APP_VERSION = '23.9.99io';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2201,6 +2201,7 @@
       const recordCorrectionFields = document.getElementById('recordCorrectionFields');
       const recordCorrectionReason = document.getElementById('recordCorrectionReason');
       const recordCorrectionMessage = document.getElementById('recordCorrectionMessage');
+      const recordCorrectionFooterMessage = document.getElementById('recordCorrectionFooterMessage');
       const recordResultCorrectionPanel = document.getElementById('recordResultCorrectionPanel');
       const recordResultCorrectionBtn = document.getElementById('recordResultCorrectionBtn');
       const recordResultCorrectionModal = document.getElementById('recordResultCorrectionModal');
@@ -2867,7 +2868,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99in';
+      const APP_REVISION_UI_ = '23.9.99io';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5003,7 +5004,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99in', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99io', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -12038,7 +12039,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             : 'Ex.: Correção após conferência do PSCIP e dos dados apresentados pelo responsável.';
         }
         if (recordCorrectionMessage) { recordCorrectionMessage.textContent = ''; recordCorrectionMessage.className = 'record-correction-message'; }
-        if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.disabled = false;
+        if (recordCorrectionFooterMessage) { recordCorrectionFooterMessage.textContent = ''; recordCorrectionFooterMessage.className = 'record-correction-footer-message'; }
+        if (recordCorrectionSaveBtn) {
+          recordCorrectionSaveBtn.disabled = false;
+          recordCorrectionSaveBtn.dataset.originalLabel = 'Revisar e salvar';
+          recordCorrectionSaveBtn.textContent = 'Revisar e salvar';
+        }
         recordCorrectionModal.hidden = false;
         document.body.classList.add('record-correction-open');
         setTimeout(() => recordCorrectionFields?.querySelector('input,select,textarea')?.focus(), 40);
@@ -12084,31 +12090,96 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         return alteracoes;
       }
 
+      function limparDestaquesErroCorrecao_() {
+        recordCorrectionFields?.querySelectorAll('.record-correction-invalid').forEach(el => el.classList.remove('record-correction-invalid'));
+        recordCorrectionFields?.querySelectorAll('[aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
+        recordCorrectionReason?.classList.remove('record-correction-invalid');
+        recordCorrectionReason?.removeAttribute('aria-invalid');
+      }
+
+      function campoCorrecaoElemento_(id) {
+        if (!id) return null;
+        if (id === 'recordCorrectionReason') return recordCorrectionReason || null;
+        return recordCorrectionFields?.querySelector(`[data-correction-id="${CSS.escape(String(id))}"]`) || null;
+      }
+
+      function destacarCampoErroCorrecao_(id) {
+        const el = campoCorrecaoElemento_(id);
+        if (!el) return;
+        const grupo = el.closest?.('details.record-correction-group');
+        if (grupo) grupo.open = true;
+        const alvoVisual = el.closest?.('label, [data-correction-irregularidades-root]') || el;
+        alvoVisual.classList.add('record-correction-invalid');
+        el.setAttribute?.('aria-invalid', 'true');
+        requestAnimationFrame(() => {
+          try { alvoVisual.scrollIntoView({ behavior:'smooth', block:'center' }); } catch (_) { alvoVisual.scrollIntoView?.(); }
+          setTimeout(() => { try { el.focus({ preventScroll:true }); } catch (_) { try { el.focus(); } catch (e) {} } }, 260);
+        });
+      }
+
+      function mostrarMensagemCorrecao_(mensagem, tipo = 'error', campoId = '') {
+        const texto = String(mensagem || '').trim();
+        limparDestaquesErroCorrecao_();
+        if (recordCorrectionMessage) {
+          recordCorrectionMessage.textContent = texto;
+          recordCorrectionMessage.className = `record-correction-message ${tipo}`.trim();
+        }
+        if (recordCorrectionFooterMessage) {
+          recordCorrectionFooterMessage.textContent = texto;
+          recordCorrectionFooterMessage.className = `record-correction-footer-message ${tipo}`.trim();
+        }
+        if (campoId) destacarCampoErroCorrecao_(campoId);
+      }
+
+      function numeroAreaCorrecao_(valor) {
+        let texto = String(valor == null ? '' : valor).trim().replace(/\s+/g, '');
+        if (!texto) return NaN;
+        if (texto.includes(',')) texto = texto.replace(/\./g, '').replace(',', '.');
+        const numero = Number(texto);
+        return Number.isFinite(numero) ? numero : NaN;
+      }
+
+      function validarEstadoContextualCorrecao_() {
+        const tipoLiberacaoEl = campoCorrecaoElemento_('tipoLiberacao');
+        if (tipoLiberacaoEl && normalize(tipoLiberacaoEl.value) === normalize('Parcial')) {
+          const descricaoEl = campoCorrecaoElemento_('liberacaoParcialDescricao');
+          const areaEl = campoCorrecaoElemento_('liberacaoParcialArea');
+          if (!String(descricaoEl?.value || '').trim()) {
+            return { mensagem:'Informe a Área/trecho liberado para a Vistoria de Liberação Parcial.', campoId:'liberacaoParcialDescricao' };
+          }
+          const area = numeroAreaCorrecao_(areaEl?.value);
+          if (!Number.isFinite(area) || area <= 0) {
+            return { mensagem:'Informe uma Área liberada parcialmente válida, maior que zero.', campoId:'liberacaoParcialArea' };
+          }
+        }
+        return null;
+      }
+
       function validarAlteracoesCorrecao_(alteracoes) {
         for (const item of alteracoes) {
           const valor = String(item.novo || '').trim();
           if (item.id === 'documentoEstabelecimento' && valor) {
             const d = digits(valor);
-            if (![11, 14].includes(d.length)) return 'O CNPJ/CPF do estabelecimento deve conter 11 ou 14 dígitos.';
+            if (![11, 14].includes(d.length)) return { mensagem:'O CNPJ/CPF do estabelecimento deve conter 11 ou 14 dígitos.', campoId:item.id };
           }
           if (item.id === 'cpfResponsavel' && valor && digits(valor).length !== 11) {
-            return 'O CPF do responsável deve conter 11 dígitos.';
+            return { mensagem:'O CPF do responsável deve conter 11 dígitos.', campoId:item.id };
           }
           if (item.id === 'eventoOrganizadorDocumento' && valor && ![11,14].includes(digits(valor).length)) {
-            return 'O CPF/CNPJ do organizador deve conter 11 ou 14 dígitos.';
+            return { mensagem:'O CPF/CNPJ do organizador deve conter 11 ou 14 dígitos.', campoId:item.id };
           }
           if (['cep','cepCorrespondencia','cepResponsavel'].includes(item.id) && valor && normalizarCepCliente_(valor).length !== 8) {
-            return 'O CEP deve conter 8 dígitos ou permanecer em branco.';
+            return { mensagem:'O CEP deve conter 8 dígitos ou permanecer em branco.', campoId:item.id };
           }
           if (item.id === 'pscip' && valor && !pscipProjetoValido_(valor)) {
-            return 'O Nº do PSCIP / Projeto deve usar PRJ + 10 números ou processo antigo, como 44/2016.';
+            return { mensagem:'O Nº do PSCIP / Projeto deve usar PRJ + 10 números ou processo antigo, como 44/2016.', campoId:item.id };
           }
           if (item.id === 'dataHora') {
-            if (!valor || Number.isNaN(new Date(valor).getTime())) return 'Informe uma Data e hora da vistoria válida.';
+            if (!valor || Number.isNaN(new Date(valor).getTime())) return { mensagem:'Informe uma Data e hora da vistoria válida.', campoId:item.id };
           }
           if (item.id === 'nascimento' && valor) {
             const m = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            if (!m) return 'A Data de nascimento deve estar no formato DD/MM/AAAA.';
+            if (!m) return { mensagem:'A Data de nascimento deve estar no formato DD/MM/AAAA.', campoId:item.id };
             const dia = Number(m[1]);
             const mes = Number(m[2]);
             const ano = Number(m[3]);
@@ -12117,19 +12188,19 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               data.getFullYear() !== ano ||
               data.getMonth() !== mes - 1 ||
               data.getDate() !== dia
-            ) return 'Informe uma Data de nascimento válida no formato DD/MM/AAAA.';
+            ) return { mensagem:'Informe uma Data de nascimento válida no formato DD/MM/AAAA.', campoId:item.id };
           }
           if (['petAvcbEmissao','petAvcbValidade'].includes(item.id) && valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
-            return 'As datas do AVCB do PET devem ser válidas.';
+            return { mensagem:'As datas do AVCB do PET devem ser válidas.', campoId:item.id };
           }
           if (item.id === 'petPublicoMaximo' && valor && (!/^\d+$/.test(valor) || Number(valor) <= 0)) {
-            return 'O público máximo do PET deve ser informado em número de pessoas.';
+            return { mensagem:'O público máximo do PET deve ser informado em número de pessoas.', campoId:item.id };
           }
           if (item.id === 'eventoClassificacao' && valor && !['Risco mínimo','Risco baixo','Risco médio'].some(v => normalize(v) === normalize(valor))) {
-            return 'Em evento declaratório, a classificação deve ser Risco mínimo, Risco baixo ou Risco médio.';
+            return { mensagem:'Em evento declaratório, a classificação deve ser Risco mínimo, Risco baixo ou Risco médio.', campoId:item.id };
           }
           if (item.id === 'localizacaoOrigem' && valor && !['gps_auto','gps','mapa'].includes(valor)) {
-            return 'A origem da localização deve ser gps_auto, gps ou mapa.';
+            return { mensagem:'A origem da localização deve ser gps_auto, gps ou mapa.', campoId:item.id };
           }
         }
 
@@ -12138,8 +12209,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (statusIrregularidadesEl && resumoIrregularidadesEl) {
           const status = normalize(statusIrregularidadesEl.value || '');
           const resumo = String(resumoIrregularidadesEl.value || '').trim();
-          if (status === normalize('Irregularidades constatadas') && !resumo) return 'Marque pelo menos uma irregularidade constatada.';
-          if (status === normalize('Nenhuma irregularidade constatada') && resumo) return 'Remova as irregularidades marcadas ou altere a condição para Irregularidades constatadas.';
+          if (status === normalize('Irregularidades constatadas') && !resumo) return { mensagem:'Marque pelo menos uma irregularidade constatada.', campoId:'irregularidadesFiscalizacao' };
+          if (status === normalize('Nenhuma irregularidade constatada') && resumo) return { mensagem:'Remova as irregularidades marcadas ou altere a condição para Irregularidades constatadas.', campoId:'irregularidadesFiscalizacaoStatus' };
         }
 
         const latEl = recordCorrectionFields?.querySelector('[data-correction-id="localizacaoLatitude"]');
@@ -12147,21 +12218,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (latEl && lonEl) {
           const latTexto = String(latEl.value || '').trim().replace(',', '.');
           const lonTexto = String(lonEl.value || '').trim().replace(',', '.');
-          if (Boolean(latTexto) !== Boolean(lonTexto)) return 'Latitude e longitude devem ser informadas juntas.';
+          if (Boolean(latTexto) !== Boolean(lonTexto)) return { mensagem:'Latitude e longitude devem ser informadas juntas.', campoId: latTexto ? 'localizacaoLongitude' : 'localizacaoLatitude' };
           if (latTexto && lonTexto) {
             const lat = Number(latTexto);
             const lon = Number(lonTexto);
-            if (!Number.isFinite(lat) || lat < -90 || lat > 90) return 'Informe uma latitude válida entre -90 e 90.';
-            if (!Number.isFinite(lon) || lon < -180 || lon > 180) return 'Informe uma longitude válida entre -180 e 180.';
-            if (Math.abs(lat) < 1e-12 && Math.abs(lon) < 1e-12) return 'As coordenadas 0,0 não representam uma localização válida.';
+            if (!Number.isFinite(lat) || lat < -90 || lat > 90) return { mensagem:'Informe uma latitude válida entre -90 e 90.', campoId:'localizacaoLatitude' };
+            if (!Number.isFinite(lon) || lon < -180 || lon > 180) return { mensagem:'Informe uma longitude válida entre -180 e 180.', campoId:'localizacaoLongitude' };
+            if (Math.abs(lat) < 1e-12 && Math.abs(lon) < 1e-12) return { mensagem:'As coordenadas 0,0 não representam uma localização válida.', campoId:'localizacaoLatitude' };
           }
         }
         const precisaoEl = recordCorrectionFields?.querySelector('[data-correction-id="localizacaoPrecisao"]');
         if (precisaoEl && String(precisaoEl.value || '').trim()) {
           const p = Number(String(precisaoEl.value).replace(',', '.'));
-          if (!Number.isFinite(p) || p < 0) return 'Informe uma precisão de localização válida.';
+          if (!Number.isFinite(p) || p < 0) return { mensagem:'Informe uma precisão de localização válida.', campoId:'localizacaoPrecisao' };
         }
-        return '';
+        return null;
       }
 
       function resumoAlteracoesCorrecao_(alteracoes, motivo) {
@@ -12253,109 +12324,123 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function salvarCorrecaoRegistro_() {
         if (!recordCorrectionRegistroAtual || !recordsState.chaveSelecionada) return;
-        const motivo = String(recordCorrectionReason?.value || '').replace(/\s+/g, ' ').trim();
-        if (motivo.length < 5) {
-          if (recordCorrectionMessage) {
-            recordCorrectionMessage.textContent = 'Informe o motivo da correção com pelo menos 5 caracteres.';
-            recordCorrectionMessage.className = 'record-correction-message error';
-          }
-          recordCorrectionReason?.focus();
-          return;
-        }
-        const alteracoes = coletarAlteracoesCorrecao_();
-        if (!alteracoes.length) {
-          if (recordCorrectionMessage) {
-            recordCorrectionMessage.textContent = 'Nenhum dado foi alterado.';
-            recordCorrectionMessage.className = 'record-correction-message error';
-          }
-          return;
-        }
-        const erroValidacao = validarAlteracoesCorrecao_(alteracoes);
-        if (erroValidacao) {
-          if (recordCorrectionMessage) {
-            recordCorrectionMessage.textContent = erroValidacao;
-            recordCorrectionMessage.className = 'record-correction-message error';
-          }
-          return;
-        }
-        if (!navigator.onLine) {
-          if (recordCorrectionMessage) {
-            recordCorrectionMessage.textContent = 'A correção de uma vistoria encerrada exige conexão com a internet.';
-            recordCorrectionMessage.className = 'record-correction-message error';
-          }
-          return;
-        }
 
-        const confirmar = await confirmarGpv_(
-          resumoAlteracoesCorrecao_(alteracoes, motivo),
-          'Confirmar correção da vistoria',
-          { rotuloConfirmar: 'Salvar correção', rotuloCancelar: 'Voltar e revisar' }
-        );
-        if (!confirmar) return;
-
+        const rotuloOriginal = recordCorrectionSaveBtn?.dataset.originalLabel || 'Revisar e salvar';
         if (recordCorrectionSaveBtn) {
+          recordCorrectionSaveBtn.dataset.originalLabel = rotuloOriginal;
           recordCorrectionSaveBtn.disabled = true;
-          recordCorrectionSaveBtn.dataset.originalLabel = recordCorrectionSaveBtn.dataset.originalLabel || recordCorrectionSaveBtn.textContent || 'Revisar e salvar';
-          recordCorrectionSaveBtn.textContent = 'Salvando...';
+          recordCorrectionSaveBtn.textContent = 'Preparando revisão...';
           aplicarTomSemanticoBotao_(recordCorrectionSaveBtn);
         }
-        if (recordCorrectionMessage) {
-          recordCorrectionMessage.textContent = 'Salvando correções e registrando auditoria...';
-          recordCorrectionMessage.className = 'record-correction-message warning';
-        }
+        limparDestaquesErroCorrecao_();
+        if (recordCorrectionMessage) { recordCorrectionMessage.textContent = ''; recordCorrectionMessage.className = 'record-correction-message'; }
+        if (recordCorrectionFooterMessage) { recordCorrectionFooterMessage.textContent = ''; recordCorrectionFooterMessage.className = 'record-correction-footer-message'; }
 
-        const chaveAnterior = recordsState.chaveSelecionada;
-        const linhaHint = Number(recordsState.linhaSelecionada || recordCorrectionRegistroAtual?.linhaAtual || 0);
-        const assinatura = assinaturaCorrecaoRegistro_(chaveAnterior, motivo, alteracoes);
-        const operacaoId = operacaoIdCorrecaoRegistro_(assinatura);
+        let iniciouGravacao = false;
         try {
-          const resposta = await apiRequest('config', {
-            consulta: 'registro_corrigir',
-            chave: chaveAnterior,
-            linhaHint,
-            motivo,
-            operacaoId,
-            dispositivo: nomeDispositivo_(),
-            alteracoes: Object.fromEntries(alteracoes.map(item => [item.id, item.novo]))
-          }, 45000, {
-            noRetry:true,
-            silentSuccess:true,
-            timeoutMessage:'A gravação está demorando mais que o normal. O app continuará conferindo no servidor antes de pedir nova tentativa.'
-          });
-          await concluirCorrecaoRegistroSucesso_(resposta, chaveAnterior, linhaHint, alteracoes);
-        } catch (erro) {
-          const mensagemErro = String(erro?.message || '');
-          const demoraOuRede = ['REQUEST_TIMEOUT','NETWORK_ERROR','RESPONSE_FORMAT'].includes(String(erro?.code || '')) || [408,502,503,504].includes(Number(erro?.status || 0));
-          const possivelmenteJaAplicada = /nenhuma alteração efetiva foi identificada/i.test(mensagemErro);
-          if ((demoraOuRede || possivelmenteJaAplicada) && navigator.onLine) {
-            if (recordCorrectionMessage) {
-              recordCorrectionMessage.textContent = 'Alteração enviada. Confirmando a gravação no servidor...';
-              recordCorrectionMessage.className = 'record-correction-message warning';
-            }
-            mostrarFeedbackPremium_('Alteração enviada. Confirmando a gravação no servidor...', 'warning');
-            if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.textContent = 'Confirmando...';
-            const verificacao = await verificarCorrecaoAplicadaAposDemora_(chaveAnterior, linhaHint, alteracoes);
-            if (verificacao.confirmada) {
-              await concluirCorrecaoRegistroSucesso_(verificacao.registro || {}, chaveAnterior, linhaHint, alteracoes);
-              return;
-            }
-            if (recordCorrectionMessage) {
-              recordCorrectionMessage.textContent = 'A solicitação foi enviada, mas o app ainda não conseguiu confirmar a atualização. Os valores permanecem nesta tela. Aguarde alguns segundos e reabra a Ficha para conferir antes de tentar salvar novamente.';
-              recordCorrectionMessage.className = 'record-correction-message warning';
-            }
-            mostrarFeedbackPremium_('Solicitação enviada; confirmação ainda pendente. Confira a Ficha antes de reenviar.', 'warning');
-          } else {
-            const mensagem = erro?.message || 'Não foi possível salvar as correções.';
-            if (recordCorrectionMessage) {
-              recordCorrectionMessage.textContent = mensagem;
-              recordCorrectionMessage.className = 'record-correction-message error';
-            }
-            mostrarFeedbackPremium_(mensagem, 'error');
+          const motivo = String(recordCorrectionReason?.value || '').replace(/\s+/g, ' ').trim();
+          if (motivo.length < 5) {
+            mostrarMensagemCorrecao_('Informe o motivo da correção com pelo menos 5 caracteres.', 'error', 'recordCorrectionReason');
+            return;
           }
-        } finally {
+
+          const erroContextual = validarEstadoContextualCorrecao_();
+          if (erroContextual) {
+            mostrarMensagemCorrecao_(erroContextual.mensagem, 'error', erroContextual.campoId);
+            return;
+          }
+
+          const alteracoes = coletarAlteracoesCorrecao_();
+          if (!alteracoes.length) {
+            mostrarMensagemCorrecao_('Nenhuma alteração foi identificada. Altere pelo menos um campo antes de revisar e salvar.', 'error');
+            return;
+          }
+
+          const erroValidacao = validarAlteracoesCorrecao_(alteracoes);
+          if (erroValidacao) {
+            mostrarMensagemCorrecao_(erroValidacao.mensagem || String(erroValidacao), 'error', erroValidacao.campoId || '');
+            return;
+          }
+
+          if (!navigator.onLine) {
+            mostrarMensagemCorrecao_('A correção de uma vistoria encerrada exige conexão com a internet.', 'error');
+            return;
+          }
+
+          // IO: o diálogo de confirmação fica acima da tela de edição. O botão já respondeu
+          // visualmente antes desta etapa, evitando a impressão de travamento.
+          const confirmar = await confirmarGpv_(
+            resumoAlteracoesCorrecao_(alteracoes, motivo),
+            'Confirmar correção da vistoria',
+            { rotuloConfirmar: 'Salvar correção', rotuloCancelar: 'Voltar e revisar' }
+          );
+          if (!confirmar) {
+            mostrarMensagemCorrecao_('Revise os dados e toque em “Revisar e salvar” quando estiver pronto.', 'warning');
+            return;
+          }
+
+          iniciouGravacao = true;
           if (recordCorrectionSaveBtn) {
+            recordCorrectionSaveBtn.textContent = 'Salvando...';
+            aplicarTomSemanticoBotao_(recordCorrectionSaveBtn);
+          }
+          if (recordCorrectionMessage) {
+            recordCorrectionMessage.textContent = 'Salvando correções e registrando auditoria...';
+            recordCorrectionMessage.className = 'record-correction-message warning';
+          }
+          if (recordCorrectionFooterMessage) {
+            recordCorrectionFooterMessage.textContent = 'Salvando correções...';
+            recordCorrectionFooterMessage.className = 'record-correction-footer-message warning';
+          }
+
+          const chaveAnterior = recordsState.chaveSelecionada;
+          const linhaHint = Number(recordsState.linhaSelecionada || recordCorrectionRegistroAtual?.linhaAtual || 0);
+          const assinatura = assinaturaCorrecaoRegistro_(chaveAnterior, motivo, alteracoes);
+          const operacaoId = operacaoIdCorrecaoRegistro_(assinatura);
+          try {
+            const resposta = await apiRequest('config', {
+              consulta: 'registro_corrigir',
+              chave: chaveAnterior,
+              linhaHint,
+              motivo,
+              operacaoId,
+              dispositivo: nomeDispositivo_(),
+              alteracoes: Object.fromEntries(alteracoes.map(item => [item.id, item.novo]))
+            }, 45000, {
+              noRetry:true,
+              silentSuccess:true,
+              timeoutMessage:'A gravação está demorando mais que o normal. O app continuará conferindo no servidor antes de pedir nova tentativa.'
+            });
+            await concluirCorrecaoRegistroSucesso_(resposta, chaveAnterior, linhaHint, alteracoes);
+          } catch (erro) {
+            const mensagemErro = String(erro?.message || '');
+            const demoraOuRede = ['REQUEST_TIMEOUT','NETWORK_ERROR','RESPONSE_FORMAT'].includes(String(erro?.code || '')) || [408,502,503,504].includes(Number(erro?.status || 0));
+            const possivelmenteJaAplicada = /nenhuma alteração efetiva foi identificada/i.test(mensagemErro);
+            if ((demoraOuRede || possivelmenteJaAplicada) && navigator.onLine) {
+              mostrarMensagemCorrecao_('Alteração enviada. Confirmando a gravação no servidor...', 'warning');
+              mostrarFeedbackPremium_('Alteração enviada. Confirmando a gravação no servidor...', 'warning');
+              if (recordCorrectionSaveBtn) recordCorrectionSaveBtn.textContent = 'Confirmando...';
+              const verificacao = await verificarCorrecaoAplicadaAposDemora_(chaveAnterior, linhaHint, alteracoes);
+              if (verificacao.confirmada) {
+                await concluirCorrecaoRegistroSucesso_(verificacao.registro || {}, chaveAnterior, linhaHint, alteracoes);
+                return;
+              }
+              mostrarMensagemCorrecao_('A solicitação foi enviada, mas o app ainda não conseguiu confirmar a atualização. Aguarde alguns segundos e reabra a Ficha para conferir antes de tentar novamente.', 'warning');
+              mostrarFeedbackPremium_('Solicitação enviada; confirmação ainda pendente. Confira a Ficha antes de reenviar.', 'warning');
+            } else {
+              const mensagem = erro?.message || 'Não foi possível salvar as correções.';
+              mostrarMensagemCorrecao_(mensagem, 'error');
+              mostrarFeedbackPremium_(mensagem, 'error');
+            }
+          }
+        } catch (erro) {
+          const mensagem = erro?.message || 'Ocorreu um erro ao preparar a revisão. Corrija o dado indicado e tente novamente.';
+          mostrarMensagemCorrecao_(mensagem, 'error');
+          mostrarFeedbackPremium_(mensagem, 'error');
+        } finally {
+          if (recordCorrectionSaveBtn && !recordCorrectionModal?.hidden) {
             recordCorrectionSaveBtn.disabled = false;
-            recordCorrectionSaveBtn.textContent = recordCorrectionSaveBtn.dataset.originalLabel || 'Revisar e salvar';
+            recordCorrectionSaveBtn.textContent = rotuloOriginal;
             aplicarTomSemanticoBotao_(recordCorrectionSaveBtn);
           }
         }
@@ -29905,6 +29990,22 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       recordResultCorrectionModal?.addEventListener('click', event => { if (event.target === recordResultCorrectionModal) fecharCorrecaoResultadoVistoria_(); });
       recordCorrectionCloseBtn?.addEventListener('click', fecharCorrecaoRegistro_);
       recordCorrectionCancelBtn?.addEventListener('click', fecharCorrecaoRegistro_);
+      recordCorrectionFields?.addEventListener('input', event => {
+        const el = event.target?.closest?.('[data-correction-id]');
+        if (!el) return;
+        el.removeAttribute('aria-invalid');
+        el.closest?.('label, [data-correction-irregularidades-root]')?.classList.remove('record-correction-invalid');
+      });
+      recordCorrectionFields?.addEventListener('change', event => {
+        const el = event.target?.closest?.('[data-correction-id]');
+        if (!el) return;
+        el.removeAttribute('aria-invalid');
+        el.closest?.('label, [data-correction-irregularidades-root]')?.classList.remove('record-correction-invalid');
+      });
+      recordCorrectionReason?.addEventListener('input', () => {
+        recordCorrectionReason.classList.remove('record-correction-invalid');
+        recordCorrectionReason.removeAttribute('aria-invalid');
+      });
       recordCorrectionSaveBtn?.addEventListener('click', salvarCorrecaoRegistro_);
       recordCorrectionModal?.addEventListener('click', event => { if (event.target === recordCorrectionModal) fecharCorrecaoRegistro_(); });
       recordCorrectionFields?.addEventListener('change', event => {
@@ -30506,7 +30607,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99in', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99io', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
