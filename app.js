@@ -1,4 +1,4 @@
-// V23.9.99il — refino visual dos cards de Vistorias Programadas, mantendo o fluxo operacional.
+// V23.9.99im — refino mobile das Vistorias Programadas e confirmação de responsável fora do padrão usual.
 // V23.9.99ij — botão WhatsApp da Ficha abre a orientação diretamente, sem painel intermediário.
 // V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
 // V23.9.99ih — WhatsApp na barra principal da Ficha e cópia discreta do telefone pelo ícone do card Responsável.
@@ -49,7 +49,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99il';
+      const APP_VERSION = '23.9.99im';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2867,7 +2867,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99il';
+      const APP_REVISION_UI_ = '23.9.99im';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5003,7 +5003,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99il', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99im', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -22603,7 +22603,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (preparedForUserNotice) {
           preparedForUserNotice.hidden = quantidade <= 0;
           preparedForUserNotice.textContent = quantidade > 0
-            ? `${quantidade} vistoria${quantidade === 1 ? '' : 's'} programada${quantidade === 1 ? '' : 's'} para você${criticas > 0 ? ` • ${criticas} com atenção de prazo` : ''}`
+            ? `${quantidade} para você${criticas > 0 ? ` • ${criticas} com atenção de prazo` : ''}`
             : '';
         }
       }
@@ -24793,6 +24793,33 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
 
+      const VISTORIADORES_USUAIS_PROGRAMADAS_ = Object.freeze(['Sgt Galliano', 'Sgt Buonicontro']);
+
+      function nomeVistoriadorUsualProgramada_(nome) {
+        const informado = String(nome || '').trim();
+        if (!informado) return '';
+        return VISTORIADORES_USUAIS_PROGRAMADAS_.find(item => normalize(item) === normalize(informado)) || '';
+      }
+
+      function vistoriadorPadraoProgramada_() {
+        // O usuário que cadastra não é necessariamente quem realizará a vistoria.
+        // Só preenche automaticamente quando o próprio usuário é um dos dois
+        // responsáveis usuais; nos demais casos o campo começa sem atribuição.
+        return nomeVistoriadorUsualProgramada_(authState.usuario?.nome || '');
+      }
+
+      function vistoriadorProgramadaEhUsual_(nome) {
+        return Boolean(nomeVistoriadorUsualProgramada_(nome));
+      }
+
+      function vistoriadorOriginalProgramada_(id) {
+        const chave = String(id || '').trim();
+        if (!chave) return '';
+        const item = (Array.isArray(preparacoesVistoria) ? preparacoesVistoria : [])
+          .find(registro => String(registro?.id || '').trim() === chave);
+        return String(item?.vistoriadorResponsavel || '').trim();
+      }
+
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
         preparacaoCadastroIdPendente = '';
@@ -24806,7 +24833,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         preparacaoAnexosNovos_ = [];
         renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
         if (prepareDwgStatus) prepareDwgStatus.textContent = '';
-        if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
+        if (prepareVistoriador) prepareVistoriador.value = vistoriadorPadraoProgramada_();
         definirCidadePreparacao_(appConfig?.padroes?.cidade || 'Viçosa');
         prepareOcupacoesSelecionadas_ = [];
         renderizarOcupacoesPreparacaoSelecionadas_();
@@ -26748,6 +26775,27 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           await mostrarAvisoAcessoGeral_('cadastro');
           return;
         }
+
+        // V23.9.99im — Sgt Galliano e Sgt Buonicontro são os responsáveis usuais.
+        // Outro militar continua permitido, mas exige confirmação explícita quando
+        // a programação é criada ou quando o responsável é alterado na edição.
+        const responsavelSelecionado = String(p.vistoriadorResponsavel || '').trim();
+        const responsavelAnterior = preparacaoEditandoId ? vistoriadorOriginalProgramada_(preparacaoEditandoId) : '';
+        const responsavelFoiAlterado = !preparacaoEditandoId || normalize(responsavelAnterior) !== normalize(responsavelSelecionado);
+        if (responsavelSelecionado && !vistoriadorProgramadaEhUsual_(responsavelSelecionado) && responsavelFoiAlterado) {
+          const confirmouResponsavel = await confirmarGpv_(
+            `O vistoriador selecionado é ${responsavelSelecionado}. Confirma que ele será o responsável por esta vistoria?`,
+            'Confirmar vistoriador responsável',
+            { tom:'warning', rotuloConfirmar:'Sim, confirmar', rotuloCancelar:'Revisar' }
+          );
+          if (!confirmouResponsavel) {
+            if (prepareVistoriador) {
+              try { prepareVistoriador.focus({ preventScroll:false }); } catch (_) { prepareVistoriador.focus(); }
+            }
+            return;
+          }
+        }
+
         if (!navigator.onLine) {
           if (prepareInspectionError) {
             prepareInspectionError.hidden = false;
@@ -26864,12 +26912,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const libAtrasadas = atrasadas.filter(i => i?.tipoPreparacao === 'liberacao');
         const libHoje = hoje.filter(i => i?.tipoPreparacao === 'liberacao');
         const partes = [];
-        if (libAtrasadas.length) partes.push(`${libAtrasadas.length} liberação${libAtrasadas.length === 1 ? '' : 'ões'} atrasada${libAtrasadas.length === 1 ? '' : 's'}`);
-        if (libHoje.length) partes.push(`${libHoje.length} liberação${libHoje.length === 1 ? '' : 'ões'} para hoje`);
+        if (libAtrasadas.length) partes.push(`${libAtrasadas.length} ${libAtrasadas.length === 1 ? 'liberação atrasada' : 'liberações atrasadas'}`);
+        if (libHoje.length) partes.push(`${libHoje.length} ${libHoje.length === 1 ? 'liberação para hoje' : 'liberações para hoje'}`);
         const outrasAtrasadas = atrasadas.length - libAtrasadas.length;
-        if (outrasAtrasadas > 0) partes.push(`${outrasAtrasadas} fiscalização${outrasAtrasadas === 1 ? '' : 'ões'} atrasada${outrasAtrasadas === 1 ? '' : 's'}`);
+        if (outrasAtrasadas > 0) partes.push(`${outrasAtrasadas} ${outrasAtrasadas === 1 ? 'fiscalização atrasada' : 'fiscalizações atrasadas'}`);
         const outrasHoje = hoje.length - libHoje.length;
-        if (outrasHoje > 0) partes.push(`${outrasHoje} fiscalização${outrasHoje === 1 ? '' : 'ões'} para hoje`);
+        if (outrasHoje > 0) partes.push(`${outrasHoje} ${outrasHoje === 1 ? 'fiscalização para hoje' : 'fiscalizações para hoje'}`);
         if (!partes.length && amanha.length) partes.push(`${amanha.length} vistoria${amanha.length === 1 ? '' : 's'} para amanhã`);
         programDeadlineNotice.hidden = partes.length === 0;
         programDeadlineNotice.classList.toggle('is-critical', atrasadas.length > 0 || libHoje.length > 0);
@@ -27578,7 +27626,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               : ''
           ].filter(Boolean).join('\n\n')
         );
-        if (prepareVistoriador) prepareVistoriador.value = String(authState.usuario?.nome || '');
+        if (prepareVistoriador) prepareVistoriador.value = vistoriadorPadraoProgramada_();
 
         const cnpjInput = document.getElementById('prepareCnpj');
         if (cnpjInput) {
@@ -27615,20 +27663,26 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!preparedInspectionsStatus) return;
         const total = Array.isArray(preparacoesVistoria) ? preparacoesVistoria.length : 0;
         if (programadasAtualizandoSegundoPlano_) {
+          preparedInspectionsStatus.hidden = false;
           preparedInspectionsStatus.className = 'hint programmed-list-status is-updating';
           preparedInspectionsStatus.innerHTML = `<span class="programmed-status-dot" aria-hidden="true"></span><strong>${programadasCacheEmUso_ ? 'Mostrando a última informação disponível.' : 'Lista disponível.'}</strong> Confirmando dados atuais em segundo plano.`;
           return;
         }
         if (programadasUltimaFalha_ && total) {
+          preparedInspectionsStatus.hidden = false;
           preparedInspectionsStatus.className = 'hint programmed-list-status is-warning';
           preparedInspectionsStatus.innerHTML = `<span class="programmed-status-dot" aria-hidden="true"></span><strong>Dados preservados.</strong> Não foi possível confirmar uma atualização agora. <button type="button" data-programmed-retry="1">Tentar novamente</button>`;
           return;
         }
         preparedInspectionsStatus.className = 'hint programmed-list-status';
         if (programadasConsultaEstado_ === 'offline') {
+          preparedInspectionsStatus.hidden = false;
           preparedInspectionsStatus.textContent = total ? 'Offline — mostrando dados armazenados neste aparelho.' : 'Offline — nenhuma programação armazenada neste aparelho.';
         } else {
-          preparedInspectionsStatus.textContent = total === 1 ? '1 vistoria programada pendente.' : (total ? `${total} vistorias programadas pendentes.` : 'Nenhuma vistoria programada pendente.');
+          // A quantidade já aparece no cabeçalho. Evita repetir a mesma informação
+          // entre os filtros e os cards quando a lista está normal e atualizada.
+          preparedInspectionsStatus.hidden = true;
+          preparedInspectionsStatus.textContent = '';
         }
       }
 
@@ -27647,6 +27701,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               : estadoProgramadasHtml_('error', 'Não foi possível atualizar agora', 'A conexão com as Vistorias Programadas não foi confirmada. Você pode tentar novamente sem sair desta tela.', true);
           }
           if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.hidden = false;
             preparedInspectionsStatus.className = `hint programmed-list-status ${programadasConsultaEstado_ === 'error' ? 'is-warning' : 'is-updating'}`;
             preparedInspectionsStatus.textContent = programadasConsultaEstado_ === 'loading'
               ? 'Buscando as Vistorias Programadas mais recentes…'
@@ -27663,6 +27718,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             preparedInspectionsList.innerHTML = skeletonProgramadasHtml_(estimativa);
           }
           if (preparedInspectionsStatus) {
+            preparedInspectionsStatus.hidden = false;
             preparedInspectionsStatus.className = 'hint programmed-list-status is-updating';
             preparedInspectionsStatus.textContent = 'Resumo confirmado. Carregando os detalhes das programações…';
           }
@@ -27716,7 +27772,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const tipoRotulo = pet ? 'PET' : (liberacao ? 'Liberação' : (eventoDeclaratorio ? 'Evento declaratório' : 'Fiscalização'));
           const dataRotulo = formatarDataPreparacao_(item.dataPrevista);
           const responsavelRotulo = item.vistoriadorResponsavel || 'Não definido';
-          // V23.9.99il — "Sem data" fica somente à direita. Quando existe data,
+          // V23.9.99im — "Sem data" fica somente à direita. Quando existe data,
           // o badge mantém a leitura operacional (Hoje, Amanhã, Atrasada, Em X dias).
           const exibirPrazoBadge = Boolean(String(item.dataPrevista || '').trim()) && prazo.classe !== 'sem-data';
           return `<article class="programmed-v2-card ${prazo.classe}${liberacao ? ' is-release' : ''}" data-programmed-card-id="${escapeAttr(item.id)}">
@@ -27727,7 +27783,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                   ${exibirPrazoBadge ? `<span class="programmed-v2-deadline ${prazo.classe}">${escapeHtml(prazo.rotulo)}</span>` : ''}
                   ${liberacao && item.retornoLiberacao ? '<span class="programmed-v2-return">Retorno</span>' : ''}
                 </div>
-                <time class="programmed-v2-date${prazo.classe === 'sem-data' ? ' is-empty' : ''}">${escapeHtml(dataRotulo)}</time>
+                <time class="programmed-v2-date${prazo.classe === 'sem-data' ? ' is-empty' : ''}${['hoje','amanha','atrasada'].includes(prazo.classe) ? ' mobile-operational-date' : ''}">${escapeHtml(dataRotulo)}</time>
               </div>
               <div class="programmed-v2-content">
                 <h3>${escapeHtml(titulo)}</h3>
@@ -30450,7 +30506,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99il', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99im', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
