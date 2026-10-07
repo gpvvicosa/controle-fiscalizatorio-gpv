@@ -1,4 +1,4 @@
-// V23.9.99ip — ajuste exclusivo do layout desktop das Vistorias Programadas; mobile preservado.
+// V23.9.99iq — seletor de ocupação com opção livre por divisão, preservando as opções oficiais.
 // V23.9.99io — correção do fluxo Revisar e salvar: resposta imediata, erros visíveis e validação guiada.
 // V23.9.99ij — botão WhatsApp da Ficha abre a orientação diretamente, sem painel intermediário.
 // V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
@@ -50,7 +50,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ip';
+      const APP_VERSION = '23.9.99iq';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2869,7 +2869,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ip';
+      const APP_REVISION_UI_ = '23.9.99iq';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5005,7 +5005,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ip', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99iq', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5073,6 +5073,7 @@
       let ocupacaoSelecionada = null;
       let ocupacoesSelecionadas = [];
       let ocupacoesSelecaoTemporaria_ = new Set();
+      let ocupacoesLivresTemporarias_ = new Map();
       let ocupacaoSelectorContexto_ = 'vistoria';
       let prepareOcupacoesSelecionadas_ = [];
       let currentRecordId = criarIdRegistro();
@@ -13628,6 +13629,48 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           .filter(Boolean);
       }
 
+      function divisoesOcupacaoDisponiveis_() {
+        return new Set(OCUPACOES_CBMMG.map(item => String(item?.divisao || '').trim().toUpperCase()).filter(Boolean));
+      }
+
+      function ocupacaoLivreInfo_(valor) {
+        const texto = String(valor || '').trim();
+        if (!texto || localizarOcupacaoPorValor(texto)) return null;
+        const match = texto.match(/^([A-Za-z]-\d+)\s*[-—]\s*(.+)$/);
+        if (!match) return null;
+        const divisao = String(match[1] || '').trim().toUpperCase();
+        const descricao = String(match[2] || '').trim();
+        if (!descricao || !divisoesOcupacaoDisponiveis_().has(divisao)) return null;
+        const referencia = OCUPACOES_CBMMG.find(item => String(item?.divisao || '').trim().toUpperCase() === divisao) || null;
+        return { divisao, descricao, grupo: referencia?.grupo || GRUPOS_OCUPACAO_CBMMG[divisao.split('-')[0]] || '' };
+      }
+
+      function ocupacaoLivreValor_(divisao, descricao) {
+        const codigo = String(divisao || '').trim().toUpperCase();
+        const texto = String(descricao || '').trim();
+        return codigo && texto ? `${codigo} - ${texto}` : '';
+      }
+
+      function carregarOcupacoesLivresTemporarias_(registros) {
+        ocupacoesLivresTemporarias_ = new Map();
+        (registros || []).forEach(registro => {
+          const info = ocupacaoLivreInfo_(registro?.valor || registro);
+          if (info) ocupacoesLivresTemporarias_.set(normalize(info.divisao), { divisao: info.divisao, descricao: info.descricao });
+        });
+      }
+
+      function totalSelecoesOcupacaoTemporarias_() {
+        return ocupacoesSelecaoTemporaria_.size + ocupacoesLivresTemporarias_.size;
+      }
+
+      function atualizarStatusSeletorOcupacao_() {
+        if (!ocupacaoSelectorStatus) return;
+        const total = totalSelecoesOcupacaoTemporarias_();
+        ocupacaoSelectorStatus.textContent = total
+          ? `${total} ocupação${total === 1 ? '' : 'ões'} marcada${total === 1 ? '' : 's'}.`
+          : 'Nenhuma ocupação marcada.';
+      }
+
       function ocupacaoJaSelecionada(valor) {
         const alvo = normalize(valor);
         return ocupacoesSelecionadas.some(registro => normalize(registro.valor) === alvo);
@@ -13660,9 +13703,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               '<span>' + escapeHtml(item.descricao) + '</span>' +
               '<small>Carga de incêndio: ' + escapeHtml(cargaLabel(item.carga)) + '</small>';
           } else {
-            principal.innerHTML =
-              '<strong>Ocupação informada manualmente</strong>' +
-              '<span>' + escapeHtml(registro.valor) + '</span>';
+            const livre = ocupacaoLivreInfo_(registro.valor);
+            if (livre) {
+              principal.innerHTML =
+                '<strong>Grupo ' + escapeHtml(livre.divisao.split('-')[0]) + ' • ' + escapeHtml(livre.divisao + ' — ' + livre.grupo) + '</strong>' +
+                '<span>' + escapeHtml(livre.descricao) + '</span>' +
+                '<small>Descrição livre informada pelo vistoriador</small>';
+            } else {
+              principal.innerHTML =
+                '<strong>Ocupação informada manualmente</strong>' +
+                '<span>' + escapeHtml(registro.valor) + '</span>';
+            }
           }
 
           const remover = document.createElement('button');
@@ -13677,6 +13728,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             scheduleDraftSave();
             if (ocupacaoSelectorModal && !ocupacaoSelectorModal.hidden) {
               ocupacoesSelecaoTemporaria_ = new Set(ocupacoesSelecionadas.filter(registro => registro.item || localizarOcupacaoPorValor(registro.valor)).map(registro => normalize(registro.valor)));
+              carregarOcupacoesLivresTemporarias_(ocupacoesSelecionadas);
               renderizarSeletorOcupacao_();
             }
           });
@@ -13881,7 +13933,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               '<span>' + escapeHtml(item.descricao) + '</span>' +
               '<small>Carga de incêndio: ' + escapeHtml(cargaLabel(item.carga)) + '</small>';
           } else {
-            principal.innerHTML = '<strong>Ocupação preservada do cadastro anterior</strong><span>' + escapeHtml(registro?.valor || '') + '</span>';
+            const livre = ocupacaoLivreInfo_(registro?.valor || '');
+            if (livre) {
+              principal.innerHTML =
+                '<strong>Grupo ' + escapeHtml(livre.divisao.split('-')[0]) + ' • ' + escapeHtml(livre.divisao + ' — ' + livre.grupo) + '</strong>' +
+                '<span>' + escapeHtml(livre.descricao) + '</span>' +
+                '<small>Descrição livre informada pelo vistoriador</small>';
+            } else {
+              principal.innerHTML = '<strong>Ocupação preservada do cadastro anterior</strong><span>' + escapeHtml(registro?.valor || '') + '</span>';
+            }
           }
           const remover = document.createElement('button');
           remover.type = 'button';
@@ -13895,6 +13955,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               ocupacoesSelecaoTemporaria_ = new Set(prepareOcupacoesSelecionadas_
                 .filter(reg => reg?.item || localizarOcupacaoPorValor(reg?.valor))
                 .map(reg => normalize(reg.valor)));
+              carregarOcupacoesLivresTemporarias_(prepareOcupacoesSelecionadas_);
               renderizarSeletorOcupacao_();
             }
           });
@@ -13936,47 +13997,94 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacaoSelectorList.innerHTML = '';
         if (!filtradas.length) {
           ocupacaoSelectorList.innerHTML = '<div class="occupancy-selector-empty"><strong>Nenhuma ocupação encontrada.</strong><br>Altere a busca e tente novamente.</div>';
-        } else {
-          let ultimoGrupo = '';
-          filtradas.forEach(item => {
-            const grupo = letraGrupoOcupacao(item);
-            if (grupo !== ultimoGrupo) {
-              ultimoGrupo = grupo;
-              const titulo = document.createElement('div');
-              titulo.className = 'occupancy-selector-group';
-              titulo.textContent = `Grupo ${grupo} — ${GRUPOS_OCUPACAO_CBMMG[grupo] || item.grupo || ''}`;
-              ocupacaoSelectorList.appendChild(titulo);
-            }
-
-            const valor = valorOcupacao(item);
-            const chave = normalize(valor);
-            const label = document.createElement('label');
-            label.className = 'occupancy-check-option';
-            label.classList.toggle('is-checked', ocupacoesSelecaoTemporaria_.has(chave));
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = ocupacoesSelecaoTemporaria_.has(chave);
-            checkbox.dataset.ocupacaoValor = valor;
-            checkbox.setAttribute('aria-label', `${item.divisao} — ${item.descricao}`);
-
-            const copy = document.createElement('span');
-            copy.className = 'occupancy-check-copy';
-            copy.innerHTML =
-              '<strong>' + escapeHtml(item.divisao + ' — ' + item.grupo) + '</strong>' +
-              '<span>' + escapeHtml(item.descricao) + '</span>' +
-              '<small>Carga de incêndio: ' + escapeHtml(cargaLabel(item.carga)) + '</small>';
-
-            label.appendChild(checkbox);
-            label.appendChild(copy);
-            ocupacaoSelectorList.appendChild(label);
-          });
+          atualizarStatusSeletorOcupacao_();
+          return;
         }
 
-        const total = ocupacoesSelecaoTemporaria_.size;
-        ocupacaoSelectorStatus.textContent = total
-          ? `${total} ocupação${total === 1 ? '' : 'ões'} marcada${total === 1 ? '' : 's'}.`
-          : 'Nenhuma ocupação marcada.';
+        const grupos = new Map();
+        filtradas.forEach(item => {
+          const grupo = letraGrupoOcupacao(item);
+          const divisao = String(item?.divisao || '').trim().toUpperCase();
+          if (!grupos.has(grupo)) grupos.set(grupo, new Map());
+          const divisoes = grupos.get(grupo);
+          if (!divisoes.has(divisao)) divisoes.set(divisao, []);
+          divisoes.get(divisao).push(item);
+        });
+
+        grupos.forEach((divisoes, grupo) => {
+          const primeiroGrupo = [...divisoes.values()][0]?.[0];
+          const titulo = document.createElement('div');
+          titulo.className = 'occupancy-selector-group';
+          titulo.textContent = `Grupo ${grupo} — ${GRUPOS_OCUPACAO_CBMMG[grupo] || primeiroGrupo?.grupo || ''}`;
+          ocupacaoSelectorList.appendChild(titulo);
+
+          [...divisoes.entries()]
+            .sort((a, b) => a[0].localeCompare(b[0], 'pt-BR', { numeric: true }))
+            .forEach(([divisao, itens]) => {
+              const referencia = itens[0];
+              const chaveLivre = normalize(divisao);
+              const livreAtual = ocupacoesLivresTemporarias_.get(chaveLivre);
+
+              const livre = document.createElement('div');
+              livre.className = 'occupancy-check-option occupancy-free-option';
+              livre.classList.toggle('is-checked', !!livreAtual);
+
+              const checkboxLivre = document.createElement('input');
+              checkboxLivre.type = 'checkbox';
+              checkboxLivre.checked = !!livreAtual;
+              checkboxLivre.dataset.ocupacaoLivreDivisao = divisao;
+              checkboxLivre.setAttribute('aria-label', `${divisao} — descrição livre`);
+
+              const copyLivre = document.createElement('span');
+              copyLivre.className = 'occupancy-check-copy occupancy-free-copy';
+              copyLivre.innerHTML =
+                '<strong>' + escapeHtml(divisao + ' — ' + (referencia?.grupo || GRUPOS_OCUPACAO_CBMMG[grupo] || '')) + '</strong>' +
+                '<span>Outra ocupação desta divisão</span>' +
+                '<small>Marque e digite a descrição abaixo.</small>';
+
+              const inputLivre = document.createElement('input');
+              inputLivre.type = 'text';
+              inputLivre.className = 'occupancy-free-input';
+              inputLivre.dataset.ocupacaoLivreDescricao = divisao;
+              inputLivre.value = livreAtual?.descricao || '';
+              inputLivre.placeholder = 'Digite a descrição da ocupação';
+              inputLivre.maxLength = 180;
+              inputLivre.autocomplete = 'off';
+              inputLivre.setAttribute('aria-label', `Descrição livre para ${divisao}`);
+              copyLivre.appendChild(inputLivre);
+
+              livre.appendChild(checkboxLivre);
+              livre.appendChild(copyLivre);
+              ocupacaoSelectorList.appendChild(livre);
+
+              itens.forEach(item => {
+                const valor = valorOcupacao(item);
+                const chave = normalize(valor);
+                const label = document.createElement('label');
+                label.className = 'occupancy-check-option';
+                label.classList.toggle('is-checked', ocupacoesSelecaoTemporaria_.has(chave));
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = ocupacoesSelecaoTemporaria_.has(chave);
+                checkbox.dataset.ocupacaoValor = valor;
+                checkbox.setAttribute('aria-label', `${item.divisao} — ${item.descricao}`);
+
+                const copy = document.createElement('span');
+                copy.className = 'occupancy-check-copy';
+                copy.innerHTML =
+                  '<strong>' + escapeHtml(item.divisao + ' — ' + item.grupo) + '</strong>' +
+                  '<span>' + escapeHtml(item.descricao) + '</span>' +
+                  '<small>Carga de incêndio: ' + escapeHtml(cargaLabel(item.carga)) + '</small>';
+
+                label.appendChild(checkbox);
+                label.appendChild(copy);
+                ocupacaoSelectorList.appendChild(label);
+              });
+            });
+        });
+
+        atualizarStatusSeletorOcupacao_();
       }
 
       function abrirSeletorOcupacao_(contexto = 'vistoria') {
@@ -13985,6 +14093,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         ocupacoesSelecaoTemporaria_ = ocupacaoSelectorContexto_ === 'prepare'
           ? ocupacoesOficiaisPreparacaoNormalizadas_()
           : ocupacoesOficiaisSelecionadasNormalizadas_();
+        carregarOcupacoesLivresTemporarias_(ocupacaoSelectorContexto_ === 'prepare' ? prepareOcupacoesSelecionadas_ : ocupacoesSelecionadas);
         if (ocupacaoSearch) ocupacaoSearch.value = '';
         if (ocupacaoSelectorTitle) ocupacaoSelectorTitle.textContent = ocupacaoSelectorContexto_ === 'prepare'
           ? 'Selecionar ocupação da vistoria programada'
@@ -14008,22 +14117,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function aplicarSeletorOcupacao_() {
+        const livresInvalidas = [...ocupacoesLivresTemporarias_.values()].filter(item => !String(item?.descricao || '').trim());
+        if (livresInvalidas.length) {
+          const primeira = livresInvalidas[0];
+          if (ocupacaoSelectorStatus) ocupacaoSelectorStatus.textContent = `Digite a descrição da ocupação para ${primeira.divisao}.`;
+          ocupacaoSelectorList?.querySelector(`[data-ocupacao-livre-descricao="${CSS.escape(primeira.divisao)}"]`)?.focus();
+          return;
+        }
+
+        const livres = [...ocupacoesLivresTemporarias_.values()]
+          .map(item => ({ valor: ocupacaoLivreValor_(item.divisao, item.descricao), item: null }))
+          .filter(registro => registro.valor);
+
         if (ocupacaoSelectorContexto_ === 'prepare') {
-          const manuaisLegados = prepareOcupacoesSelecionadas_.filter(registro => !(registro?.item || localizarOcupacaoPorValor(registro?.valor)));
+          const manuaisLegados = prepareOcupacoesSelecionadas_.filter(registro =>
+            !(registro?.item || localizarOcupacaoPorValor(registro?.valor)) && !ocupacaoLivreInfo_(registro?.valor)
+          );
           const oficiais = OCUPACOES_CBMMG
             .filter(item => ocupacoesSelecaoTemporaria_.has(normalize(valorOcupacao(item))))
             .map(item => ({ valor: valorOcupacao(item), item }));
-          prepareOcupacoesSelecionadas_ = [...oficiais, ...manuaisLegados];
+          prepareOcupacoesSelecionadas_ = [...oficiais, ...livres, ...manuaisLegados];
           renderizarOcupacoesPreparacaoSelecionadas_();
           fecharSeletorOcupacao_();
           return;
         }
         const antes = ocupacaoTextoFinal();
-        const manuaisLegados = ocupacoesSelecionadas.filter(registro => !(registro?.item || localizarOcupacaoPorValor(registro?.valor)));
+        const manuaisLegados = ocupacoesSelecionadas.filter(registro =>
+          !(registro?.item || localizarOcupacaoPorValor(registro?.valor)) && !ocupacaoLivreInfo_(registro?.valor)
+        );
         const oficiais = OCUPACOES_CBMMG
           .filter(item => ocupacoesSelecaoTemporaria_.has(normalize(valorOcupacao(item))))
           .map(item => ({ valor: valorOcupacao(item), item }));
-        ocupacoesSelecionadas = [...oficiais, ...manuaisLegados];
+        ocupacoesSelecionadas = [...oficiais, ...livres, ...manuaisLegados];
         renderizarOcupacoesSelecionadas();
         const depois = ocupacaoTextoFinal();
         if (normalize(antes) !== normalize(depois)) {
@@ -29762,20 +29887,52 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       ocupacaoSelectorApplyBtn?.addEventListener('click', aplicarSeletorOcupacao_);
       ocupacaoSelectorClearBtn?.addEventListener('click', () => {
         ocupacoesSelecaoTemporaria_.clear();
+        ocupacoesLivresTemporarias_.clear();
         renderizarSeletorOcupacao_();
       });
       ocupacaoSearch?.addEventListener('input', renderizarSeletorOcupacao_);
       ocupacaoSelectorList?.addEventListener('change', event => {
+        const checkboxLivre = event.target.closest('input[type="checkbox"][data-ocupacao-livre-divisao]');
+        if (checkboxLivre) {
+          const divisao = String(checkboxLivre.dataset.ocupacaoLivreDivisao || '').trim().toUpperCase();
+          const chaveLivre = normalize(divisao);
+          const inputLivre = checkboxLivre.closest('.occupancy-free-option')?.querySelector('[data-ocupacao-livre-descricao]');
+          if (checkboxLivre.checked) {
+            ocupacoesLivresTemporarias_.set(chaveLivre, { divisao, descricao: String(inputLivre?.value || '').trim() });
+            setTimeout(() => inputLivre?.focus(), 0);
+          } else {
+            ocupacoesLivresTemporarias_.delete(chaveLivre);
+          }
+          checkboxLivre.closest('.occupancy-check-option')?.classList.toggle('is-checked', checkboxLivre.checked);
+          atualizarStatusSeletorOcupacao_();
+          return;
+        }
+
         const checkbox = event.target.closest('input[type="checkbox"][data-ocupacao-valor]');
         if (!checkbox) return;
         const chave = normalize(checkbox.dataset.ocupacaoValor || '');
         if (checkbox.checked) ocupacoesSelecaoTemporaria_.add(chave);
         else ocupacoesSelecaoTemporaria_.delete(chave);
         checkbox.closest('.occupancy-check-option')?.classList.toggle('is-checked', checkbox.checked);
-        const total = ocupacoesSelecaoTemporaria_.size;
-        if (ocupacaoSelectorStatus) ocupacaoSelectorStatus.textContent = total
-          ? `${total} ocupação${total === 1 ? '' : 'ões'} marcada${total === 1 ? '' : 's'}.`
-          : 'Nenhuma ocupação marcada.';
+        atualizarStatusSeletorOcupacao_();
+      });
+      ocupacaoSelectorList?.addEventListener('input', event => {
+        const inputLivre = event.target.closest('input[data-ocupacao-livre-descricao]');
+        if (!inputLivre) return;
+        const divisao = String(inputLivre.dataset.ocupacaoLivreDescricao || '').trim().toUpperCase();
+        const chaveLivre = normalize(divisao);
+        const checkboxLivre = inputLivre.closest('.occupancy-free-option')?.querySelector('input[type="checkbox"][data-ocupacao-livre-divisao]');
+        const descricao = String(inputLivre.value || '').trim();
+        if (descricao) {
+          ocupacoesLivresTemporarias_.set(chaveLivre, { divisao, descricao });
+          if (checkboxLivre && !checkboxLivre.checked) checkboxLivre.checked = true;
+          inputLivre.closest('.occupancy-check-option')?.classList.add('is-checked');
+        } else if (checkboxLivre?.checked) {
+          ocupacoesLivresTemporarias_.set(chaveLivre, { divisao, descricao: '' });
+        } else {
+          ocupacoesLivresTemporarias_.delete(chaveLivre);
+        }
+        atualizarStatusSeletorOcupacao_();
       });
       ocupacaoSelectorModal?.addEventListener('click', event => {
         if (event.target === ocupacaoSelectorModal) fecharSeletorOcupacao_();
@@ -30608,7 +30765,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ip', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99iq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
