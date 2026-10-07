@@ -1,4 +1,4 @@
-// V23.9.99ir — corrige o campo de descrição livre por divisão para permitir foco e digitação normal.
+// V23.9.99is — inclui “Liberado com pendência” como opção visível, mantendo internamente Liberado + pendência documental.
 // V23.9.99io — correção do fluxo Revisar e salvar: resposta imediata, erros visíveis e validação guiada.
 // V23.9.99ij — botão WhatsApp da Ficha abre a orientação diretamente, sem painel intermediário.
 // V23.9.99ii — reorganiza as seções da Ficha: Históricos para REDS e INFOSCIP, Histórico do processo em Ações.
@@ -50,7 +50,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ir';
+      const APP_VERSION = '23.9.99is';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2869,7 +2869,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ir';
+      const APP_REVISION_UI_ = '23.9.99is';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5005,7 +5005,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ir', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99is', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -11318,11 +11318,34 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const liberacao = tipo ? tipo.includes(normalize('Liberação')) : demanda.includes(normalize('Liberação'));
-        if (liberacao) return ['Liberado', 'Notificado'];
+        if (liberacao) return ['Liberado', 'Liberado com pendência', 'Notificado'];
         const fiscalizacao = tipo ? tipo.includes(normalize('Fiscalização')) : !liberacao;
         if (!fiscalizacao) return [];
         if (demanda.includes(normalize('Vistoria Acessória'))) return ['Autuado', 'Advertência', 'Regularizado'];
         return ['Autuado', 'Regularizado'];
+      }
+
+      function pendenciaDocumentalAtiva_(valor) {
+        const n = normalize(String(valor || ''));
+        return Boolean(n) && !['nao', 'não', 'nenhuma', 'sem pendencia', 'sem pendência'].includes(n);
+      }
+
+      function resultadoVisualLiberacao_(resultado, pendenciaDocumental = '') {
+        return normalize(resultado) === normalize('Liberado') && pendenciaDocumentalAtiva_(pendenciaDocumental)
+          ? 'Liberado com pendência'
+          : String(resultado || '').trim();
+      }
+
+      function resultadoEfetivoLiberacao_(resultadoVisual) {
+        return normalize(resultadoVisual) === normalize('Liberado com pendência') ? 'Liberado' : String(resultadoVisual || '').trim();
+      }
+
+      function pendenciaPorResultadoVisual_(resultadoVisual) {
+        const n = normalize(resultadoVisual);
+        if (n === normalize('Liberado com pendência')) return 'Sim';
+        if (n === normalize('Liberado')) return 'Não';
+        if (n === normalize('Notificado')) return 'Não';
+        return '';
       }
 
       function configurarCorrecaoResultadoFicha_(registro) {
@@ -11338,10 +11361,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const opcoes = opcoesCorrecaoResultadoFicha_(recordResultRegistroAtual);
         if (!opcoes.length) return;
         const atual = String(recordResultRegistroAtual?.situacaoAtual || valorCampoFicha_(recordResultRegistroAtual, 'Sanção') || '').trim();
-        if (recordResultCorrectionCurrent) recordResultCorrectionCurrent.textContent = atual || '—';
+        const pendenciaAtual = valorCampoFicha_(recordResultRegistroAtual, 'Pendência documental');
+        const atualVisual = resultadoVisualLiberacao_(atual, pendenciaAtual);
+        if (recordResultCorrectionCurrent) recordResultCorrectionCurrent.textContent = atualVisual || '—';
         if (recordResultCorrectionSelect) {
           recordResultCorrectionSelect.innerHTML = ['<option value="">Selecione o resultado correto</option>']
-            .concat(opcoes.map(v => `<option value="${escapeAttr(v)}"${normalize(v) === normalize(atual) ? ' selected' : ''}>${escapeHtml(v)}</option>`))
+            .concat(opcoes.map(v => `<option value="${escapeAttr(v)}"${normalize(v) === normalize(atualVisual) ? ' selected' : ''}>${escapeHtml(v)}</option>`))
             .join('');
         }
         if (recordResultCorrectionReason) recordResultCorrectionReason.value = '';
@@ -11364,17 +11389,21 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       async function salvarCorrecaoResultadoVistoria_() {
         if (!recordResultRegistroAtual || !recordsState.chaveSelecionada) return;
-        const novoResultado = String(recordResultCorrectionSelect?.value || '').trim();
+        const novoResultadoVisual = String(recordResultCorrectionSelect?.value || '').trim();
+        const novoResultado = resultadoEfetivoLiberacao_(novoResultadoVisual);
+        const novaPendenciaDocumental = pendenciaPorResultadoVisual_(novoResultadoVisual);
         const motivo = String(recordResultCorrectionReason?.value || '').replace(/\s+/g, ' ').trim();
         const atual = String(recordResultRegistroAtual?.situacaoAtual || valorCampoFicha_(recordResultRegistroAtual, 'Sanção') || '').trim();
-        if (!novoResultado) {
+        const pendenciaAtual = valorCampoFicha_(recordResultRegistroAtual, 'Pendência documental');
+        const atualVisual = resultadoVisualLiberacao_(atual, pendenciaAtual);
+        if (!novoResultadoVisual) {
           if (recordResultCorrectionMessage) {
             recordResultCorrectionMessage.textContent = 'Selecione o resultado correto da vistoria.';
             recordResultCorrectionMessage.className = 'record-status-update-message error';
           }
           return;
         }
-        if (normalize(novoResultado) === normalize(atual)) {
+        if (normalize(novoResultadoVisual) === normalize(atualVisual)) {
           if (recordResultCorrectionMessage) {
             recordResultCorrectionMessage.textContent = 'O resultado selecionado já é o resultado atual.';
             recordResultCorrectionMessage.className = 'record-status-update-message error';
@@ -11398,7 +11427,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         const confirmar = await confirmarGpv_(
-          `Resultado atual: ${atual || '—'}\nNovo resultado: ${novoResultado}\n\nMotivo: ${motivo}`,
+          `Resultado atual: ${atualVisual || '—'}\nNovo resultado: ${novoResultadoVisual}\n${novaPendenciaDocumental ? `Pendência documental: ${novaPendenciaDocumental}\n` : ''}\nMotivo: ${motivo}`,
           'Confirmar correção do resultado',
           { rotuloConfirmar: 'Salvar correção', rotuloCancelar: 'Voltar e revisar' }
         );
@@ -11412,18 +11441,39 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const chave = recordsState.chaveSelecionada;
         const linhaHint = Number(recordsState.linhaSelecionada || recordResultRegistroAtual?.linhaAtual || 0);
         try {
-          const resposta = await apiRequest('config', {
-            consulta: 'resultado_corrigir',
-            chave,
-            linhaHint,
-            novoResultado,
-            motivo,
-            dispositivo: nomeDispositivo_()
-          }, 55000);
+          let resposta = null;
+          let linhaAtual = linhaHint;
+          const resultadoMudou = normalize(novoResultado) !== normalize(atual);
+          const pendenciaMudou = normalize(novaPendenciaDocumental) !== normalize(pendenciaAtual);
+
+          if (resultadoMudou) {
+            resposta = await apiRequest('config', {
+              consulta: 'resultado_corrigir',
+              chave,
+              linhaHint: linhaAtual,
+              novoResultado,
+              motivo,
+              dispositivo: nomeDispositivo_()
+            }, 55000);
+            linhaAtual = Number(resposta?.linha || linhaAtual);
+          }
+
+          if (novaPendenciaDocumental && pendenciaMudou) {
+            resposta = await apiRequest('config', {
+              consulta: 'registro_corrigir',
+              chave,
+              linhaHint: linhaAtual,
+              motivo: `${motivo} — ajuste da pendência documental`,
+              dispositivo: nomeDispositivo_(),
+              alteracoes: { pendenciaDocumental: novaPendenciaDocumental }
+            }, 55000);
+            linhaAtual = Number(resposta?.linha || linhaAtual);
+          }
+
           fecharCorrecaoResultadoVistoria_();
           limparCachesConsulta_();
-          appStatus.textContent = `Resultado da vistoria corrigido para ${resposta?.resultadoAtual || novoResultado}.`;
-          await abrirDetalheRegistro_(chave, Number(resposta?.linha || linhaHint));
+          appStatus.textContent = `Resultado da vistoria corrigido para ${novoResultadoVisual}.`;
+          await abrirDetalheRegistro_(chave, linhaAtual);
           if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'resultado corrigido' });
         } catch (erro) {
           if (recordResultCorrectionMessage) {
@@ -14751,8 +14801,25 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         } else {
           opcoes = [];
         }
-        fillSelect('sancao', opcoes, fluxo ? 'Selecione' : 'Escolha primeiro o tipo de vistoria');
-        if (atual && opcoes.some(v => normalize(v) === normalize(atual))) sancaoSelect.value = atual;
+        if (fluxo === 'liberacao') {
+          const pendenciaAtual = String(pendenciaDocumentalSelect?.value || '').trim();
+          sancaoSelect.innerHTML = [
+            '<option value="">Selecione</option>',
+            '<option value="Liberado" data-pendencia-documental="nao">Liberado</option>',
+            '<option value="Liberado" data-pendencia-documental="sim">Liberado com pendência</option>',
+            '<option value="Notificado">Notificado</option>'
+          ].join('');
+          if (normalize(atual) === normalize('Liberado')) {
+            const desejaPendencia = normalize(pendenciaAtual) === normalize('sim');
+            const alvo = Array.from(sancaoSelect.options).find(opt => normalize(opt.value) === normalize('Liberado') && opt.dataset.pendenciaDocumental === (desejaPendencia ? 'sim' : 'nao'));
+            if (alvo) alvo.selected = true;
+          } else if (atual) {
+            sancaoSelect.value = atual;
+          }
+        } else {
+          fillSelect('sancao', opcoes, fluxo ? 'Selecione' : 'Escolha primeiro o tipo de vistoria');
+          if (atual && opcoes.some(v => normalize(v) === normalize(atual))) sancaoSelect.value = atual;
+        }
         if (ehVistoriaAcessoria_()) sincronizarVistoriaAcessoria_();
       }
 
@@ -14792,7 +14859,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (fluxoVistoriaAtualTexto) {
           fluxoVistoriaAtualTexto.hidden = !f;
           fluxoVistoriaAtualTexto.textContent = f === 'liberacao'
-            ? 'Fluxo selecionado: Vistoria de Liberação — resultado: Liberado ou Notificado. O acompanhamento de multa do INFOSCIP Fiscalização é tratado separadamente.'
+            ? 'Fluxo selecionado: Vistoria de Liberação — resultado: Liberado, Liberado com pendência ou Notificado. O acompanhamento de multa do INFOSCIP Fiscalização é tratado separadamente.'
             : (f === 'fiscalizacao' ? 'Fluxo selecionado: Vistoria de Fiscalização.' : '');
         }
 
@@ -17963,12 +18030,33 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConsultaEncerramentoFiscal_();
       }
 
+      function selecionarVariacaoLiberadoPorPendencia_() {
+        if (!sancaoSelect || normalize(sancaoSelect.value) !== normalize('Liberado')) return;
+        const pendencia = normalize(String(pendenciaDocumentalSelect?.value || ''));
+        if (!pendencia) return;
+        const codigo = pendencia === normalize('sim') ? 'sim' : 'nao';
+        const opcao = Array.from(sancaoSelect.options).find(opt => normalize(opt.value) === normalize('Liberado') && opt.dataset.pendenciaDocumental === codigo);
+        if (opcao) opcao.selected = true;
+      }
+
+      function aplicarPendenciaPelaOpcaoResultadoLiberacao_() {
+        if (!sancaoSelect || fluxoVistoriaAtual_() !== 'liberacao') return;
+        const opcao = sancaoSelect.selectedOptions?.[0];
+        if (normalize(sancaoSelect.value) === normalize('Liberado') && pendenciaDocumentalSelect) {
+          const valor = opcao?.dataset?.pendenciaDocumental;
+          if (valor === 'sim' || valor === 'nao') pendenciaDocumentalSelect.value = valor;
+        } else if (normalize(sancaoSelect.value) === normalize('Notificado') && pendenciaDocumentalSelect) {
+          pendenciaDocumentalSelect.value = '';
+        }
+      }
+
       function syncPendenciaDocumental_() {
         const mostrar = ehFluxoLiberacao_() && normalize(value('sancao')) === normalize('Liberado');
         if (pendenciaDocumentalWrap) pendenciaDocumentalWrap.hidden = !mostrar;
         if (pendenciaDocumentalSelect) {
           pendenciaDocumentalSelect.required = mostrar;
           if (!mostrar) pendenciaDocumentalSelect.value = '';
+          else selecionarVariacaoLiberadoPorPendencia_();
         }
       }
 
@@ -22226,7 +22314,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : (identificador.length === 11 ? formatarCpfTela_(identificador) : identificador);
         const eventoDeclaratorio = normalize(payload?.demandaPrincipal || '').includes(normalize('Eventos declaratórios'));
         const tipoVistoria = String(payload?.tipoVistoria || '—').trim() || '—';
-        const situacaoFinal = String(payload?.sancao || '—').trim() || '—';
+        const situacaoFinalBase = String(payload?.sancao || '—').trim() || '—';
+        const situacaoFinal = normalize(situacaoFinalBase) === normalize('Liberado') && normalize(payload?.pendenciaDocumental) === normalize('sim')
+          ? 'Liberado com pendência'
+          : situacaoFinalBase;
         const situacaoPretendida = String(payload?._appSancaoPretendida || payload?.sancao || '—').trim() || '—';
         const estabelecimento = String(payload?.nomeFantasia || payload?.razaoSocial || payload?.eventoNome || '—').trim() || '—';
         const enderecoCompleto = [payload?.endereco, payload?.numero, payload?.bairro].filter(Boolean).join(', ')
@@ -29628,8 +29719,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         agendarConsultaProcessoPf_('form', 320);
       });
       processPfInput?.addEventListener('blur', () => agendarConsultaProcessoPf_('form', 80));
-      sancaoSelect?.addEventListener('change', () => { syncNotificado(); agendarConsultaEncerramentoFiscal_(); scheduleDraftSave(); });
-      pendenciaDocumentalSelect?.addEventListener('change', scheduleDraftSave);
+      sancaoSelect?.addEventListener('change', () => {
+        aplicarPendenciaPelaOpcaoResultadoLiberacao_();
+        syncNotificado();
+        agendarConsultaEncerramentoFiscal_();
+        scheduleDraftSave();
+      });
+      pendenciaDocumentalSelect?.addEventListener('change', () => {
+        selecionarVariacaoLiberadoPorPendencia_();
+        scheduleDraftSave();
+      });
       situacaoMultaInfoscipSelect?.addEventListener('change', () => { scheduleDraftSave(); agendarConsultaEncerramentoFiscal_(); });
       recordInfoscipCopyBtn?.addEventListener('click', copiarHistoricoInfoscipFiscalizacao_);
       recordInfoscipModelSelect?.addEventListener('change', atualizarTextoHistoricoInfoscipFiscalizacao_);
@@ -30777,7 +30876,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ir', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99is', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
