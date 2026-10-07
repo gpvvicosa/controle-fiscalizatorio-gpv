@@ -1,4 +1,4 @@
-// V23.9.99iq — novo shell para opção livre de descrição por divisão no seletor de ocupações.
+// V23.9.99ir — novo shell para correção do campo de descrição livre no seletor de ocupações.
 // V23.9.99io — correção do fluxo Revisar e salvar com validação guiada e feedback visível.
 // V23.9.99ii — navegação da Ficha reorganizada; preserva WhatsApp e cache operacional.
 // V23.9.99ih — atalho WhatsApp na barra da Ficha; cópia discreta do telefone no card Responsável.
@@ -22,7 +22,7 @@
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
 const CACHE_NAME = 'gpv-vistorias-shell-20261007-v23-9-99-iq-ocupacao-livre';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99iq';
+const VERSION = '23.9.99ir';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
