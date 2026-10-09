@@ -1,3 +1,4 @@
+// V23.9.99iw — Cadastrar vistoria: CNPJ passa a preencher CEP/endereço/número/bairro vazios, sem sobrescrever dados manuais.
 // V23.9.99iv — CNPJ: normaliza respostas alternativas, aplica endereço diretamente e mantém confirmação apenas quando já existe endereço divergente.
 // V23.9.99it — restaura a busca automática de responsável/RT por telefone completo com DDD.
 // V23.9.99it — inclui “Liberado com pendência” como opção visível, mantendo internamente Liberado + pendência documental.
@@ -52,7 +53,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99iu';
+      const APP_VERSION = '23.9.99iw';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -5007,7 +5008,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99iv', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99iw', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -26992,43 +26993,46 @@ Deseja usar o endereço cadastral do CNPJ?`,
         el.textContent = '';
       }
 
-      function preencherDadosCnpjPreparacao_(resultado) {
-        const dados = resultado?.dados || resultado?.data || resultado?.resultado || resultado || {};
-        const primeiro = (...valores) => {
-          for (const valor of valores) {
-            const texto = String(valor ?? '').trim();
-            if (texto) return texto;
-          }
-          return '';
-        };
+      async function preencherDadosCnpjPreparacao_(resultado) {
+        // V23.9.99iw — no pré-cadastro, reaproveita a mesma normalização robusta
+        // do formulário principal. O endereço cadastral é apenas uma sugestão:
+        // preenche campos vazios, mas nunca sobrescreve o que o vistoriador digitou.
+        let dados = normalizarRespostaCnpjCliente_(resultado || {});
+        dados = await completarEnderecoCnpjPorCep_(dados);
+
         const pet = String(prepareTipo?.value || '') === 'pet';
         const mapa = {
-          prepareRazaoSocial: primeiro(dados.razaoSocial, dados.razao_social, dados.nome, dados.nomeEmpresarial),
-          ...(pet ? {} : { prepareNomeFantasia: primeiro(dados.nomeFantasia, dados.nome_fantasia, dados.fantasia, dados.nome_fantasia_estabelecimento) }),
-          prepareCep: formatarCepCliente_(primeiro(dados.cep, dados.codigo_postal, dados.codigoPostal)),
-          prepareEndereco: primeiro(dados.endereco, dados.logradouro, dados.descricao_tipo_de_logradouro && dados.logradouro ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}` : ''),
-          prepareNumero: primeiro(dados.numero, dados.numeroEndereco),
-          prepareBairro: primeiro(dados.bairro, dados.nome_bairro),
-          prepareCidade: primeiro(dados.cidade, dados.municipio, dados.nome_municipio)
+          prepareRazaoSocial: padronizarTextoCadastroCliente_(dados.razaoSocial || ''),
+          ...(pet ? {} : { prepareNomeFantasia: padronizarTextoCadastroCliente_(dados.nomeFantasia || '') }),
+          prepareCep: formatarCepCliente_(dados.cep || ''),
+          prepareEndereco: padronizarTextoCadastroCliente_(dados.endereco || ''),
+          prepareNumero: String(dados.numero || '').trim(),
+          prepareBairro: padronizarTextoCadastroCliente_(dados.bairro || '')
         };
-        const camposEmpresa = new Set(['prepareRazaoSocial', 'prepareNomeFantasia']);
+
         let alterados = 0;
+        let enderecoAlterado = false;
         Object.entries(mapa).forEach(([id, valor]) => {
-          if (!camposEmpresa.has(id)) return;
           const el = document.getElementById(id);
-          if (!el || !valor) return;
+          if (!el || !String(valor || '').trim()) return;
           const atual = String(el.value || '').trim();
-          const padronizado = padronizarTextoCadastroCliente_(valor);
+
           if (!atual) {
-            el.value = padronizado;
-            if (id === 'prepareNomeFantasia') prepareNomeFantasiaCnpjSugerido_ = padronizado;
+            el.value = String(valor).trim();
+            if (id === 'prepareNomeFantasia') prepareNomeFantasiaCnpjSugerido_ = String(valor).trim();
+            if (['prepareCep','prepareEndereco','prepareNumero','prepareBairro'].includes(id)) enderecoAlterado = true;
             el.dispatchEvent(new Event('change', { bubbles: true }));
             alterados += 1;
-          } else if (id === 'prepareNomeFantasia' && padronizado && normalize(atual) === normalize(padronizado)) {
-            prepareNomeFantasiaCnpjSugerido_ = padronizado;
+          } else if (id === 'prepareNomeFantasia' && normalize(atual) === normalize(valor)) {
+            prepareNomeFantasiaCnpjSugerido_ = String(valor).trim();
           }
         });
-        return alterados;
+
+        return {
+          alterados,
+          enderecoAlterado,
+          enderecoDisponivel: Boolean(dados.cep || dados.endereco || dados.numero || dados.bairro)
+        };
       }
 
 
@@ -27060,13 +27064,20 @@ Deseja usar o endereço cadastral do CNPJ?`,
             const resultado = await apiRequest('cnpj', { cnpj }, 30000);
             if (sequencia !== cnpjPreparacaoConsultaSequencia || digits(input?.value || '') !== cnpj) return false;
 
-            const alterados = preencherDadosCnpjPreparacao_(resultado);
+            const preenchimento = await preencherDadosCnpjPreparacao_(resultado);
             if (digits(input?.value || '') !== cnpj) return false;
 
+            const alterados = Number(preenchimento?.alterados || 0);
+            const enderecoAlterado = Boolean(preenchimento?.enderecoAlterado);
+            const enderecoDisponivel = Boolean(preenchimento?.enderecoDisponivel);
             showPrepareCnpjStatus_(
-              alterados > 0
-                ? `CNPJ localizado. ${alterados} dado(s) da empresa preenchido(s). O endereço físico deve ser informado pelo vistoriador.`
-                : 'CNPJ localizado. Informe o endereço físico real da vistoria; o CNPJ não define o local do processo.',
+              enderecoAlterado
+                ? `CNPJ localizado. ${alterados} campo(s) preenchido(s), incluindo o endereço cadastral. Confira se ele corresponde ao local físico real da vistoria.`
+                : (enderecoDisponivel
+                    ? 'CNPJ localizado. O endereço cadastral foi encontrado, mas os campos já preenchidos foram preservados. Confira o local físico real da vistoria.'
+                    : (alterados > 0
+                        ? `CNPJ localizado. ${alterados} dado(s) cadastral(is) preenchido(s). A fonte consultada não informou endereço completo.`
+                        : 'CNPJ localizado. A fonte consultada não trouxe novos dados para os campos vazios.')),
               'success'
             );
             await preencherPreparacaoComHistorico_(cnpj);
@@ -29458,7 +29469,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       let ultimoCnpjPreparacaoConsultado = '';
       const prepareCnpjInput = document.getElementById('prepareCnpj');
       const limparDadosEmpresaPreparacao_ = () => {
-        ['prepareNomeFantasia','prepareRazaoSocial','prepareEndereco','prepareNumero','prepareBairro'].forEach(id => {
+        ['prepareNomeFantasia','prepareRazaoSocial','prepareCep','prepareEndereco','prepareNumero','prepareBairro'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.value = '';
         });
