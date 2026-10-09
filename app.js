@@ -1,3 +1,4 @@
+// V23.9.99iu — CNPJ volta a preencher endereço automaticamente quando vazio e oferece confirmação quando já existe endereço; usa CEP como fallback cadastral.
 // V23.9.99it — restaura a busca automática de responsável/RT por telefone completo com DDD.
 // V23.9.99it — inclui “Liberado com pendência” como opção visível, mantendo internamente Liberado + pendência documental.
 // V23.9.99io — correção do fluxo Revisar e salvar: resposta imediata, erros visíveis e validação guiada.
@@ -51,7 +52,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99it';
+      const APP_VERSION = '23.9.99iu';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2870,7 +2871,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99it';
+      const APP_REVISION_UI_ = '23.9.99iu';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5006,7 +5007,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99it', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99iu', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -19814,7 +19815,87 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
-      function fillFromCnpj(result) {
+      async function completarEnderecoCnpjPorCep_(result) {
+        const base = { ...(result || {}) };
+        const cep = normalizarCepCliente_(base.cep || '');
+        const enderecoCompleto = String(base.endereco || '').trim() && String(base.bairro || '').trim();
+        if (!cep || cep.length !== 8 || enderecoCompleto || !navigator.onLine) return base;
+
+        try {
+          const cepResultado = await apiRequest('config', { consulta: 'cep', cep }, 12000);
+          if (!cepResultado?.ok) return base;
+          if (!String(base.endereco || '').trim()) base.endereco = cepResultado.logradouro || '';
+          if (!String(base.bairro || '').trim()) base.bairro = cepResultado.bairro || '';
+          if (!String(base.cidade || '').trim()) base.cidade = cepResultado.cidade || '';
+          if (!String(base.cep || '').trim()) base.cep = cepResultado.cep || cep;
+        } catch (_) {
+          // O CNPJ continua válido mesmo se a consulta complementar de CEP falhar.
+        }
+        return base;
+      }
+
+      function resumoEnderecoCnpj_(result) {
+        const enderecoNumero = [
+          String(result?.endereco || '').trim(),
+          String(result?.numero || '').trim()
+        ].filter(Boolean).join(', ');
+        return [
+          enderecoNumero,
+          String(result?.complemento || '').trim(),
+          String(result?.bairro || '').trim(),
+          String(result?.cidade || '').trim(),
+          formatarCepCliente_(result?.cep || '') ? `CEP ${formatarCepCliente_(result?.cep || '')}` : ''
+        ].filter(Boolean).join(' — ');
+      }
+
+      async function aplicarEnderecoCnpj_(result) {
+        const sugestao = await completarEnderecoCnpjPorCep_(result);
+        const ids = ['cep', 'endereco', 'numero', 'complemento', 'bairro'];
+        const sugeridos = {
+          cep: formatarCepCliente_(sugestao.cep),
+          endereco: padronizarTextoCadastroCliente_(sugestao.endereco),
+          numero: String(sugestao.numero || '').trim(),
+          complemento: padronizarTextoCadastroCliente_(sugestao.complemento),
+          bairro: padronizarTextoCadastroCliente_(sugestao.bairro)
+        };
+        if (!ids.some(id => String(sugeridos[id] || '').trim())) return { alterados: 0, enderecoDisponivel: false, substituiu: false, manteveAtual: false };
+
+        const atuais = Object.fromEntries(ids.map(id => [id, String(value(id) || '').trim()]));
+        const temEnderecoAtual = ids.some(id => atuais[id]);
+        const divergente = ids.some(id => atuais[id] && sugeridos[id] && normalize(atuais[id]) !== normalize(sugeridos[id]));
+
+        let sobrescrever = false;
+        if (temEnderecoAtual && divergente) {
+          const atualResumo = [
+            [atuais.endereco, atuais.numero].filter(Boolean).join(', '),
+            atuais.complemento, atuais.bairro, atuais.cep ? `CEP ${atuais.cep}` : ''
+          ].filter(Boolean).join(' — ');
+          const usar = await confirmarGpv_(
+            `O CNPJ consultado possui o seguinte endereço cadastral:
+${resumoEnderecoCnpj_(sugestao) || 'Endereço não detalhado'}
+
+Já existe um endereço preenchido na vistoria${atualResumo ? `:
+${atualResumo}` : '.'}
+
+Deseja usar o endereço cadastral do CNPJ?`,
+            'Endereço cadastral do CNPJ',
+            { tom: 'info', rotuloConfirmar: 'Usar endereço do CNPJ', rotuloCancelar: 'Manter endereço atual' }
+          );
+          if (!usar) return { alterados: 0, enderecoDisponivel: true, substituiu: false, manteveAtual: true };
+          sobrescrever = true;
+        }
+
+        let alterados = 0;
+        ids.forEach(id => {
+          if (setFieldFromCnpj_(id, sugeridos[id], sobrescrever)) alterados += 1;
+        });
+
+        if (document.getElementById('mesmoEnderecoResponsavel')?.checked) syncResponsibleAddress();
+        scheduleDraftSave();
+        return { alterados, enderecoDisponivel: true, substituiu: sobrescrever, manteveAtual: false };
+      }
+
+      async function fillFromCnpj(result) {
         let count = 0;
 
         // Nome Fantasia e Razão Social identificam a empresa. No PET, entretanto,
@@ -19823,25 +19904,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (!ehPet_() && setFieldFromCnpj_('nomeFantasia', padronizarTextoCadastroCliente_(result.nomeFantasia), true)) count += 1;
         if (setFieldFromCnpj_('razaoSocial', padronizarTextoCadastroCliente_(result.razaoSocial), true)) count += 1;
 
-        // Endereço pode corresponder ao local efetivamente vistoriado e não
-        // necessariamente ao endereço cadastral do CNPJ. Após limpar um CNPJ
-        // anterior, preenche somente se o usuário ainda não informou o local.
-        const localJaInformado = ['endereco','numero','complemento','bairro'].some(id => String(value(id) || '').trim());
-        // Não associa o CEP cadastral da empresa a um local que já foi informado
-        // manualmente pelo vistoriador. Isso evita misturar CEP da sede com o endereço real.
-        if (!localJaInformado && setFieldFromCnpj_('cep', formatarCepCliente_(result.cep))) count += 1;
-        if (setFieldFromCnpj_('endereco', padronizarTextoCadastroCliente_(result.endereco))) count += 1;
-        if (setFieldFromCnpj_('numero', result.numero)) count += 1;
-        if (setFieldFromCnpj_('complemento', padronizarTextoCadastroCliente_(result.complemento))) count += 1;
-        if (setFieldFromCnpj_('bairro', padronizarTextoCadastroCliente_(result.bairro))) count += 1;
+        // V23.9.99iu — se o local ainda estiver vazio, aplica automaticamente o
+        // endereço cadastral do CNPJ. Se já houver endereço divergente, pergunta
+        // antes de substituir. CEP é usado como fallback quando a fonte do CNPJ
+        // retorna o endereço incompleto.
+        const endereco = await aplicarEnderecoCnpj_(result);
+        count += Number(endereco?.alterados || 0);
+
         // Telefone e e-mail pertencem ao responsável e não são preenchidos pela consulta do CNPJ.
-
-        if (document.getElementById('mesmoEnderecoResponsavel').checked) {
-          syncResponsibleAddress();
-        }
-
         scheduleDraftSave();
-        return count;
+        return { count, endereco };
       }
 
       async function consultarCnpj(automatico = false) {
@@ -19874,7 +19946,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (cidadeCnpj) {
             cidadeCnpjConferida_ = { documento: cnpj, cidade: cidadeCnpj, verificadaEm: Date.now() };
           }
-          const alterados = fillFromCnpj(result || {});
+          const preenchimento = await fillFromCnpj(result || {});
+          const alterados = Number(preenchimento?.count || 0);
 
           // Confere novamente antes de abrir a confirmação de cidade.
           if (digits(value('cnpj')) !== cnpj) return;
@@ -19886,11 +19959,18 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                 ? ` Cidade alterada para ${String(result?.cidade || '').trim()}.`
                 : ` Cidade atual mantida em ${cityValue()}.`)
             : '';
+          const complementoEndereco = preenchimento?.endereco?.enderecoDisponivel
+            ? (preenchimento.endereco.manteveAtual
+                ? ' O endereço já informado na vistoria foi mantido.'
+                : (preenchimento.endereco.substituiu
+                    ? ' O endereço cadastral do CNPJ foi aplicado após sua confirmação.'
+                    : ' O endereço cadastral disponível foi preenchido nos campos vazios quando aplicável; confirme se corresponde ao local real da vistoria.'))
+            : ' A fonte consultada não retornou endereço cadastral completo; preencha o local manualmente.';
 
           showCnpjStatus(
             alterados
-              ? `Consulta concluída. ${alterados} campo(s) cadastral(is) foram preenchidos para este CNPJ.${complementoCidade} O endereço é apenas sugerido: confirme ou altere para o local real da vistoria.`
-              : `Consulta concluída.${complementoCidade} O endereço cadastral do CNPJ é apenas uma sugestão e pode ser alterado.`,
+              ? `Consulta concluída. ${alterados} campo(s) cadastral(is) foram preenchidos para este CNPJ.${complementoCidade}${complementoEndereco}`
+              : `Consulta concluída.${complementoCidade}${complementoEndereco}`,
             'success'
           );
           consultarHistoricoEstabelecimento_({ silencioso: true }).catch(() => {});
@@ -30892,7 +30972,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99it', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99iu', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
