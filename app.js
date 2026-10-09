@@ -1,4 +1,4 @@
-// V23.9.99iu — CNPJ volta a preencher endereço automaticamente quando vazio e oferece confirmação quando já existe endereço; usa CEP como fallback cadastral.
+// V23.9.99iv — CNPJ: normaliza respostas alternativas, aplica endereço diretamente e mantém confirmação apenas quando já existe endereço divergente.
 // V23.9.99it — restaura a busca automática de responsável/RT por telefone completo com DDD.
 // V23.9.99it — inclui “Liberado com pendência” como opção visível, mantendo internamente Liberado + pendência documental.
 // V23.9.99io — correção do fluxo Revisar e salvar: resposta imediata, erros visíveis e validação guiada.
@@ -5007,7 +5007,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99iu', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99iv', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -19815,6 +19815,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      function normalizarRespostaCnpjCliente_(entrada) {
+        const raiz = entrada && typeof entrada === 'object' ? entrada : {};
+        const dados = raiz.data && typeof raiz.data === 'object' ? raiz.data
+          : (raiz.resultado && typeof raiz.resultado === 'object' ? raiz.resultado
+            : (raiz.result && typeof raiz.result === 'object' ? raiz.result : raiz));
+        const estabelecimento = dados.estabelecimento && typeof dados.estabelecimento === 'object' ? dados.estabelecimento : {};
+        const enderecoObj = dados.endereco && typeof dados.endereco === 'object' ? dados.endereco : {};
+        const primeiro = (...valores) => {
+          for (const valor of valores) {
+            if (valor == null) continue;
+            if (typeof valor === 'object') {
+              const nome = valor.nome ?? valor.descricao ?? valor.valor ?? valor.name ?? valor.label;
+              if (nome != null && String(nome).trim()) return String(nome).trim();
+              continue;
+            }
+            if (String(valor).trim()) return String(valor).trim();
+          }
+          return '';
+        };
+        return {
+          ...raiz,
+          nomeFantasia: primeiro(raiz.nomeFantasia, dados.nomeFantasia, dados.nome_fantasia, estabelecimento.nomeFantasia, estabelecimento.nome_fantasia),
+          razaoSocial: primeiro(raiz.razaoSocial, dados.razaoSocial, dados.razao_social, dados.nome_empresarial, estabelecimento.razaoSocial, estabelecimento.razao_social),
+          cidade: primeiro(raiz.cidade, dados.cidade, dados.municipio, dados.nome_municipio, estabelecimento.cidade, estabelecimento.municipio, enderecoObj.cidade, enderecoObj.localidade),
+          cep: primeiro(raiz.cep, dados.cep, dados.codigo_postal, estabelecimento.cep, enderecoObj.cep),
+          endereco: primeiro(raiz.endereco, raiz.logradouro, dados.logradouro, typeof dados.endereco === 'string' ? dados.endereco : '', estabelecimento.logradouro, typeof estabelecimento.endereco === 'string' ? estabelecimento.endereco : '', enderecoObj.logradouro, enderecoObj.rua, enderecoObj.street),
+          numero: primeiro(raiz.numero, dados.numero, dados.numero_endereco, estabelecimento.numero, enderecoObj.numero, enderecoObj.number),
+          complemento: primeiro(raiz.complemento, dados.complemento, estabelecimento.complemento, enderecoObj.complemento),
+          bairro: primeiro(raiz.bairro, dados.bairro, dados.nome_bairro, estabelecimento.bairro, enderecoObj.bairro, enderecoObj.neighborhood)
+        };
+      }
+
       async function completarEnderecoCnpjPorCep_(result) {
         const base = { ...(result || {}) };
         const cep = normalizarCepCliente_(base.cep || '');
@@ -19934,7 +19966,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         showCnpjStatus('CNPJ identificado. Consultando dados cadastrais...', 'info');
 
         try {
-          const result = await apiRequest('cnpj', { cnpj }, 30000);
+          const resultBruto = await apiRequest('cnpj', { cnpj }, 30000);
+          const result = normalizarRespostaCnpjCliente_(resultBruto);
 
           // Proteção contra resposta atrasada: só aplica a resposta se o usuário
           // ainda estiver com o mesmo CNPJ que originou esta consulta.
@@ -30972,7 +31005,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99iu', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99iv', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
