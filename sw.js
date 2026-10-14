@@ -1,4 +1,4 @@
-// V23.9.99ix — Ficha com notificações permanentes, atalho direto e fotos temporárias por 15 dias.
+// V23.9.99iy — atualização dos históricos/REDS com o novo endereço institucional do GPV.
 // V23.9.99iw — novo shell para aplicar o endereço cadastral do CNPJ no pré-cadastro quando os campos estiverem vazios.
 // V23.9.99iv — novo shell para corrigir preenchimento assistido do endereço na consulta de CNPJ.
 // V23.9.99io — correção do fluxo Revisar e salvar com validação guiada e feedback visível.
@@ -24,7 +24,7 @@
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
 const CACHE_NAME = 'gpv-vistorias-shell-20261014-v23-9-99-ix-notificacoes-permanentes-fotos-15d';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99ix';
+const VERSION = '23.9.99iy';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.

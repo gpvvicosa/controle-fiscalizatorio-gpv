@@ -1,4 +1,4 @@
-// V23.9.99ix — Ficha: notificações escritas permanentes, atalho no topo, cópia organizada e fotos temporárias por 15 dias.
+// V23.9.99iy — históricos/REDS: endereço institucional do GPV atualizado; preserva a V23.9.99ix.
 // V23.9.99iw — Cadastrar vistoria: CNPJ passa a preencher CEP/endereço/número/bairro vazios, sem sobrescrever dados manuais.
 // V23.9.99iv — CNPJ: normaliza respostas alternativas, aplica endereço diretamente e mantém confirmação apenas quando já existe endereço divergente.
 // V23.9.99it — restaura a busca automática de responsável/RT por telefone completo com DDD.
@@ -54,7 +54,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ix';
+      const APP_VERSION = '23.9.99iy';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2875,7 +2875,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ix';
+      const APP_REVISION_UI_ = '23.9.99iy';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5011,7 +5011,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ix', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99iy', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -9919,7 +9919,7 @@ DURANTE A VISTORIA, FORAM CONSTATADAS IRREGULARIDADES NA EXECUÇÃO DAS MEDIDAS 
 
 O RESPONSÁVEL PODERÁ SANAR AS IRREGULARIDADES E SOLICITAR NOVA VISTORIA, BEM COMO APRESENTAR PEDIDO DE RECONSIDERAÇÃO DE ATO, NOS TERMOS DO ART. 16 DO DECRETO ESTADUAL Nº 47.998/2020, CABENDO RECURSO CONFORME ART. 17 DO MESMO DECRETO.
 
-PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA CASA Nº 38, VILA GIANNETTI – UFV – CENTRO, VIÇOSA/MG. TEL.: (31) 3612-3894. E-MAIL: VICOSA.GPV@BOMBEIROS.MG.GOV.BR.`
+PARA ESCLARECIMENTOS, O GPV DO 3º PELOTÃO BM/VIÇOSA ESTÁ SEDIADO NA AVENIDA ORAIDA MENDES DE CASTRO, S/N (BR-120), BAIRRO NOVO SILVESTRE, VIÇOSA - MG. TEL.: (31) 3612-3894. E-MAIL: VICOSA.GPV@BOMBEIROS.MG.GOV.BR.`
         }
       });
 
@@ -10030,7 +10030,7 @@ IN LOCO, VERIFICAMOS QUE O LOCAL ONDE SERÁ REALIZADO O EVENTO ESTÁ DE ACORDO C
 
 O RESPONSÁVEL FOI INFORMADO, TAMBÉM, DE QUE DEVERÁ RESPEITAR A CAPACIDADE MÁXIMA DE PÚBLICO INFORMADA NA DECLARAÇÃO EMITIDA NO INFOSCIP E, CASO DEIXE DE FAZÊ-LO, ESTARÁ SUJEITO ÀS MEDIDAS E SANÇÕES PREVISTAS NA LEI ESTADUAL Nº 14.130/2001, NO DECRETO ESTADUAL Nº 47.998/2020 E NA INSTRUÇÃO TÉCNICA Nº 45/2025.
 
-PARA DÚVIDAS OU ESCLARECIMENTOS EM RELAÇÃO AO PROCEDIMENTO DURANTE A VISTORIA, O GRUPAMENTO DE PREVENÇÃO E VISTORIA DO 3º PELOTÃO BM/VIÇOSA FICA SEDIADO NA CASA Nº 38, VILA GIANNETTI – UFV – CENTRO, VIÇOSA – MG. TEL.: (31) 3612-3894. E-MAIL: VICOSA.GPV@BOMBEIROS.MG.GOV.BR.`
+PARA DÚVIDAS OU ESCLARECIMENTOS EM RELAÇÃO AO PROCEDIMENTO DURANTE A VISTORIA, O GRUPAMENTO DE PREVENÇÃO E VISTORIA DO 3º PELOTÃO BM/VIÇOSA FICA SEDIADO NA AVENIDA ORAIDA MENDES DE CASTRO, S/N (BR-120), BAIRRO NOVO SILVESTRE, VIÇOSA - MG. TEL.: (31) 3612-3894. E-MAIL: VICOSA.GPV@BOMBEIROS.MG.GOV.BR.`
         },
         irregular: {
           titulo: 'Fiscalização — irregularidade / autuação',
