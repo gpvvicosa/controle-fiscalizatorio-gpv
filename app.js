@@ -1,3 +1,4 @@
+// V23.9.99ix — Ficha: notificações escritas permanentes, atalho no topo, cópia organizada e fotos temporárias por 15 dias.
 // V23.9.99iw — Cadastrar vistoria: CNPJ passa a preencher CEP/endereço/número/bairro vazios, sem sobrescrever dados manuais.
 // V23.9.99iv — CNPJ: normaliza respostas alternativas, aplica endereço diretamente e mantém confirmação apenas quando já existe endereço divergente.
 // V23.9.99it — restaura a busca automática de responsável/RT por telefone completo com DDD.
@@ -53,7 +54,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99iw';
+      const APP_VERSION = '23.9.99ix';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2170,6 +2171,8 @@
       const recordDetailSheetLink = document.getElementById('recordDetailSheetLink');
       const recordDetailBackdrop = document.getElementById('recordDetailBackdrop');
       const recordDetailStatusBadge = document.getElementById('recordDetailStatusBadge');
+      const recordNotificationsTopBtn = document.getElementById('recordNotificationsTopBtn');
+      const recordNotificationsTopText = document.getElementById('recordNotificationsTopText');
       const recordCurrentStatus = document.querySelector('.record-current-status');
       const recordQuickActionsPanel = document.getElementById('recordQuickActionsPanel');
       const recordQuickHistoryBtn = document.getElementById('recordQuickHistoryBtn');
@@ -2872,7 +2875,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99iu';
+      const APP_REVISION_UI_ = '23.9.99ix';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5008,7 +5011,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99iw', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ix', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -11013,20 +11016,28 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function renderizarNotificacoesFicha_(registro) {
         if (!recordNotificationsPanel || !recordNotificationsList) return;
         recordNotificationsAtual = notificacoesDaFicha_(registro);
-        if (!recordNotificationsAtual.length) {
+        const total = recordNotificationsAtual.length;
+        if (!total) {
           recordNotificationsPanel.hidden = true;
           recordNotificationsList.innerHTML = '';
           if (recordNotificationsStatus) recordNotificationsStatus.textContent = '';
+          if (recordNotificationsTopBtn) recordNotificationsTopBtn.hidden = true;
+          if (recordNotificationsTopText) recordNotificationsTopText.textContent = '';
           return;
         }
 
         recordNotificationsPanel.hidden = false;
+        if (recordNotificationsTopBtn) {
+          recordNotificationsTopBtn.hidden = false;
+          recordNotificationsTopBtn.setAttribute('aria-label', `${total} notificação${total === 1 ? '' : 'ões'} registrada${total === 1 ? '' : 's'}. Abrir irregularidades.`);
+        }
+        if (recordNotificationsTopText) {
+          recordNotificationsTopText.textContent = `${total} notificação${total === 1 ? '' : 'ões'} registrada${total === 1 ? '' : 's'}`;
+        }
         if (recordNotificationsSummary) {
           const locais = new Set(recordNotificationsAtual.map(item => `${item.local.tipoLocal}|${item.local.complemento}`)).size;
-          const validade = String(registro?.notificacoesDisponiveisAte || '').trim();
           recordNotificationsSummary.textContent =
-            `${recordNotificationsAtual.length} irregularidade${recordNotificationsAtual.length === 1 ? '' : 's'} registrada${recordNotificationsAtual.length === 1 ? '' : 's'} em ${locais} local${locais === 1 ? '' : 'is'}.` +
-            (validade ? ` Disponível na Ficha até ${validade}.` : '');
+            `${total} irregularidade${total === 1 ? '' : 's'} registrada${total === 1 ? '' : 's'} em ${locais} local${locais === 1 ? '' : 'is'}. O texto permanece vinculado permanentemente à Ficha.`;
         }
         recordNotificationsList.innerHTML = recordNotificationsAtual.map((item, indice) => {
           const local = item.local;
@@ -11045,6 +11056,15 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordNotificationsStatus) recordNotificationsStatus.textContent = '';
       }
 
+      function abrirNotificacoesFicha_() {
+        if (!recordNotificationsAtual.length || !recordNotificationsPanel) return;
+        selecionarSecaoFicha_('acoes');
+        requestAnimationFrame(() => {
+          try { recordNotificationsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+          catch (erro) { recordNotificationsPanel.scrollIntoView(); }
+        });
+      }
+
       async function copiarNotificacaoFicha_(indice) {
         const item = recordNotificationsAtual[Number(indice)];
         if (!item) return;
@@ -11052,10 +11072,56 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordNotificationsStatus) recordNotificationsStatus.textContent = ok ? 'Descrição copiada.' : 'Não foi possível copiar automaticamente.';
       }
 
+      function textoTodasNotificacoesFicha_(registro, itens) {
+        const lista = Array.isArray(itens) ? itens : [];
+        if (!lista.length) return '';
+        const identificadores = identificadoresProjetoFicha_(registro || {});
+        const linhas = [
+          'NOTIFICAÇÕES / IRREGULARIDADES REGISTRADAS NA VISTORIA',
+          '',
+          `Estabelecimento: ${padronizarTextoCadastroCliente_(registro?.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social')) || 'Não informado'}`,
+          `CNPJ/CPF: ${valorCampoFicha_(registro, 'CNPJ') || valorCampoFicha_(registro, 'CPF') || 'Não informado'}`,
+          `PSCIP: ${identificadores.atual || identificadores.antigo || valorCampoFicha_(registro, 'Nº do PSCIP', 'Nº do PSCIP / Projeto') || 'Não informado'}`,
+          `Nº do PF: ${valorCampoFicha_(registro, 'Nº do PF') || 'Não informado'}`,
+          `Data da vistoria: ${valorCampoFicha_(registro, 'Data e hora') || 'Não informada'}`,
+          `Tipo de vistoria: ${valorCampoFicha_(registro, 'Tipo de vistoria') || 'Não informado'}`,
+          `Resultado: ${String(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || 'Não informado').trim()}`,
+          ''
+        ];
+
+        const grupos = new Map();
+        lista.forEach(item => {
+          const local = item?.local || {};
+          const chave = `${String(local.tipoLocal || '').trim()}|${String(local.complemento || '').trim()}`;
+          if (!grupos.has(chave)) grupos.set(chave, { local, itens: [] });
+          grupos.get(chave).itens.push(item?.irregularidade || {});
+        });
+
+        let total = 0;
+        Array.from(grupos.values()).forEach((grupo, indiceLocal) => {
+          const tituloLocal = [grupo.local?.tipoLocal, grupo.local?.complemento].filter(Boolean).join(' — ') || 'Local não informado';
+          linhas.push(`LOCAL ${indiceLocal + 1} — ${tituloLocal}`);
+          grupo.itens.forEach((irregularidade, indice) => {
+            total += 1;
+            const descricao = String(irregularidade?.descricao || '').trim() || 'Descrição não informada';
+            linhas.push(`${indice + 1}. ${descricao}`);
+            const detalhes = [
+              irregularidade?.tipoIrregularidade ? `Tipo: ${irregularidade.tipoIrregularidade}` : '',
+              irregularidade?.itemIrregular ? `Item: ${irregularidade.itemIrregular}` : ''
+            ].filter(Boolean);
+            if (detalhes.length) linhas.push(`   ${detalhes.join(' | ')}`);
+          });
+          linhas.push('');
+        });
+        linhas.push(`Total: ${total} notificação${total === 1 ? '' : 'ões'} registrada${total === 1 ? '' : 's'}.`);
+        return linhas.join('\n');
+      }
+
       async function copiarTodasNotificacoesFicha_() {
         if (!recordNotificationsAtual.length) return;
-        const ok = await copiarTextoCompat_(textoTodasNotificacoes_(recordNotificationsAtual));
-        if (recordNotificationsStatus) recordNotificationsStatus.textContent = ok ? 'Todas as notificações foram copiadas.' : 'Não foi possível copiar automaticamente.';
+        const texto = textoTodasNotificacoesFicha_(recordDetailRegistroAtual, recordNotificationsAtual) || textoTodasNotificacoes_(recordNotificationsAtual);
+        const ok = await copiarTextoCompat_(texto);
+        if (recordNotificationsStatus) recordNotificationsStatus.textContent = ok ? 'Notificações copiadas em formato organizado, prontas para colar no ChatGPT ou em outro documento.' : 'Não foi possível copiar automaticamente.';
       }
 
 
@@ -11831,18 +11897,16 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       function htmlFotoCorrecao_(foto, indice) {
         const id = String(foto?.fileId || foto?.id || '');
         if (!id) return '';
-        const manter = Boolean(foto?.manter);
         return `<article class="record-correction-photo-card" data-correction-photo-card="${escapeAttr(id)}">
           <div class="record-correction-photo-thumb" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M4 7h4l1.4-2h5.2L16 7h4v12H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
           </div>
           <div class="record-correction-photo-copy">
             <strong>${escapeHtml(foto?.nome || `Foto geral ${indice + 1}`)}</strong>
-            <span data-correction-photo-retention-text>${manter ? 'Retenção permanente' : 'Evidência temporária'}</span>
+            <span data-correction-photo-retention-text>Disponível na Ficha por até 15 dias após o encerramento</span>
           </div>
           <div class="record-correction-photo-actions">
             ${foto?.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}
-            <button type="button" data-correction-photo-toggle="${escapeAttr(id)}" data-correction-photo-keep="${manter ? '1' : '0'}">${manter ? 'Tornar temporária' : 'Manter'}</button>
             <button class="danger" type="button" data-correction-photo-delete="${escapeAttr(id)}">Excluir</button>
           </div>
         </article>`;
@@ -11852,7 +11916,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const fotos = Array.isArray(registro?.fotosGerais) ? registro.fotosGerais : [];
         return `<details class="record-correction-group record-correction-group--fotos" data-correction-group="fotos">
           <summary>
-            <span class="record-correction-group-main"><i aria-hidden="true"></i><span><strong>Fotografias</strong><em>Adicionar, abrir, manter ou excluir fotos gerais vinculadas à vistoria. As alterações em fotografias são aplicadas imediatamente.</em></span></span>
+            <span class="record-correction-group-main"><i aria-hidden="true"></i><span><strong>Fotografias</strong><em>Adicionar, abrir ou excluir fotos gerais vinculadas à vistoria. As imagens ficam disponíveis na Ficha por até 15 dias após o encerramento.</em></span></span>
             <small data-correction-photo-count>${fotos.length} foto${fotos.length === 1 ? '' : 's'}</small>
           </summary>
           <div class="record-correction-photo-body">
@@ -12512,14 +12576,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         recordGeneralPhotosPanel.hidden = false;
         if (recordGeneralPhotosSummary) {
-          recordGeneralPhotosSummary.textContent = `${fotos.length} foto(s) geral(is) vinculada(s) a esta vistoria. Evidências temporárias permanecem por até 30 dias após o encerramento, salvo quando marcadas para manter.`;
+          recordGeneralPhotosSummary.textContent = `${fotos.length} foto(s) geral(is) vinculada(s) a esta vistoria. As imagens permanecem disponíveis na Ficha por até 15 dias após o encerramento.`;
         }
         recordGeneralPhotosList.innerHTML = fotos.map((foto, indice) => `
           <article class="record-general-photo-card">
             <div class="record-general-photo-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h4l1.4-2h5.2L16 7h4v12H4z"/><circle cx="12" cy="13" r="3.2"/></svg></div>
             <div>
               <strong>${escapeHtml(foto?.nome || `Foto geral ${indice + 1}`)}</strong>
-              <span>${foto?.manter ? 'Retenção permanente marcada' : 'Evidência temporária'}</span>
+              <span>Imagem temporária — retenção de 15 dias</span>
             </div>
             ${foto?.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Abrir foto</a>` : ''}
           </article>`).join('');
@@ -13462,6 +13526,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           if (recordAuditPanel) recordAuditPanel.hidden = true;
           if (recordGeneralPhotosList) recordGeneralPhotosList.innerHTML = '';
           if (recordGeneralPhotosPanel) recordGeneralPhotosPanel.hidden = true;
+          if (recordNotificationsTopBtn) recordNotificationsTopBtn.hidden = true;
+          if (recordNotificationsTopText) recordNotificationsTopText.textContent = '';
           if (recordDetailStatusBadge) {
             recordDetailStatusBadge.textContent = 'Carregando';
             recordDetailStatusBadge.className = 'status-badge status-neutral';
@@ -15935,8 +16001,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         fotosGeraisDraft_ = fotos;
         if (generalPhotoSummary) {
           generalPhotoSummary.textContent = fotos.length
-            ? `${fotos.length} foto(s) geral(is) adicionada(s).`
-            : 'Nenhuma foto geral adicionada.';
+            ? `${fotos.length} foto(s) geral(is) adicionada(s). As imagens ficarão disponíveis na Ficha por até 15 dias após o encerramento.`
+            : 'Nenhuma foto geral adicionada. Fotografias feitas na vistoria ficam disponíveis na Ficha por até 15 dias após o encerramento.';
         }
         if (!fotos.length) {
           generalPhotoList.innerHTML = '<div class="general-photo-empty">Nenhuma foto geral. Este registro é opcional.</div>';
@@ -15954,7 +16020,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               <span>${pendente ? 'Aguardando sincronização' : 'Salva no Drive'}</span>
               <div class="general-photo-actions">
                 ${foto.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}
-                ${foto.fileId ? `<button type="button" data-general-photo-keep="${escapeAttr(foto.fileId)}">${foto.manter ? '✓ Manter' : 'Manter'}</button>` : ''}
                 <button type="button" data-general-photo-delete="${escapeAttr(foto.fileId || foto.id)}">Excluir</button>
               </div>
             </div>
@@ -16289,7 +16354,6 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
                           <div class="notification-photo-item ${foto.estado === 'pendente' ? 'is-pending' : ''}">
                             <span>Foto ${indiceFoto + 1}${foto.estado === 'pendente' ? ' — aguardando envio' : ''}</span>
                             ${foto.url ? `<a href="${escapeAttr(foto.url)}" target="_blank" rel="noopener">Ver</a>` : ''}
-                            ${foto.fileId ? `<button type="button" data-notification-photo-keep="${escapeAttr(foto.fileId)}" data-notification-id="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}">${foto.manter ? '✓ Manter' : 'Manter'}</button>` : ''}
                             <button type="button" data-notification-photo-delete="${escapeAttr(foto.fileId || foto.id)}" data-notification-id="${escapeAttr(item.id)}" data-notification-local-id="${escapeAttr(local.id)}">Excluir</button>
                           </div>`).join('')}
                       </div>` : ''}
@@ -29887,6 +29951,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
       recordWhatsappNavBtn?.addEventListener('click', abrirWhatsAppNavegacaoFicha_);
       recordNotificationsCopyAllBtn?.addEventListener('click', copiarTodasNotificacoesFicha_);
+      recordNotificationsTopBtn?.addEventListener('click', abrirNotificacoesFicha_);
       recordNotificationsList?.addEventListener('click', event => {
         const botao = event.target.closest('[data-record-notification-copy]');
         if (!botao) return;
