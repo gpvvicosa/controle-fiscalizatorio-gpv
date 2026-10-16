@@ -1,3 +1,4 @@
+// V23.9.99iz — Ficha: notificações permanentes carregadas por consulta direta e independente dos complementos.
 // V23.9.99iy — históricos/REDS: endereço institucional do GPV atualizado; preserva a V23.9.99ix.
 // V23.9.99iw — Cadastrar vistoria: CNPJ passa a preencher CEP/endereço/número/bairro vazios, sem sobrescrever dados manuais.
 // V23.9.99iv — CNPJ: normaliza respostas alternativas, aplica endereço diretamente e mantém confirmação apenas quando já existe endereço divergente.
@@ -54,7 +55,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99iy';
+      const APP_VERSION = '23.9.99iz';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2875,7 +2876,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99iy';
+      const APP_REVISION_UI_ = '23.9.99iz';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5011,7 +5012,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99iy', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99iz', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -13451,6 +13452,35 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
       }
 
+      async function carregarNotificacoesFichaRapida_(chave, linhaHint, registroBase) {
+        if (!navigator.onLine || !chave) return;
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'registro_notificacoes',
+            chave,
+            linhaHint: Number(linhaHint || 0)
+          }, 18000, { silentSuccess:true });
+          if (!resposta) return;
+          if (recordsState.chaveSelecionada !== chave || !recordDetailScreen?.classList.contains('show')) return;
+
+          const atual = recordDetailRegistroAtual || registroBase || {};
+          const atualizado = {
+            ...atual,
+            notificacoesTemporarias: String(resposta.notificacoesTemporarias || ''),
+            notificacoesDisponiveisAte: ''
+          };
+
+          // Atualiza somente o bloco de notificações para o alerta aparecer sem
+          // aguardar histórico, auditoria, fotos, localização ou outros complementos.
+          recordDetailRegistroAtual = atualizado;
+          renderizarNotificacoesFicha_(atualizado);
+          salvarCacheFicha_(chave, atualizado, { servidorEm: resposta?.servidorEm || new Date().toISOString() });
+        } catch (erro) {
+          // A consulta completa de complementos permanece como fallback.
+          console.warn('Notificações da ficha não carregadas na consulta rápida:', erro?.message || erro);
+        }
+      }
+
       async function carregarComplementosFicha_(chave, linhaHint, registroBase) {
         if (!navigator.onLine || !chave) return;
         try {
@@ -13568,6 +13598,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           recordDetailLoading.hidden = true;
           renderizarFichaRegistro_(registroParaRender);
           salvarCacheFicha_(chave, registroParaRender, { servidorEm: registro?.servidorEm || new Date().toISOString() });
+          // V23.9.99iz — notificações têm consulta própria e aparecem no topo sem depender dos complementos pesados.
+          void carregarNotificacoesFichaRapida_(chave, registro?.linhaAtual || linhaHint, registroParaRender);
           // V23.9.99fy — GPS/coordenadas têm consulta própria e independente dos complementos pesados.
           void carregarLocalizacaoFichaRapida_(chave, registro?.linhaAtual || linhaHint);
           void carregarComplementosFicha_(chave, registro?.linhaAtual || linhaHint, registroParaRender);
@@ -31081,7 +31113,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99iv', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99iz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
