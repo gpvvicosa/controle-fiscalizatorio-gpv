@@ -1,3 +1,4 @@
+// V23.9.99ja — alerta inteligente de histórico no endereço ao cadastrar/iniciar nova vistoria; orienta Acessória, Retorno de Liberação, Liberação AVCB P01002, nova vistoria ou cancelamento.
 // V23.9.99iz — Ficha: notificações permanentes carregadas por consulta direta e independente dos complementos.
 // V23.9.99iy — históricos/REDS: endereço institucional do GPV atualizado; preserva a V23.9.99ix.
 // V23.9.99iw — Cadastrar vistoria: CNPJ passa a preencher CEP/endereço/número/bairro vazios, sem sobrescrever dados manuais.
@@ -55,7 +56,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99iz';
+      const APP_VERSION = '23.9.99ja';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2876,7 +2877,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99iz';
+      const APP_REVISION_UI_ = '23.9.99ja';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5012,7 +5013,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99iz', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ja', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5143,6 +5144,12 @@
       let preparePfLookupSequencia = 0;
       let preparePfCandidatos = [];
       let preparePfAutoAtual = '';
+      let prepareNaturezaSugerida_ = '';
+      const historicoLocalNovaVistoriaEstado_ = {
+        form: { timer:null, seq:0, assinaturaResolvida:'', exibindo:false },
+        prepare: { timer:null, seq:0, assinaturaResolvida:'', exibindo:false }
+      };
+      let historicoLocalReabrirAposFicha_ = null;
       let notificacoesLiberacaoDraft = [];
       let fotosGeraisDraft_ = [];
       const FOTO_GERAL_ITEM_ID_ = '__GERAL__';
@@ -9464,6 +9471,17 @@
         if (opcoes.restaurarContexto !== false && contextoRetorno === 'goals-details') {
           abrirMetas_();
           selecionarAbaMetas_('detalhes');
+        }
+        if (opcoes.restaurarContexto !== false && contextoRetorno === 'historico-nova-vistoria' && historicoLocalReabrirAposFicha_) {
+          const pendente = historicoLocalReabrirAposFicha_;
+          historicoLocalReabrirAposFicha_ = null;
+          if (pendente.origem === 'prepare' && prepareInspectionModal) {
+            prepareInspectionModal.hidden = false;
+            document.body.classList.add('review-open');
+          }
+          setTimeout(() => {
+            void consultarAlertaHistoricoLocalNovaVistoria_(pendente.origem || 'form');
+          }, 180);
         }
       }
 
@@ -21485,6 +21503,274 @@ Deseja usar o endereço cadastral do CNPJ?`,
         return docOk || pscipOk || pfOk || enderecoOk;
       }
 
+
+      function filtrosHistoricoLocalNovaVistoria_(origem = 'form') {
+        const g = id => String(document.getElementById(id)?.value || '').trim();
+        if (origem === 'prepare') {
+          return {
+            cidade: g('prepareCidade'),
+            endereco: g('prepareEndereco'),
+            numero: g('prepareNumero'),
+            bairro: g('prepareBairro'),
+            identificador: digits(g('prepareCnpj')),
+            pscip: projetoPscipOperacional_(g('preparePscip'))
+          };
+        }
+        return {
+          cidade: cityValue(),
+          endereco: value('endereco'),
+          numero: value('numero'),
+          bairro: value('bairro'),
+          identificador: digits(value('cnpj')),
+          pscip: projetoPscipOperacional_(value('pscip'))
+        };
+      }
+
+      function assinaturaHistoricoLocalNovaVistoria_(filtros) {
+        return [
+          normalize(filtros?.cidade || ''),
+          normalize(filtros?.endereco || ''),
+          normalize(filtros?.numero || '')
+        ].join('|');
+      }
+
+      function filtrosSuficientesHistoricoLocalNovaVistoria_(filtros) {
+        return Boolean(
+          normalize(filtros?.cidade || '') &&
+          normalize(filtros?.endereco || '').length >= 3 &&
+          normalize(filtros?.numero || '')
+        );
+      }
+
+      function resumoHistoricoLocalNovaVistoria_(resposta) {
+        const item = resposta?.ultimaVistoria || null;
+        if (!item) return 'Já existe vistoria registrada neste endereço.';
+        const linha1 = [item.estabelecimento || 'Local já vistoriado', item.carimbo || ''].filter(Boolean).join(' • ');
+        const linha2 = [
+          item.tipoVistoria || '',
+          item.sancao ? `Situação: ${item.sancao}` : '',
+          item.pf ? `PF: ${item.pf}` : '',
+          item.pscip ? `PSCIP: ${item.pscip}` : ''
+        ].filter(Boolean).join(' • ');
+        const total = Number(resposta?.total || 0);
+        return `${linha1}${linha2 ? `\n${linha2}` : ''}${total > 1 ? `\nForam localizadas ${total} vistorias/registros compatíveis neste local.` : ''}\n\nQual é o motivo desta nova vistoria?`;
+      }
+
+      function candidatoHistoricoParaAcao_(resposta, tipo) {
+        if (tipo === 'retorno') return resposta?.retornoLiberacao || resposta?.ultimaVistoria || null;
+        if (tipo === 'acessoria') return resposta?.fiscalizacaoAberta || resposta?.ultimaVistoria || null;
+        return resposta?.ultimaVistoria || null;
+      }
+
+      async function cancelarCadastroPorHistoricoLocal_(origem) {
+        if (origem === 'prepare') {
+          const editando = Boolean(preparacaoEditandoId);
+          const confirmou = await confirmarGpv_(
+            editando
+              ? 'Cancelar esta edição? A vistoria programada original será preservada e nenhuma alteração será salva.'
+              : 'Cancelar este cadastro? Os dados preenchidos serão descartados e nenhuma vistoria será programada.',
+            editando ? 'Cancelar edição?' : 'Cancelar cadastro?',
+            { tom:'danger', rotuloConfirmar:editando ? 'Cancelar edição' : 'Cancelar cadastro', rotuloCancelar:'Continuar preenchendo' }
+          );
+          if (!confirmou) return false;
+          fecharModalPreparacao_({ restaurarContexto:true });
+          limparFormularioPreparacao_();
+          return true;
+        }
+        return await cancelarVistoriaNaoProgramadaAtual_();
+      }
+
+      function aplicarNaturezaP01002_() {
+        const natureza = document.getElementById('natureza');
+        if (natureza) natureza.value = 'P01002';
+      }
+
+      async function aplicarEscolhaHistoricoLocalNovaVistoria_(origem, escolha, resposta, assinatura) {
+        const estado = historicoLocalNovaVistoriaEstado_[origem];
+        if (!estado) return;
+
+        if (escolha === 'abrir_ficha') {
+          const candidato = candidatoHistoricoParaAcao_(resposta, 'geral');
+          if (candidato?.chave) {
+            historicoLocalReabrirAposFicha_ = { origem, assinatura };
+            if (origem === 'prepare' && prepareInspectionModal) {
+              prepareInspectionModal.hidden = true;
+              document.body.classList.remove('review-open');
+            }
+            await abrirDetalheRegistro_(candidato.chave, Number(candidato.linha || 0), { contexto:'historico-nova-vistoria' });
+          }
+          return;
+        }
+
+        if (escolha === 'cancelar') {
+          const cancelou = await cancelarCadastroPorHistoricoLocal_(origem);
+          if (cancelou) estado.assinaturaResolvida = assinatura;
+          return;
+        }
+
+        estado.assinaturaResolvida = assinatura;
+
+        if (escolha === 'nova') {
+          if (origem === 'prepare' && preparePfLookupStatus) {
+            preparePfLookupStatus.textContent = 'Histórico do local conferido. O cadastro continuará como nova vistoria.';
+            preparePfLookupStatus.className = 'lookup-status show info';
+          } else if (origem === 'form' && processPfLookupStatus) {
+            processPfLookupStatus.textContent = 'Histórico do local conferido. A vistoria continuará como nova vistoria.';
+            processPfLookupStatus.className = 'lookup-status show info';
+          }
+          return;
+        }
+
+        if (origem === 'prepare') {
+          const candidato = candidatoHistoricoParaAcao_(resposta, escolha === 'acessoria' ? 'acessoria' : 'retorno');
+          if (escolha === 'acessoria') {
+            if (prepareTipo) prepareTipo.value = 'fiscalizacao';
+            const demanda = document.getElementById('prepareDemanda');
+            if (demanda) demanda.value = 'Vistoria Acessória';
+            prepareNaturezaSugerida_ = '';
+            atualizarCamposPreparacaoPorTipo_();
+            if (candidato) aplicarPfLocalizado_('prepare', candidato, true);
+          } else if (escolha === 'retorno_liberacao') {
+            if (prepareTipo) prepareTipo.value = 'liberacao';
+            const demanda = document.getElementById('prepareDemanda');
+            if (demanda) demanda.value = 'Liberação';
+            prepareNaturezaSugerida_ = String(candidato?.natureza || '').trim();
+            atualizarCamposPreparacaoPorTipo_();
+            if (candidato) aplicarPfLocalizado_('prepare', candidato, true);
+          } else if (escolha === 'liberacao_p01002') {
+            if (prepareTipo) prepareTipo.value = 'liberacao';
+            const demanda = document.getElementById('prepareDemanda');
+            if (demanda) demanda.value = 'Liberação';
+            prepareNaturezaSugerida_ = 'P01002';
+            atualizarCamposPreparacaoPorTipo_();
+            if (candidato) aplicarPfLocalizado_('prepare', candidato, true);
+          }
+          return;
+        }
+
+        const candidato = candidatoHistoricoParaAcao_(resposta, escolha === 'acessoria' ? 'acessoria' : 'retorno');
+        if (escolha === 'acessoria') {
+          aplicarFluxoVistoria_('fiscalizacao', { silencioso:true });
+          const demanda = document.getElementById('demandaPrincipal');
+          if (demanda) demanda.value = 'Vistoria Acessória';
+          sincronizarDemandasEspeciais_();
+          if (candidato) {
+            processoAcessoriaVinculado = { ...candidato, teveAutuacao:true, aberto:true };
+            aplicarPfLocalizado_('form', processoAcessoriaVinculado, false);
+          }
+          atualizarOpcoesSancaoPorFluxo_();
+          sincronizarVistoriaAcessoria_();
+          scheduleDraftSave();
+        } else if (escolha === 'retorno_liberacao') {
+          aplicarFluxoVistoria_('liberacao', { silencioso:true });
+          const demanda = document.getElementById('demandaPrincipal');
+          if (demanda) demanda.value = 'Liberação';
+          if (candidato?.natureza && !String(value('natureza') || '').trim()) {
+            const natureza = document.getElementById('natureza');
+            if (natureza) natureza.value = String(candidato.natureza);
+          }
+          agendarConsultaRetornoLiberacao_(80);
+          scheduleDraftSave();
+        } else if (escolha === 'liberacao_p01002') {
+          aplicarFluxoVistoria_('liberacao', { silencioso:true });
+          const demanda = document.getElementById('demandaPrincipal');
+          if (demanda) demanda.value = 'Liberação';
+          aplicarNaturezaP01002_();
+          if (candidato?.pscip && pscipInput && !pscipProjetoValido_(pscipInput.value)) {
+            if (possuiPscipSelect) possuiPscipSelect.value = 'sim';
+            syncPscip_();
+            pscipInput.value = projetoPscipOperacional_(candidato.pscip);
+          }
+          agendarConsultaRetornoLiberacao_(120);
+          scheduleDraftSave();
+        }
+      }
+
+      async function consultarAlertaHistoricoLocalNovaVistoria_(origem = 'form') {
+        const estado = historicoLocalNovaVistoriaEstado_[origem];
+        if (!estado || !navigator.onLine || estado.exibindo) return;
+        if (origem === 'form') {
+          if (preparacaoEmUsoId || ehEventoDeclaratorio_()) return;
+        } else if (ehEventoDeclaratorioPreparacao_()) return;
+
+        const filtros = filtrosHistoricoLocalNovaVistoria_(origem);
+        if (!filtrosSuficientesHistoricoLocalNovaVistoria_(filtros)) return;
+        const assinatura = assinaturaHistoricoLocalNovaVistoria_(filtros);
+        if (!assinatura || estado.assinaturaResolvida === assinatura) return;
+        const seq = ++estado.seq;
+
+        try {
+          const resposta = await apiRequest('config', {
+            consulta:'historico_local_nova_vistoria',
+            filtros
+          }, 14000, { silentSuccess:true });
+          if (seq !== estado.seq) return;
+          if (assinaturaHistoricoLocalNovaVistoria_(filtrosHistoricoLocalNovaVistoria_(origem)) !== assinatura) return;
+          if (!resposta?.temHistorico || !Number(resposta?.total || 0)) return;
+
+          estado.exibindo = true;
+          const opcoes = [];
+          if (resposta.temRetornoLiberacaoNotificado) {
+            opcoes.push({
+              titulo:'Retorno de Vistoria de Liberação',
+              subtitulo:'A Vistoria de Liberação mais recente está Notificada; verificar a correção das irregularidades.',
+              valor:'retorno_liberacao'
+            });
+          }
+          if (resposta.temFiscalizacaoAutuadaAberta) {
+            opcoes.push({
+              titulo:'Vistoria Acessória',
+              subtitulo:'Verificar se as irregularidades do processo fiscalizatório anterior foram sanadas.',
+              valor:'acessoria'
+            });
+          }
+          opcoes.push({
+            titulo:'Vistoria de Liberação de AVCB — P01002',
+            subtitulo:'Iniciar nova Vistoria de Liberação, mantendo a fiscalização anterior apenas como histórico.',
+            valor:'liberacao_p01002'
+          });
+          opcoes.push({
+            titulo:'Outra nova vistoria / Prosseguir',
+            subtitulo:'Prosseguir conscientemente com uma nova vistoria neste endereço.',
+            valor:'nova'
+          });
+          if (resposta?.ultimaVistoria?.chave) {
+            opcoes.push({
+              titulo:'Abrir Ficha anterior',
+              subtitulo:'Conferir o histórico completo antes de decidir.',
+              valor:'abrir_ficha'
+            });
+          }
+          opcoes.push({
+            titulo:origem === 'prepare' ? 'Cancelar cadastro' : 'Cancelar vistoria',
+            subtitulo:'Descartar o preenchimento atual sem criar nova vistoria.',
+            valor:'cancelar'
+          });
+
+          const escolha = await escolherOpcaoGpv_(
+            resumoHistoricoLocalNovaVistoria_(resposta),
+            opcoes,
+            '⚠ Já existe vistoria registrada neste local'
+          );
+          estado.exibindo = false;
+          if (seq !== estado.seq || !escolha) return;
+          await aplicarEscolhaHistoricoLocalNovaVistoria_(origem, escolha, resposta, assinatura);
+        } catch (erro) {
+          estado.exibindo = false;
+          console.warn('Histórico do local não pôde ser conferido:', erro?.message || erro);
+        }
+      }
+
+      function agendarAlertaHistoricoLocalNovaVistoria_(origem = 'form', atraso = 220) {
+        const estado = historicoLocalNovaVistoriaEstado_[origem];
+        if (!estado) return;
+        clearTimeout(estado.timer);
+        estado.seq += 1;
+        estado.timer = setTimeout(() => {
+          void consultarAlertaHistoricoLocalNovaVistoria_(origem);
+        }, Math.max(80, Number(atraso || 0)));
+      }
+
       function textoPrazoProcessoAnterior_(item) {
         if (item?.historicoSomente) return 'Registro anterior a 02/07/2025: usado somente como referência histórica.';
         const alerta = String(item?.alertaPrazo || '').trim();
@@ -21813,6 +22099,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
 
       function agendarConsultaProcessoPf_(origem = 'form', atraso = 650) {
         const prepare = origem === 'prepare';
+        agendarAlertaHistoricoLocalNovaVistoria_(origem, Math.max(80, Math.min(250, Number(atraso || 650) - 40)));
         if (prepare) {
           clearTimeout(preparePfLookupTimer);
           preparePfLookupSequencia += 1;
@@ -22310,6 +22597,12 @@ Deseja usar o endereço cadastral do CNPJ?`,
         ultimaSugestaoCepResponsavel_ = null;
         aplicandoSugestaoCepResponsavel_ = false;
         preparacaoEmUsoId = '';
+        if (historicoLocalNovaVistoriaEstado_.form) {
+          clearTimeout(historicoLocalNovaVistoriaEstado_.form.timer);
+          historicoLocalNovaVistoriaEstado_.form.seq += 1;
+          historicoLocalNovaVistoriaEstado_.form.assinaturaResolvida = '';
+          historicoLocalNovaVistoriaEstado_.form.exibindo = false;
+        }
         dduEmUsoId = '';
         dduEmUsoNumero = '';
         processoAcessoriaVinculado = null;
@@ -25276,6 +25569,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         const tipoSelecionado = String(prepareTipo?.value || '');
         const pet = tipoSelecionado === 'pet';
         const liberacao = tipoSelecionado === 'liberacao' || pet;
+        if (!liberacao && prepareNaturezaSugerida_ === 'P01002') prepareNaturezaSugerida_ = '';
         const evento = ehEventoDeclaratorioPreparacao_();
         const pscipWrap = document.getElementById('preparePscipWrap');
         const eventoWrap = document.getElementById('prepareEventoDeclaracaoWrap');
@@ -25363,6 +25657,13 @@ Deseja usar o endereço cadastral do CNPJ?`,
       function limparFormularioPreparacao_() {
         preparacaoEditandoId = '';
         preparacaoCadastroIdPendente = '';
+        prepareNaturezaSugerida_ = '';
+        if (historicoLocalNovaVistoriaEstado_.prepare) {
+          clearTimeout(historicoLocalNovaVistoriaEstado_.prepare.timer);
+          historicoLocalNovaVistoriaEstado_.prepare.seq += 1;
+          historicoLocalNovaVistoriaEstado_.prepare.assinaturaResolvida = '';
+          historicoLocalNovaVistoriaEstado_.prepare.exibindo = false;
+        }
         ['prepareCnpj','prepareData','preparePf','prepareNomeFantasia','prepareRazaoSocial','prepareArea','preparePavimentos','prepareAltura','prepareMedidasProjetoOutras','prepareCep','prepareEndereco','prepareNumero','prepareBairro','prepareRotaUrl','prepareObservacao','prepareDemanda','prepareEventoDeclaracaoNumero','prepareDataRenovacaoAvcb'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
@@ -26930,6 +27231,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('prepareVistoriador', item.vistoriadorResponsavel || '');
         definirCidadePreparacao_(item.cidade || appConfig?.padroes?.cidade || 'Viçosa');
         set('prepareDemanda', item.demandaPrincipal || (item.eventoDeclaracaoNumero ? 'Eventos declaratórios' : ''));
+        prepareNaturezaSugerida_ = String(item.natureza || '').trim();
         set('preparePscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
         set('prepareEventoDeclaracaoNumero', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero || ''));
         set('prepareDataRenovacaoAvcb', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb || ''));
@@ -27023,6 +27325,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           bairro: padronizarTextoCadastroCliente_(g('prepareBairro')),
           rotaUrl: validarLinkRotaMapsFormulario_(g('prepareRotaUrl')),
           observacaoPrevia: g('prepareObservacao'),
+          natureza: String(prepareNaturezaSugerida_ || '').trim(),
           _appUsuarioNome: String(authState.usuario?.nome || ''),
           _appDispositivo: nomeDispositivo_()
         };
@@ -28645,16 +28948,16 @@ Deseja usar o endereço cadastral do CNPJ?`,
       }
 
       async function cancelarVistoriaNaoProgramadaAtual_() {
-        if (!usuarioPodeOperar_() || preparacaoEmUsoId) return;
+        if (!usuarioPodeOperar_() || preparacaoEmUsoId) return false;
         const rascunhoId = String(currentRecordId || '').trim();
-        if (!rascunhoId) return;
+        if (!rascunhoId) return false;
         const titulo = value('nomeFantasia') || value('razaoSocial') || value('endereco') || 'esta vistoria';
         const confirmou = await confirmarGpv_(
           `Cancelar ${titulo === 'esta vistoria' ? 'esta vistoria' : `a vistoria de “${titulo}”`}? O rascunho e os dados ainda não registrados serão descartados. Nada será registrado como vistoria.`,
           'Cancelar vistoria?',
           { tom: 'danger', rotuloConfirmar: 'Cancelar vistoria', rotuloCancelar: 'Continuar preenchendo' }
         );
-        if (!confirmou) return;
+        if (!confirmou) return false;
 
         clearTimeout(saveTimer);
         clearTimeout(sharedDraftSyncTimer);
@@ -28689,6 +28992,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (navigator.onLine && !cancelamentoServidorConcluido) {
           setTimeout(() => { void processarCancelamentosRascunhoPendentes_(); }, 3500);
         }
+        return true;
       }
 
       async function cancelarPreenchimentoAtual_() {
@@ -28957,6 +29261,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('endereco', item.endereco);
         set('numero', item.numero);
         set('bairro', item.bairro);
+        set('natureza', item.natureza || '');
         set('rotaMapsUrl', item.rotaUrl || '');
         set('pf', item.pf);
         set('area', item.area);
@@ -28992,6 +29297,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           set('dataRenovacaoAvcb', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb));
         }
         aplicarModoEventoDeclaratorio_({ silencioso: true });
+        sincronizarDemandasEspeciais_();
         atualizarCampoRenovacaoAvcb_();
         if (item.cidade) {
           const existe = Array.from(citySelect.options).some(o => normalize(o.value) === normalize(item.cidade));
@@ -31113,7 +31419,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99iz', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ja', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas

@@ -1,3 +1,4 @@
+// V23.9.99ja — shell do alerta inteligente de histórico ao cadastrar/iniciar nova vistoria.
 // V23.9.99iz — shell da consulta direta de notificações permanentes na Ficha.
 // V23.9.99iy — atualização dos históricos/REDS com o novo endereço institucional do GPV.
 // V23.9.99iw — novo shell para aplicar o endereço cadastral do CNPJ no pré-cadastro quando os campos estiverem vazios.
@@ -23,9 +24,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261016-v23-9-99-iz-notificacoes-ficha-diretas';
+const CACHE_NAME = 'gpv-vistorias-shell-20261019-v23-9-99-ja-alerta-historico-nova-vistoria';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99iz';
+const VERSION = '23.9.99ja';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
