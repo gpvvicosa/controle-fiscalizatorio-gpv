@@ -1,3 +1,4 @@
+// V23.9.99jb — ajuste de Vistorias Programadas para tablet + botão 'Fechar alerta' no aviso de histórico; preserva o fluxo inteligente V23.9.99ja.
 // V23.9.99ja — alerta inteligente de histórico no endereço ao cadastrar/iniciar nova vistoria; orienta Acessória, Retorno de Liberação, Liberação AVCB P01002, nova vistoria ou cancelamento.
 // V23.9.99iz — Ficha: notificações permanentes carregadas por consulta direta e independente dos complementos.
 // V23.9.99iy — históricos/REDS: endereço institucional do GPV atualizado; preserva a V23.9.99ix.
@@ -56,7 +57,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ja';
+      const APP_VERSION = '23.9.99jb';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2877,7 +2878,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ja';
+      const APP_REVISION_UI_ = '23.9.99jb';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5013,7 +5014,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ja', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jb', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5399,13 +5400,14 @@
         return resposta == null ? null : String(resposta);
       }
 
-      async function escolherOpcaoGpv_(mensagem, opcoes, titulo = 'Escolha uma opção') {
+      async function escolherOpcaoGpv_(mensagem, opcoes, titulo = 'Escolha uma opção', configuracao = {}) {
         return dialogoGpv_({
           tipo: 'choice',
           titulo,
           mensagem,
-          tom: 'info',
-          opcoes: Array.isArray(opcoes) ? opcoes : []
+          tom: configuracao.tom || 'info',
+          opcoes: Array.isArray(opcoes) ? opcoes : [],
+          rotuloCancelar: configuracao.rotuloCancelar || 'Cancelar'
         });
       }
 
@@ -21750,7 +21752,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
           const escolha = await escolherOpcaoGpv_(
             resumoHistoricoLocalNovaVistoria_(resposta),
             opcoes,
-            '⚠ Já existe vistoria registrada neste local'
+            '⚠ Já existe vistoria registrada neste local',
+            { rotuloCancelar:'Fechar alerta' }
           );
           estado.exibindo = false;
           if (seq !== estado.seq || !escolha) return;
@@ -31419,7 +31422,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ja', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
