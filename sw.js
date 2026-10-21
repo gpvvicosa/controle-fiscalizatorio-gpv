@@ -1,3 +1,4 @@
+// V23.9.99jh — shell atualizado para saneamento documental da liberação sem nova vistoria.
 // V23.9.99jg — shell atualizado para exibir versão e data da publicação no rodapé.
 // V23.9.99jf — reconciliação retroativa assistida disponível no menu Mais.
 // V23.9.99jf — shell da regra Liberação (Liberado) → processo fiscalizatório anterior Regularizado.
@@ -31,7 +32,7 @@
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
 const CACHE_NAME = 'gpv-vistorias-shell-20261021-v23-9-99-jg-versao-data-rodape';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99jg';
+const VERSION = '23.9.99jh';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.

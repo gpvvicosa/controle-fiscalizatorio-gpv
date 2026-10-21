@@ -1,3 +1,4 @@
+// V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
 // V23.9.99jg — versão e data da publicação sempre visíveis no rodapé do aplicativo.
 // V23.9.99jf — reconciliação retroativa assistida de Liberações antigas, com confirmação manual antes de regularizar processo.
 // V23.9.99jf — Liberação com resultado Liberado também regulariza processo fiscalizatório anterior compatível; preserva Autuação original.
@@ -61,7 +62,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jg';
+      const APP_VERSION = '23.9.99jh';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2207,6 +2208,18 @@
       const recordDocumentRegularizationObservation = document.getElementById('recordDocumentRegularizationObservation');
       const recordDocumentRegularizationConfirm = document.getElementById('recordDocumentRegularizationConfirm');
       const recordDocumentRegularizationMessage = document.getElementById('recordDocumentRegularizationMessage');
+      const recordReleaseDocumentSettlementPanel = document.getElementById('recordReleaseDocumentSettlementPanel');
+      const recordReleaseDocumentSettlementBtn = document.getElementById('recordReleaseDocumentSettlementBtn');
+      const recordReleaseDocumentSettlementModal = document.getElementById('recordReleaseDocumentSettlementModal');
+      const recordReleaseDocumentSettlementCloseBtn = document.getElementById('recordReleaseDocumentSettlementCloseBtn');
+      const recordReleaseDocumentSettlementCancelBtn = document.getElementById('recordReleaseDocumentSettlementCancelBtn');
+      const recordReleaseDocumentSettlementSaveBtn = document.getElementById('recordReleaseDocumentSettlementSaveBtn');
+      const recordReleaseDocumentSettlementCurrent = document.getElementById('recordReleaseDocumentSettlementCurrent');
+      const recordReleaseDocumentSettlementDate = document.getElementById('recordReleaseDocumentSettlementDate');
+      const recordReleaseDocumentSettlementType = document.getElementById('recordReleaseDocumentSettlementType');
+      const recordReleaseDocumentSettlementObservation = document.getElementById('recordReleaseDocumentSettlementObservation');
+      const recordReleaseDocumentSettlementConfirm = document.getElementById('recordReleaseDocumentSettlementConfirm');
+      const recordReleaseDocumentSettlementMessage = document.getElementById('recordReleaseDocumentSettlementMessage');
       const recordFineCheckPanel = document.getElementById('recordFineCheckPanel');
       const recordFineCheckTitle = document.getElementById('recordFineCheckTitle');
       const recordFineCheckText = document.getElementById('recordFineCheckText');
@@ -2880,6 +2893,7 @@
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
       let recordDocumentRegularizationRegistroAtual = null;
+      let recordReleaseDocumentSettlementRegistroAtual = null;
       let recordFineCheckRegistroAtual = null;
       let recordFineEstimateRegistroAtual = null;
       let recordDetailRegistroAtual = null;
@@ -2901,7 +2915,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jg';
+      const APP_REVISION_UI_ = '23.9.99jh';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2925,6 +2939,7 @@
         ['record-result-correction-open', () => recordResultCorrectionModal && !recordResultCorrectionModal.hidden],
         ['record-status-update-open', () => recordStatusUpdateModal && !recordStatusUpdateModal.hidden],
         ['record-document-regularization-open', () => recordDocumentRegularizationModal && !recordDocumentRegularizationModal.hidden],
+        ['record-release-document-settlement-open', () => recordReleaseDocumentSettlementModal && !recordReleaseDocumentSettlementModal.hidden],
         ['reds-templates-open', () => redsTemplatesModal && !redsTemplatesModal.hidden],
         ['return-pdf-open', () => retornoLiberacaoPdfModal && !retornoLiberacaoPdfModal.hidden],
         ['system-manual-open', () => systemManualModal && !systemManualModal.hidden],
@@ -5040,7 +5055,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jg', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jh', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7239,6 +7254,7 @@
         if (elementoVisivelNavegacao_(recordResultCorrectionModal)) return { id: 'record-result-correction', fechar: () => fecharCorrecaoResultadoVistoria_() };
         if (elementoVisivelNavegacao_(recordStatusUpdateModal)) return { id: 'status-infoscip', fechar: () => fecharAtualizacaoSituacaoInfoscip_() };
         if (elementoVisivelNavegacao_(recordDocumentRegularizationModal)) return { id: 'regularizacao-documental', fechar: () => fecharRegularizacaoDocumentalFicha_() };
+        if (elementoVisivelNavegacao_(recordReleaseDocumentSettlementModal)) return { id: 'saneamento-documental-liberacao', fechar: () => fecharSaneamentoDocumentalLiberacaoFicha_() };
         if (elementoVisivelNavegacao_(notificationReviewModal)) return { id: 'notification-review', fechar: () => notificationReviewBackBtn?.click() };
         if (elementoVisivelNavegacao_(ocupacaoSelectorModal)) return { id: 'occupancy-selector', fechar: () => fecharSeletorOcupacao_() };
         if (elementoVisivelNavegacao_(reviewModal)) return { id: 'review', fechar: () => reviewCancelBtn?.click() };
@@ -9486,6 +9502,7 @@
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
         recordDocumentRegularizationRegistroAtual = null;
+        recordReleaseDocumentSettlementRegistroAtual = null;
         recordFineCheckRegistroAtual = null;
         recordDetailRegistroAtual = null;
         recordFineEstimateRegistroAtual = null;
@@ -9495,11 +9512,13 @@
         if (recordCorrectionPanel) recordCorrectionPanel.hidden = true;
         if (recordInfoscipUpdatePanel) recordInfoscipUpdatePanel.hidden = true;
         if (recordDocumentRegularizationPanel) recordDocumentRegularizationPanel.hidden = true;
+        if (recordReleaseDocumentSettlementPanel) recordReleaseDocumentSettlementPanel.hidden = true;
         if (recordFineCheckPanel) recordFineCheckPanel.hidden = true;
         fecharCorrecaoRegistro_();
         fecharCorrecaoResultadoVistoria_();
         fecharAtualizacaoSituacaoInfoscip_();
         fecharRegularizacaoDocumentalFicha_();
+        fecharSaneamentoDocumentalLiberacaoFicha_();
         if (opcoes.restaurarContexto !== false && contextoRetorno === 'goals-details') {
           abrirMetas_();
           selecionarAbaMetas_('detalhes');
@@ -11311,6 +11330,138 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           }
         } finally {
           if (recordDocumentRegularizationSaveBtn) recordDocumentRegularizationSaveBtn.disabled = false;
+        }
+      }
+
+      // V23.9.99jh — Vistoria de Liberação que ficou "Liberado com pendência"
+      // pode ter a pendência documental saneada posteriormente, sem criar nova vistoria.
+      function podeRegistrarSaneamentoDocumentalLiberacaoFicha_(registro) {
+        if (!registro || !usuarioPodeOperar_()) return false;
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        if (historico || !fluxoLiberacaoFicha_(registro) || registroEhEventoDeclaratorio_(registro)) return false;
+        const pendencia = valorCampoFicha_(registro, 'Pendência documental');
+        if (!pendenciaDocumentalAtiva_(pendencia)) return false;
+        const atual = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '');
+        return [normalize('Liberado'), normalize('Notificado')].includes(atual);
+      }
+
+      function configurarSaneamentoDocumentalLiberacaoFicha_(registro) {
+        recordReleaseDocumentSettlementRegistroAtual = registro || null;
+        if (!recordReleaseDocumentSettlementPanel || !recordReleaseDocumentSettlementBtn) return;
+        const mostrar = podeRegistrarSaneamentoDocumentalLiberacaoFicha_(registro);
+        recordReleaseDocumentSettlementPanel.hidden = !mostrar;
+        recordReleaseDocumentSettlementBtn.disabled = !mostrar;
+      }
+
+      function dataLocalIsoHoje_() {
+        const agora = new Date();
+        const local = new Date(agora.getTime() - (agora.getTimezoneOffset() * 60000));
+        return local.toISOString().slice(0, 10);
+      }
+
+      function abrirSaneamentoDocumentalLiberacaoFicha_() {
+        const registro = recordReleaseDocumentSettlementRegistroAtual;
+        if (!registro || !recordReleaseDocumentSettlementModal || !podeRegistrarSaneamentoDocumentalLiberacaoFicha_(registro)) return;
+        const atual = registro.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '—';
+        const pendencia = valorCampoFicha_(registro, 'Pendência documental');
+        if (recordReleaseDocumentSettlementCurrent) recordReleaseDocumentSettlementCurrent.textContent = resultadoVisualLiberacao_(atual, pendencia) || atual;
+        if (recordReleaseDocumentSettlementDate) recordReleaseDocumentSettlementDate.value = dataLocalIsoHoje_();
+        if (recordReleaseDocumentSettlementType) recordReleaseDocumentSettlementType.value = 'Documentação do PSCIP';
+        if (recordReleaseDocumentSettlementObservation) recordReleaseDocumentSettlementObservation.value = '';
+        if (recordReleaseDocumentSettlementConfirm) recordReleaseDocumentSettlementConfirm.checked = false;
+        if (recordReleaseDocumentSettlementMessage) {
+          recordReleaseDocumentSettlementMessage.textContent = '';
+          recordReleaseDocumentSettlementMessage.className = 'record-status-update-message';
+        }
+        recordReleaseDocumentSettlementModal.hidden = false;
+        document.body.classList.add('record-release-document-settlement-open');
+        setTimeout(() => recordReleaseDocumentSettlementDate?.focus(), 30);
+      }
+
+      function fecharSaneamentoDocumentalLiberacaoFicha_() {
+        if (!recordReleaseDocumentSettlementModal || recordReleaseDocumentSettlementModal.hidden) return;
+        recordReleaseDocumentSettlementModal.hidden = true;
+        document.body.classList.remove('record-release-document-settlement-open');
+        if (recordReleaseDocumentSettlementSaveBtn) recordReleaseDocumentSettlementSaveBtn.disabled = false;
+      }
+
+      async function salvarSaneamentoDocumentalLiberacaoFicha_() {
+        const registro = recordReleaseDocumentSettlementRegistroAtual;
+        if (!registro || !recordsState.chaveSelecionada || !podeRegistrarSaneamentoDocumentalLiberacaoFicha_(registro)) return;
+        const dataSaneamento = String(recordReleaseDocumentSettlementDate?.value || '').trim();
+        const tipoDocumento = String(recordReleaseDocumentSettlementType?.value || '').trim();
+        const observacao = String(recordReleaseDocumentSettlementObservation?.value || '').replace(/\s+/g, ' ').trim();
+        if (!dataSaneamento) {
+          if (recordReleaseDocumentSettlementMessage) {
+            recordReleaseDocumentSettlementMessage.textContent = 'Informe a data em que a pendência documental foi sanada.';
+            recordReleaseDocumentSettlementMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+        if (!tipoDocumento) {
+          if (recordReleaseDocumentSettlementMessage) {
+            recordReleaseDocumentSettlementMessage.textContent = 'Informe o documento ou a pendência que foi sanada.';
+            recordReleaseDocumentSettlementMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+        if (!recordReleaseDocumentSettlementConfirm?.checked) {
+          if (recordReleaseDocumentSettlementMessage) {
+            recordReleaseDocumentSettlementMessage.textContent = 'Confirme que consultou o INFOSCIP e verificou que a pendência documental foi sanada.';
+            recordReleaseDocumentSettlementMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+        if (!navigator.onLine) {
+          if (recordReleaseDocumentSettlementMessage) {
+            recordReleaseDocumentSettlementMessage.textContent = 'Esta ação exige conexão com a internet para registrar a conferência no INFOSCIP.';
+            recordReleaseDocumentSettlementMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+
+        const confirmar = await confirmarGpv_(
+          `A pendência documental desta Vistoria de Liberação será marcada como sanada.\n\nDocumento/pendência: ${tipoDocumento}\nData: ${dataSaneamento.split('-').reverse().join('/')}\n\nNão será criada nova vistoria. O resultado original "Liberado com pendência" permanecerá preservado no histórico.`,
+          'Confirmar saneamento documental?',
+          { rotuloConfirmar: 'Confirmar saneamento', rotuloCancelar: 'Voltar' }
+        );
+        if (!confirmar) return;
+
+        if (recordReleaseDocumentSettlementSaveBtn) recordReleaseDocumentSettlementSaveBtn.disabled = true;
+        if (recordReleaseDocumentSettlementMessage) {
+          recordReleaseDocumentSettlementMessage.textContent = 'Registrando saneamento documental...';
+          recordReleaseDocumentSettlementMessage.className = 'record-status-update-message';
+        }
+
+        const chave = recordsState.chaveSelecionada;
+        const linhaHint = Number(recordsState.linhaSelecionada || registro?.linhaAtual || 0);
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'saneamento_documental_liberacao',
+            chave,
+            linhaHint,
+            dataSaneamento,
+            tipoDocumento,
+            observacao,
+            confirmadoInfoscip: true,
+            dispositivo: nomeDispositivo_()
+          }, 55000);
+
+          fecharSaneamentoDocumentalLiberacaoFicha_();
+          limparCachesConsulta_();
+          const complementoFiscal = resposta?.processoFiscalRegularizado
+            ? ' O processo fiscalizatório anterior vinculado também foi atualizado para Regularizado.'
+            : '';
+          appStatus.textContent = `✓ Pendência documental sanada. A Vistoria de Liberação permanece no histórico e nenhuma nova vistoria foi criada.${complementoFiscal}`;
+          await abrirDetalheRegistro_(chave, Number(resposta?.linha || linhaHint), { forcarRede: true });
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'saneamento documental da liberação' });
+        } catch (erro) {
+          if (recordReleaseDocumentSettlementMessage) {
+            recordReleaseDocumentSettlementMessage.textContent = erro?.message || 'Não foi possível registrar o saneamento documental da Vistoria de Liberação.';
+            recordReleaseDocumentSettlementMessage.className = 'record-status-update-message error';
+          }
+        } finally {
+          if (recordReleaseDocumentSettlementSaveBtn) recordReleaseDocumentSettlementSaveBtn.disabled = false;
         }
       }
 
@@ -13351,6 +13502,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         configurarCorrecaoResultadoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
         configurarRegularizacaoDocumentalFicha_(registro);
+        configurarSaneamentoDocumentalLiberacaoFicha_(registro);
         configurarConferenciaMultaFicha_(registro);
         garantirUfemgEstimativaAtual_();
         renderizarNotificacoesFicha_(registro);
@@ -31198,6 +31350,11 @@ Deseja usar o endereço cadastral do CNPJ?`,
       recordDocumentRegularizationCancelBtn?.addEventListener('click', fecharRegularizacaoDocumentalFicha_);
       recordDocumentRegularizationSaveBtn?.addEventListener('click', salvarRegularizacaoDocumentalFicha_);
       recordDocumentRegularizationModal?.addEventListener('click', event => { if (event.target === recordDocumentRegularizationModal) fecharRegularizacaoDocumentalFicha_(); });
+      recordReleaseDocumentSettlementBtn?.addEventListener('click', abrirSaneamentoDocumentalLiberacaoFicha_);
+      recordReleaseDocumentSettlementCloseBtn?.addEventListener('click', fecharSaneamentoDocumentalLiberacaoFicha_);
+      recordReleaseDocumentSettlementCancelBtn?.addEventListener('click', fecharSaneamentoDocumentalLiberacaoFicha_);
+      recordReleaseDocumentSettlementSaveBtn?.addEventListener('click', salvarSaneamentoDocumentalLiberacaoFicha_);
+      recordReleaseDocumentSettlementModal?.addEventListener('click', event => { if (event.target === recordReleaseDocumentSettlementModal) fecharSaneamentoDocumentalLiberacaoFicha_(); });
       recordFineNoBtn?.addEventListener('click', () => salvarConferenciaMultaFicha_('Não possui multa em aberto'));
       recordFineYesBtn?.addEventListener('click', () => salvarConferenciaMultaFicha_('Possui multa em aberto'));
       recordStatusUpdateCloseBtn?.addEventListener('click', fecharAtualizacaoSituacaoInfoscip_);
@@ -31752,7 +31909,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jg', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jh', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
