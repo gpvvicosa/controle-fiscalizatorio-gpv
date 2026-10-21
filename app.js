@@ -1,5 +1,6 @@
+// V23.9.99jn — Central inclui Regularizados recentemente (30 dias), sem somar ao contador de pendências.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
-// V23.9.99jm — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
+// V23.9.99jn — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
 // V23.9.99jk — Reconciliação histórica: endereço físico priorizado; Central de Pendências preservada.
 // V23.9.99ji — atualização automática em uma única abertura/retorno seguro; aguarda o novo Service Worker assumir antes de recarregar e preserva trabalho em andamento.
 // V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
@@ -66,7 +67,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jm';
+      const APP_VERSION = '23.9.99jn';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2932,7 +2933,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jm';
+      const APP_REVISION_UI_ = '23.9.99jn';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3795,7 +3796,8 @@
         multa_conferir: { rotulo:'Conferir multa', curto:'Conferir multa', classe:'danger' },
         reconciliacao: { rotulo:'Reconciliações', curto:'Reconciliação pendente', classe:'info' },
         programada_vencida: { rotulo:'Programadas vencidas', curto:'Programada vencida', classe:'danger' },
-        programada_proxima: { rotulo:'Programadas próximas', curto:'Programada próxima', classe:'info' }
+        programada_proxima: { rotulo:'Programadas próximas', curto:'Programada próxima', classe:'info' },
+        regularizado_recente: { rotulo:'Regularizados — 30 dias', curto:'Regularizado recentemente', classe:'success' }
       });
 
       function fecharCentralPendenciasGpv_() {
@@ -3813,7 +3815,8 @@
           ['multa_conferir', Number(resumo.conferirMulta || 0)],
           ['reconciliacao', Number(resumo.reconciliacoes || 0)],
           ['programada_vencida', Number(resumo.programadasVencidas || 0)],
-          ['programada_proxima', Number(resumo.programadasProximas || 0)]
+          ['programada_proxima', Number(resumo.programadasProximas || 0)],
+          ['regularizado_recente', Number(resumo.regularizadosRecentes || 0)]
         ];
       }
 
@@ -3827,7 +3830,7 @@
 
         gpvPendingCenterSummary.innerHTML = `
           <button type="button" class="gpv-pending-metric ${filtroAtual === 'todos' ? 'is-active' : ''}" data-gpv-pending-filter="todos">
-            <strong>${totalItens}</strong><span>Todos</span>
+            <strong>${totalItens}</strong><span>Pendências</span>
           </button>
           ${metricas.map(([id,valor]) => {
             const meta = GPV_PENDING_CATEGORY_META_[id] || { rotulo:id, classe:'neutral' };
@@ -3835,12 +3838,16 @@
           }).join('')}`;
 
         const filtrados = (Array.isArray(estado.itens) ? estado.itens : []).filter(item => {
-          if (filtroAtual === 'todos') return true;
-          return Array.isArray(item.categorias) && item.categorias.includes(filtroAtual);
+          const categoriasItem = Array.isArray(item.categorias) ? item.categorias : [];
+          if (filtroAtual === 'todos') return !categoriasItem.includes('regularizado_recente');
+          return categoriasItem.includes(filtroAtual);
         });
 
         if (!filtrados.length) {
-          gpvPendingCenterList.innerHTML = `<div class="gpv-pending-empty"><strong>Nenhuma pendência nesta categoria.</strong><span>Os itens reaparecem automaticamente quando houver algo que exija acompanhamento.</span></div>`;
+          const vendoRegularizados = filtroAtual === 'regularizado_recente';
+          gpvPendingCenterList.innerHTML = vendoRegularizados
+            ? `<div class="gpv-pending-empty"><strong>Nenhum processo regularizado nos últimos 30 dias.</strong><span>Esta visão é apenas informativa e não entra no contador de pendências.</span></div>`
+            : `<div class="gpv-pending-empty"><strong>Nenhuma pendência nesta categoria.</strong><span>Os itens reaparecem automaticamente quando houver algo que exija acompanhamento.</span></div>`;
         } else {
           gpvPendingCenterList.innerHTML = filtrados.map((item, idx) => {
             const categorias = (Array.isArray(item.categorias) ? item.categorias : []).map(id => {
@@ -3869,10 +3876,15 @@
 
         const exibidos = filtrados.length;
         const truncado = Boolean(resumo.truncado);
-        gpvPendingCenterStatus.textContent = totalItens
-          ? `${totalItens} item${totalItens === 1 ? '' : 's'} exigem acompanhamento${filtroAtual !== 'todos' ? ` · ${exibidos} nesta categoria` : ''}${truncado ? ' · lista priorizada' : ''}.`
-          : 'Nenhuma pendência operacional foi encontrada.';
-        gpvPendingCenterStatus.className = `gpv-pending-status ${totalItens ? 'has-items' : 'is-clear'}`;
+        if (filtroAtual === 'regularizado_recente') {
+          gpvPendingCenterStatus.textContent = `${exibidos} processo${exibidos === 1 ? '' : 's'} regularizado${exibidos === 1 ? '' : 's'} nos últimos 30 dias. Esta visão não entra no contador de pendências.`;
+          gpvPendingCenterStatus.className = 'gpv-pending-status is-success';
+        } else {
+          gpvPendingCenterStatus.textContent = totalItens
+            ? `${totalItens} item${totalItens === 1 ? '' : 's'} exigem acompanhamento${filtroAtual !== 'todos' ? ` · ${exibidos} nesta categoria` : ''}${truncado ? ' · lista priorizada' : ''}.`
+            : 'Nenhuma pendência operacional foi encontrada.';
+          gpvPendingCenterStatus.className = `gpv-pending-status ${totalItens ? 'has-items' : 'is-clear'}`;
+        }
       }
 
       function atualizarAtalhoPendenciasHome_() {
@@ -5399,7 +5411,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jm', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jn', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -22570,7 +22582,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           : null;
 
         try {
-          // V23.9.99jm — a Central já recebe o caso com seus candidatos elegíveis.
+          // V23.9.99jn — a Central já recebe o caso com seus candidatos elegíveis.
           // Assim o clique Revisar vínculo não repete a varredura completa no backend.
           if (alvo && casoPrecarregado && String(casoPrecarregado.chaveLiberacao || '').trim() === alvo) {
             if (origemCentral) fecharCentralPendenciasGpv_();
@@ -25267,7 +25279,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jm', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jn', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -30262,7 +30274,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           void carregarResumoOperacionalSeparado_({ forcar:false });
           if (document.body.classList.contains('records-mode')) void carregarInicioRapido_({ aplicarPainel:true });
         }, atrasos.resumo);
-        // V23.9.99jm — pré-carrega Pendências sem bloquear a abertura. O mesmo
+        // V23.9.99jn — pré-carrega Pendências sem bloquear a abertura. O mesmo
         // resultado alimenta o contador da Home e os candidatos da reconciliação.
         setTimeout(() => {
           if (document.visibilityState === 'visible' && navigator.onLine && usuarioPodeOperar_()) {
@@ -32362,7 +32374,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jm', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jn', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
