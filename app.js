@@ -1,6 +1,6 @@
-// V23.9.99jn — Central inclui Regularizados recentemente (30 dias), sem somar ao contador de pendências.
+// V23.9.99jo — Pendência documental com ação direta; Ficha destaca "Liberado com pendência documental"; Central inclui Liberados recentes (30 dias).
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
-// V23.9.99jn — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
+// V23.9.99jo — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
 // V23.9.99jk — Reconciliação histórica: endereço físico priorizado; Central de Pendências preservada.
 // V23.9.99ji — atualização automática em uma única abertura/retorno seguro; aguarda o novo Service Worker assumir antes de recarregar e preserva trabalho em andamento.
 // V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
@@ -67,7 +67,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jn';
+      const APP_VERSION = '23.9.99jo';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2226,6 +2226,8 @@
       const recordDocumentRegularizationMessage = document.getElementById('recordDocumentRegularizationMessage');
       const recordReleaseDocumentSettlementPanel = document.getElementById('recordReleaseDocumentSettlementPanel');
       const recordReleaseDocumentSettlementBtn = document.getElementById('recordReleaseDocumentSettlementBtn');
+      const recordReleaseDocumentSettlementHighlight = document.getElementById('recordReleaseDocumentSettlementHighlight');
+      const recordReleaseDocumentSettlementHighlightBtn = document.getElementById('recordReleaseDocumentSettlementHighlightBtn');
       const recordReleaseDocumentSettlementModal = document.getElementById('recordReleaseDocumentSettlementModal');
       const recordReleaseDocumentSettlementCloseBtn = document.getElementById('recordReleaseDocumentSettlementCloseBtn');
       const recordReleaseDocumentSettlementCancelBtn = document.getElementById('recordReleaseDocumentSettlementCancelBtn');
@@ -2933,7 +2935,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jn';
+      const APP_REVISION_UI_ = '23.9.99jo';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3797,7 +3799,8 @@
         reconciliacao: { rotulo:'Reconciliações', curto:'Reconciliação pendente', classe:'info' },
         programada_vencida: { rotulo:'Programadas vencidas', curto:'Programada vencida', classe:'danger' },
         programada_proxima: { rotulo:'Programadas próximas', curto:'Programada próxima', classe:'info' },
-        regularizado_recente: { rotulo:'Regularizados — 30 dias', curto:'Regularizado recentemente', classe:'success' }
+        regularizado_recente: { rotulo:'Regularizados — 30 dias', curto:'Regularizado recentemente', classe:'success' },
+        liberado_recente: { rotulo:'Liberados — 30 dias', curto:'Liberação concluída', classe:'success' }
       });
 
       function fecharCentralPendenciasGpv_() {
@@ -3816,7 +3819,8 @@
           ['reconciliacao', Number(resumo.reconciliacoes || 0)],
           ['programada_vencida', Number(resumo.programadasVencidas || 0)],
           ['programada_proxima', Number(resumo.programadasProximas || 0)],
-          ['regularizado_recente', Number(resumo.regularizadosRecentes || 0)]
+          ['regularizado_recente', Number(resumo.regularizadosRecentes || 0)],
+          ['liberado_recente', Number(resumo.liberadosRecentes || 0)]
         ];
       }
 
@@ -3839,15 +3843,18 @@
 
         const filtrados = (Array.isArray(estado.itens) ? estado.itens : []).filter(item => {
           const categoriasItem = Array.isArray(item.categorias) ? item.categorias : [];
-          if (filtroAtual === 'todos') return !categoriasItem.includes('regularizado_recente');
+          if (filtroAtual === 'todos') return !categoriasItem.includes('regularizado_recente') && !categoriasItem.includes('liberado_recente');
           return categoriasItem.includes(filtroAtual);
         });
 
         if (!filtrados.length) {
           const vendoRegularizados = filtroAtual === 'regularizado_recente';
+          const vendoLiberados = filtroAtual === 'liberado_recente';
           gpvPendingCenterList.innerHTML = vendoRegularizados
             ? `<div class="gpv-pending-empty"><strong>Nenhum processo regularizado nos últimos 30 dias.</strong><span>Esta visão é apenas informativa e não entra no contador de pendências.</span></div>`
-            : `<div class="gpv-pending-empty"><strong>Nenhuma pendência nesta categoria.</strong><span>Os itens reaparecem automaticamente quando houver algo que exija acompanhamento.</span></div>`;
+            : (vendoLiberados
+              ? `<div class="gpv-pending-empty"><strong>Nenhuma Vistoria de Liberação concluída nos últimos 30 dias.</strong><span>Esta visão é informativa e não entra no contador de pendências.</span></div>`
+              : `<div class="gpv-pending-empty"><strong>Nenhuma pendência nesta categoria.</strong><span>Os itens reaparecem automaticamente quando houver algo que exija acompanhamento.</span></div>`);
         } else {
           gpvPendingCenterList.innerHTML = filtrados.map((item, idx) => {
             const categorias = (Array.isArray(item.categorias) ? item.categorias : []).map(id => {
@@ -3858,7 +3865,9 @@
             const endereco = String(item.endereco || '').trim();
             const detalhe = String(item.detalhe || '').trim();
             const acao = String(item.acao || 'ficha');
-            const labelAcao = acao === 'reconciliacao' ? 'Revisar vínculo' : (acao === 'programadas' ? 'Abrir programadas' : 'Abrir Ficha');
+            const labelAcao = acao === 'reconciliacao' ? 'Revisar vínculo'
+              : (acao === 'programadas' ? 'Abrir programadas'
+              : (acao === 'saneamento_liberacao' ? 'Registrar pendência sanada' : 'Abrir Ficha'));
             return `<article class="gpv-pending-item" data-gpv-pending-index="${idx}">
               <div class="gpv-pending-item-tags">${categorias}</div>
               <div class="gpv-pending-item-main">
@@ -3868,7 +3877,7 @@
                   ${endereco ? `<small>${escapeHtml(endereco)}</small>` : ''}
                   ${detalhe ? `<em>${escapeHtml(detalhe)}</em>` : ''}
                 </div>
-                <button type="button" class="gpv-pending-open-btn" data-gpv-pending-open="${escapeAttr(String(item.id || idx))}">${escapeHtml(labelAcao)} →</button>
+                <button type="button" class="gpv-pending-open-btn" data-action-kind="${escapeAttr(acao)}" data-gpv-pending-open="${escapeAttr(String(item.id || idx))}">${escapeHtml(labelAcao)} →</button>
               </div>
             </article>`;
           }).join('');
@@ -3878,6 +3887,9 @@
         const truncado = Boolean(resumo.truncado);
         if (filtroAtual === 'regularizado_recente') {
           gpvPendingCenterStatus.textContent = `${exibidos} processo${exibidos === 1 ? '' : 's'} regularizado${exibidos === 1 ? '' : 's'} nos últimos 30 dias. Esta visão não entra no contador de pendências.`;
+          gpvPendingCenterStatus.className = 'gpv-pending-status is-success';
+        } else if (filtroAtual === 'liberado_recente') {
+          gpvPendingCenterStatus.textContent = `${exibidos} Vistoria${exibidos === 1 ? '' : 's'} de Liberação concluída${exibidos === 1 ? '' : 's'} como Liberado nos últimos 30 dias. Esta visão não entra no contador de pendências.`;
           gpvPendingCenterStatus.className = 'gpv-pending-status is-success';
         } else {
           gpvPendingCenterStatus.textContent = totalItens
@@ -4010,6 +4022,20 @@
               gpvPendingCenterState_.carregadoEm = 0;
               void carregarCentralPendenciasGpv_(true);
             }
+          }
+          return;
+        }
+
+        if (acao === 'saneamento_liberacao') {
+          fecharCentralPendenciasGpv_();
+          if (!item.chave) return;
+          await abrirDetalheRegistro_(item.chave, Number(item.linha || 0), { contexto:'central-pendencias' });
+          if (podeRegistrarSaneamentoDocumentalLiberacaoFicha_(recordReleaseDocumentSettlementRegistroAtual)) {
+            abrirSaneamentoDocumentalLiberacaoFicha_();
+          } else {
+            avisarGpv_('A Ficha foi aberta, mas a pendência documental não está mais ativa ou o registro já foi atualizado. Confira a situação atual antes de continuar.', 'Pendência documental atualizada', { tom:'info' });
+            gpvPendingCenterState_.carregadoEm = 0;
+            void carregarCentralPendenciasGpv_(true);
           }
           return;
         }
@@ -5411,7 +5437,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jn', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jo', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -11712,6 +11738,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const mostrar = podeRegistrarSaneamentoDocumentalLiberacaoFicha_(registro);
         recordReleaseDocumentSettlementPanel.hidden = !mostrar;
         recordReleaseDocumentSettlementBtn.disabled = !mostrar;
+        if (recordReleaseDocumentSettlementHighlight) recordReleaseDocumentSettlementHighlight.hidden = !mostrar;
+        if (recordReleaseDocumentSettlementHighlightBtn) recordReleaseDocumentSettlementHighlightBtn.disabled = !mostrar;
       }
 
       function dataLocalIsoHoje_() {
@@ -13853,7 +13881,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         recordDetailTitle.textContent = 'Ficha do Processo';
         recordDetailLine.textContent = estabelecimento;
         recordDetailSubtitle.textContent = [identificadorCabecalho, tipoFichaCabecalho, cidadeFichaCabecalho, dataFichaCabecalho].filter(Boolean).join(' • ');
-        recordDetailStatusBadge.textContent = situacao;
+        const pendenciaDocumentalFichaAtiva = fluxoLiberacaoFicha_(registro) && pendenciaDocumentalAtiva_(valorCampoFicha_(registro, 'Pendência documental'));
+        const situacaoVisualFicha = normalize(situacao) === normalize('Liberado') && pendenciaDocumentalFichaAtiva
+          ? 'Liberado com pendência documental'
+          : situacao;
+        recordDetailStatusBadge.textContent = situacaoVisualFicha;
         recordDetailStatusBadge.className = `status-badge ${classeStatus_(situacao)}`;
         if (recordCurrentStatus) recordCurrentStatus.className = `record-current-status ${classeStatus_(situacao)}`;
         if (recordQuickActionsPanel) recordQuickActionsPanel.hidden = false;
@@ -22582,7 +22614,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           : null;
 
         try {
-          // V23.9.99jn — a Central já recebe o caso com seus candidatos elegíveis.
+          // V23.9.99jo — a Central já recebe o caso com seus candidatos elegíveis.
           // Assim o clique Revisar vínculo não repete a varredura completa no backend.
           if (alvo && casoPrecarregado && String(casoPrecarregado.chaveLiberacao || '').trim() === alvo) {
             if (origemCentral) fecharCentralPendenciasGpv_();
@@ -25279,7 +25311,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jn', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jo', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -30274,7 +30306,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           void carregarResumoOperacionalSeparado_({ forcar:false });
           if (document.body.classList.contains('records-mode')) void carregarInicioRapido_({ aplicarPainel:true });
         }, atrasos.resumo);
-        // V23.9.99jn — pré-carrega Pendências sem bloquear a abertura. O mesmo
+        // V23.9.99jo — pré-carrega Pendências sem bloquear a abertura. O mesmo
         // resultado alimenta o contador da Home e os candidatos da reconciliação.
         setTimeout(() => {
           if (document.visibilityState === 'visible' && navigator.onLine && usuarioPodeOperar_()) {
@@ -31804,6 +31836,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       recordDocumentRegularizationSaveBtn?.addEventListener('click', salvarRegularizacaoDocumentalFicha_);
       recordDocumentRegularizationModal?.addEventListener('click', event => { if (event.target === recordDocumentRegularizationModal) fecharRegularizacaoDocumentalFicha_(); });
       recordReleaseDocumentSettlementBtn?.addEventListener('click', abrirSaneamentoDocumentalLiberacaoFicha_);
+      recordReleaseDocumentSettlementHighlightBtn?.addEventListener('click', abrirSaneamentoDocumentalLiberacaoFicha_);
       recordReleaseDocumentSettlementCloseBtn?.addEventListener('click', fecharSaneamentoDocumentalLiberacaoFicha_);
       recordReleaseDocumentSettlementCancelBtn?.addEventListener('click', fecharSaneamentoDocumentalLiberacaoFicha_);
       recordReleaseDocumentSettlementSaveBtn?.addEventListener('click', salvarSaneamentoDocumentalLiberacaoFicha_);
@@ -32374,7 +32407,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jn', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jo', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional

@@ -1,6 +1,6 @@
-// V23.9.99jn — Central com Regularizados recentemente (30 dias), sem alterar o contador de pendências.
+// V23.9.99jo — Central com saneamento direto, Liberados recentes e destaque de pendência documental na Ficha.
 // V23.9.99jm — filtro rígido por endereço, Pendências na Home e reconciliação pré-carregada.
-// V23.9.99jn — Correção visual da reconciliação e abertura direta pela Central de Pendências.
+// V23.9.99jo — Correção visual da reconciliação e abertura direta pela Central de Pendências.
 // V23.9.99jk — Reconciliação histórica corrigida; novo shell/cache publicado.
 // V23.9.99ji — shell com cache exclusivo da versão e instalação forçada da cópia mais recente para eliminar dupla atualização.
 // V23.9.99jh — shell atualizado para saneamento documental da liberação sem nova vistoria.
@@ -37,7 +37,7 @@
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
 const CACHE_NAME = 'gpv-vistorias-shell-20261021-v23-9-99-jn-regularizados-recentes';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99jn';
+const VERSION = '23.9.99jo';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
