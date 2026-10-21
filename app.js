@@ -1,3 +1,4 @@
+// V23.9.99jc — regularização documental sem nova vistoria, preservando o resultado original da autuação; mantém regularização automática em nova vistoria.
 // V23.9.99jb — ajuste de Vistorias Programadas para tablet + botão 'Fechar alerta' no aviso de histórico; preserva o fluxo inteligente V23.9.99ja.
 // V23.9.99ja — alerta inteligente de histórico no endereço ao cadastrar/iniciar nova vistoria; orienta Acessória, Retorno de Liberação, Liberação AVCB P01002, nova vistoria ou cancelamento.
 // V23.9.99iz — Ficha: notificações permanentes carregadas por consulta direta e independente dos complementos.
@@ -57,7 +58,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jb';
+      const APP_VERSION = '23.9.99jc';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -1694,6 +1695,7 @@
       const API_CONFIG_SUCCESS_FEEDBACK_ = new Map([
         ['auto_salvar', '✓ Nº do Auto salvo com sucesso.'],
         ['situacao_atualizar', '✓ Situação atualizada com sucesso.'],
+        ['regularizacao_documental', '✓ Regularização documental registrada com sucesso.'],
         ['multa_atualizar', '✓ Conferência da multa atualizada com sucesso.'],
         ['resultado_corrigir', '✓ Resultado da vistoria corrigido com sucesso.'],
         ['registro_corrigir', '✓ Correção efetivada com sucesso.'],
@@ -2185,6 +2187,17 @@
       const recordQuickNewPetBtn = document.getElementById('recordQuickNewPetBtn');
       const recordInfoscipUpdatePanel = document.getElementById('recordInfoscipUpdatePanel');
       const recordInfoscipUpdateBtn = document.getElementById('recordInfoscipUpdateBtn');
+      const recordDocumentRegularizationPanel = document.getElementById('recordDocumentRegularizationPanel');
+      const recordDocumentRegularizationBtn = document.getElementById('recordDocumentRegularizationBtn');
+      const recordDocumentRegularizationModal = document.getElementById('recordDocumentRegularizationModal');
+      const recordDocumentRegularizationCloseBtn = document.getElementById('recordDocumentRegularizationCloseBtn');
+      const recordDocumentRegularizationCancelBtn = document.getElementById('recordDocumentRegularizationCancelBtn');
+      const recordDocumentRegularizationSaveBtn = document.getElementById('recordDocumentRegularizationSaveBtn');
+      const recordDocumentRegularizationCurrent = document.getElementById('recordDocumentRegularizationCurrent');
+      const recordDocumentRegularizationType = document.getElementById('recordDocumentRegularizationType');
+      const recordDocumentRegularizationObservation = document.getElementById('recordDocumentRegularizationObservation');
+      const recordDocumentRegularizationConfirm = document.getElementById('recordDocumentRegularizationConfirm');
+      const recordDocumentRegularizationMessage = document.getElementById('recordDocumentRegularizationMessage');
       const recordFineCheckPanel = document.getElementById('recordFineCheckPanel');
       const recordFineCheckTitle = document.getElementById('recordFineCheckTitle');
       const recordFineCheckText = document.getElementById('recordFineCheckText');
@@ -2857,6 +2870,7 @@
       let homeOperationalServidor_ = { hoje: null, ultimo: null, carregadoEm: 0, carregando: false };
       let recordWhatsappRegistroAtual = null;
       let recordStatusRegistroAtual = null;
+      let recordDocumentRegularizationRegistroAtual = null;
       let recordFineCheckRegistroAtual = null;
       let recordFineEstimateRegistroAtual = null;
       let recordDetailRegistroAtual = null;
@@ -2878,7 +2892,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jb';
+      const APP_REVISION_UI_ = '23.9.99jc';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2901,6 +2915,7 @@
         ['record-correction-open', () => recordCorrectionModal && !recordCorrectionModal.hidden],
         ['record-result-correction-open', () => recordResultCorrectionModal && !recordResultCorrectionModal.hidden],
         ['record-status-update-open', () => recordStatusUpdateModal && !recordStatusUpdateModal.hidden],
+        ['record-document-regularization-open', () => recordDocumentRegularizationModal && !recordDocumentRegularizationModal.hidden],
         ['reds-templates-open', () => redsTemplatesModal && !redsTemplatesModal.hidden],
         ['return-pdf-open', () => retornoLiberacaoPdfModal && !retornoLiberacaoPdfModal.hidden],
         ['system-manual-open', () => systemManualModal && !systemManualModal.hidden],
@@ -5014,7 +5029,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jb', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jc', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7212,6 +7227,7 @@
         if (elementoVisivelNavegacao_(recordCorrectionModal)) return { id: 'record-correction', fechar: () => fecharCorrecaoRegistro_() };
         if (elementoVisivelNavegacao_(recordResultCorrectionModal)) return { id: 'record-result-correction', fechar: () => fecharCorrecaoResultadoVistoria_() };
         if (elementoVisivelNavegacao_(recordStatusUpdateModal)) return { id: 'status-infoscip', fechar: () => fecharAtualizacaoSituacaoInfoscip_() };
+        if (elementoVisivelNavegacao_(recordDocumentRegularizationModal)) return { id: 'regularizacao-documental', fechar: () => fecharRegularizacaoDocumentalFicha_() };
         if (elementoVisivelNavegacao_(notificationReviewModal)) return { id: 'notification-review', fechar: () => notificationReviewBackBtn?.click() };
         if (elementoVisivelNavegacao_(ocupacaoSelectorModal)) return { id: 'occupancy-selector', fechar: () => fecharSeletorOcupacao_() };
         if (elementoVisivelNavegacao_(reviewModal)) return { id: 'review', fechar: () => reviewCancelBtn?.click() };
@@ -9458,6 +9474,7 @@
         if (recordRedsReportText) recordRedsReportText.value = '';
         recordWhatsappRegistroAtual = null;
         recordStatusRegistroAtual = null;
+        recordDocumentRegularizationRegistroAtual = null;
         recordFineCheckRegistroAtual = null;
         recordDetailRegistroAtual = null;
         recordFineEstimateRegistroAtual = null;
@@ -9466,10 +9483,12 @@
         recordCorrectionOriginal = new Map();
         if (recordCorrectionPanel) recordCorrectionPanel.hidden = true;
         if (recordInfoscipUpdatePanel) recordInfoscipUpdatePanel.hidden = true;
+        if (recordDocumentRegularizationPanel) recordDocumentRegularizationPanel.hidden = true;
         if (recordFineCheckPanel) recordFineCheckPanel.hidden = true;
         fecharCorrecaoRegistro_();
         fecharCorrecaoResultadoVistoria_();
         fecharAtualizacaoSituacaoInfoscip_();
+        fecharRegularizacaoDocumentalFicha_();
         if (opcoes.restaurarContexto !== false && contextoRetorno === 'goals-details') {
           abrirMetas_();
           selecionarAbaMetas_('detalhes');
@@ -11172,6 +11191,116 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const opcoes = opcoesAtualizacaoInfoscipFicha_(registro);
         recordInfoscipUpdatePanel.hidden = !opcoes.length;
         recordInfoscipUpdateBtn.disabled = !opcoes.length;
+      }
+
+
+      function podeRegistrarRegularizacaoDocumentalFicha_(registro) {
+        if (!registro || !usuarioPodeOperar_()) return false;
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        if (historico || fluxoLiberacaoFicha_(registro) || registroEhEventoDeclaratorio_(registro)) return false;
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        if (tipo && !tipo.includes(normalize('Fiscalização'))) return false;
+        const atual = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '');
+        return [normalize('Autuado'), normalize('Advertência')].includes(atual);
+      }
+
+      function configurarRegularizacaoDocumentalFicha_(registro) {
+        recordDocumentRegularizationRegistroAtual = registro || null;
+        if (!recordDocumentRegularizationPanel || !recordDocumentRegularizationBtn) return;
+        const mostrar = podeRegistrarRegularizacaoDocumentalFicha_(registro);
+        recordDocumentRegularizationPanel.hidden = !mostrar;
+        recordDocumentRegularizationBtn.disabled = !mostrar;
+      }
+
+      function abrirRegularizacaoDocumentalFicha_() {
+        const registro = recordDocumentRegularizationRegistroAtual;
+        if (!registro || !recordDocumentRegularizationModal || !podeRegistrarRegularizacaoDocumentalFicha_(registro)) return;
+        if (recordDocumentRegularizationCurrent) recordDocumentRegularizationCurrent.textContent = registro.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '—';
+        if (recordDocumentRegularizationType) recordDocumentRegularizationType.value = 'Certificado de brigadistas';
+        if (recordDocumentRegularizationObservation) recordDocumentRegularizationObservation.value = '';
+        if (recordDocumentRegularizationConfirm) recordDocumentRegularizationConfirm.checked = false;
+        if (recordDocumentRegularizationMessage) {
+          recordDocumentRegularizationMessage.textContent = '';
+          recordDocumentRegularizationMessage.className = 'record-status-update-message';
+        }
+        recordDocumentRegularizationModal.hidden = false;
+        document.body.classList.add('record-document-regularization-open');
+        setTimeout(() => recordDocumentRegularizationType?.focus(), 30);
+      }
+
+      function fecharRegularizacaoDocumentalFicha_() {
+        if (!recordDocumentRegularizationModal || recordDocumentRegularizationModal.hidden) return;
+        recordDocumentRegularizationModal.hidden = true;
+        document.body.classList.remove('record-document-regularization-open');
+        if (recordDocumentRegularizationSaveBtn) recordDocumentRegularizationSaveBtn.disabled = false;
+      }
+
+      async function salvarRegularizacaoDocumentalFicha_() {
+        const registro = recordDocumentRegularizationRegistroAtual;
+        if (!registro || !recordsState.chaveSelecionada || !podeRegistrarRegularizacaoDocumentalFicha_(registro)) return;
+        const tipoDocumento = String(recordDocumentRegularizationType?.value || '').trim();
+        const observacao = String(recordDocumentRegularizationObservation?.value || '').replace(/\s+/g, ' ').trim();
+        if (!tipoDocumento) {
+          if (recordDocumentRegularizationMessage) {
+            recordDocumentRegularizationMessage.textContent = 'Informe o documento ou a pendência que foi regularizada.';
+            recordDocumentRegularizationMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+        if (!recordDocumentRegularizationConfirm?.checked) {
+          if (recordDocumentRegularizationMessage) {
+            recordDocumentRegularizationMessage.textContent = 'Confirme que consultou o INFOSCIP e verificou a regularização documental.';
+            recordDocumentRegularizationMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+        if (!navigator.onLine) {
+          if (recordDocumentRegularizationMessage) {
+            recordDocumentRegularizationMessage.textContent = 'Esta ação exige conexão com a internet para registrar a conferência no INFOSCIP.';
+            recordDocumentRegularizationMessage.className = 'record-status-update-message error';
+          }
+          return;
+        }
+
+        const confirmar = await confirmarGpv_(
+          `A situação atual do processo será registrada como Regularizado sem criar uma nova vistoria.\n\nDocumento/pendência: ${tipoDocumento}\n\nO resultado original da fiscalização permanecerá preservado no histórico.`,
+          'Confirmar regularização documental?',
+          { rotuloConfirmar: 'Confirmar regularização', rotuloCancelar: 'Voltar' }
+        );
+        if (!confirmar) return;
+
+        if (recordDocumentRegularizationSaveBtn) recordDocumentRegularizationSaveBtn.disabled = true;
+        if (recordDocumentRegularizationMessage) {
+          recordDocumentRegularizationMessage.textContent = 'Registrando regularização documental...';
+          recordDocumentRegularizationMessage.className = 'record-status-update-message';
+        }
+
+        const chave = recordsState.chaveSelecionada;
+        const linhaHint = Number(recordsState.linhaSelecionada || registro?.linhaAtual || 0);
+        try {
+          const resposta = await apiRequest('config', {
+            consulta: 'regularizacao_documental',
+            chave,
+            linhaHint,
+            tipoDocumento,
+            observacao,
+            confirmadoInfoscip: true,
+            dispositivo: nomeDispositivo_()
+          }, 55000);
+
+          fecharRegularizacaoDocumentalFicha_();
+          limparCachesConsulta_();
+          appStatus.textContent = '✓ Regularização documental registrada. Não foi criada nova vistoria e o resultado original foi preservado.';
+          await abrirDetalheRegistro_(chave, Number(resposta?.linha || linhaHint), { forcarRede: true });
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'regularização documental' });
+        } catch (erro) {
+          if (recordDocumentRegularizationMessage) {
+            recordDocumentRegularizationMessage.textContent = erro?.message || 'Não foi possível registrar a regularização documental.';
+            recordDocumentRegularizationMessage.className = 'record-status-update-message error';
+          }
+        } finally {
+          if (recordDocumentRegularizationSaveBtn) recordDocumentRegularizationSaveBtn.disabled = false;
+        }
       }
 
       function etapaMultaAlertaTela_(valor) {
@@ -12989,6 +13118,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['CLCB foi anulado no INFOSCIP', valorCampoFicha_(registro, 'CLCB foi anulado no INFOSCIP')],
           ['Condição constatada na fiscalização', valorCampoFicha_(registro, 'Condição constatada na fiscalização')],
           ['Irregularidades constatadas', valorCampoFicha_(registro, 'Irregularidades constatadas')],
+          ['Resultado original da vistoria', valorCampoFicha_(registro, 'Resultado original da vistoria')],
+          ['Regularização documental', valorCampoFicha_(registro, 'Regularização documental')],
+          ['Regularização documental em', valorCampoFicha_(registro, 'Regularização documental em')],
+          ['Regularização documental por', valorCampoFicha_(registro, 'Regularização documental por')],
+          ['Observação da regularização documental', valorCampoFicha_(registro, 'Observação da regularização documental')],
           ['Documento de licenciamento', valorCampoFicha_(registro, 'Documento de licenciamento da acessória')],
           ['CLCB será anulado na vistoria acessória', valorCampoFicha_(registro, 'CLCB será anulado na vistoria acessória')],
           ['CLCB anulado na vistoria acessória', valorCampoFicha_(registro, 'CLCB anulado na vistoria acessória')],
@@ -13205,6 +13339,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         configurarCorrecaoFicha_(registro);
         configurarCorrecaoResultadoFicha_(registro);
         configurarAtualizacaoInfoscipFicha_(registro);
+        configurarRegularizacaoDocumentalFicha_(registro);
         configurarConferenciaMultaFicha_(registro);
         garantirUfemgEstimativaAtual_();
         renderizarNotificacoesFicha_(registro);
@@ -30869,6 +31004,11 @@ Deseja usar o endereço cadastral do CNPJ?`,
         }
       });
       recordInfoscipUpdateBtn?.addEventListener('click', abrirAtualizacaoSituacaoInfoscip_);
+      recordDocumentRegularizationBtn?.addEventListener('click', abrirRegularizacaoDocumentalFicha_);
+      recordDocumentRegularizationCloseBtn?.addEventListener('click', fecharRegularizacaoDocumentalFicha_);
+      recordDocumentRegularizationCancelBtn?.addEventListener('click', fecharRegularizacaoDocumentalFicha_);
+      recordDocumentRegularizationSaveBtn?.addEventListener('click', salvarRegularizacaoDocumentalFicha_);
+      recordDocumentRegularizationModal?.addEventListener('click', event => { if (event.target === recordDocumentRegularizationModal) fecharRegularizacaoDocumentalFicha_(); });
       recordFineNoBtn?.addEventListener('click', () => salvarConferenciaMultaFicha_('Não possui multa em aberto'));
       recordFineYesBtn?.addEventListener('click', () => salvarConferenciaMultaFicha_('Possui multa em aberto'));
       recordStatusUpdateCloseBtn?.addEventListener('click', fecharAtualizacaoSituacaoInfoscip_);
@@ -31422,7 +31562,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jb', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jc', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas

@@ -1,3 +1,4 @@
+// V23.9.99jc — shell da regularização documental e preservação do resultado original da autuação.
 // V23.9.99jb — shell do ajuste de tablet em Vistorias Programadas e fechamento claro do alerta de histórico.
 // V23.9.99ja — shell do alerta inteligente de histórico ao cadastrar/iniciar nova vistoria.
 // V23.9.99iz — shell da consulta direta de notificações permanentes na Ficha.
@@ -25,9 +26,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261019-v23-9-99-jb-tablet-programadas-alerta-fechar';
+const CACHE_NAME = 'gpv-vistorias-shell-20261021-v23-9-99-jc-regularizacao-documental';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99jb';
+const VERSION = '23.9.99jc';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
