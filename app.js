@@ -1,3 +1,4 @@
+// V23.9.99jg — versão e data da publicação sempre visíveis no rodapé do aplicativo.
 // V23.9.99jf — reconciliação retroativa assistida de Liberações antigas, com confirmação manual antes de regularizar processo.
 // V23.9.99jf — Liberação com resultado Liberado também regulariza processo fiscalizatório anterior compatível; preserva Autuação original.
 // V23.9.99jc — regularização documental sem nova vistoria, preservando o resultado original da autuação; mantém regularização automática em nova vistoria.
@@ -60,7 +61,10 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jf';
+      const APP_VERSION = '23.9.99jg';
+      const APP_VERSION_DATE = '21/10/2026';
+      const appBuildInfo = document.getElementById('appBuildInfo');
+      if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -2897,7 +2901,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jf';
+      const APP_REVISION_UI_ = '23.9.99jg';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5036,7 +5040,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jf', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jg', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -24719,6 +24723,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         const pendentes = obterPendentes().length;
         const itens = [
           ['Versão do app', `V${APP_VERSION}`],
+          ['Data da versão', APP_VERSION_DATE],
           ['Usuário', authState.usuario?.nome || 'Não identificado'],
           ['Aparelho', nomeDispositivo_() || 'Não identificado'],
           ['Conexão', navigator.onLine ? 'Online' : 'Offline'],
@@ -31747,7 +31752,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jf', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jg', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
