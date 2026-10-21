@@ -1,4 +1,5 @@
-// V23.9.99jl — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
+// V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
+// V23.9.99jm — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
 // V23.9.99jk — Reconciliação histórica: endereço físico priorizado; Central de Pendências preservada.
 // V23.9.99ji — atualização automática em uma única abertura/retorno seguro; aguarda o novo Service Worker assumir antes de recarregar e preserva trabalho em andamento.
 // V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
@@ -65,7 +66,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jl';
+      const APP_VERSION = '23.9.99jm';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2059,6 +2060,9 @@
       const manageUsersBtn = document.getElementById('manageUsersBtn');
       const reconcileReleasesBtn = document.getElementById('reconcileReleasesBtn');
       const gpvPendingCenterBtn = document.getElementById('gpvPendingCenterBtn');
+      const dashboardPendingCenterCard = document.getElementById('dashboardPendingCenterCard');
+      const dashboardPendingCenterText = document.getElementById('dashboardPendingCenterText');
+      const dashboardPendingCenterCount = document.getElementById('dashboardPendingCenterCount');
       const gpvPendingCenterModal = document.getElementById('gpvPendingCenterModal');
       const gpvPendingCenterCloseBtn = document.getElementById('gpvPendingCenterCloseBtn');
       const gpvPendingCenterStatus = document.getElementById('gpvPendingCenterStatus');
@@ -2909,6 +2913,7 @@
       let recordFineEstimateRegistroAtual = null;
       let recordDetailRegistroAtual = null;
       let gpvPendingCenterState_ = { itens: [], resumo: {}, filtro: 'todos', carregadoEm: 0 };
+      let gpvPendingCenterLoadPromise_ = null;
       let recordCorrectionRegistroAtual = null;
       let recordResultRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
@@ -2927,7 +2932,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jl';
+      const APP_REVISION_UI_ = '23.9.99jm';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3870,6 +3875,56 @@
         gpvPendingCenterStatus.className = `gpv-pending-status ${totalItens ? 'has-items' : 'is-clear'}`;
       }
 
+      function atualizarAtalhoPendenciasHome_() {
+        if (!dashboardPendingCenterCard) return;
+        const pode = usuarioPodeOperar_();
+        dashboardPendingCenterCard.hidden = !pode;
+        if (!pode) return;
+        const resumo = gpvPendingCenterState_?.resumo || {};
+        const total = Number(resumo.totalItens || 0);
+        const carregado = Number(gpvPendingCenterState_?.carregadoEm || 0) > 0;
+        if (dashboardPendingCenterCount) dashboardPendingCenterCount.textContent = carregado ? String(total) : '—';
+        if (dashboardPendingCenterText) {
+          dashboardPendingCenterText.textContent = !carregado
+            ? 'Conferindo pendências em segundo plano...'
+            : (total ? `${total} item${total === 1 ? '' : 's'} exige${total === 1 ? '' : 'm'} acompanhamento` : 'Nenhuma pendência operacional no momento');
+        }
+        dashboardPendingCenterCard.classList.toggle('is-clear', carregado && total === 0);
+        dashboardPendingCenterCard.classList.toggle('is-warning', carregado && total > 0);
+        dashboardPendingCenterCard.setAttribute('aria-label', carregado
+          ? `Abrir Pendências do GPV. ${total} item${total === 1 ? '' : 's'} exige${total === 1 ? '' : 'm'} acompanhamento.`
+          : 'Abrir Pendências do GPV. Conferindo itens em segundo plano.');
+      }
+
+      async function buscarCentralPendenciasGpv_(forcar = false) {
+        if (!navigator.onLine || !usuarioPodeOperar_()) return null;
+        const idade = Date.now() - Number(gpvPendingCenterState_?.carregadoEm || 0);
+        if (!forcar && gpvPendingCenterState_?.carregadoEm && idade < 90 * 1000 && Array.isArray(gpvPendingCenterState_?.itens)) {
+          atualizarAtalhoPendenciasHome_();
+          return gpvPendingCenterState_;
+        }
+        if (gpvPendingCenterLoadPromise_ && !forcar) return gpvPendingCenterLoadPromise_;
+        gpvPendingCenterLoadPromise_ = (async () => {
+          const resposta = await apiRequest('config', { consulta:'central_pendencias', forcar:Boolean(forcar) }, 45000, { silentSuccess:true });
+          gpvPendingCenterState_ = {
+            itens: Array.isArray(resposta?.itens) ? resposta.itens : [],
+            resumo: resposta?.resumo || {},
+            filtro: gpvPendingCenterState_?.filtro || 'todos',
+            carregadoEm: Date.now()
+          };
+          atualizarAtalhoPendenciasHome_();
+          return gpvPendingCenterState_;
+        })();
+        try { return await gpvPendingCenterLoadPromise_; }
+        finally { gpvPendingCenterLoadPromise_ = null; }
+      }
+
+      async function preCarregarCentralPendenciasGpv_() {
+        if (!navigator.onLine || !usuarioPodeOperar_()) return;
+        try { await buscarCentralPendenciasGpv_(false); }
+        catch (_) { atualizarAtalhoPendenciasHome_(); }
+      }
+
       async function carregarCentralPendenciasGpv_(forcar = false) {
         if (!gpvPendingCenterStatus || !gpvPendingCenterList) return;
         if (!navigator.onLine) {
@@ -3878,23 +3933,28 @@
           gpvPendingCenterList.innerHTML = '<div class="gpv-pending-empty"><strong>Consulta online necessária.</strong><span>A Central não usa dados antigos como situação operacional atual.</span></div>';
           return;
         }
+        const temPreCarregado = Boolean(gpvPendingCenterState_?.carregadoEm && Array.isArray(gpvPendingCenterState_?.itens));
+        if (temPreCarregado) renderizarCentralPendenciasGpv_();
         if (gpvPendingCenterRefreshBtn) gpvPendingCenterRefreshBtn.disabled = true;
-        gpvPendingCenterStatus.textContent = 'Conferindo liberações, processos, prazos e programações...';
-        gpvPendingCenterStatus.className = 'gpv-pending-status is-loading';
-        gpvPendingCenterList.innerHTML = '<div class="gpv-pending-loading"><span></span><strong>Montando visão operacional...</strong></div>';
+        if (!temPreCarregado) {
+          gpvPendingCenterStatus.textContent = 'Conferindo liberações, processos, prazos e programações...';
+          gpvPendingCenterStatus.className = 'gpv-pending-status is-loading';
+          gpvPendingCenterList.innerHTML = '<div class="gpv-pending-loading"><span></span><strong>Montando visão operacional...</strong></div>';
+        } else if (forcar) {
+          gpvPendingCenterStatus.textContent = 'Atualizando a visão operacional...';
+          gpvPendingCenterStatus.className = 'gpv-pending-status is-loading';
+        }
         try {
-          const resposta = await apiRequest('config', { consulta:'central_pendencias', forcar:Boolean(forcar) }, 45000, { silentSuccess:true });
-          gpvPendingCenterState_ = {
-            itens: Array.isArray(resposta?.itens) ? resposta.itens : [],
-            resumo: resposta?.resumo || {},
-            filtro: gpvPendingCenterState_?.filtro || 'todos',
-            carregadoEm: Date.now()
-          };
+          await buscarCentralPendenciasGpv_(forcar);
           renderizarCentralPendenciasGpv_();
         } catch (erro) {
-          gpvPendingCenterStatus.textContent = 'Não foi possível atualizar as pendências agora.';
-          gpvPendingCenterStatus.className = 'gpv-pending-status is-warning';
-          gpvPendingCenterList.innerHTML = `<div class="gpv-pending-empty"><strong>Consulta indisponível.</strong><span>${escapeHtml(erro?.message || 'Tente novamente em alguns instantes.')}</span></div>`;
+          if (!temPreCarregado) {
+            gpvPendingCenterStatus.textContent = 'Não foi possível atualizar as pendências agora.';
+            gpvPendingCenterStatus.className = 'gpv-pending-status is-warning';
+            gpvPendingCenterList.innerHTML = `<div class="gpv-pending-empty"><strong>Consulta indisponível.</strong><span>${escapeHtml(erro?.message || 'Tente novamente em alguns instantes.')}</span></div>`;
+          } else {
+            renderizarCentralPendenciasGpv_();
+          }
         } finally {
           if (gpvPendingCenterRefreshBtn) gpvPendingCenterRefreshBtn.disabled = false;
         }
@@ -3906,8 +3966,10 @@
         gpvPendingCenterModal.hidden = false;
         document.body.classList.add('gpv-pending-center-open');
         agendarSincronizacaoNavegacao_();
+        if (gpvPendingCenterState_?.carregadoEm) renderizarCentralPendenciasGpv_();
         setTimeout(() => gpvPendingCenterCloseBtn?.focus(), 20);
-        void carregarCentralPendenciasGpv_(true);
+        const idade = Date.now() - Number(gpvPendingCenterState_?.carregadoEm || 0);
+        void carregarCentralPendenciasGpv_(idade > 90 * 1000);
       }
 
       async function abrirItemCentralPendenciasGpv_(id) {
@@ -3916,8 +3978,6 @@
         const acao = String(item.acao || 'ficha');
 
         if (acao === 'reconciliacao') {
-          // V23.9.99jl — mantém a Central visível durante a consulta para não expor a Home
-          // entre o clique e a abertura do diálogo. Abre diretamente a Liberação escolhida.
           const textoAnterior = gpvPendingCenterStatus?.textContent || '';
           const classeAnterior = gpvPendingCenterStatus?.className || 'gpv-pending-status';
           if (gpvPendingCenterStatus) {
@@ -3925,13 +3985,17 @@
             gpvPendingCenterStatus.className = 'gpv-pending-status is-loading';
           }
           try {
-            const abriu = await abrirReconciliacaoLiberacoesAntigas_(String(item.chave || ''), { origemCentral:true });
+            const abriu = await abrirReconciliacaoLiberacoesAntigas_(String(item.chave || ''), {
+              origemCentral:true,
+              casoPrecarregado:item.reconciliacaoCaso || null
+            });
             if (!abriu && gpvPendingCenterStatus) {
               gpvPendingCenterStatus.textContent = textoAnterior;
               gpvPendingCenterStatus.className = classeAnterior;
             }
           } finally {
             if (gpvPendingCenterModal && !gpvPendingCenterModal.hidden) {
+              gpvPendingCenterState_.carregadoEm = 0;
               void carregarCentralPendenciasGpv_(true);
             }
           }
@@ -4038,6 +4102,7 @@
           manageUsersBtn,
           reconcileReleasesBtn,
           gpvPendingCenterBtn,
+          dashboardPendingCenterCard,
           redsTemplatesMenuBtn,
           loggedUserBadge,
           adminSheetMenuLink,
@@ -4071,6 +4136,8 @@
           if (manageUsersBtn) manageUsersBtn.hidden = false;
           if (reconcileReleasesBtn) reconcileReleasesBtn.hidden = false;
           if (gpvPendingCenterBtn) gpvPendingCenterBtn.hidden = false;
+          if (dashboardPendingCenterCard) dashboardPendingCenterCard.hidden = false;
+          atualizarAtalhoPendenciasHome_();
           if (redsTemplatesMenuBtn) redsTemplatesMenuBtn.hidden = false;
           if (syncSummary) syncSummary.hidden = false;
           carregarModelosRedsPersonalizados_(false).catch(() => {});
@@ -5332,7 +5399,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jl', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jm', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -22498,8 +22565,26 @@ Deseja usar o endereço cadastral do CNPJ?`,
 
         const alvo = String(chaveLiberacaoAlvo || '').trim();
         const origemCentral = Boolean(opcoesFluxo?.origemCentral);
+        const casoPrecarregado = opcoesFluxo?.casoPrecarregado && typeof opcoesFluxo.casoPrecarregado === 'object'
+          ? opcoesFluxo.casoPrecarregado
+          : null;
 
         try {
+          // V23.9.99jm — a Central já recebe o caso com seus candidatos elegíveis.
+          // Assim o clique Revisar vínculo não repete a varredura completa no backend.
+          if (alvo && casoPrecarregado && String(casoPrecarregado.chaveLiberacao || '').trim() === alvo) {
+            if (origemCentral) fecharCentralPendenciasGpv_();
+            const resultadoPrecarregado = await revisarCasoReconciliacaoLiberacao_(casoPrecarregado);
+            if (origemCentral && gpvPendingCenterModal) {
+              gpvPendingCenterModal.hidden = false;
+              document.body.classList.add('gpv-pending-center-open');
+              agendarSincronizacaoNavegacao_();
+              setTimeout(() => gpvPendingCenterCloseBtn?.focus(), 20);
+            }
+            if (['confirmado','ignorado'].includes(resultadoPrecarregado)) invalidarCachePainelOperacional_();
+            return true;
+          }
+
           let continuar = true;
           while (continuar) {
             const resposta = await apiRequest('config', { consulta:'liberacao_reconciliacao_listar' }, 30000, { silentSuccess:true });
@@ -25182,7 +25267,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jl', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jm', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -30177,6 +30262,13 @@ Deseja usar o endereço cadastral do CNPJ?`,
           void carregarResumoOperacionalSeparado_({ forcar:false });
           if (document.body.classList.contains('records-mode')) void carregarInicioRapido_({ aplicarPainel:true });
         }, atrasos.resumo);
+        // V23.9.99jm — pré-carrega Pendências sem bloquear a abertura. O mesmo
+        // resultado alimenta o contador da Home e os candidatos da reconciliação.
+        setTimeout(() => {
+          if (document.visibilityState === 'visible' && navigator.onLine && usuarioPodeOperar_()) {
+            void preCarregarCentralPendenciasGpv_();
+          }
+        }, longaPausa ? 2200 : 3200);
         // V23.9.99hq — pré-aquece os detalhes das Programadas depois que a Home já
         // está utilizável. Assim, ao abrir o modal, a lista tende a estar pronta e
         // uma rede lenta não bloqueia a navegação.
@@ -31727,6 +31819,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       });
 
       gpvPendingCenterBtn?.addEventListener('click', abrirCentralPendenciasGpv_);
+      dashboardPendingCenterCard?.addEventListener('click', abrirCentralPendenciasGpv_);
       gpvPendingCenterCloseBtn?.addEventListener('click', fecharCentralPendenciasGpv_);
       gpvPendingCenterRefreshBtn?.addEventListener('click', () => { void carregarCentralPendenciasGpv_(true); });
       gpvPendingCenterModal?.addEventListener('click', event => {
@@ -32269,7 +32362,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jl', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jm', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
