@@ -1,3 +1,4 @@
+// V23.9.99jl — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
 // V23.9.99jk — Reconciliação histórica: endereço físico priorizado; Central de Pendências preservada.
 // V23.9.99ji — atualização automática em uma única abertura/retorno seguro; aguarda o novo Service Worker assumir antes de recarregar e preserva trabalho em andamento.
 // V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
@@ -64,7 +65,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jk';
+      const APP_VERSION = '23.9.99jl';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2926,7 +2927,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jk';
+      const APP_REVISION_UI_ = '23.9.99jl';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3913,11 +3914,31 @@
         const item = (gpvPendingCenterState_?.itens || []).find((it, idx) => String(it?.id || idx) === String(id));
         if (!item) return;
         const acao = String(item.acao || 'ficha');
-        fecharCentralPendenciasGpv_();
+
         if (acao === 'reconciliacao') {
-          await abrirReconciliacaoLiberacoesAntigas_();
+          // V23.9.99jl — mantém a Central visível durante a consulta para não expor a Home
+          // entre o clique e a abertura do diálogo. Abre diretamente a Liberação escolhida.
+          const textoAnterior = gpvPendingCenterStatus?.textContent || '';
+          const classeAnterior = gpvPendingCenterStatus?.className || 'gpv-pending-status';
+          if (gpvPendingCenterStatus) {
+            gpvPendingCenterStatus.textContent = 'Abrindo a reconciliação selecionada...';
+            gpvPendingCenterStatus.className = 'gpv-pending-status is-loading';
+          }
+          try {
+            const abriu = await abrirReconciliacaoLiberacoesAntigas_(String(item.chave || ''), { origemCentral:true });
+            if (!abriu && gpvPendingCenterStatus) {
+              gpvPendingCenterStatus.textContent = textoAnterior;
+              gpvPendingCenterStatus.className = classeAnterior;
+            }
+          } finally {
+            if (gpvPendingCenterModal && !gpvPendingCenterModal.hidden) {
+              void carregarCentralPendenciasGpv_(true);
+            }
+          }
           return;
         }
+
+        fecharCentralPendenciasGpv_();
         if (acao === 'programadas') {
           abrirListaProgramadas_(false);
           return;
@@ -5311,7 +5332,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jk', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jl', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5586,6 +5607,8 @@
               const btn = document.createElement('button');
               btn.type = 'button';
               btn.className = 'gpv-dialog-choice';
+              const tomOpcao = String(opcao?.tom || opcao?.tone || '').trim().toLowerCase();
+              if (tomOpcao) btn.dataset.choiceTone = tomOpcao;
               const titulo = document.createElement('strong');
               titulo.textContent = String(opcao?.titulo || opcao?.label || '');
               btn.appendChild(titulo);
@@ -22359,8 +22382,9 @@ Deseja usar o endereço cadastral do CNPJ?`,
             [
               {
                 titulo:'Confirmar regularização',
-                subtitulo:'Vincular esta Liberação ao processo anterior e atualizar a situação atual para Regularizado.',
-                valor:'confirmar'
+                subtitulo:'Vincular esta Liberação ao processo anterior e marcar a situação atual como Regularizado.',
+                valor:'confirmar',
+                tom:'success'
               },
               {
                 titulo:'Abrir Ficha da fiscalização',
@@ -22461,16 +22485,19 @@ Deseja usar o endereço cadastral do CNPJ?`,
         }
       }
 
-      async function abrirReconciliacaoLiberacoesAntigas_() {
+      async function abrirReconciliacaoLiberacoesAntigas_(chaveLiberacaoAlvo = '', opcoesFluxo = {}) {
         fecharMenuMais_();
         if (!usuarioPodeOperar_()) {
           await avisarGpv_('A reconciliação de processos está disponível somente para usuários do GPV.', 'Acesso restrito', { tom:'warning' });
-          return;
+          return false;
         }
         if (!navigator.onLine) {
           await avisarGpv_('Conecte o aparelho à internet para consultar os registros históricos.', 'Sem internet', { tom:'warning' });
-          return;
+          return false;
         }
+
+        const alvo = String(chaveLiberacaoAlvo || '').trim();
+        const origemCentral = Boolean(opcoesFluxo?.origemCentral);
 
         try {
           let continuar = true;
@@ -22478,12 +22505,45 @@ Deseja usar o endereço cadastral do CNPJ?`,
             const resposta = await apiRequest('config', { consulta:'liberacao_reconciliacao_listar' }, 30000, { silentSuccess:true });
             const casos = Array.isArray(resposta?.casos) ? resposta.casos : [];
             if (!casos.length) {
+              if (origemCentral && gpvPendingCenterModal && !gpvPendingCenterModal.hidden) {
+                await avisarGpv_('Esta Liberação não está mais aguardando reconciliação. A Central será atualizada.', 'Item já resolvido', { tom:'success' });
+                return true;
+              }
               await avisarGpv_(
                 `Nenhuma Liberação antiga está aguardando reconciliação assistida.${Number(resposta?.semCandidatos || 0) ? `\n\n${resposta.semCandidatos} Liberação(ões) não possuem candidato fiscal anterior útil para conferência.` : ''}`,
                 'Reconciliação concluída',
                 { tom:'success' }
               );
-              return;
+              return true;
+            }
+
+            // Quando o acesso parte do botão "Revisar vínculo" da Central, não mostra
+            // novamente a lista geral: vai diretamente ao caso em que o militar clicou.
+            if (alvo) {
+              const casoDireto = casos.find(caso => String(caso?.chaveLiberacao || '').trim() === alvo);
+              if (!casoDireto) {
+                await avisarGpv_(
+                  'A Liberação selecionada não está mais entre as reconciliações pendentes. Atualize a Central para conferir a situação atual.',
+                  'Reconciliação atualizada',
+                  { tom:'info' }
+                );
+                return true;
+              }
+
+              // Fecha a Central somente quando o diálogo já pode ser aberto imediatamente.
+              // O diálogo do GPV possui camada própria, evitando o flash da tela inicial.
+              if (origemCentral) fecharCentralPendenciasGpv_();
+              const resultadoDireto = await revisarCasoReconciliacaoLiberacao_(casoDireto);
+
+              // Ao voltar/cancelar, restaura a Central para o militar continuar de onde estava.
+              if (origemCentral && gpvPendingCenterModal) {
+                gpvPendingCenterModal.hidden = false;
+                document.body.classList.add('gpv-pending-center-open');
+                agendarSincronizacaoNavegacao_();
+                setTimeout(() => gpvPendingCenterCloseBtn?.focus(), 20);
+              }
+              if (['confirmado','ignorado'].includes(resultadoDireto)) invalidarCachePainelOperacional_();
+              return true;
             }
 
             const opcoes = casos.slice(0,40).map((caso, indice) => ({
@@ -22497,14 +22557,16 @@ Deseja usar o endereço cadastral do CNPJ?`,
               'Reconciliar liberações antigas',
               { tom:'info', rotuloCancelar:'Fechar' }
             );
-            if (escolha == null) return;
+            if (escolha == null) return true;
             const caso = casos[Number(escolha)];
             if (!caso) continue;
             const resultado = await revisarCasoReconciliacaoLiberacao_(caso);
             continuar = ['confirmado','ignorado','voltar'].includes(resultado);
           }
+          return true;
         } catch (erro) {
           await avisarGpv_(erro?.message || 'Não foi possível carregar a reconciliação agora.', 'Falha na reconciliação', { tom:'danger' });
+          return false;
         }
       }
 
@@ -25120,7 +25182,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jk', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jl', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -31930,7 +31992,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       changePinBtn?.addEventListener('click', abrirAlterarSenha_);
       forgetSavedPinBtn?.addEventListener('click', esquecerSenhaSalvaAtualBm_);
       manageUsersBtn?.addEventListener('click', abrirGerenciadorUsuarios_);
-      reconcileReleasesBtn?.addEventListener('click', abrirReconciliacaoLiberacoesAntigas_);
+      reconcileReleasesBtn?.addEventListener('click', () => { void abrirReconciliacaoLiberacoesAntigas_(); });
       switchUserBtn?.addEventListener('click', trocarUsuarioBm_);
       logoutUserBtn?.addEventListener('click', sairUsuarioBm_);
       changePinCloseBtn?.addEventListener('click', fecharAlterarSenha_);
@@ -32207,7 +32269,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jk', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jl', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional

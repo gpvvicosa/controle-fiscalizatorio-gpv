@@ -1,3 +1,4 @@
+// V23.9.99jl — Correção visual da reconciliação e abertura direta pela Central de Pendências.
 // V23.9.99jk — Reconciliação histórica corrigida; novo shell/cache publicado.
 // V23.9.99ji — shell com cache exclusivo da versão e instalação forçada da cópia mais recente para eliminar dupla atualização.
 // V23.9.99jh — shell atualizado para saneamento documental da liberação sem nova vistoria.
@@ -32,9 +33,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261021-v23-9-99-jj-central-pendencias';
+const CACHE_NAME = 'gpv-vistorias-shell-20261021-v23-9-99-jl-reconciliacao-fluxo-direto';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99jk';
+const VERSION = '23.9.99jl';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
