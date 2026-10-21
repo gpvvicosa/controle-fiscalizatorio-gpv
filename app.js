@@ -1,3 +1,4 @@
+// V23.9.99ji — atualização automática em uma única abertura/retorno seguro; aguarda o novo Service Worker assumir antes de recarregar e preserva trabalho em andamento.
 // V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
 // V23.9.99jg — versão e data da publicação sempre visíveis no rodapé do aplicativo.
 // V23.9.99jf — reconciliação retroativa assistida de Liberações antigas, com confirmação manual antes de regularizar processo.
@@ -62,7 +63,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jh';
+      const APP_VERSION = '23.9.99ji';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2915,7 +2916,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jh';
+      const APP_REVISION_UI_ = '23.9.99ji';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -4825,38 +4826,35 @@
         swAtualizacaoPendente_ = true;
         if (!swAppLiberadoParaUso_) return false;
 
-        // A versão nova já pode ficar instalada/controlando os próximos carregamentos,
-        // mas a página atual continua estável. O aviso é único e não bloqueante.
+        // V23.9.99ji — se o app já está liberado e não há trabalho operacional em
+        // andamento, a nova versão é aplicada automaticamente. Se houver vistoria,
+        // envio ou modal operacional ativo, apenas avisa e aguarda um momento seguro.
+        if (!appTemInteracaoCriticaParaAtualizacao_()) {
+          if (appStatus) appStatus.textContent = 'Nova versão encontrada — atualizando automaticamente...';
+          setTimeout(() => { void aplicarAtualizacaoSilenciosaSeSeguro_(); }, 80);
+          return true;
+        }
+
         if (!swAtualizacaoSegundoPlanoAvisada_) {
           swAtualizacaoSegundoPlanoAvisada_ = true;
-          if (appStatus) appStatus.textContent = 'Nova versão preparada em segundo plano. Será aplicada na próxima abertura do app.';
+          if (appStatus) appStatus.textContent = 'Atualização disponível — será instalada após concluir a etapa atual.';
           mostrarFeedbackPremium_(
-            'Nova versão preparada em segundo plano. Será aplicada na próxima abertura do app.',
+            'Atualização disponível — será instalada automaticamente quando for seguro, sem interromper a vistoria em andamento.',
             'warning'
           );
         }
+        agendarNovaTentativaAtualizacaoSilenciosa_();
         return true;
       }
 
       function appPodeAplicarAtualizacaoSilenciosa_() {
         if (!swAtualizacaoPendente_ || swRecarregamentoAtualizacaoEmCurso_) return false;
-        // V23.9.99hm — a aplicação automática com recarga só pertence à fase de
-        // abertura. Depois que o app foi liberado, a atualização fica para a próxima
-        // abertura (ou para Mais → Atualizar app, se o militar optar por aplicar agora).
-        if (swAppLiberadoParaUso_) return false;
         return !appTemInteracaoCriticaParaAtualizacao_();
       }
 
       function mostrarAtualizacaoAutomatica_() {
-        if (swAppLiberadoParaUso_) {
-          registrarAtualizacaoSegundoPlano_();
-          return;
-        }
         document.documentElement.classList.add('gpv-booting');
 
-        // V23.9.99gw — no primeiro acesso do dia, a própria saudação acompanha a
-        // atualização. Assim o usuário sabe que o app continua trabalhando mesmo
-        // quando um aparelho ficou vários dias sem abrir.
         const motivacional = document.getElementById('dailyMotivationalOverlay');
         if (motivacional?.classList.contains('show')) {
           motivacional.dataset.autoUpdate = '1';
@@ -4873,7 +4871,7 @@
         loadingOverlay.dataset.autoUpdate = '1';
         loadingText.textContent = 'Atualizando o aplicativo...';
         if (loadingSubtext) {
-          loadingSubtext.textContent = 'Preparando a versão mais recente. Não feche o aplicativo.';
+          loadingSubtext.textContent = 'Aplicando a versão mais recente. Não feche o aplicativo.';
           loadingSubtext.hidden = false;
         }
         loadingOverlay.classList.add('show');
@@ -4889,67 +4887,160 @@
 
         if (!loadingOverlay || loadingOverlay.dataset.autoUpdate !== '1') return;
         delete loadingOverlay.dataset.autoUpdate;
+        loadingOverlay.classList.remove('show');
         if (loadingSubtext) {
           loadingSubtext.hidden = true;
           loadingSubtext.textContent = '';
         }
         if (loadingText) loadingText.textContent = 'Preparando o App do Vistoriador...';
+        document.documentElement.classList.remove('gpv-booting');
       }
 
       function agendarNovaTentativaAtualizacaoSilenciosa_() {
-        if (!swAtualizacaoPendente_ || swTimerAtualizacaoAdiada_ || swAppLiberadoParaUso_) return;
+        if (!swAtualizacaoPendente_ || swTimerAtualizacaoAdiada_ || swRecarregamentoAtualizacaoEmCurso_) return;
 
         swTimerAtualizacaoAdiada_ = setTimeout(() => {
           swTimerAtualizacaoAdiada_ = null;
-          aplicarAtualizacaoSilenciosaSeSeguro_();
-        }, 45 * 1000);
+          void aplicarAtualizacaoSilenciosaSeSeguro_();
+        }, 30 * 1000);
       }
 
-      function aplicarAtualizacaoSilenciosaSeSeguro_() {
-        if (!swAtualizacaoPendente_) return false;
-
-        // Depois da abertura, nunca toma a tela nem recarrega por conta própria.
-        // O Service Worker pode concluir a atualização em segundo plano; o novo shell
-        // será usado na próxima abertura do PWA ou pela ação manual Atualizar app.
-        if (swAppLiberadoParaUso_) {
-          registrarAtualizacaoSegundoPlano_();
-          return false;
+      function aguardarNovoControladorServiceWorker_(registro, worker, controladorAntes, timeoutMs = 20000) {
+        // Quando o controller já mudou (por exemplo, porque skipWaiting + clients.claim
+        // terminou antes desta função), a atualização já pode recarregar com segurança.
+        if (navigator.serviceWorker.controller && navigator.serviceWorker.controller !== controladorAntes) {
+          return Promise.resolve(true);
         }
 
+        return new Promise(resolve => {
+          let finalizado = false;
+          let timer = null;
+
+          const terminar = valor => {
+            if (finalizado) return;
+            finalizado = true;
+            if (timer) clearTimeout(timer);
+            navigator.serviceWorker.removeEventListener('controllerchange', conferirController);
+            try { worker?.removeEventListener('statechange', conferirWorker); } catch (_) {}
+            resolve(Boolean(valor));
+          };
+
+          const conferirController = () => {
+            const atual = navigator.serviceWorker.controller;
+            if (atual && atual !== controladorAntes) terminar(true);
+          };
+
+          const pedirAtivacaoSeAguardando = () => {
+            try {
+              const aguardando = registro?.waiting || (worker?.state === 'installed' ? worker : null);
+              aguardando?.postMessage?.({ type:'SKIP_WAITING' });
+            } catch (_) {}
+          };
+
+          const conferirWorker = () => {
+            if (!worker) return;
+            if (worker.state === 'installed') pedirAtivacaoSeAguardando();
+            if (worker.state === 'redundant') terminar(false);
+            if (worker.state === 'activated') {
+              // clients.claim() ainda pode estar finalizando. O evento controllerchange
+              // é a confirmação que realmente interessa antes da única recarga.
+              setTimeout(conferirController, 0);
+            }
+          };
+
+          navigator.serviceWorker.addEventListener('controllerchange', conferirController);
+          try { worker?.addEventListener('statechange', conferirWorker); } catch (_) {}
+          pedirAtivacaoSeAguardando();
+          conferirController();
+          conferirWorker();
+
+          timer = setTimeout(() => {
+            // Se o registro ativo já é exatamente o controlador da página, a troca pode
+            // ter ocorrido sem que o evento fosse observado nesta janela curta.
+            const atual = navigator.serviceWorker.controller;
+            const ativo = registro?.active;
+            terminar(Boolean(atual && ativo && atual === ativo && atual !== controladorAntes));
+          }, timeoutMs);
+        });
+      }
+
+      async function aplicarAtualizacaoSilenciosaSeSeguro_() {
+        if (!swAtualizacaoPendente_) return false;
+
         if (!appPodeAplicarAtualizacaoSilenciosa_()) {
+          if (swAppLiberadoParaUso_) registrarAtualizacaoSegundoPlano_();
           agendarNovaTentativaAtualizacaoSilenciosa_();
           return false;
         }
 
-        // Se houver um rascunho preservado enquanto o usuário está no Painel,
-        // reforça a gravação local antes da recarga.
         try {
           if (usuarioPodeOperar_() && rascunhoAtualEmAndamento_()) saveDraft();
         } catch (e) {}
 
-        swAtualizacaoPendente_ = false;
         swRecarregamentoAtualizacaoEmCurso_ = true;
-
         if (swTimerAtualizacaoAdiada_) {
           clearTimeout(swTimerAtualizacaoAdiada_);
           swTimerAtualizacaoAdiada_ = null;
         }
 
-        // Quando a atualização foi encontrada durante a abertura, mantém o splash
-        // animado visível até a nova versão assumir o controle.
-        if (swAtualizacaoDetectadaNaAbertura_ || swVerificacaoAberturaEmCurso_) {
-          mostrarAtualizacaoAutomatica_();
+        mostrarAtualizacaoAutomatica_();
+
+        let registro = null;
+        try {
+          registro = swRegistroSilencioso_ || await navigator.serviceWorker.getRegistration();
+          if (registro) {
+            observarAtualizacaoSilenciosaPwa_(registro);
+            swRegistroSilencioso_ = registro;
+          }
+        } catch (_) {}
+
+        const controladorAntes = swControladorAntesDaAtualizacao_ || navigator.serviceWorker.controller;
+        const worker = registro?.waiting || swWorkerAtualizacaoPendente_ || registro?.installing || null;
+
+        let controladorNovoPronto = false;
+        try {
+          // Se a nova versão ainda está em waiting, libera a ativação. Se ela já
+          // ativou e assumiu a página, a função de espera retorna imediatamente.
+          controladorNovoPronto = await aguardarNovoControladorServiceWorker_(
+            registro,
+            worker,
+            controladorAntes,
+            20000
+          );
+
+          // Alguns navegadores podem já ter trocado o controller antes de entrarmos
+          // aqui. Nesse caso não existe mais worker waiting/installing, mas o registro
+          // ativo já controla a página e a recarga única é segura.
+          if (!controladorNovoPronto && !worker && registro?.active && navigator.serviceWorker.controller === registro.active) {
+            controladorNovoPronto = true;
+          }
+        } catch (_) {
+          controladorNovoPronto = false;
         }
 
-        // A sessão BM, os rascunhos, o IndexedDB e a fila offline permanecem no
-        // armazenamento local. Somente a interface e os arquivos do app recarregam.
+        if (!controladorNovoPronto) {
+          swRecarregamentoAtualizacaoEmCurso_ = false;
+          swAtualizacaoPendente_ = true;
+          encerrarVisualAtualizacaoAutomatica_();
+          if (appStatus) appStatus.textContent = 'Atualização preparada. Tentaremos aplicá-la novamente automaticamente.';
+          agendarNovaTentativaAtualizacaoSilenciosa_();
+          return false;
+        }
+
+        swAtualizacaoPendente_ = false;
+        swWorkerAtualizacaoPendente_ = null;
+        swControladorAntesDaAtualizacao_ = null;
+        swAtualizacaoSegundoPlanoAvisada_ = false;
+
         try {
           sessionStorage.setItem('gpv_auto_update_applied_v1', String(Date.now()));
         } catch (e) {}
 
         const url = new URL(window.location.href);
         url.searchParams.set('appAtualizado', Date.now().toString());
-        // Pequeno frame permite que a mensagem/animação seja pintada antes da troca.
+        // A recarga só acontece depois que o novo Service Worker já assumiu esta
+        // página. Isso elimina o ciclo antigo em que a primeira recarga apenas
+        // ativava o SW e a segunda era necessária para carregar o shell novo.
         requestAnimationFrame(() => window.location.replace(url.toString()));
         return true;
       }
@@ -4957,6 +5048,8 @@
       function acompanharWorkerAtualizacao_(worker) {
         if (!worker || worker.__gpvObservadoAtualizacao) return;
         worker.__gpvObservadoAtualizacao = true;
+        swWorkerAtualizacaoPendente_ = worker;
+        if (!swControladorAntesDaAtualizacao_) swControladorAntesDaAtualizacao_ = navigator.serviceWorker.controller || null;
 
         const veioDeAtualizacao = Boolean(swControladorExistiaNaAbertura_ || navigator.serviceWorker.controller);
         if (veioDeAtualizacao && !swAppLiberadoParaUso_) {
@@ -4968,17 +5061,20 @@
         worker.addEventListener('statechange', () => {
           if (worker.state === 'installed' && (swControladorExistiaNaAbertura_ || navigator.serviceWorker.controller)) {
             swAtualizacaoPendente_ = true;
+            swWorkerAtualizacaoPendente_ = worker;
             if (!swAppLiberadoParaUso_) {
               swAtualizacaoDetectadaNaAbertura_ = true;
               swWorkerAtualizacaoAbertura_ = worker;
               mostrarAtualizacaoAutomatica_();
+              void aplicarAtualizacaoSilenciosaSeSeguro_();
             } else {
               registrarAtualizacaoSegundoPlano_();
             }
           }
           if (worker.state === 'activated' && swAtualizacaoPendente_) {
+            swWorkerAtualizacaoPendente_ = worker;
             if (swAppLiberadoParaUso_) registrarAtualizacaoSegundoPlano_();
-            else aplicarAtualizacaoSilenciosaSeSeguro_();
+            else void aplicarAtualizacaoSilenciosaSeSeguro_();
           }
         });
       }
@@ -5055,7 +5151,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jh', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ji', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5156,6 +5252,8 @@
       let swVerificacaoAberturaEmCurso_ = true;
       let swAtualizacaoDetectadaNaAbertura_ = false;
       let swWorkerAtualizacaoAbertura_ = null;
+      let swWorkerAtualizacaoPendente_ = null;
+      let swControladorAntesDaAtualizacao_ = null;
       // V23.9.99hm — depois que a saudação libera o ambiente, uma nova versão pode
       // ser baixada/ativada pelo Service Worker, mas nunca reabre a tela de saudação
       // nem recarrega a interface enquanto o militar está trabalhando.
@@ -24844,29 +24942,57 @@ Deseja usar o endereço cadastral do CNPJ?`,
           return;
         }
 
+        if (appTemInteracaoCriticaParaAtualizacao_()) {
+          avisarGpv_(
+            'Há uma vistoria ou etapa operacional em andamento. A atualização será aplicada automaticamente quando for seguro, sem perder o trabalho atual.',
+            'Atualização protegida',
+            { tom:'warning' }
+          );
+          swAtualizacaoPendente_ = true;
+          agendarNovaTentativaAtualizacaoSilenciosa_();
+          return;
+        }
+
         appStatus.textContent = 'Buscando a versão mais recente do aplicativo...';
         if (updateAppBtn) updateAppBtn.disabled = true;
 
         try {
-          if ('serviceWorker' in navigator) {
-            const registros = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registros.map(registro => registro.update().catch(() => null)));
+          let registro = await navigator.serviceWorker.getRegistration();
+          if (!registro) {
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99ji', { updateViaCache:'none' });
           }
-          if ('caches' in window) {
-            const chaves = await caches.keys();
-            await Promise.all(
-              chaves
-                .filter(chave => String(chave).startsWith('gpv-vistorias-pwa-'))
-                .map(chave => caches.delete(chave))
-            );
+          observarAtualizacaoSilenciosaPwa_(registro);
+          swRegistroSilencioso_ = registro;
+
+          const controladorAntes = navigator.serviceWorker.controller;
+          swControladorAntesDaAtualizacao_ = controladorAntes || null;
+          await registro.update();
+          const worker = registro.waiting || registro.installing || null;
+
+          if (!worker) {
+            // Se o controller mudou durante update(), aplica o shell novo. Caso contrário,
+            // o aparelho já está na versão publicada e não é preciso recarregar duas vezes.
+            if (navigator.serviceWorker.controller && navigator.serviceWorker.controller !== controladorAntes) {
+              swAtualizacaoPendente_ = true;
+              await aplicarAtualizacaoSilenciosaSeSeguro_();
+              return;
+            }
+            appStatus.textContent = `Aplicativo já está na versão V${APP_VERSION}.`;
+            mostrarFeedbackPremium_(`Você já está usando a versão V${APP_VERSION}.`, 'success');
+            if (updateAppBtn) updateAppBtn.disabled = false;
+            return;
           }
+
+          swWorkerAtualizacaoPendente_ = worker;
+          swAtualizacaoPendente_ = true;
+          await aplicarAtualizacaoSilenciosaSeSeguro_();
         } catch (erro) {
           console.log('Atualização manual do app:', erro && erro.message ? erro.message : erro);
+          appStatus.textContent = 'Não foi possível concluir a atualização agora. O app tentará novamente automaticamente.';
+          if (updateAppBtn) updateAppBtn.disabled = false;
+          swRecarregamentoAtualizacaoEmCurso_ = false;
+          encerrarVisualAtualizacaoAutomatica_();
         }
-
-        const url = new URL(window.location.href);
-        url.searchParams.set('atualizar', Date.now().toString());
-        window.location.replace(url.toString());
       }
 
 
@@ -31743,9 +31869,9 @@ Deseja usar o endereço cadastral do CNPJ?`,
           agendarAtualizacaoPainelAoRetornar_('retorno ao primeiro plano');
           agendarAtualizacaoListasOperacionaisAoRetornar_('retorno ao primeiro plano', 260, { forcar: ficouForaPor >= 5 * 60 * 1000 });
 
-          // Retornar ao PWA continua sendo oportunidade de conferir a versão,
-          // mas, depois da abertura inicial, qualquer nova versão fica em segundo plano
-          // e não toma a tela do militar enquanto ele estiver trabalhando.
+          // Retornar ao PWA continua sendo oportunidade de conferir a versão. Se o militar
+          // não estiver em uma etapa operacional crítica, a versão nova é aplicada
+          // automaticamente; caso contrário, fica pendente até um momento seguro.
           const forcarVerificacao = Boolean(appOcultadoEm_ && ficouForaPor >= 1000);
 
           verificarAtualizacaoSilenciosaPwa_(forcarVerificacao);
@@ -31899,21 +32025,22 @@ Deseja usar o endereço cadastral do CNPJ?`,
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          // Na primeira instalação não há versão anterior para substituir. Durante a
-          // abertura confiável, a nova versão ainda pode assumir automaticamente. Depois
-          // que o app foi liberado, apenas registra a atualização para a próxima abertura.
+          // V23.9.99ji — controllerchange significa que o novo shell já assumiu esta
+          // página. Se uma rotina de atualização está aguardando esse evento, ela fará
+          // a única recarga. Fora dela, aplica automaticamente apenas quando for seguro.
           if (!swControladorExistiaNaAbertura_ && !swAtualizacaoDetectadaNaAbertura_ && !swAtualizacaoPendente_) return;
           swAtualizacaoPendente_ = true;
-          if (swAppLiberadoParaUso_) registrarAtualizacaoSegundoPlano_();
-          else aplicarAtualizacaoSilenciosaSeSeguro_();
+          if (swRecarregamentoAtualizacaoEmCurso_) return;
+          if (appTemInteracaoCriticaParaAtualizacao_()) registrarAtualizacaoSegundoPlano_();
+          else void aplicarAtualizacaoSilenciosaSeSeguro_();
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jh', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ji', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
-            // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
-            // preparada em segundo plano e será usada na próxima abertura.
+            // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
+            // crítica estiver em andamento, ela é aplicada automaticamente em uma recarga.
             setInterval(() => {
               verificarAtualizacaoSilenciosaPwa_();
               if (!swAppLiberadoParaUso_) aplicarAtualizacaoSilenciosaSeSeguro_();
