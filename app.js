@@ -1,3 +1,4 @@
+// V23.9.99jj — Central de Pendências do GPV: reúne liberações, fiscalizações, multa, reconciliações e programadas que exigem acompanhamento.
 // V23.9.99ji — atualização automática em uma única abertura/retorno seguro; aguarda o novo Service Worker assumir antes de recarregar e preserva trabalho em andamento.
 // V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
 // V23.9.99jg — versão e data da publicação sempre visíveis no rodapé do aplicativo.
@@ -63,7 +64,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ji';
+      const APP_VERSION = '23.9.99jj';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -1630,6 +1631,7 @@
         'painel_revisao',
         'inicio_rapido',
         'painel_resumo',
+        'central_pendencias',
         'registros_progressivos',
         'registros_sync',
         'registro',
@@ -2055,6 +2057,13 @@
       const forgetSavedPinBtn = document.getElementById('forgetSavedPinBtn');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
       const reconcileReleasesBtn = document.getElementById('reconcileReleasesBtn');
+      const gpvPendingCenterBtn = document.getElementById('gpvPendingCenterBtn');
+      const gpvPendingCenterModal = document.getElementById('gpvPendingCenterModal');
+      const gpvPendingCenterCloseBtn = document.getElementById('gpvPendingCenterCloseBtn');
+      const gpvPendingCenterStatus = document.getElementById('gpvPendingCenterStatus');
+      const gpvPendingCenterSummary = document.getElementById('gpvPendingCenterSummary');
+      const gpvPendingCenterList = document.getElementById('gpvPendingCenterList');
+      const gpvPendingCenterRefreshBtn = document.getElementById('gpvPendingCenterRefreshBtn');
       const redsTemplatesMenuBtn = document.getElementById('redsTemplatesMenuBtn');
       const redsTemplatesModal = document.getElementById('redsTemplatesModal');
       const redsTemplatesCloseBtn = document.getElementById('redsTemplatesCloseBtn');
@@ -2898,6 +2907,7 @@
       let recordFineCheckRegistroAtual = null;
       let recordFineEstimateRegistroAtual = null;
       let recordDetailRegistroAtual = null;
+      let gpvPendingCenterState_ = { itens: [], resumo: {}, filtro: 'todos', carregadoEm: 0 };
       let recordCorrectionRegistroAtual = null;
       let recordResultRegistroAtual = null;
       let recordCorrectionOriginal = new Map();
@@ -2916,7 +2926,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ji';
+      const APP_REVISION_UI_ = '23.9.99jj';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2953,6 +2963,7 @@
         ['about-open', () => aboutSystemModal && !aboutSystemModal.hidden],
         ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden],
         ['sync-center-open', () => syncCenterModal && !syncCenterModal.hidden],
+        ['gpv-pending-center-open', () => gpvPendingCenterModal && !gpvPendingCenterModal.hidden],
         ['access-guidance-open', () => accessGuidanceModal && !accessGuidanceModal.hidden],
         ['city-check-open', () => cityCheckModal && !cityCheckModal.hidden],
         ['daily-motivational-open', () => {
@@ -3767,6 +3778,153 @@
         await atualizarCentralSincronizacao_();
       }
 
+      // ===========================================================================
+      // V23.9.99jj — CENTRAL DE PENDÊNCIAS DO GPV
+      // Consulta consolidada e sob demanda. Não pesa a abertura normal do aplicativo.
+      // ===========================================================================
+      const GPV_PENDING_CATEGORY_META_ = Object.freeze({
+        liberacao_notificada: { rotulo:'Liberações notificadas', curto:'Liberação notificada', classe:'warning' },
+        pendencia_documental: { rotulo:'Pendências documentais', curto:'Pendência documental', classe:'warning' },
+        fiscal_aberto: { rotulo:'Fiscalizações abertas', curto:'Processo fiscal aberto', classe:'danger' },
+        multa_conferir: { rotulo:'Conferir multa', curto:'Conferir multa', classe:'danger' },
+        reconciliacao: { rotulo:'Reconciliações', curto:'Reconciliação pendente', classe:'info' },
+        programada_vencida: { rotulo:'Programadas vencidas', curto:'Programada vencida', classe:'danger' },
+        programada_proxima: { rotulo:'Programadas próximas', curto:'Programada próxima', classe:'info' }
+      });
+
+      function fecharCentralPendenciasGpv_() {
+        if (!gpvPendingCenterModal) return;
+        gpvPendingCenterModal.hidden = true;
+        document.body.classList.remove('gpv-pending-center-open');
+        agendarSincronizacaoNavegacao_();
+      }
+
+      function resumoCentralPendenciasGpv_(resumo = {}) {
+        return [
+          ['liberacao_notificada', Number(resumo.liberacoesNotificadas || 0)],
+          ['pendencia_documental', Number(resumo.pendenciasDocumentais || 0)],
+          ['fiscal_aberto', Number(resumo.fiscalizacoesAbertas || 0)],
+          ['multa_conferir', Number(resumo.conferirMulta || 0)],
+          ['reconciliacao', Number(resumo.reconciliacoes || 0)],
+          ['programada_vencida', Number(resumo.programadasVencidas || 0)],
+          ['programada_proxima', Number(resumo.programadasProximas || 0)]
+        ];
+      }
+
+      function renderizarCentralPendenciasGpv_() {
+        if (!gpvPendingCenterSummary || !gpvPendingCenterList || !gpvPendingCenterStatus) return;
+        const estado = gpvPendingCenterState_ || { itens:[], resumo:{}, filtro:'todos' };
+        const resumo = estado.resumo || {};
+        const metricas = resumoCentralPendenciasGpv_(resumo);
+        const totalItens = Number(resumo.totalItens || estado.itens.length || 0);
+        const filtroAtual = String(estado.filtro || 'todos');
+
+        gpvPendingCenterSummary.innerHTML = `
+          <button type="button" class="gpv-pending-metric ${filtroAtual === 'todos' ? 'is-active' : ''}" data-gpv-pending-filter="todos">
+            <strong>${totalItens}</strong><span>Todos</span>
+          </button>
+          ${metricas.map(([id,valor]) => {
+            const meta = GPV_PENDING_CATEGORY_META_[id] || { rotulo:id, classe:'neutral' };
+            return `<button type="button" class="gpv-pending-metric is-${meta.classe} ${filtroAtual === id ? 'is-active' : ''}" data-gpv-pending-filter="${escapeAttr(id)}"><strong>${valor}</strong><span>${escapeHtml(meta.rotulo)}</span></button>`;
+          }).join('')}`;
+
+        const filtrados = (Array.isArray(estado.itens) ? estado.itens : []).filter(item => {
+          if (filtroAtual === 'todos') return true;
+          return Array.isArray(item.categorias) && item.categorias.includes(filtroAtual);
+        });
+
+        if (!filtrados.length) {
+          gpvPendingCenterList.innerHTML = `<div class="gpv-pending-empty"><strong>Nenhuma pendência nesta categoria.</strong><span>Os itens reaparecem automaticamente quando houver algo que exija acompanhamento.</span></div>`;
+        } else {
+          gpvPendingCenterList.innerHTML = filtrados.map((item, idx) => {
+            const categorias = (Array.isArray(item.categorias) ? item.categorias : []).map(id => {
+              const meta = GPV_PENDING_CATEGORY_META_[id] || { curto:id, classe:'neutral' };
+              return `<span class="gpv-pending-tag is-${meta.classe}">${escapeHtml(meta.curto)}</span>`;
+            }).join('');
+            const dados = [item.data ? formatarDataPainel_(item.data) : '', item.status || '', item.pf ? `PF ${item.pf}` : '', item.pscip ? `PSCIP ${item.pscip}` : ''].filter(Boolean).join(' • ');
+            const endereco = String(item.endereco || '').trim();
+            const detalhe = String(item.detalhe || '').trim();
+            const acao = String(item.acao || 'ficha');
+            const labelAcao = acao === 'reconciliacao' ? 'Revisar vínculo' : (acao === 'programadas' ? 'Abrir programadas' : 'Abrir Ficha');
+            return `<article class="gpv-pending-item" data-gpv-pending-index="${idx}">
+              <div class="gpv-pending-item-tags">${categorias}</div>
+              <div class="gpv-pending-item-main">
+                <div class="gpv-pending-item-copy">
+                  <strong>${escapeHtml(item.titulo || 'Registro')}</strong>
+                  ${dados ? `<span>${escapeHtml(dados)}</span>` : ''}
+                  ${endereco ? `<small>${escapeHtml(endereco)}</small>` : ''}
+                  ${detalhe ? `<em>${escapeHtml(detalhe)}</em>` : ''}
+                </div>
+                <button type="button" class="gpv-pending-open-btn" data-gpv-pending-open="${escapeAttr(String(item.id || idx))}">${escapeHtml(labelAcao)} →</button>
+              </div>
+            </article>`;
+          }).join('');
+        }
+
+        const exibidos = filtrados.length;
+        const truncado = Boolean(resumo.truncado);
+        gpvPendingCenterStatus.textContent = totalItens
+          ? `${totalItens} item${totalItens === 1 ? '' : 's'} exigem acompanhamento${filtroAtual !== 'todos' ? ` · ${exibidos} nesta categoria` : ''}${truncado ? ' · lista priorizada' : ''}.`
+          : 'Nenhuma pendência operacional foi encontrada.';
+        gpvPendingCenterStatus.className = `gpv-pending-status ${totalItens ? 'has-items' : 'is-clear'}`;
+      }
+
+      async function carregarCentralPendenciasGpv_(forcar = false) {
+        if (!gpvPendingCenterStatus || !gpvPendingCenterList) return;
+        if (!navigator.onLine) {
+          gpvPendingCenterStatus.textContent = 'Conecte-se à internet para conferir as pendências atuais do GPV.';
+          gpvPendingCenterStatus.className = 'gpv-pending-status is-warning';
+          gpvPendingCenterList.innerHTML = '<div class="gpv-pending-empty"><strong>Consulta online necessária.</strong><span>A Central não usa dados antigos como situação operacional atual.</span></div>';
+          return;
+        }
+        if (gpvPendingCenterRefreshBtn) gpvPendingCenterRefreshBtn.disabled = true;
+        gpvPendingCenterStatus.textContent = 'Conferindo liberações, processos, prazos e programações...';
+        gpvPendingCenterStatus.className = 'gpv-pending-status is-loading';
+        gpvPendingCenterList.innerHTML = '<div class="gpv-pending-loading"><span></span><strong>Montando visão operacional...</strong></div>';
+        try {
+          const resposta = await apiRequest('config', { consulta:'central_pendencias', forcar:Boolean(forcar) }, 45000, { silentSuccess:true });
+          gpvPendingCenterState_ = {
+            itens: Array.isArray(resposta?.itens) ? resposta.itens : [],
+            resumo: resposta?.resumo || {},
+            filtro: gpvPendingCenterState_?.filtro || 'todos',
+            carregadoEm: Date.now()
+          };
+          renderizarCentralPendenciasGpv_();
+        } catch (erro) {
+          gpvPendingCenterStatus.textContent = 'Não foi possível atualizar as pendências agora.';
+          gpvPendingCenterStatus.className = 'gpv-pending-status is-warning';
+          gpvPendingCenterList.innerHTML = `<div class="gpv-pending-empty"><strong>Consulta indisponível.</strong><span>${escapeHtml(erro?.message || 'Tente novamente em alguns instantes.')}</span></div>`;
+        } finally {
+          if (gpvPendingCenterRefreshBtn) gpvPendingCenterRefreshBtn.disabled = false;
+        }
+      }
+
+      function abrirCentralPendenciasGpv_() {
+        if (!usuarioPodeOperar_() || !gpvPendingCenterModal) return;
+        fecharMenuMais_();
+        gpvPendingCenterModal.hidden = false;
+        document.body.classList.add('gpv-pending-center-open');
+        agendarSincronizacaoNavegacao_();
+        setTimeout(() => gpvPendingCenterCloseBtn?.focus(), 20);
+        void carregarCentralPendenciasGpv_(true);
+      }
+
+      async function abrirItemCentralPendenciasGpv_(id) {
+        const item = (gpvPendingCenterState_?.itens || []).find((it, idx) => String(it?.id || idx) === String(id));
+        if (!item) return;
+        const acao = String(item.acao || 'ficha');
+        fecharCentralPendenciasGpv_();
+        if (acao === 'reconciliacao') {
+          await abrirReconciliacaoLiberacoesAntigas_();
+          return;
+        }
+        if (acao === 'programadas') {
+          abrirListaProgramadas_(false);
+          return;
+        }
+        if (item.chave) await abrirDetalheRegistro_(item.chave, Number(item.linha || 0));
+      }
+
       function perfilAcessoAtual_() {
         return String(authState.usuario?.perfil || 'GPV').trim().toUpperCase() === 'GERAL' ? 'GERAL' : 'GPV';
       }
@@ -3858,6 +4016,7 @@
           registerDduBtn,
           manageUsersBtn,
           reconcileReleasesBtn,
+          gpvPendingCenterBtn,
           redsTemplatesMenuBtn,
           loggedUserBadge,
           adminSheetMenuLink,
@@ -3890,6 +4049,7 @@
           if (aboutSystemBtn) aboutSystemBtn.hidden = false;
           if (manageUsersBtn) manageUsersBtn.hidden = false;
           if (reconcileReleasesBtn) reconcileReleasesBtn.hidden = false;
+          if (gpvPendingCenterBtn) gpvPendingCenterBtn.hidden = false;
           if (redsTemplatesMenuBtn) redsTemplatesMenuBtn.hidden = false;
           if (syncSummary) syncSummary.hidden = false;
           carregarModelosRedsPersonalizados_(false).catch(() => {});
@@ -5151,7 +5311,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ji', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jj', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -7365,6 +7525,7 @@
         if (elementoVisivelNavegacao_(duvidasModal)) return { id: 'duvidas', fechar: () => fecharDuvidas_() };
         if (elementoVisivelNavegacao_(systemManualModal)) return { id: 'system-manual', fechar: () => fecharManualSistema_() };
         if (elementoVisivelNavegacao_(appAlertsModal)) return { id: 'app-alerts', fechar: () => fecharAvisosApp_() };
+        if (elementoVisivelNavegacao_(gpvPendingCenterModal)) return { id: 'gpv-pending-center', fechar: () => fecharCentralPendenciasGpv_() };
         if (elementoVisivelNavegacao_(syncCenterModal)) return { id: 'sync-center', fechar: () => fecharCentralSincronizacao_() };
         if (elementoVisivelNavegacao_(aboutSystemModal)) return { id: 'about', fechar: () => fecharSobreSistema_() };
         if (elementoVisivelNavegacao_(ufemgModal)) return { id: 'ufemg', fechar: () => fecharUfemg_() };
@@ -24959,7 +25120,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99ji', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jj', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -31503,6 +31664,16 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (confirmar) limparTodosDadosResponsavel_();
       });
 
+      gpvPendingCenterBtn?.addEventListener('click', abrirCentralPendenciasGpv_);
+      gpvPendingCenterCloseBtn?.addEventListener('click', fecharCentralPendenciasGpv_);
+      gpvPendingCenterRefreshBtn?.addEventListener('click', () => { void carregarCentralPendenciasGpv_(true); });
+      gpvPendingCenterModal?.addEventListener('click', event => {
+        if (event.target === gpvPendingCenterModal || event.target.closest?.('[data-gpv-pending-close]')) { fecharCentralPendenciasGpv_(); return; }
+        const filtro = event.target.closest?.('[data-gpv-pending-filter]');
+        if (filtro) { gpvPendingCenterState_.filtro = String(filtro.dataset.gpvPendingFilter || 'todos'); renderizarCentralPendenciasGpv_(); return; }
+        const abrir = event.target.closest?.('[data-gpv-pending-open]');
+        if (abrir) void abrirItemCentralPendenciasGpv_(abrir.dataset.gpvPendingOpen || '');
+      });
       appDiagnosticsBtn?.addEventListener('click', abrirDiagnosticoApp_);
       appDiagnosticsCloseBtn?.addEventListener('click', fecharDiagnosticoApp_);
       appDiagnosticsRefreshBtn?.addEventListener('click', () => { void atualizarDiagnosticoApp_(); });
@@ -32036,7 +32207,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ji', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jj', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
