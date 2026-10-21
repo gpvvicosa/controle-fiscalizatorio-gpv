@@ -1,4 +1,5 @@
-// V23.9.99jd — Liberação com resultado Liberado também regulariza processo fiscalizatório anterior compatível; preserva Autuação original.
+// V23.9.99jf — reconciliação retroativa assistida de Liberações antigas, com confirmação manual antes de regularizar processo.
+// V23.9.99jf — Liberação com resultado Liberado também regulariza processo fiscalizatório anterior compatível; preserva Autuação original.
 // V23.9.99jc — regularização documental sem nova vistoria, preservando o resultado original da autuação; mantém regularização automática em nova vistoria.
 // V23.9.99jb — ajuste de Vistorias Programadas para tablet + botão 'Fechar alerta' no aviso de histórico; preserva o fluxo inteligente V23.9.99ja.
 // V23.9.99ja — alerta inteligente de histórico no endereço ao cadastrar/iniciar nova vistoria; orienta Acessória, Retorno de Liberação, Liberação AVCB P01002, nova vistoria ou cancelamento.
@@ -59,7 +60,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jd';
+      const APP_VERSION = '23.9.99jf';
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
       // V23.9.99gu — Painel progressivo por data real: registros recentes não dependem da posição física das linhas na planilha.
       // V23.9.99gr — Relatórios REDS de anulação do CLCB usam fato consumado: FOI ANULADO, inclusive quando a decisão na vistoria foi registrada como 'SERÁ anulado'.
@@ -1697,6 +1698,8 @@
         ['auto_salvar', '✓ Nº do Auto salvo com sucesso.'],
         ['situacao_atualizar', '✓ Situação atualizada com sucesso.'],
         ['regularizacao_documental', '✓ Regularização documental registrada com sucesso.'],
+        ['liberacao_reconciliacao_confirmar', '✓ Processo fiscalizatório regularizado após confirmação do vínculo.'],
+        ['liberacao_reconciliacao_ignorar', '✓ Liberação marcada como revisada sem vínculo fiscal anterior.'],
         ['multa_atualizar', '✓ Conferência da multa atualizada com sucesso.'],
         ['resultado_corrigir', '✓ Resultado da vistoria corrigido com sucesso.'],
         ['registro_corrigir', '✓ Correção efetivada com sucesso.'],
@@ -2045,6 +2048,7 @@
       const changePinBtn = document.getElementById('changePinBtn');
       const forgetSavedPinBtn = document.getElementById('forgetSavedPinBtn');
       const manageUsersBtn = document.getElementById('manageUsersBtn');
+      const reconcileReleasesBtn = document.getElementById('reconcileReleasesBtn');
       const redsTemplatesMenuBtn = document.getElementById('redsTemplatesMenuBtn');
       const redsTemplatesModal = document.getElementById('redsTemplatesModal');
       const redsTemplatesCloseBtn = document.getElementById('redsTemplatesCloseBtn');
@@ -2893,7 +2897,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jd';
+      const APP_REVISION_UI_ = '23.9.99jf';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3833,6 +3837,7 @@
         const ocultarOperacional = [
           registerDduBtn,
           manageUsersBtn,
+          reconcileReleasesBtn,
           redsTemplatesMenuBtn,
           loggedUserBadge,
           adminSheetMenuLink,
@@ -3864,6 +3869,7 @@
           if (usefulLinksBtn) usefulLinksBtn.hidden = false;
           if (aboutSystemBtn) aboutSystemBtn.hidden = false;
           if (manageUsersBtn) manageUsersBtn.hidden = false;
+          if (reconcileReleasesBtn) reconcileReleasesBtn.hidden = false;
           if (redsTemplatesMenuBtn) redsTemplatesMenuBtn.hidden = false;
           if (syncSummary) syncSummary.hidden = false;
           carregarModelosRedsPersonalizados_(false).catch(() => {});
@@ -5030,7 +5036,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jd', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jf', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -21910,6 +21916,183 @@ Deseja usar o endereço cadastral do CNPJ?`,
         }, Math.max(80, Number(atraso || 0)));
       }
 
+
+      // =======================================================================
+      // V23.9.99jf — RECONCILIAÇÃO RETROATIVA ASSISTIDA
+      // Nenhum processo é alterado por sugestão automática: o militar escolhe a
+      // Liberação, confere um processo anterior e confirma conscientemente o vínculo.
+      // =======================================================================
+      function resumoCasoReconciliacaoLiberacao_(caso) {
+        const titulo = [caso?.estabelecimento || 'Vistoria de Liberação', caso?.carimbo || ''].filter(Boolean).join(' • ');
+        const linhaProcesso = [caso?.pscip ? `PSCIP: ${caso.pscip}` : '', caso?.cnpj ? `CNPJ: ${formatarCnpjTela_(caso.cnpj)}` : (caso?.cpf ? `CPF: ${formatarCpfTela_(caso.cpf)}` : '')].filter(Boolean).join(' • ');
+        const endereco = String(caso?.endereco || '').trim();
+        return [titulo, linhaProcesso, endereco].filter(Boolean).join('\n');
+      }
+
+      function resumoCandidatoReconciliacao_(candidato) {
+        const linha1 = [candidato?.estabelecimento || 'Fiscalização anterior', candidato?.carimbo || ''].filter(Boolean).join(' • ');
+        const linha2 = [candidato?.sancao || '', candidato?.pf ? `PF: ${candidato.pf}` : '', candidato?.pscip ? `PSCIP: ${candidato.pscip}` : ''].filter(Boolean).join(' • ');
+        const endereco = String(candidato?.endereco || '').trim();
+        const compat = `Compatibilidade ${String(candidato?.nivel || 'baixa').toUpperCase()}${candidato?.criterios ? ` • ${candidato.criterios}` : ''}`;
+        return [linha1, linha2, endereco, compat].filter(Boolean).join('\n');
+      }
+
+      async function confirmarCandidatoReconciliacaoLiberacao_(caso, candidato) {
+        while (true) {
+          const escolha = await escolherOpcaoGpv_(
+            `${resumoCasoReconciliacaoLiberacao_(caso)}\n\nPROCESSO FISCALIZATÓRIO CANDIDATO\n${resumoCandidatoReconciliacao_(candidato)}\n\nConfirme somente se os dois registros correspondem à mesma edificação/processo.`,
+            [
+              {
+                titulo:'Confirmar regularização',
+                subtitulo:'Vincular esta Liberação ao processo anterior e atualizar a situação atual para Regularizado.',
+                valor:'confirmar'
+              },
+              {
+                titulo:'Abrir Ficha da fiscalização',
+                subtitulo:'Conferir o processo fiscalizatório anterior antes de decidir.',
+                valor:'abrir_fiscal'
+              },
+              {
+                titulo:'Abrir Ficha da Liberação',
+                subtitulo:'Conferir a Vistoria de Liberação antes de decidir.',
+                valor:'abrir_liberacao'
+              },
+              {
+                titulo:'Voltar aos candidatos',
+                subtitulo:'Escolher outro processo fiscalizatório possível.',
+                valor:'voltar'
+              }
+            ],
+            'Confirmar vínculo da regularização',
+            { tom:'warning', rotuloCancelar:'Fechar' }
+          );
+
+          if (!escolha || escolha === 'voltar') return escolha === 'voltar' ? 'voltar' : 'fechar';
+          if (escolha === 'abrir_fiscal') {
+            if (candidato?.chave) await abrirDetalheRegistro_(candidato.chave, Number(candidato.linha || 0), { contexto:'reconciliacao-liberacao' });
+            return 'fechar';
+          }
+          if (escolha === 'abrir_liberacao') {
+            if (caso?.chaveLiberacao) await abrirDetalheRegistro_(caso.chaveLiberacao, Number(caso.linhaLiberacao || 0), { contexto:'reconciliacao-liberacao' });
+            return 'fechar';
+          }
+          if (escolha === 'confirmar') {
+            const confirmou = await confirmarGpv_(
+              `Você confirma que a Vistoria de Liberação de ${caso?.carimbo || 'data não informada'} corresponde ao processo fiscalizatório selecionado?\n\nAo confirmar, a situação atual do processo anterior passará para REGULARIZADO. A Autuação/Advertência original permanecerá preservada no histórico e na auditoria.`,
+              'Regularizar processo anterior?',
+              { tom:'warning', rotuloConfirmar:'Confirmar regularização', rotuloCancelar:'Voltar' }
+            );
+            if (!confirmou) continue;
+            const resposta = await apiRequest('config', {
+              consulta:'liberacao_reconciliacao_confirmar',
+              chaveLiberacao:caso.chaveLiberacao,
+              chaveFiscal:candidato.chave,
+              dispositivo:(navigator.userAgent || '').slice(0,120)
+            }, 30000, { silentSuccess:true });
+            await avisarGpv_(
+              `Processo fiscalizatório atualizado para Regularizado.${resposta?.pf ? `\nPF: ${resposta.pf}` : ''}${resposta?.pscip ? `\nPSCIP: ${resposta.pscip}` : ''}\n\nO resultado original ${resposta?.resultadoAnterior || 'da fiscalização'} foi preservado no histórico.`,
+              'Regularização registrada',
+              { tom:'success' }
+            );
+            invalidarCachePainelOperacional_();
+            return 'confirmado';
+          }
+        }
+      }
+
+      async function revisarCasoReconciliacaoLiberacao_(caso) {
+        if (!caso) return 'fechar';
+        while (true) {
+          const candidatos = Array.isArray(caso.candidatos) ? caso.candidatos : [];
+          const opcoes = candidatos.map((candidato, indice) => ({
+            titulo:`${indice + 1}. ${candidato.estabelecimento || 'Fiscalização anterior'}${candidato.pf ? ` — PF ${candidato.pf}` : ''}`,
+            subtitulo:[candidato.carimbo, candidato.sancao, candidato.endereco, `Compatibilidade ${String(candidato.nivel || 'baixa').toUpperCase()}`].filter(Boolean).join(' • '),
+            valor:`candidato:${indice}`
+          }));
+          opcoes.push({
+            titulo:'Não corresponde a processo fiscalizatório anterior',
+            subtitulo:'Marcar esta Liberação como revisada sem regularizar nenhum processo.',
+            valor:'ignorar'
+          });
+
+          const escolha = await escolherOpcaoGpv_(
+            `${resumoCasoReconciliacaoLiberacao_(caso)}\n\nSelecione o processo fiscalizatório anterior que corresponde a esta Liberação. As sugestões são apenas apoio; a confirmação é do militar.`,
+            opcoes,
+            'Reconciliar Liberação antiga',
+            { tom:'info', rotuloCancelar:'Voltar' }
+          );
+          if (!escolha) return 'voltar';
+          if (escolha === 'ignorar') {
+            const confirmou = await confirmarGpv_(
+              'Confirmar que esta Vistoria de Liberação não deve regularizar nenhum dos processos fiscalizatórios anteriores sugeridos?\n\nO caso deixará de aparecer nesta revisão. Nenhuma vistoria ou processo será alterado.',
+              'Marcar como revisada?',
+              { tom:'warning', rotuloConfirmar:'Marcar como revisada', rotuloCancelar:'Voltar' }
+            );
+            if (!confirmou) continue;
+            await apiRequest('config', {
+              consulta:'liberacao_reconciliacao_ignorar',
+              chaveLiberacao:caso.chaveLiberacao
+            }, 20000, { silentSuccess:true });
+            return 'ignorado';
+          }
+          if (String(escolha).startsWith('candidato:')) {
+            const indice = Number(String(escolha).split(':')[1]);
+            const candidato = candidatos[indice];
+            if (!candidato) continue;
+            const resultado = await confirmarCandidatoReconciliacaoLiberacao_(caso, candidato);
+            if (resultado === 'voltar') continue;
+            return resultado;
+          }
+        }
+      }
+
+      async function abrirReconciliacaoLiberacoesAntigas_() {
+        fecharMenuMais_();
+        if (!usuarioPodeOperar_()) {
+          await avisarGpv_('A reconciliação de processos está disponível somente para usuários do GPV.', 'Acesso restrito', { tom:'warning' });
+          return;
+        }
+        if (!navigator.onLine) {
+          await avisarGpv_('Conecte o aparelho à internet para consultar os registros históricos.', 'Sem internet', { tom:'warning' });
+          return;
+        }
+
+        try {
+          let continuar = true;
+          while (continuar) {
+            const resposta = await apiRequest('config', { consulta:'liberacao_reconciliacao_listar' }, 30000, { silentSuccess:true });
+            const casos = Array.isArray(resposta?.casos) ? resposta.casos : [];
+            if (!casos.length) {
+              await avisarGpv_(
+                `Nenhuma Liberação antiga está aguardando reconciliação assistida.${Number(resposta?.semCandidatos || 0) ? `\n\n${resposta.semCandidatos} Liberação(ões) não possuem candidato fiscal anterior útil para conferência.` : ''}`,
+                'Reconciliação concluída',
+                { tom:'success' }
+              );
+              return;
+            }
+
+            const opcoes = casos.slice(0,40).map((caso, indice) => ({
+              titulo:`${indice + 1}. ${caso.estabelecimento || 'Vistoria de Liberação'} — ${caso.carimbo || ''}`,
+              subtitulo:[caso.endereco, `${(caso.candidatos || []).length} processo(s) candidato(s)`].filter(Boolean).join(' • '),
+              valor:String(indice)
+            }));
+            const escolha = await escolherOpcaoGpv_(
+              `${casos.length} Liberação(ões) aguardam conferência manual.\n\nSelecione uma Liberação para verificar qual processo fiscalizatório anterior deve ser regularizado. Nenhuma alteração ocorre sem sua confirmação.`,
+              opcoes,
+              'Reconciliar liberações antigas',
+              { tom:'info', rotuloCancelar:'Fechar' }
+            );
+            if (escolha == null) return;
+            const caso = casos[Number(escolha)];
+            if (!caso) continue;
+            const resultado = await revisarCasoReconciliacaoLiberacao_(caso);
+            continuar = ['confirmado','ignorado','voltar'].includes(resultado);
+          }
+        } catch (erro) {
+          await avisarGpv_(erro?.message || 'Não foi possível carregar a reconciliação agora.', 'Falha na reconciliação', { tom:'danger' });
+        }
+      }
+
       function textoPrazoProcessoAnterior_(item) {
         if (item?.historicoSomente) return 'Registro anterior a 02/07/2025: usado somente como referência histórica.';
         const alerta = String(item?.alertaPrazo || '').trim();
@@ -31288,6 +31471,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       changePinBtn?.addEventListener('click', abrirAlterarSenha_);
       forgetSavedPinBtn?.addEventListener('click', esquecerSenhaSalvaAtualBm_);
       manageUsersBtn?.addEventListener('click', abrirGerenciadorUsuarios_);
+      reconcileReleasesBtn?.addEventListener('click', abrirReconciliacaoLiberacoesAntigas_);
       switchUserBtn?.addEventListener('click', trocarUsuarioBm_);
       logoutUserBtn?.addEventListener('click', sairUsuarioBm_);
       changePinCloseBtn?.addEventListener('click', fecharAlterarSenha_);
@@ -31563,7 +31747,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jd', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jf', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Após a abertura inicial, a versão nova é apenas
