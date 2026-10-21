@@ -1,4 +1,4 @@
-// V23.9.99jj — Central de Pendências do GPV: reúne liberações, fiscalizações, multa, reconciliações e programadas que exigem acompanhamento.
+// V23.9.99jk — Reconciliação histórica: endereço físico priorizado; Central de Pendências preservada.
 // V23.9.99ji — atualização automática em uma única abertura/retorno seguro; aguarda o novo Service Worker assumir antes de recarregar e preserva trabalho em andamento.
 // V23.9.99jh — saneamento documental da Vistoria de Liberação sem nova vistoria; preserva histórico e só encerra processo fiscal após pendência sanada.
 // V23.9.99jg — versão e data da publicação sempre visíveis no rodapé do aplicativo.
@@ -64,7 +64,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jj';
+      const APP_VERSION = '23.9.99jk';
       const APP_VERSION_DATE = '21/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2926,7 +2926,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jj';
+      const APP_REVISION_UI_ = '23.9.99jk';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3779,7 +3779,7 @@
       }
 
       // ===========================================================================
-      // V23.9.99jj — CENTRAL DE PENDÊNCIAS DO GPV
+      // V23.9.99jk — CENTRAL DE PENDÊNCIAS DO GPV
       // Consulta consolidada e sob demanda. Não pesa a abertura normal do aplicativo.
       // ===========================================================================
       const GPV_PENDING_CATEGORY_META_ = Object.freeze({
@@ -5311,7 +5311,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jj', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jk', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -25120,7 +25120,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jj', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jk', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -32207,7 +32207,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jj', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jk', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
