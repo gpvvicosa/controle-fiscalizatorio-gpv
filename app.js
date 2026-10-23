@@ -1,4 +1,4 @@
-// V23.9.99jo — Pendência documental com ação direta; Ficha destaca "Liberado com pendência documental"; Central inclui Liberados recentes (30 dias).
+// V23.9.99jq — Painel/KPIs respeitam regularizações posteriores; faixa superior indevida removida no shell JQ.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
 // V23.9.99jo — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
 // V23.9.99jk — Reconciliação histórica: endereço físico priorizado; Central de Pendências preservada.
@@ -67,8 +67,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jo';
-      const APP_VERSION_DATE = '21/10/2026';
+      const APP_VERSION = '23.9.99jq';
+      const APP_VERSION_DATE = '23/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -2935,7 +2935,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jo';
+      const APP_REVISION_UI_ = '23.9.99jq';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5437,7 +5437,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jo', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jq', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8054,6 +8054,16 @@
         return `<span class="status-badge ${classeStatus_(texto)}">${escapeHtml(texto)}</span>`;
       }
 
+      // V23.9.99jq — a tabela mostra a situação operacional atual, mas mantém
+      // visível o resultado original quando uma fiscalização antiga foi encerrada
+      // por regularização/liberação posterior compatível.
+      function statusPainelItemHtml_(item) {
+        const atual = padronizarSancaoPainelIF_(item?.sancao || '') || 'Sem situação';
+        const original = padronizarSancaoPainelIF_(item?.sancaoOriginal || '');
+        const mudou = Boolean(original && normalize(original) !== normalize(atual));
+        return `<span class="records-status-stack">${statusBadgeHtml_(atual)}${mudou ? `<small class="records-status-original" title="Resultado original preservado no histórico">Original: ${escapeHtml(original)}</small>` : ''}</span>`;
+      }
+
       function percentualResumo_(valor, total) {
         const base = Number(total || 0);
         const numero = Number(valor || 0);
@@ -8342,7 +8352,7 @@
             <td>${destacarBuscaPainelHtml_(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</td>
             <td class="records-mono">${destacarBuscaPainelHtml_(identificadorPainel_(item).valor)}</td>
             <td>${escapeHtml(padronizarDemandaPainelIF_(item.demanda) || '—')}</td>
-            <td>${statusBadgeHtml_(item.sancao)}</td>
+            <td>${statusPainelItemHtml_(item)}</td>
             <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
             <td class="records-mono">${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
@@ -8363,7 +8373,7 @@
             <div class="records-card-accent" aria-hidden="true"></div>
             <div class="records-card-top"><div class="records-card-title">${destacarBuscaPainelHtml_(titulo)}</div><div class="records-card-date">${escapeHtml(formatarDataPainel_(item.carimbo))}</div></div>
             ${razao ? `<div class="records-card-subtitle">${destacarBuscaPainelHtml_(razao)}</div>` : ''}
-            <div class="records-card-status-row">${statusBadgeHtml_(item.sancao)}<span class="records-card-demand-chip">${escapeHtml(padronizarDemandaPainelIF_(item.demanda) || 'Sem demanda')}</span></div>
+            <div class="records-card-status-row">${statusPainelItemHtml_(item)}<span class="records-card-demand-chip">${escapeHtml(padronizarDemandaPainelIF_(item.demanda) || 'Sem demanda')}</span></div>
             <div class="records-card-meta">
               <div class="records-meta-item records-meta-item--city"><span>Cidade</span><strong>${destacarBuscaPainelHtml_(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
               <div class="records-meta-item records-meta-item--doc"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${destacarBuscaPainelHtml_(identificadorPainel_(item).valor)}</strong></div>
@@ -25311,7 +25321,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jo', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jq', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -32407,7 +32417,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jo', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jq', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
