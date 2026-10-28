@@ -1,4 +1,4 @@
-// V23.9.99jq — Painel/KPIs respeitam regularizações posteriores; faixa superior indevida removida no shell JQ.
+// V23.9.99jr — sincronização offline resiliente e vínculos do imóvel separados entre proprietário e responsável pelo uso opcional.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
 // V23.9.99jo — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
 // V23.9.99jk — Reconciliação histórica: endereço físico priorizado; Central de Pendências preservada.
@@ -67,8 +67,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jq';
-      const APP_VERSION_DATE = '23/10/2026';
+      const APP_VERSION = '23.9.99jr';
+      const APP_VERSION_DATE = '26/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -2395,6 +2395,14 @@
       const sancaoAutomaticaHint = document.getElementById('sancaoAutomaticaHint');
       const pendenciaDocumentalWrap = document.getElementById('pendenciaDocumentalWrap');
       const pendenciaDocumentalSelect = document.getElementById('pendenciaDocumental');
+      const vinculosImovelWrap = document.getElementById('vinculosImovelWrap');
+      const proprietarioEdificacaoInput = document.getElementById('proprietarioEdificacao');
+      const proprietarioDocumentoInput = document.getElementById('proprietarioDocumento');
+      const proprietarioTelefoneInput = document.getElementById('proprietarioTelefone');
+      const responsavelUsoMesmoProprietarioCheck = document.getElementById('responsavelUsoMesmoProprietario');
+      const responsavelUsoInput = document.getElementById('responsavelUso');
+      const responsavelUsoDocumentoInput = document.getElementById('responsavelUsoDocumento');
+      const responsavelUsoTelefoneInput = document.getElementById('responsavelUsoTelefone');
       const tipoLiberacaoWrap = document.getElementById('tipoLiberacaoWrap');
       const tipoLiberacaoSelect = document.getElementById('tipoLiberacao');
       const liberacaoParcialDescricaoWrap = document.getElementById('liberacaoParcialDescricaoWrap');
@@ -2935,7 +2943,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jq';
+      const APP_REVISION_UI_ = '23.9.99jr';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3716,9 +3724,41 @@
           syncAllPromise_ = null;
           atualizarPainelPendentes();
           atualizarCentralSincronizacaoSeAberta_();
+          if (totalPendenciasSincronizacao_() <= 0) cancelarSincronizacaoAutomaticaAgendada_(true);
+          else if (navigator.onLine && usuarioPodeOperar_()) agendarSincronizacaoAutomatica_('pendências ainda aguardando envio');
         });
 
         return syncAllPromise_;
+      }
+
+      function cancelarSincronizacaoAutomaticaAgendada_(zerarTentativas = false) {
+        if (syncRetryTimer_) clearTimeout(syncRetryTimer_);
+        syncRetryTimer_ = null;
+        if (zerarTentativas) syncRetryAttempt_ = 0;
+      }
+
+      function agendarSincronizacaoAutomatica_(motivo = '', atrasoForcado = null) {
+        if (!navigator.onLine || !usuarioPodeOperar_() || totalPendenciasSincronizacao_() <= 0) return false;
+        if (syncRetryTimer_ || sendingQueue || enviandoFilaFotos_) return false;
+        const atraso = Number.isFinite(Number(atrasoForcado))
+          ? Math.max(250, Number(atrasoForcado))
+          : SYNC_RETRY_DELAYS_MS_[Math.min(syncRetryAttempt_, SYNC_RETRY_DELAYS_MS_.length - 1)];
+        syncRetryTimer_ = setTimeout(() => {
+          syncRetryTimer_ = null;
+          if (!navigator.onLine || !usuarioPodeOperar_() || totalPendenciasSincronizacao_() <= 0) return;
+          syncRetryAttempt_ += 1;
+          if (appStatus && motivo) appStatus.textContent = `Sincronização automática: ${motivo}.`;
+          void sincronizarTudoPendente_(true);
+        }, atraso);
+        return true;
+      }
+
+      function iniciarMonitorSincronizacaoAutomatica_() {
+        if (syncPeriodicTimer_) return;
+        syncPeriodicTimer_ = setInterval(() => {
+          if (!navigator.onLine || !usuarioPodeOperar_() || totalPendenciasSincronizacao_() <= 0) return;
+          agendarSincronizacaoAutomatica_('nova tentativa automática', 500);
+        }, 60 * 1000);
       }
 
       function removerFotoIdDeEstrutura_(origem, fotoId) {
@@ -5437,7 +5477,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jq', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jr', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -5520,6 +5560,10 @@
       // simultaneamente; compartilhar a promessa evita requisições repetidas sem
       // criar qualquer nova etapa para o vistoriador.
       let syncAllPromise_ = null;
+      let syncRetryTimer_ = null;
+      let syncRetryAttempt_ = 0;
+      let syncPeriodicTimer_ = null;
+      const SYNC_RETRY_DELAYS_MS_ = [1500, 4000, 8000, 15000, 30000, 60000];
       let deferredInstallPrompt = null;
       let tutorialStepIndex = 0;
       let duvidasHistorico_ = [];
@@ -5598,6 +5642,21 @@
       function value(id) {
         const el = document.getElementById(id);
         return el ? String(el.value || '').trim() : '';
+      }
+
+      function sincronizarResponsavelUsoComProprietario_(salvar = false) {
+        const mesmo = Boolean(responsavelUsoMesmoProprietarioCheck?.checked);
+        [responsavelUsoInput, responsavelUsoDocumentoInput, responsavelUsoTelefoneInput].forEach(el => {
+          if (!el) return;
+          el.readOnly = mesmo;
+          el.classList.toggle('is-derived', mesmo);
+        });
+        if (mesmo) {
+          if (responsavelUsoInput) responsavelUsoInput.value = value('proprietarioEdificacao');
+          if (responsavelUsoDocumentoInput) responsavelUsoDocumentoInput.value = value('proprietarioDocumento');
+          if (responsavelUsoTelefoneInput) responsavelUsoTelefoneInput.value = value('proprietarioTelefone');
+        }
+        if (salvar) scheduleDraftSave();
       }
 
       function tipoIdentificador_(valor) {
@@ -6526,6 +6585,7 @@
         if (!lista.some(item => item && item.id === id)) {
           lista.push({ id, criadoEm: Date.now(), payload: { ...payload, _appRegistroId: id } });
           salvarPendentes(lista);
+          if (navigator.onLine && usuarioPodeOperar_()) agendarSincronizacaoAutomatica_('novo item na fila', 900);
         }
         return id;
       }
@@ -8054,7 +8114,7 @@
         return `<span class="status-badge ${classeStatus_(texto)}">${escapeHtml(texto)}</span>`;
       }
 
-      // V23.9.99jq — a tabela mostra a situação operacional atual, mas mantém
+      // V23.9.99jr — a tabela mostra a situação operacional atual, mas mantém
       // visível o resultado original quando uma fiscalização antiga foi encerrada
       // por regularização/liberação posterior compatível.
       function statusPainelItemHtml_(item) {
@@ -12401,6 +12461,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campo('pavimentos', 'local', 'Pavimentos', ['Pavimentos'], { mostrar: !evento, inputmode: 'numeric' }),
           campo('altura', 'local', 'Altura (m)', ['Altura (m)', 'Altura'], { mostrar: !evento, inputmode: 'decimal' }),
           campo('ocupacao', 'local', 'Ocupação / Divisão', ['Ocupação', 'Ocupação / Divisão', 'Divisão'], { mostrar: !evento }),
+          campo('proprietarioEdificacao', 'local', 'Proprietário da edificação', ['Proprietário da edificação'], { mostrar: !evento }),
+          campo('proprietarioDocumento', 'local', 'CPF/CNPJ do proprietário', ['CPF/CNPJ do proprietário'], { mostrar: !evento, inputmode: 'numeric' }),
+          campo('proprietarioTelefone', 'local', 'Telefone do proprietário', ['Telefone do proprietário'], { mostrar: !evento, inputmode: 'tel' }),
+          campo('responsavelUso', 'local', 'Responsável pelo uso', ['Responsável pelo uso'], { mostrar: !evento }),
+          campo('responsavelUsoDocumento', 'local', 'CPF/CNPJ do responsável pelo uso', ['CPF/CNPJ do responsável pelo uso'], { mostrar: !evento, inputmode: 'numeric' }),
+          campo('responsavelUsoTelefone', 'local', 'Telefone do responsável pelo uso', ['Telefone do responsável pelo uso'], { mostrar: !evento, inputmode: 'tel' }),
 
           campo('responsavel', 'responsavel', evento ? 'Vínculo / função' : 'Responsável / vínculo', ['Responsável']),
           campo('nomeResponsavel', 'responsavel', 'Nome', ['Nome']),
@@ -12889,7 +12955,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function normalizarComparacaoCorrecao_(id, valor) {
         const texto = String(valor == null ? '' : valor).trim();
-        if (['documentoEstabelecimento', 'cpfResponsavel', 'eventoOrganizadorDocumento', 'telefone', 'eventoTelefoneOrganizador', 'cep', 'cepCorrespondencia', 'cepResponsavel'].includes(id)) {
+        if (['documentoEstabelecimento', 'cpfResponsavel', 'eventoOrganizadorDocumento', 'telefone', 'eventoTelefoneOrganizador', 'proprietarioDocumento', 'proprietarioTelefone', 'responsavelUsoDocumento', 'responsavelUsoTelefone', 'cep', 'cepCorrespondencia', 'cepResponsavel'].includes(id)) {
           return texto.replace(/\D/g, '');
         }
         if (id === 'pscip') return texto.toUpperCase().replace(/\s+/g, '');
@@ -13711,7 +13777,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ['Área (m²)', valorCampoFicha_(registro, 'Área m²', 'Área')],
           ['Pavimentos', valorCampoFicha_(registro, 'Pavimentos')],
           ['Altura (m)', valorCampoFicha_(registro, 'Altura')],
-          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação', 'Ocupação / Divisão', 'Divisão')]
+          ['Ocupação / Divisão', valorCampoFicha_(registro, 'Ocupação', 'Ocupação / Divisão', 'Divisão')],
+          ['Proprietário da edificação', valorCampoFicha_(registro, 'Proprietário da edificação')],
+          ['CPF/CNPJ do proprietário', valorCampoFicha_(registro, 'CPF/CNPJ do proprietário')],
+          ['Telefone do proprietário', valorCampoFicha_(registro, 'Telefone do proprietário')],
+          ['Responsável pelo uso', valorCampoFicha_(registro, 'Responsável pelo uso')],
+          ['CPF/CNPJ do responsável pelo uso', valorCampoFicha_(registro, 'CPF/CNPJ do responsável pelo uso')],
+          ['Telefone do responsável pelo uso', valorCampoFicha_(registro, 'Telefone do responsável pelo uso')]
         ];
         const localizacaoBruta = String(registro?.localizacao?.coordenadas || '').trim();
         const coordenadasFicha = extrairCoordenadasMapa_(
@@ -15470,12 +15542,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : (pet
               ? 'O CNPJ e a Razão Social identificam o organizador. O endereço retornado pelo CNPJ é apenas uma sugestão: confirme ou altere para o local real do evento.'
               : 'Digite CNPJ ou CPF. O aplicativo identifica o documento automaticamente. O endereço cadastral é apenas sugerido e pode ser alterado.');
-        if (responsavelTitulo) responsavelTitulo.textContent = eventoTemporario ? '4. Responsável que acompanhou a vistoria' : '3. Responsável';
+        if (vinculosImovelWrap) vinculosImovelWrap.hidden = eventoTemporario;
+        if (responsavelTitulo) responsavelTitulo.textContent = eventoTemporario ? '4. Responsável que acompanhou a vistoria' : '3. Pessoa que acompanhou a vistoria / RT';
         if (responsavelDescricao) responsavelDescricao.textContent = evento
           ? 'Informe a pessoa que acompanhou a guarnição durante a fiscalização. Ela pode ser diferente do organizador do evento.'
           : (pet
               ? 'Informe a pessoa que acompanhou a guarnição durante a vistoria do PET.'
-              : 'Todos os dados pessoais existentes na planilha. No registro rápido, somente Nome e Mãe são obrigatórios.');
+              : 'Dados da pessoa que acompanhou a vistoria ou atua como responsável técnico/contato. Proprietário da edificação e responsável pelo uso ficam registrados separadamente no bloco do imóvel.');
         if (processoTitulo) processoTitulo.textContent = eventoTemporario ? '5. Processo e vistoria' : '4. Processo e vistoria';
         if (responsavelCpfWrap) {
           responsavelCpfWrap.style.order = evento ? '-20' : '';
@@ -17718,6 +17791,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           pavimentos: eventoDeclaratorio ? '' : value('pavimentos'),
           altura: eventoDeclaratorio ? '' : value('altura'),
           ocupacao: eventoDeclaratorio ? '' : ocupacaoTextoFinal(),
+          proprietarioEdificacao: eventoTemporario ? '' : padronizarTextoCadastroCliente_(value('proprietarioEdificacao')),
+          proprietarioDocumento: eventoTemporario ? '' : value('proprietarioDocumento'),
+          proprietarioTelefone: eventoTemporario ? '' : value('proprietarioTelefone'),
+          responsavelUsoMesmoProprietario: eventoTemporario ? 'nao' : (responsavelUsoMesmoProprietarioCheck?.checked ? 'sim' : 'nao'),
+          responsavelUso: eventoTemporario ? '' : padronizarTextoCadastroCliente_(value('responsavelUso')),
+          responsavelUsoDocumento: eventoTemporario ? '' : value('responsavelUsoDocumento'),
+          responsavelUsoTelefone: eventoTemporario ? '' : value('responsavelUsoTelefone'),
           responsavel: value('responsavel'),
           nomeResponsavel: padronizarTextoCadastroCliente_(value('nomeResponsavel')),
           rg: value('rg'),
@@ -18150,6 +18230,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
               1,
               showMessage
             );
+          }
+          for (const [id, rotulo] of [['proprietarioDocumento','CPF/CNPJ do proprietário'], ['responsavelUsoDocumento','CPF/CNPJ do responsável pelo uso']]) {
+            const doc = digits(value(id));
+            if (doc && ![11, 14].includes(doc.length)) {
+              const el = document.getElementById(id);
+              el?.classList.add('invalid');
+              return mostrarPendenciaValidacaoGuiada_(el, `Informe ${rotulo} com 11 ou 14 dígitos, ou deixe o campo em branco.`, 1, showMessage);
+            }
           }
         } else {
           if (!declaracaoEventoValida_(value('eventoDeclaracaoNumero'))) {
@@ -23394,9 +23482,13 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (cityOptions.includes(p.cidade)) citySelect.value = p.cidade;
         else if (p.cidade) { citySelect.value = 'Outro'; otherCity.value = p.cidade; }
         Object.entries(p).forEach(([key, val]) => {
-          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key === 'irregularidadesFiscalizacaoStatus' || key === 'irregularidadesFiscalizacao' || key.startsWith('_app')) return;
+          if (key === 'cidade' || key === 'ocupacao' || key === 'notificacoesLiberacao' || key === 'fotosGerais' || key === 'irregularidadesFiscalizacaoStatus' || key === 'irregularidadesFiscalizacao' || key === 'responsavelUsoMesmoProprietario' || key.startsWith('_app')) return;
           const el = document.getElementById(key); if (el) el.value = val == null ? '' : val;
         });
+        if (responsavelUsoMesmoProprietarioCheck) {
+          responsavelUsoMesmoProprietarioCheck.checked = normalize(p.responsavelUsoMesmoProprietario || '') === normalize('sim');
+          sincronizarResponsavelUsoComProprietario_(false);
+        }
         // V23.9.99gp — o campo visual da acessória mantém o id histórico para não
         // quebrar a interface, mas os novos rascunhos gravam a semântica futura em
         // acessoriaClcbSeraAnulado. Rascunhos antigos continuam compatíveis.
@@ -23561,6 +23653,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         aplicarFluxoVistoria_('', { silencioso: true });
         atualizarBotaoCancelarPreenchimentoTopo_();
         if (pendenciaDocumentalSelect) pendenciaDocumentalSelect.value = '';
+        if (responsavelUsoMesmoProprietarioCheck) responsavelUsoMesmoProprietarioCheck.checked = false;
+        sincronizarResponsavelUsoComProprietario_(false);
         if (tipoLiberacaoSelect) tipoLiberacaoSelect.value = 'final';
         if (situacaoMultaInfoscipSelect) situacaoMultaInfoscipSelect.value = 'Não conferido';
         syncPendenciaDocumental_();
@@ -25321,7 +25415,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jq', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jr', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -31176,6 +31270,11 @@ Deseja usar o endereço cadastral do CNPJ?`,
           appStatus.textContent = `Cidade ${atual || 'atual'} mantida após conferência.`;
         }
       });
+      responsavelUsoMesmoProprietarioCheck?.addEventListener('change', () => sincronizarResponsavelUsoComProprietario_(true));
+      [proprietarioEdificacaoInput, proprietarioDocumentoInput, proprietarioTelefoneInput].forEach(el => {
+        el?.addEventListener('input', () => { if (responsavelUsoMesmoProprietarioCheck?.checked) sincronizarResponsavelUsoComProprietario_(false); scheduleDraftSave(); });
+      });
+      [responsavelUsoInput, responsavelUsoDocumentoInput, responsavelUsoTelefoneInput].forEach(el => el?.addEventListener('input', scheduleDraftSave));
       licenciamentoSelect?.addEventListener('change', () => { syncLicenciamento(); scheduleDraftSave(); });
       licenciamentoSelect?.addEventListener('input', () => { syncLicenciamento(); scheduleDraftSave(); });
       tipoLicenciamentoFiscalizacaoSelect?.addEventListener('change', () => { sincronizarClcbFiscalizacao_(); scheduleDraftSave(); });
@@ -32259,6 +32358,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           aplicarAtualizacaoSilenciosaSeSeguro_();
           if (navigator.onLine && usuarioPodeOperar_()) {
             setTimeout(() => { void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false }); }, 180);
+            if (totalPendenciasSincronizacao_() > 0) agendarSincronizacaoAutomatica_('retorno ao primeiro plano', 650);
           }
           if (navigator.onLine && ficouForaPor >= 30 * 60 * 1000) {
             setTimeout(() => { void sincronizarSituacoesCriticasProcessos_({ atualizarFichaAberta: true }); }, 520);
@@ -32275,6 +32375,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         agendarAtualizacaoListasOperacionaisAoRetornar_('foco da janela', 300);
         verificarAtualizacaoSilenciosaPwa_();
         aplicarAtualizacaoSilenciosaSeSeguro_();
+        if (navigator.onLine && usuarioPodeOperar_() && totalPendenciasSincronizacao_() > 0) agendarSincronizacaoAutomatica_('foco da janela', 650);
       });
 
       // Também cobre restauração da aba pelo histórico/BFCache do navegador.
@@ -32287,6 +32388,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           verificarAtualizacaoSilenciosaPwa_(true);
           aplicarAtualizacaoSilenciosaSeSeguro_();
         }
+        if (navigator.onLine && usuarioPodeOperar_() && totalPendenciasSincronizacao_() > 0) agendarSincronizacaoAutomatica_('abertura/restauração do app', 700);
       });
       authBmInput?.addEventListener('input', () => { authBmInput.value = normalizarIdentificadorAcessoCliente_(authBmInput.value); authPendingUserId = ''; authPendingBm = ''; });
       authForm?.addEventListener('submit', async event => {
@@ -32349,7 +32451,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       });
       window.addEventListener('resize', fecharMenuMais_);
       sendPendingBtn.addEventListener('click', () => { void sincronizarTudoPendente_(false); });
-      window.addEventListener('offline', () => { atualizarStatusConexao(); if (authEnterBtn) authEnterBtn.disabled = true; if (authOfflineNote && authGate?.classList.contains('show')) authOfflineNote.hidden = false; });
+      window.addEventListener('offline', () => { cancelarSincronizacaoAutomaticaAgendada_(false); atualizarStatusConexao(); if (authEnterBtn) authEnterBtn.disabled = true; if (authOfflineNote && authGate?.classList.contains('show')) authOfflineNote.hidden = false; });
       window.addEventListener('online', () => {
         atualizarStatusConexao();
         if (authEnterBtn) authEnterBtn.disabled = false;
@@ -32369,7 +32471,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (usuarioPodeOperar_()) {
           setTimeout(() => { void processarCancelamentosRascunhoPendentes_(); }, 180);
           setTimeout(() => { void sincronizarEstadosRascunhosLocais_({ mostrarStatus: false }); }, 220);
-          setTimeout(() => { void sincronizarTudoPendente_(true); }, 450);
+          agendarSincronizacaoAutomatica_('internet restabelecida', 900);
           setTimeout(() => verificarEstadoRascunhoCompartilhado_(), 150);
           agendarAtualizacaoListasOperacionaisAoRetornar_('internet restabelecida', 700);
         }
@@ -32417,7 +32519,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jq', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jr', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
@@ -32437,6 +32539,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       inicializarCatalogoNotificacoes_();
       renderizarNotificacoesLiberacao_();
       atualizarStatusConexao();
+      sincronizarResponsavelUsoComProprietario_(false);
       carregarSessaoLocalBm_();
 
       (async () => {
@@ -32451,5 +32554,9 @@ Deseja usar o endereço cadastral do CNPJ?`,
           await inicializarFilaOffline();
         } catch (e) {}
         await inicializarAutenticacaoBm_();
+        iniciarMonitorSincronizacaoAutomatica_();
+        if (navigator.onLine && usuarioPodeOperar_() && totalPendenciasSincronizacao_() > 0) {
+          agendarSincronizacaoAutomatica_('pendências encontradas na abertura', 800);
+        }
       })();
     })();
