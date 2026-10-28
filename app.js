@@ -1,3 +1,4 @@
+// V23.9.99js — Vistoria Acessória como opção própria no cadastro e correção segura da classificação após a finalização.
 // V23.9.99jr — sincronização offline resiliente e vínculos do imóvel separados entre proprietário e responsável pelo uso opcional.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
 // V23.9.99jo — Correção visual da reconciliação e abertura direta a partir da Central de Pendências.
@@ -67,8 +68,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jr';
-      const APP_VERSION_DATE = '26/10/2026';
+      const APP_VERSION = '23.9.99js';
+      const APP_VERSION_DATE = '28/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -2255,6 +2256,8 @@
       const recordStatusUpdateMessage = document.getElementById('recordStatusUpdateMessage');
       const recordCorrectionPanel = document.getElementById('recordCorrectionPanel');
       const recordCorrectionBtn = document.getElementById('recordCorrectionBtn');
+      const recordClassificationCorrectionPanel = document.getElementById('recordClassificationCorrectionPanel');
+      const recordClassificationCorrectionBtn = document.getElementById('recordClassificationCorrectionBtn');
       const recordIrregularitiesCorrectionPanel = document.getElementById('recordIrregularitiesCorrectionPanel');
       const recordIrregularitiesCorrectionBtn = document.getElementById('recordIrregularitiesCorrectionBtn');
       const recordCorrectionModal = document.getElementById('recordCorrectionModal');
@@ -2500,6 +2503,7 @@
       const licenciamentoFieldWrap = document.getElementById('licenciamentoFieldWrap');
       const possuiPscipFieldWrap = document.getElementById('possuiPscipFieldWrap');
       const fluxoFiscalizacaoBtn = document.getElementById('fluxoFiscalizacaoBtn');
+      const fluxoAcessoriaBtn = document.getElementById('fluxoAcessoriaBtn');
       const fluxoLiberacaoBtn = document.getElementById('fluxoLiberacaoBtn');
       const fluxoPetBtn = document.getElementById('fluxoPetBtn');
       const fluxoVistoriaAtualTexto = document.getElementById('fluxoVistoriaAtualTexto');
@@ -11105,7 +11109,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const projeto = valorPscipOperacionalFicha_(registro);
         const licenciamento = normalize(valorCampoFicha_(registro, 'Situação do licenciamento'));
-        const acessoria = demanda.includes(normalize('Vistoria Acessória'));
+        const acessoria = demanda.includes(normalize('Vistoria Acessória')) || normalize(valorCampoFicha_(registro, 'Tipo de vistoria')).includes(normalize('Vistoria Acessória'));
         const irregularidadesConstatadas = normalize(valorCampoFicha_(registro, 'Irregularidades constatadas'));
         const brigadaConstatada = irregularidadesConstatadas.includes(normalize('Brigada de Incêndio'));
         const avcbVencidoConstatado = irregularidadesConstatadas.includes(normalize('AVCB vencido')) || irregularidadesConstatadas.includes(normalize('AVCB/CLCB vencido'));
@@ -11160,7 +11164,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
         const ehEventoDeclaratorio = demanda.includes(normalize('Eventos declaratórios'));
-        const ehAcessoria = demanda.includes(normalize('Vistoria Acessória'));
+        const ehAcessoria = demanda.includes(normalize('Vistoria Acessória')) || normalize(valorCampoFicha_(registro, 'Tipo de vistoria')).includes(normalize('Vistoria Acessória'));
         const ehRenovacaoAvcb = demanda.includes(normalize('Renovação AVCB'));
         const opcoes = [
           ...(ehRenovacaoAvcb ? [['renovacaoAvcb', 'Fiscalização — Renovação AVCB']] : []),
@@ -11374,7 +11378,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           ? tipo.includes('liberacao')
           : (demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao)));
         const pscip = valorPscipOperacionalFicha_(registro);
-        const acessoria = demanda.includes(normalize('Vistoria Acessória'));
+        const acessoria = demanda.includes(normalize('Vistoria Acessória')) || tipo.includes(normalize('Vistoria Acessória'));
         if (recordAutoNumberInput) recordAutoNumberInput.value = ehLiberacao || acessoria ? '' : valorCampoFicha_(registro, 'Nº do Auto');
         if (recordAutoNumberWrap) recordAutoNumberWrap.hidden = ehLiberacao || acessoria;
         if (recordAutoNumberSaveBtn) recordAutoNumberSaveBtn.hidden = ehLiberacao || acessoria;
@@ -12338,7 +12342,9 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       }
 
       function registroEhAcessoria_(registro) {
-        return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Vistoria Acessória'));
+        const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        return demanda.includes(normalize('Vistoria Acessória')) || tipo.includes(normalize('Vistoria Acessória'));
       }
 
       // V23.9.99fd — Centro de correção completa da vistoria.
@@ -12903,11 +12909,129 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const permitido = usuarioPodeOperar_() && !historico;
         if (recordCorrectionPanel) recordCorrectionPanel.hidden = !permitido;
         if (recordCorrectionBtn) recordCorrectionBtn.disabled = !permitido;
+        const classificacaoPermitida = permitido && !registroEhEventoDeclaratorio_(registro) && !registroEhPetCorrecao_(registro);
+        if (recordClassificationCorrectionPanel) recordClassificationCorrectionPanel.hidden = !classificacaoPermitida;
+        if (recordClassificationCorrectionBtn) recordClassificationCorrectionBtn.disabled = !classificacaoPermitida;
 
         const fiscalizacaoComum = Boolean(registro && !registroEhEventoDeclaratorio_(registro) && !registroEhLiberacao_(registro) && !registroEhAcessoria_(registro));
         const permitirIrregularidades = permitido && fiscalizacaoComum;
         if (recordIrregularitiesCorrectionPanel) recordIrregularitiesCorrectionPanel.hidden = !permitirIrregularidades;
         if (recordIrregularitiesCorrectionBtn) recordIrregularitiesCorrectionBtn.disabled = !permitirIrregularidades;
+      }
+
+      function classificacaoVisualVistoria_(registro) {
+        if (registroEhAcessoria_(registro)) return 'acessoria';
+        if (registroEhLiberacao_(registro)) return 'liberacao';
+        return 'fiscalizacao';
+      }
+
+      async function corrigirClassificacaoVistoria_() {
+        const registro = recordCorrectionRegistroAtual;
+        if (!registro || !recordsState.chaveSelecionada || !usuarioPodeOperar_()) return;
+        if (!navigator.onLine) {
+          await avisarGpv_('A correção de uma vistoria encerrada exige conexão com a internet.', 'Sem conexão', { tom:'warning' });
+          return;
+        }
+        if (registroEhEventoDeclaratorio_(registro) || registroEhPetCorrecao_(registro)) {
+          await avisarGpv_('Este fluxo possui classificação própria e não pode ser convertido por esta ação.', 'Classificação protegida', { tom:'warning' });
+          return;
+        }
+
+        const atual = classificacaoVisualVistoria_(registro);
+        const escolha = await escolherOpcaoGpv_(
+          `Classificação atual: ${atual === 'acessoria' ? 'Vistoria Acessória' : (atual === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização')}.
+
+Selecione a classificação correta. Nenhum dado será alterado antes da confirmação.`,
+          [
+            { valor:'fiscalizacao', titulo:'Vistoria de Fiscalização', subtitulo:'Fiscalização comum. A demanda deverá identificar a origem da ação.' },
+            { valor:'acessoria', titulo:'Vistoria Acessória', subtitulo:'Retorno vinculado a processo fiscalizatório anterior. Internamente permanece no fluxo de Fiscalização.' },
+            { valor:'liberacao', titulo:'Vistoria de Liberação', subtitulo:'Vistoria destinada à liberação do PSCIP/AVCB.' }
+          ],
+          'Corrigir classificação da vistoria',
+          { tom:'warning', rotuloCancelar:'Cancelar' }
+        );
+        if (!escolha || escolha === atual) {
+          if (escolha === atual) await avisarGpv_('A vistoria já está com essa classificação.', 'Nenhuma alteração');
+          return;
+        }
+
+        let demandaFiscalizacao = '';
+        if (escolha === 'fiscalizacao') {
+          demandaFiscalizacao = await solicitarTextoGpv_(
+            'Informe a demanda correta da Fiscalização (por exemplo: Iniciativa, DDU, Alerta Vermelho ou outra demanda operacional).',
+            'Demanda da Fiscalização',
+            { valorInicial: atual === 'fiscalizacao' ? String(valorCampoFicha_(registro, 'Demanda') || '') : '', maxLength:120, rotuloConfirmar:'Continuar' }
+          );
+          if (demandaFiscalizacao == null) return;
+          demandaFiscalizacao = String(demandaFiscalizacao).replace(/\s+/g,' ').trim();
+          if (!demandaFiscalizacao || normalize(demandaFiscalizacao) === normalize('Vistoria Acessória') || normalize(demandaFiscalizacao) === normalize('Liberação')) {
+            await avisarGpv_('Informe uma demanda própria de Vistoria de Fiscalização.', 'Demanda inválida', { tom:'warning' });
+            return;
+          }
+        }
+
+        const motivo = await solicitarTextoGpv_(
+          'Informe o motivo da correção. Essa justificativa ficará registrada na auditoria.',
+          'Motivo da correção',
+          { placeholder:'Ex.: Vistoria cadastrada como Fiscalização, mas realizada como Vistoria Acessória.', maxLength:500, rotuloConfirmar:'Continuar' }
+        );
+        if (motivo == null) return;
+        const motivoLimpo = String(motivo).replace(/\s+/g,' ').trim();
+        if (motivoLimpo.length < 5) {
+          await avisarGpv_('Informe um motivo com pelo menos 5 caracteres.', 'Motivo obrigatório', { tom:'warning' });
+          return;
+        }
+
+        const rotuloNovo = escolha === 'acessoria' ? 'Vistoria Acessória' : (escolha === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização');
+        const confirmou = await confirmarGpv_(
+          `A classificação será alterada para ${rotuloNovo}.
+
+O registro original não será apagado. Tipo e Demanda serão ajustados de forma compatível e a alteração ficará registrada na auditoria.
+
+Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O resultado técnico da vistoria não será alterado por esta ação.`,
+          'Confirmar correção da classificação',
+          { tom:'warning', rotuloConfirmar:'Corrigir classificação', rotuloCancelar:'Cancelar' }
+        );
+        if (!confirmou) return;
+
+        const chaveAnterior = recordsState.chaveSelecionada;
+        const linhaHint = Number(recordsState.linhaSelecionada || registro?.linhaAtual || 0);
+        const alteracoes = escolha === 'acessoria'
+          ? { tipoVistoria:'Vistoria de Fiscalização', demanda:'Vistoria Acessória' }
+          : (escolha === 'liberacao'
+            ? { tipoVistoria:'Vistoria de Liberação', demanda:'Liberação' }
+            : { tipoVistoria:'Vistoria de Fiscalização', demanda:demandaFiscalizacao });
+        const arr = Object.entries(alteracoes).map(([id,novo]) => ({ id, novo }));
+        const assinatura = assinaturaCorrecaoRegistro_(chaveAnterior, motivoLimpo, arr);
+        const operacaoId = operacaoIdCorrecaoRegistro_(assinatura);
+
+        try {
+          recordClassificationCorrectionBtn.disabled = true;
+          recordClassificationCorrectionBtn.textContent = 'Corrigindo...';
+          const resposta = await apiRequest('config', {
+            consulta:'classificacao_corrigir',
+            chave:chaveAnterior,
+            linhaHint,
+            classificacao:escolha,
+            demandaFiscalizacao,
+            motivo:motivoLimpo,
+            operacaoId,
+            dispositivo:nomeDispositivo_()
+          }, 45000, { noRetry:true, silentSuccess:true });
+          limparCachesConsulta_();
+          const novaChave = String(resposta?.chave || chaveAnterior);
+          const novaLinha = Number(resposta?.linha || linhaHint || 0);
+          mostrarFeedbackPremium_('✓ Classificação corrigida e auditoria registrada.', 'success');
+          await abrirDetalheRegistro_(novaChave, novaLinha);
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar:true, motivo:'classificação corrigida' });
+        } catch (erro) {
+          await avisarGpv_(erro?.message || 'Não foi possível corrigir a classificação.', 'Falha na correção', { tom:'danger' });
+        } finally {
+          if (recordClassificationCorrectionBtn) {
+            recordClassificationCorrectionBtn.disabled = false;
+            recordClassificationCorrectionBtn.textContent = 'Corrigir classificação da vistoria';
+          }
+        }
       }
 
       function abrirCorrecaoRegistro_(opcoes = {}) {
@@ -15333,6 +15457,17 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function sincronizarVistoriaAcessoria_() {
         const acessoria = ehVistoriaAcessoria_();
+        const fiscalizacao = ehFluxoFiscalizacao_();
+        fluxoAcessoriaBtn?.classList.toggle('is-active', acessoria);
+        fluxoAcessoriaBtn?.setAttribute('aria-pressed', acessoria ? 'true' : 'false');
+        if (fiscalizacao) {
+          fluxoFiscalizacaoBtn?.classList.toggle('is-active', !acessoria);
+          fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', !acessoria ? 'true' : 'false');
+        }
+        if (acessoria && fluxoVistoriaAtualTexto) {
+          fluxoVistoriaAtualTexto.hidden = false;
+          fluxoVistoriaAtualTexto.textContent = 'Fluxo selecionado: Vistoria Acessória — vinculada a processo fiscalizatório anterior. Internamente permanece no fluxo de Fiscalização.';
+        }
         if (vistoriaAcessoriaWrap) vistoriaAcessoriaWrap.hidden = !acessoria;
         if (pscipLabel) pscipLabel.textContent = acessoria ? 'Nº do PSCIP / licenciamento' : 'Nº do PSCIP';
         if (processPfLabel) processPfLabel.textContent = acessoria ? 'Nº do PF anterior' : 'Nº do PF';
@@ -15737,11 +15872,13 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         // faça o cartão parecer sem resposta.
         if (tipoVistoriaInput) tipoVistoriaInput.value = f === 'liberacao' ? 'Vistoria de Liberação' : (f === 'fiscalizacao' ? 'Vistoria de Fiscalização' : '');
         fluxoFiscalizacaoBtn?.classList.toggle('is-active', f === 'fiscalizacao');
+        fluxoAcessoriaBtn?.classList.remove('is-active');
         fluxoLiberacaoBtn?.classList.toggle('is-active', f === 'liberacao');
         fluxoPetBtn?.classList.remove('is-active');
         document.body.classList.toggle('release-flow-active', f === 'liberacao');
         document.body.classList.toggle('inspection-flow-active', f === 'fiscalizacao');
         fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', f === 'fiscalizacao' ? 'true' : 'false');
+        fluxoAcessoriaBtn?.setAttribute('aria-pressed', 'false');
         fluxoLiberacaoBtn?.setAttribute('aria-pressed', f === 'liberacao' ? 'true' : 'false');
         fluxoPetBtn?.setAttribute('aria-pressed', 'false');
         vistoriaFlowSections.forEach(sec => { sec.hidden = !f; });
@@ -22415,7 +22552,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (origem === 'prepare') {
           const candidato = candidatoHistoricoParaAcao_(resposta, escolha === 'acessoria' ? 'acessoria' : 'retorno');
           if (escolha === 'acessoria') {
-            if (prepareTipo) prepareTipo.value = 'fiscalizacao';
+            if (prepareTipo) prepareTipo.value = 'acessoria';
             const demanda = document.getElementById('prepareDemanda');
             if (demanda) demanda.value = 'Vistoria Acessória';
             prepareNaturezaSugerida_ = '';
@@ -26629,6 +26766,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       function atualizarCamposPreparacaoPorTipo_() {
         const tipoSelecionado = String(prepareTipo?.value || '');
         const pet = tipoSelecionado === 'pet';
+        const acessoria = tipoSelecionado === 'acessoria';
         const liberacao = tipoSelecionado === 'liberacao' || pet;
         if (!liberacao && prepareNaturezaSugerida_ === 'P01002') prepareNaturezaSugerida_ = '';
         const evento = ehEventoDeclaratorioPreparacao_();
@@ -26640,7 +26778,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         const nomeLabel = document.getElementById('prepareNomeFantasiaLabel');
         const projetoWrap = document.getElementById('prepareLiberacaoProjetoWrap');
 
-        if (projetoWrap) projetoWrap.hidden = pet || !['liberacao','fiscalizacao'].includes(tipoSelecionado);
+        if (projetoWrap) projetoWrap.hidden = pet || !['liberacao','fiscalizacao','acessoria'].includes(tipoSelecionado);
         if (pscipWrap) {
           pscipWrap.hidden = evento;
           pscipWrap.classList.toggle('is-required-prep', liberacao && !evento);
@@ -26672,10 +26810,13 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (pet && demanda) {
           demanda.value = 'PET';
           demanda.readOnly = true;
+        } else if (acessoria && demanda) {
+          demanda.value = 'Vistoria Acessória';
+          demanda.readOnly = true;
         } else if (demanda) {
           demanda.readOnly = false;
           if (tipoSelecionado === 'liberacao' && !String(demanda.value || '').trim()) demanda.value = 'Liberação';
-          if (normalize(demanda.value || '') === normalize('PET')) demanda.value = tipoSelecionado === 'liberacao' ? 'Liberação' : '';
+          if ([normalize('PET'), normalize('Vistoria Acessória')].includes(normalize(demanda.value || ''))) demanda.value = tipoSelecionado === 'liberacao' ? 'Liberação' : '';
         }
 
         if (evento) {
@@ -28287,7 +28428,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         preparacaoEditandoId = String(item.id);
         const set = (id, valor) => { const el = document.getElementById(id); if (el) el.value = String(valor ?? ''); };
         set('prepareCnpj', item.cnpj || item.cpf || '');
-        set('prepareTipo', normalize(item.demandaPrincipal || '') === normalize('PET') ? 'pet' : (item.tipoPreparacao || ''));
+        set('prepareTipo', normalize(item.demandaPrincipal || '') === normalize('PET') ? 'pet' : (normalize(item.demandaPrincipal || '') === normalize('Vistoria Acessória') ? 'acessoria' : (item.tipoPreparacao || '')));
         set('prepareData', item.dataPrevista || '');
         set('prepareVistoriador', item.vistoriadorResponsavel || '');
         definirCidadePreparacao_(item.cidade || appConfig?.padroes?.cidade || 'Viçosa');
@@ -28351,8 +28492,9 @@ Deseja usar o endereço cadastral do CNPJ?`,
         const g = id => String(document.getElementById(id)?.value || '').trim();
         const tipoSelecionado = g('prepareTipo');
         const pet = tipoSelecionado === 'pet';
-        const tipo = pet ? 'liberacao' : tipoSelecionado;
-        const eventoDeclaratorio = tipo === 'fiscalizacao' && normalize(g('prepareDemanda')) === normalize('Eventos declaratórios');
+        const acessoria = tipoSelecionado === 'acessoria';
+        const tipo = pet ? 'liberacao' : (acessoria ? 'fiscalizacao' : tipoSelecionado);
+        const eventoDeclaratorio = tipo === 'fiscalizacao' && !acessoria && normalize(g('prepareDemanda')) === normalize('Eventos declaratórios');
         const pscipInformado = eventoDeclaratorio ? '' : projetoPscipOperacional_(g('preparePscip'));
         return {
           _appPreparacao: 'sim',
@@ -28363,7 +28505,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           dataPrevista: g('prepareData'),
           vistoriadorResponsavel: g('prepareVistoriador'),
           cidade: g('prepareCidade') || 'Viçosa',
-          demandaPrincipal: pet ? 'PET' : (eventoDeclaratorio ? 'Eventos declaratórios' : g('prepareDemanda')),
+          demandaPrincipal: pet ? 'PET' : (acessoria ? 'Vistoria Acessória' : (eventoDeclaratorio ? 'Eventos declaratórios' : g('prepareDemanda'))),
           categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : '',
           eventoDeclaracaoNumero: eventoDeclaratorio ? formatarDeclaracaoEvento_(g('prepareEventoDeclaracaoNumero')) : '',
           dataRenovacaoAvcb: ehRenovacaoAvcbPreparacao_() ? formatarDataRenovacaoAvcbDigitacao_(g('prepareDataRenovacaoAvcb')) : '',
@@ -30603,11 +30745,10 @@ Deseja usar o endereço cadastral do CNPJ?`,
       let ultimoAcionamentoFluxoVistoria_ = { fluxo: '', em: 0 };
       function acionarFluxoVistoriaSeguro_(fluxo, event) {
         const pet = fluxo === 'pet';
+        const acessoria = fluxo === 'acessoria';
         const f = pet ? 'liberacao' : (fluxo === 'liberacao' ? 'liberacao' : 'fiscalizacao');
         const agora = Date.now();
-        const chaveAcionamento = pet ? 'pet' : f;
-        // pointerup normalmente é seguido de click. Evita execução dupla sem perder
-        // o fallback necessário em alguns PWAs Android.
+        const chaveAcionamento = pet ? 'pet' : (acessoria ? 'acessoria' : f);
         if (ultimoAcionamentoFluxoVistoria_.fluxo === chaveAcionamento && agora - ultimoAcionamentoFluxoVistoria_.em < 350) return;
         ultimoAcionamentoFluxoVistoria_ = { fluxo: chaveAcionamento, em: agora };
         event?.preventDefault?.();
@@ -30615,29 +30756,26 @@ Deseja usar o endereço cadastral do CNPJ?`,
           normalizarEstadoVisualEntradaVistoria_();
           marcarAbaApp_('form');
 
-          // Enquanto ainda não houve nenhuma edição real, trocar o tipo de fluxo é
-          // apenas navegação/consulta. Se o formulário veio pré-carregado de um DDU
-          // ou de uma vistoria cadastrada, ou se o usuário alternou entre PET,
-          // Fiscalização e Liberação, limpa os dados apenas consultivos antes de abrir
-          // o novo fluxo. Isso impede que dados pré-carregados sejam levados por
-          // engano para outra vistoria sem nunca terem sido efetivamente iniciados.
           const fluxoAntes = fluxoVistoriaAtual_();
           const demandaAntes = normalize(String(document.getElementById('demandaPrincipal')?.value || ''));
+          const acessoriaAntes = demandaAntes === normalize('Vistoria Acessória');
           const veioDeCadastroPendente = vistoriaAguardandoPrimeiraEdicao_ && Boolean(preparacaoEmUsoId || dduEmUsoId);
           const mudouFluxoPendente = vistoriaAguardandoPrimeiraEdicao_ && Boolean(fluxoAntes) && fluxoAntes !== f;
           const alternouPetPendente = vistoriaAguardandoPrimeiraEdicao_ && ((pet && demandaAntes !== normalize('PET')) || (!pet && demandaAntes === normalize('PET')));
-          if (veioDeCadastroPendente || mudouFluxoPendente || alternouPetPendente) {
+          const alternouAcessoriaPendente = vistoriaAguardandoPrimeiraEdicao_ && ((acessoria && !acessoriaAntes) || (!acessoria && acessoriaAntes));
+          if (veioDeCadastroPendente || mudouFluxoPendente || alternouPetPendente || alternouAcessoriaPendente) {
             resetForm(true);
           }
 
           if (!rascunhoAtualEmAndamento_() && !vistoriaAguardandoPrimeiraEdicao_) {
-            armarInicioEfetivoVistoria_(pet ? 'PET' : (f === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização'));
+            armarInicioEfetivoVistoria_(pet ? 'PET' : (acessoria ? 'Vistoria Acessória' : (f === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização')));
           }
           aplicarFluxoVistoria_(f);
           const esperado = f === 'liberacao' ? 'Vistoria de Liberação' : 'Vistoria de Fiscalização';
           if (String(tipoVistoriaInput?.value || '') !== esperado) throw new Error('Tipo de vistoria não foi confirmado no formulário.');
+
+          const demanda = document.getElementById('demandaPrincipal');
           if (pet) {
-            const demanda = document.getElementById('demandaPrincipal');
             if (demanda) {
               demanda.value = 'PET';
               demanda.dispatchEvent(new Event('input', { bubbles: true }));
@@ -30654,6 +30792,19 @@ Deseja usar o endereço cadastral do CNPJ?`,
               fluxoVistoriaAtualTexto.textContent = 'Fluxo selecionado: PET — Projeto de Evento Temporário. Internamente utiliza Vistoria de Liberação e mantém dados próprios do evento.';
             }
             if (appStatus) appStatus.textContent = 'PET selecionado. O formulário pode ser consultado; a vistoria só será iniciada após o primeiro preenchimento.';
+          } else if (acessoria) {
+            if (demanda) {
+              demanda.value = 'Vistoria Acessória';
+              demanda.dispatchEvent(new Event('input', { bubbles: true }));
+              demanda.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            sincronizarDemandasEspeciais_();
+            atualizarOpcoesSancaoPorFluxo_();
+            fluxoFiscalizacaoBtn?.classList.remove('is-active');
+            fluxoFiscalizacaoBtn?.setAttribute('aria-pressed', 'false');
+            fluxoAcessoriaBtn?.classList.add('is-active');
+            fluxoAcessoriaBtn?.setAttribute('aria-pressed', 'true');
+            if (appStatus) appStatus.textContent = 'Vistoria Acessória selecionada. Confirme o processo fiscalizatório anterior antes de concluir.';
           } else if (appStatus) {
             appStatus.textContent = `${esperado} selecionada. A vistoria só será iniciada após o primeiro preenchimento.`;
           }
@@ -30663,7 +30814,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           if (appStatus) appStatus.textContent = 'Não foi possível concluir a seleção do tipo de vistoria. Use Diagnóstico do aplicativo para consultar o erro registrado.';
         }
       }
-      [['fiscalizacao', fluxoFiscalizacaoBtn], ['liberacao', fluxoLiberacaoBtn], ['pet', fluxoPetBtn]].forEach(([fluxo, botao]) => {
+      [['fiscalizacao', fluxoFiscalizacaoBtn], ['acessoria', fluxoAcessoriaBtn], ['liberacao', fluxoLiberacaoBtn], ['pet', fluxoPetBtn]].forEach(([fluxo, botao]) => {
         botao?.addEventListener('pointerup', event => acionarFluxoVistoriaSeguro_(fluxo, event));
         botao?.addEventListener('click', event => acionarFluxoVistoriaSeguro_(fluxo, event));
       });
@@ -31867,6 +32018,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       recordQuickNewPetBtn?.addEventListener('click', () => { void iniciarNovaVistoriaDaFicha_({ pet: true }); });
       recordDetailBackdrop?.addEventListener('click', fecharDetalheRegistro_);
       recordCorrectionBtn?.addEventListener('click', () => abrirCorrecaoRegistro_());
+      recordClassificationCorrectionBtn?.addEventListener('click', () => { void corrigirClassificacaoVistoria_(); });
       recordIrregularitiesCorrectionBtn?.addEventListener('click', () => abrirCorrecaoRegistro_({ secao: 'irregularidades' }));
       recordResultCorrectionBtn?.addEventListener('click', abrirCorrecaoResultadoVistoria_);
       recordResultCorrectionCloseBtn?.addEventListener('click', fecharCorrecaoResultadoVistoria_);
