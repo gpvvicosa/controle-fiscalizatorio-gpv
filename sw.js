@@ -1,3 +1,4 @@
+// V23.9.99jt — hotfix do shell/cache e migração forçada das versões JR/JS.
 // V23.9.99js — shell da Vistoria Acessória como opção própria e correção de classificação.
 // V23.9.99jr — shell da sincronização offline resiliente e vínculos do imóvel.
 // V23.9.99jm — filtro rígido por endereço, Pendências na Home e reconciliação pré-carregada.
@@ -36,9 +37,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261028-v23-9-99-js-acessoria-classificacao';
+const CACHE_NAME = 'gpv-vistorias-shell-20261028-v23-9-99-jt-hotfix-atualizacao';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99js';
+const VERSION = '23.9.99jt';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -115,7 +116,7 @@ async function instalarShellAtual_() {
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    // A V23.9.99ji ainda usa skipWaiting para que aparelhos vindos das versões
+    // O fluxo de atualização usa skipWaiting para que aparelhos vindos das versões
     // anteriores consigam migrar em uma única abertura. A página só recarrega depois
     // de controllerchange/clients.claim, portanto uma vistoria em andamento não é perdida.
     await instalarShellAtual_();
