@@ -1,4 +1,4 @@
-// V23.9.99jt — hotfix de versão/Service Worker para garantir migração da JR/JS em uma única atualização.
+// V23.9.99ju — hotfix de versão/Service Worker para garantir migração da JR/JS em uma única atualização.
 // V23.9.99js — Vistoria Acessória como opção própria no cadastro e correção segura da classificação após a finalização.
 // V23.9.99jr — sincronização offline resiliente e vínculos do imóvel separados entre proprietário e responsável pelo uso opcional.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
@@ -69,7 +69,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jt';
+      const APP_VERSION = '23.9.99ju';
       const APP_VERSION_DATE = '28/10/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -88,7 +88,7 @@
       const DRAFT_FINALIZED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
       const PANEL_CACHE_STORAGE = 'gpvPainelCacheV1';
       const PANEL_RECENT_CACHE_STORAGE = 'gpvPainelRecentesV23_9_99hd';
-      const RECORD_CACHE_STORAGE = 'gpvFichaCacheV1';
+      const RECORD_CACHE_STORAGE = 'gpvFichaCacheV2Ju';
       const GOALS_CACHE_STORAGE = 'gpvMetasCacheV3_hk';
       const RECENT_CONFIRMED_STORAGE = 'gpvPainelConfirmadosRecentesV1';
       const RECENT_CONFIRMED_MAX_AGE_MS = 30 * 60 * 1000;
@@ -2948,7 +2948,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jt';
+      const APP_REVISION_UI_ = '23.9.99ju';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5482,7 +5482,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jt', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99ju', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8182,11 +8182,34 @@
         return texto;
       }
 
+      // V23.9.99ju — nascimento usa conversão exclusiva em DD/MM/AAAA.
+      // Não reutiliza o formatador genérico do Painel para evitar interpretação
+      // ambígua de dia/mês em datas pessoais.
       function formatarDataNascimentoFicha_(valor) {
         const texto = String(valor == null ? '' : valor).trim();
         if (!texto) return '';
-        const formatada = formatarDataPainel_(texto);
-        return formatada === '—' ? '' : formatada;
+
+        let m = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s|$)/);
+        if (m) {
+          const dia = Number(m[1]);
+          const mes = Number(m[2]);
+          const ano = Number(m[3]);
+          if (dia >= 1 && dia <= 31 && mes >= 1 && mes <= 12) {
+            return `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+          }
+        }
+
+        m = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s]|$)/);
+        if (m) {
+          const ano = Number(m[1]);
+          const mes = Number(m[2]);
+          const dia = Number(m[3]);
+          if (dia >= 1 && dia <= 31 && mes >= 1 && mes <= 12) {
+            return `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+          }
+        }
+
+        return texto;
       }
 
       function formatarEnderecoPainel_(item) {
@@ -21326,9 +21349,17 @@ Deseja usar o endereço cadastral do CNPJ?`,
       function formatarDataNascimentoDigitacao_(valor) {
         const texto = String(valor || '').trim();
 
-        // Compatibilidade com dados antigos no formato AAAA-MM-DD.
-        const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+        // V23.9.99ju — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
+        // explicitamente para DD/MM/AAAA antes de qualquer tratamento numérico.
+        const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
+        if (iso) {
+          return `${String(Number(iso[3])).padStart(2,'0')}/${String(Number(iso[2])).padStart(2,'0')}/${iso[1]}`;
+        }
+
+        const barras = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (barras) {
+          return `${String(Number(barras[1])).padStart(2,'0')}/${String(Number(barras[2])).padStart(2,'0')}/${barras[3]}`;
+        }
 
         const d = digits(texto).slice(0, 8);
         if (d.length <= 2) return d;
@@ -25553,7 +25584,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jt', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99ju', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -32672,7 +32703,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jt', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ju', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
