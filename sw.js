@@ -1,3 +1,4 @@
+// V23.9.99kg — imagem do banner institucional pré-armazenada para offline; ativação KB inalterada.
 // V23.9.99kf — shell do topo premium; ativação protegida da KB inalterada.
 // V23.9.99ke — novo shell de indicadores responsivos; preserva ativação controlada da KB.
 // V23.9.99kd — atualização do shell com refinamento de layout; conserva ativação segura da KB.
@@ -44,9 +45,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261104-v23-9-99-kf-topo-premium';
+const CACHE_NAME = 'gpv-vistorias-shell-20261104-v23-9-99-kg-banner-institucional';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99kf';
+const VERSION = '23.9.99kg';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -72,6 +73,7 @@ const CORE_SHELL = [
   `./assets/splash-app-vistoriador.webp?v=${VERSION}`,
   `./assets/splash-app-vistoriador-desktop.webp?v=${VERSION}`,
   `./assets/logo-ddu-181.webp?v=${VERSION}`,
+  `./assets/cabecalho.webp?v=${VERSION}`,
   './offline.html'
 ];
 
