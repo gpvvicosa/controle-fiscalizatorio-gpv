@@ -1,3 +1,4 @@
+// V23.9.99kh — topo integrado no desktop, contadores e setas visuais corrigidos; mantém KG/KF/KB.
 // V23.9.99kg — banner institucional aprovado na home; mantém integralmente KF, KE e KB.
 // V23.9.99ke — indicadores compactos e responsivos (apenas estilo da home); preserva a KD/KC/KB.
 // V23.9.99kd — refinamento de processos no mobile e legibilidade do Painel desktop; preserva a KC/KB.
@@ -75,7 +76,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99kg';
+      const APP_VERSION = '23.9.99kh';
       const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
