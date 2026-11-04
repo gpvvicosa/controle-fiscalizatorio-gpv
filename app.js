@@ -1,4 +1,4 @@
-// V23.9.99jw — hotfix de versão/Service Worker para garantir migração da JR/JS em uma única atualização.
+// V23.9.99jx — refinamento visual da Manutenção do aplicativo; mantém as proteções da JW.
 // V23.9.99js — Vistoria Acessória como opção própria no cadastro e correção segura da classificação após a finalização.
 // V23.9.99jr — sincronização offline resiliente e vínculos do imóvel separados entre proprietário e responsável pelo uso opcional.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
@@ -69,7 +69,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jw';
+      const APP_VERSION = '23.9.99jx';
       const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2665,6 +2665,9 @@
       const appMaintenanceCloseBtn = document.getElementById('appMaintenanceCloseBtn');
       const appMaintenanceStatus = document.getElementById('appMaintenanceStatus');
       const appMaintenanceSummary = document.getElementById('appMaintenanceSummary');
+      const appMaintenanceBlockWrap = document.getElementById('appMaintenanceBlockWrap');
+      const appMaintenanceBlockDetailsBtn = document.getElementById('appMaintenanceBlockDetailsBtn');
+      const appMaintenanceBlockDetails = document.getElementById('appMaintenanceBlockDetails');
       const appMaintenanceCacheBtn = document.getElementById('appMaintenanceCacheBtn');
       const appMaintenanceRepairBtn = document.getElementById('appMaintenanceRepairBtn');
       const appMaintenanceResetBtn = document.getElementById('appMaintenanceResetBtn');
@@ -2956,7 +2959,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jw';
+      const APP_REVISION_UI_ = '23.9.99jx';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3637,14 +3640,31 @@
       async function atualizarResumoManutencao_(mensagem = '') {
         const resumo = await resumoManutencaoApp_();
         renderizarResumoManutencao_(resumo);
+        const motivos = [];
+        if (resumo.vistorias > 0) motivos.push(`${resumo.vistorias} vistoria(s) aguardando sincronização`);
+        if (resumo.fotos > 0) motivos.push(`${resumo.fotos} foto(s) aguardando sincronização`);
+        if (resumo.rascunhos > 0) motivos.push(`${resumo.rascunhos} rascunho(s) salvo(s) no aparelho`);
+        if (resumo.cancelamentos > 0) motivos.push(`${resumo.cancelamentos} cancelamento(s) aguardando sincronização`);
+        if (!navigator.onLine) motivos.push('aparelho sem conexão com a internet');
+        const protegido = motivos.length > 0;
         if (appMaintenanceStatus) {
-          const protegido = resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0;
           appMaintenanceStatus.textContent = mensagem || (protegido
-            ? 'Há dados operacionais preservados neste aparelho. A redefinição total ficará bloqueada; as rotinas seguras continuam disponíveis.'
+            ? 'Há dados operacionais protegidos neste aparelho. As rotinas seguras continuam disponíveis; a redefinição total está bloqueada.'
             : 'Aparelho pronto para manutenção. Nenhum rascunho ou envio pendente foi encontrado.');
           appMaintenanceStatus.className = `app-maintenance-status ${protegido ? 'is-warning' : 'is-ok'}`;
         }
-        if (appMaintenanceResetBtn) appMaintenanceResetBtn.disabled = Boolean(resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0 || !navigator.onLine);
+        if (appMaintenanceBlockWrap) appMaintenanceBlockWrap.hidden = !protegido;
+        if (appMaintenanceBlockDetailsBtn) {
+          appMaintenanceBlockDetailsBtn.hidden = !protegido;
+          appMaintenanceBlockDetailsBtn.setAttribute('aria-expanded', 'false');
+        }
+        if (appMaintenanceBlockDetails) {
+          appMaintenanceBlockDetails.hidden = true;
+          appMaintenanceBlockDetails.innerHTML = protegido
+            ? `<strong>Redefinição total bloqueada por segurança:</strong><ul>${motivos.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+            : '';
+        }
+        if (appMaintenanceResetBtn) appMaintenanceResetBtn.disabled = protegido;
         return resumo;
       }
 
@@ -5711,7 +5731,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jw', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jx', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8411,7 +8431,7 @@
         return texto;
       }
 
-      // V23.9.99jw — nascimento usa conversão exclusiva em DD/MM/AAAA.
+      // V23.9.99jx — nascimento usa conversão exclusiva em DD/MM/AAAA.
       // Não reutiliza o formatador genérico do Painel para evitar interpretação
       // ambígua de dia/mês em datas pessoais.
       function formatarDataNascimentoFicha_(valor) {
@@ -21578,7 +21598,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       function formatarDataNascimentoDigitacao_(valor) {
         const texto = String(valor || '').trim();
 
-        // V23.9.99jw — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
+        // V23.9.99jx — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
         // explicitamente para DD/MM/AAAA antes de qualquer tratamento numérico.
         const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
         if (iso) {
@@ -25813,7 +25833,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jw', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jx', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -32401,6 +32421,13 @@ Deseja usar o endereço cadastral do CNPJ?`,
       appMaintenanceCloseBtn?.addEventListener('click', fecharManutencaoApp_);
       appMaintenanceModal?.addEventListener('click', event => { if (event.target === appMaintenanceModal) fecharManutencaoApp_(); });
       appMaintenanceCacheBtn?.addEventListener('click', () => { void executarLimpezaCacheManutencao_(); });
+      appMaintenanceBlockDetailsBtn?.addEventListener('click', () => {
+        if (!appMaintenanceBlockDetails || !appMaintenanceBlockDetailsBtn) return;
+        const abrir = appMaintenanceBlockDetails.hidden;
+        appMaintenanceBlockDetails.hidden = !abrir;
+        appMaintenanceBlockDetailsBtn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        appMaintenanceBlockDetailsBtn.textContent = abrir ? 'Ocultar motivo do bloqueio' : 'Ver o que está impedindo a redefinição';
+      });
       appMaintenanceRepairBtn?.addEventListener('click', () => { void executarReparoArmazenamentoManutencao_(); });
       appMaintenanceResetBtn?.addEventListener('click', () => { void executarResetTotalManutencao_(); });
       appDiagnosticsCloseBtn?.addEventListener('click', fecharDiagnosticoApp_);
@@ -32938,7 +32965,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jw', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jx', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
