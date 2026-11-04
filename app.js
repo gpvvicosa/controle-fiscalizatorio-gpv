@@ -1,3 +1,4 @@
+// V23.9.99kc — acesso rápido a Cadastrar vistoria e layout premium laranja/grafite no Painel; preserva atualização KB.
 // V23.9.99kb — aviso persistente, atualização em ociosidade com proteção operacional e sem recarga em ciclo.
 // V23.9.99ka — atualização automática com recarga única protegida e manutenção com cores legíveis.
 // V23.9.99jz — refinamento visual da Manutenção do aplicativo; mantém as proteções da JW.
@@ -71,7 +72,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99kb';
+      const APP_VERSION = '23.9.99kc';
       const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2179,6 +2180,7 @@
       const recordsProgressiveNote = document.getElementById('recordsProgressiveNote');
       const dashboardNewInspectionBtn = document.getElementById('dashboardNewInspectionBtn');
       const dashboardStartInspectionBtn = document.getElementById('dashboardStartInspectionBtn');
+      const dashboardPrepareInspectionBtn = document.getElementById('dashboardPrepareInspectionBtn');
       const kpiTotal = document.getElementById('kpiTotal');
       const kpiAutuado = document.getElementById('kpiAutuado');
       const kpiAdvertencia = document.getElementById('kpiAdvertencia');
@@ -32394,6 +32396,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
       };
       dashboardNewInspectionBtn?.addEventListener('click', iniciarNovaVistoriaDireto_);
       dashboardStartInspectionBtn?.addEventListener('click', iniciarNovaVistoriaDireto_);
+      // KC: aciona somente o modal já homologado, sem iniciar a vistoria nem bypassar permissões.
+      dashboardPrepareInspectionBtn?.addEventListener('click', () => abrirModalPreparacao_());
       recordsTabBtn?.addEventListener('click', () => mostrarVistaPlanilha_());
       recordsRefreshBtn?.addEventListener('click', () => carregarRegistros_(false, { forcar: true, motivo: 'atualização manual' }));
       iniciarFiltrosPainelPremium_();
