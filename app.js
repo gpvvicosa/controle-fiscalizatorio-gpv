@@ -1,4 +1,4 @@
-// V23.9.99jv — hotfix de versão/Service Worker para garantir migração da JR/JS em uma única atualização.
+// V23.9.99jw — hotfix de versão/Service Worker para garantir migração da JR/JS em uma única atualização.
 // V23.9.99js — Vistoria Acessória como opção própria no cadastro e correção segura da classificação após a finalização.
 // V23.9.99jr — sincronização offline resiliente e vínculos do imóvel separados entre proprietário e responsável pelo uso opcional.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
@@ -69,8 +69,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jv';
-      const APP_VERSION_DATE = '28/10/2026';
+      const APP_VERSION = '23.9.99jw';
+      const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -2660,6 +2660,14 @@
       const appDiagnosticsRefreshBtn = document.getElementById('appDiagnosticsRefreshBtn');
       const appDiagnosticsCopyBtn = document.getElementById('appDiagnosticsCopyBtn');
       const appDiagnosticsCheckedAt = document.getElementById('appDiagnosticsCheckedAt');
+      const appMaintenanceBtn = document.getElementById('appMaintenanceBtn');
+      const appMaintenanceModal = document.getElementById('appMaintenanceModal');
+      const appMaintenanceCloseBtn = document.getElementById('appMaintenanceCloseBtn');
+      const appMaintenanceStatus = document.getElementById('appMaintenanceStatus');
+      const appMaintenanceSummary = document.getElementById('appMaintenanceSummary');
+      const appMaintenanceCacheBtn = document.getElementById('appMaintenanceCacheBtn');
+      const appMaintenanceRepairBtn = document.getElementById('appMaintenanceRepairBtn');
+      const appMaintenanceResetBtn = document.getElementById('appMaintenanceResetBtn');
       const syncCenterBtn = document.getElementById('syncCenterBtn');
       const syncCenterModal = document.getElementById('syncCenterModal');
       const syncCenterCloseBtn = document.getElementById('syncCenterCloseBtn');
@@ -2948,7 +2956,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jv';
+      const APP_REVISION_UI_ = '23.9.99jw';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -2984,6 +2992,7 @@
         ['user-manager-open', () => userManagerModal && !userManagerModal.hidden],
         ['about-open', () => aboutSystemModal && !aboutSystemModal.hidden],
         ['app-diagnostics-open', () => appDiagnosticsModal && !appDiagnosticsModal.hidden],
+        ['app-maintenance-open', () => appMaintenanceModal && !appMaintenanceModal.hidden],
         ['sync-center-open', () => syncCenterModal && !syncCenterModal.hidden],
         ['gpv-pending-center-open', () => gpvPendingCenterModal && !gpvPendingCenterModal.hidden],
         ['access-guidance-open', () => accessGuidanceModal && !accessGuidanceModal.hidden],
@@ -3585,6 +3594,226 @@
         if (!appDiagnosticsModal) return;
         appDiagnosticsModal.hidden = true;
         document.body.classList.remove('app-diagnostics-open');
+      }
+
+      function formatarBytesManutencao_(bytes) {
+        const n = Number(bytes || 0);
+        if (!Number.isFinite(n) || n <= 0) return '0 MB';
+        if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`;
+        return `${(n / (1024 * 1024)).toFixed(n >= 100 * 1024 * 1024 ? 0 : 1)} MB`;
+      }
+
+      async function resumoManutencaoApp_() {
+        let fotos = Number(photoPendingCountCache_ || 0);
+        try { fotos = (await listarFotosPendentesDb_()).length; photoPendingCountCache_ = fotos; } catch (_) {}
+        const vistorias = obterPendentes().length;
+        const rascunhos = contarRascunhosLocaisDiagnostico_();
+        const cancelamentos = (() => { try { return lerCancelamentosRascunhoPendentes_().length; } catch (_) { return 0; } })();
+        let cachesQtd = 0;
+        try { cachesQtd = (await caches.keys()).filter(k => k.startsWith('gpv-vistorias-')).length; } catch (_) {}
+        let armazenamento = '';
+        try {
+          const est = await navigator.storage?.estimate?.();
+          if (est && Number.isFinite(Number(est.usage))) armazenamento = formatarBytesManutencao_(est.usage);
+        } catch (_) {}
+        return { vistorias, fotos, fila:vistorias + fotos, rascunhos, cancelamentos, cachesQtd, armazenamento };
+      }
+
+      function renderizarResumoManutencao_(r) {
+        if (!appMaintenanceSummary) return;
+        const metricas = [
+          ['Versão', `V${APP_VERSION}`, APP_VERSION_DATE],
+          ['Conexão', navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'Rede disponível' : 'Sem internet'],
+          ['Fila offline', String(r.fila || 0), `${r.vistorias || 0} vistoria(s) • ${r.fotos || 0} foto(s)`],
+          ['Rascunhos', String(r.rascunhos || 0), r.cancelamentos ? `${r.cancelamentos} cancelamento(s) aguardando` : (r.armazenamento ? `Uso local: ${r.armazenamento}` : `${r.cachesQtd || 0} cache(s) do app`)]
+        ];
+        appMaintenanceSummary.innerHTML = metricas.map(([rotulo, valor, detalhe]) => `<div class="app-maintenance-metric"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong><small>${escapeHtml(detalhe)}</small></div>`).join('');
+      }
+
+      function bloquearBotoesManutencao_(bloquear) {
+        [appMaintenanceCacheBtn, appMaintenanceRepairBtn, appMaintenanceResetBtn].forEach(btn => { if (btn) btn.disabled = Boolean(bloquear); });
+      }
+
+      async function atualizarResumoManutencao_(mensagem = '') {
+        const resumo = await resumoManutencaoApp_();
+        renderizarResumoManutencao_(resumo);
+        if (appMaintenanceStatus) {
+          const protegido = resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0;
+          appMaintenanceStatus.textContent = mensagem || (protegido
+            ? 'Há dados operacionais preservados neste aparelho. A redefinição total ficará bloqueada; as rotinas seguras continuam disponíveis.'
+            : 'Aparelho pronto para manutenção. Nenhum rascunho ou envio pendente foi encontrado.');
+          appMaintenanceStatus.className = `app-maintenance-status ${protegido ? 'is-warning' : 'is-ok'}`;
+        }
+        if (appMaintenanceResetBtn) appMaintenanceResetBtn.disabled = Boolean(resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0 || !navigator.onLine);
+        return resumo;
+      }
+
+      function abrirManutencaoApp_() {
+        fecharMenuMais_();
+        if (!appMaintenanceModal) return;
+        appMaintenanceModal.hidden = false;
+        document.body.classList.add('app-maintenance-open');
+        void atualizarResumoManutencao_();
+        setTimeout(() => appMaintenanceCloseBtn?.focus(), 0);
+      }
+
+      function fecharManutencaoApp_() {
+        if (!appMaintenanceModal) return;
+        appMaintenanceModal.hidden = true;
+        document.body.classList.remove('app-maintenance-open');
+      }
+
+      function limparStoragesRecriaveisManutencao_() {
+        const exatas = new Set([
+          CONFIG_CACHE_KEY, CONFIG_SYNC_META_STORAGE, PANEL_CACHE_STORAGE, PANEL_RECENT_CACHE_STORAGE, RECORD_CACHE_STORAGE,
+          GOALS_CACHE_STORAGE, RECENT_CONFIRMED_STORAGE, SUGGESTIONS_CACHE_STORAGE, PROCESS_STATUS_SYNC_STORAGE,
+          PANEL_LAST_SUCCESS_STORAGE, PANEL_LAST_ERROR_STORAGE, APP_LAST_API_SUCCESS_STORAGE, APP_LAST_ERROR_KEY_, APP_LAST_RECOVERY_KEY_,
+          PROGRAMADAS_CACHE_STORAGE_, PROGRAMADAS_CACHE_META_STORAGE_, USERS_CACHE_STORAGE, DDU_CACHE_STORAGE, APP_ALERTS_CACHE_STORAGE,
+          HOME_OPERATIONAL_LOG_STORAGE
+        ].filter(Boolean));
+        const prefixos = ['gpvPainelCache','gpvPainelRecentes','gpvFichaCache','gpvMetasCache','gpvSugestoesFiscalizacaoCache','gpv_preparacoes_cache','gpvAvisosAppCache','gpvDdusCache'];
+        const remover = [];
+        try {
+          for (let i = 0; i < localStorage.length; i += 1) {
+            const chave = localStorage.key(i);
+            if (!chave) continue;
+            if (exatas.has(chave) || prefixos.some(p => chave.startsWith(p))) remover.push(chave);
+          }
+          remover.forEach(chave => localStorage.removeItem(chave));
+        } catch (_) {}
+        painelSessaoConfirmado_.clear();
+        sugestoesFiscalizacaoCarregadas = false;
+        sugestoesFiscalizacao = [];
+        sugestoesFiscalizacaoGeradoEm = '';
+        metasMensaisAtual = null;
+        metasDetalhesCarregados = false;
+        metasDetalhesCarregando = false;
+        return remover.length;
+      }
+
+      async function limparCacheStorageManutencao_(preservarShellAtual = true, preservarDocumentos = false) {
+        if (!('caches' in window)) return 0;
+        const chaves = await caches.keys();
+        const sufixo = String(APP_VERSION.match(/99(.+)$/)?.[1] || '').toLowerCase();
+        const marcadorAtual = sufixo ? `v23-9-99-${sufixo}` : '';
+        const alvos = chaves.filter(chave => {
+          if (!chave.startsWith('gpv-vistorias-')) return false;
+          if (preservarDocumentos && chave.includes('runtime-documentos')) return false;
+          if (preservarShellAtual && chave.startsWith('gpv-vistorias-shell-') && marcadorAtual && chave.includes(marcadorAtual)) return false;
+          return true;
+        });
+        await Promise.all(alvos.map(chave => caches.delete(chave).catch(() => false)));
+        return alvos.length;
+      }
+
+      function recarregarAposManutencao_(motivo) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('manutencao', String(motivo || 'ok'));
+        url.searchParams.set('appAtualizado', String(Date.now()));
+        window.location.replace(url.toString());
+      }
+
+      async function executarLimpezaCacheManutencao_() {
+        if (!navigator.onLine) {
+          await avisarGpv_('Conecte o aparelho à internet antes de limpar e atualizar o cache. Assim o app mantém uma cópia segura da versão atual.', 'Manutenção', { tom:'warning' });
+          return;
+        }
+        const ok = await confirmarGpv_(
+          'Esta ação remove apenas caches e dados temporários recriáveis. Rascunhos, fila offline, sessão, perfis e senha salva serão preservados. Continuar?',
+          'Atualizar e limpar cache'
+        );
+        if (!ok) return;
+        bloquearBotoesManutencao_(true);
+        if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Limpando caches antigos e conferindo a versão atual...'; appMaintenanceStatus.className = 'app-maintenance-status'; }
+        try {
+          limparStoragesRecriaveisManutencao_();
+          await limparCacheStorageManutencao_(true, false);
+          const registro = await navigator.serviceWorker?.getRegistration?.();
+          if (registro) await registro.update().catch(() => {});
+          if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Cache limpo com segurança. Reabrindo a versão atual...'; appMaintenanceStatus.className = 'app-maintenance-status is-ok'; }
+          setTimeout(() => recarregarAposManutencao_('cache'), 500);
+        } catch (erro) {
+          if (appMaintenanceStatus) { appMaintenanceStatus.textContent = `Não foi possível concluir a limpeza: ${String(erro?.message || erro)}`; appMaintenanceStatus.className = 'app-maintenance-status is-error'; }
+          bloquearBotoesManutencao_(false);
+          void atualizarResumoManutencao_();
+        }
+      }
+
+      async function executarReparoArmazenamentoManutencao_() {
+        const ok = await confirmarGpv_(
+          'O reparo remove caches locais recriáveis e estados temporários da interface. Rascunhos, fila offline, sessão, perfis e senha salva não serão apagados. Continuar?',
+          'Reparar armazenamento local'
+        );
+        if (!ok) return;
+        bloquearBotoesManutencao_(true);
+        if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Reparando armazenamento e estados temporários...'; appMaintenanceStatus.className = 'app-maintenance-status'; }
+        try {
+          limparStoragesRecriaveisManutencao_();
+          await limparCacheStorageManutencao_(true, true);
+          repararInterfaceOrfa_('manutenção manual');
+          if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Reparo concluído. Rascunhos e fila offline foram preservados. Reabrindo o app...'; appMaintenanceStatus.className = 'app-maintenance-status is-ok'; }
+          setTimeout(() => recarregarAposManutencao_('reparo'), 500);
+        } catch (erro) {
+          if (appMaintenanceStatus) { appMaintenanceStatus.textContent = `Não foi possível concluir o reparo: ${String(erro?.message || erro)}`; appMaintenanceStatus.className = 'app-maintenance-status is-error'; }
+          bloquearBotoesManutencao_(false);
+          void atualizarResumoManutencao_();
+        }
+      }
+
+      function apagarBancoOfflineManutencao_() {
+        return new Promise(resolve => {
+          if (!('indexedDB' in window)) return resolve(true);
+          let resolvido = false;
+          const finalizar = valor => { if (resolvido) return; resolvido = true; resolve(valor); };
+          try {
+            const req = indexedDB.deleteDatabase(DB_NAME);
+            req.onsuccess = () => finalizar(true);
+            req.onerror = () => finalizar(false);
+            req.onblocked = () => finalizar(false);
+            setTimeout(() => finalizar(false), 3500);
+          } catch (_) { finalizar(false); }
+        });
+      }
+
+      async function executarResetTotalManutencao_() {
+        const resumo = await resumoManutencaoApp_();
+        if (resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0) {
+          await avisarGpv_(
+            `Redefinição bloqueada para proteger seus dados. Existem ${resumo.rascunhos} rascunho(s), ${resumo.fila} envio(s) offline ou ${resumo.cancelamentos} cancelamento(s) ainda pendente(s). Sincronize/conclua esses itens primeiro.`,
+            'Dados operacionais preservados',
+            { tom:'warning' }
+          );
+          return;
+        }
+        if (!navigator.onLine) {
+          await avisarGpv_('A redefinição total exige internet para que o aplicativo possa ser baixado novamente imediatamente.', 'Sem internet', { tom:'warning' });
+          return;
+        }
+        const primeiro = await confirmarGpv_(
+          'Esta opção é excepcional. Ela encerrará a sessão, removerá caches e configurações locais e recriará o PWA neste aparelho. Nenhuma vistoria/rascunho pendente foi detectada. Deseja continuar?',
+          'Redefinir aplicativo'
+        );
+        if (!primeiro) return;
+        const segundo = await confirmarGpv_(
+          'Confirma a redefinição completa deste aparelho? Depois será necessário entrar novamente com seu usuário.',
+          'Confirmação final'
+        );
+        if (!segundo) return;
+        bloquearBotoesManutencao_(true);
+        if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Redefinindo o aplicativo com segurança...'; appMaintenanceStatus.className = 'app-maintenance-status is-warning'; }
+        try {
+          try { localStorage.clear(); } catch (_) {}
+          try { sessionStorage.clear(); } catch (_) {}
+          try { const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('gpv-vistorias-')).map(k => caches.delete(k))); } catch (_) {}
+          await apagarBancoOfflineManutencao_();
+          try { const regs = await navigator.serviceWorker?.getRegistrations?.(); await Promise.all((regs || []).map(r => r.unregister().catch(() => false))); } catch (_) {}
+          const url = new URL('./', window.location.href);
+          url.searchParams.set('resetApp', String(Date.now()));
+          window.location.replace(url.toString());
+        } catch (erro) {
+          if (appMaintenanceStatus) { appMaintenanceStatus.textContent = `Não foi possível concluir a redefinição: ${String(erro?.message || erro)}`; appMaintenanceStatus.className = 'app-maintenance-status is-error'; }
+          bloquearBotoesManutencao_(false);
+        }
       }
 
       function horarioSincronizacao_(valor) {
@@ -5482,7 +5711,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jv', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jw', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8182,7 +8411,7 @@
         return texto;
       }
 
-      // V23.9.99jv — nascimento usa conversão exclusiva em DD/MM/AAAA.
+      // V23.9.99jw — nascimento usa conversão exclusiva em DD/MM/AAAA.
       // Não reutiliza o formatador genérico do Painel para evitar interpretação
       // ambígua de dia/mês em datas pessoais.
       function formatarDataNascimentoFicha_(valor) {
@@ -21349,7 +21578,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       function formatarDataNascimentoDigitacao_(valor) {
         const texto = String(valor || '').trim();
 
-        // V23.9.99jv — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
+        // V23.9.99jw — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
         // explicitamente para DD/MM/AAAA antes de qualquer tratamento numérico.
         const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
         if (iso) {
@@ -25584,7 +25813,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jv', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jw', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -32168,6 +32397,12 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (abrir) void abrirItemCentralPendenciasGpv_(abrir.dataset.gpvPendingOpen || '');
       });
       appDiagnosticsBtn?.addEventListener('click', abrirDiagnosticoApp_);
+      appMaintenanceBtn?.addEventListener('click', abrirManutencaoApp_);
+      appMaintenanceCloseBtn?.addEventListener('click', fecharManutencaoApp_);
+      appMaintenanceModal?.addEventListener('click', event => { if (event.target === appMaintenanceModal) fecharManutencaoApp_(); });
+      appMaintenanceCacheBtn?.addEventListener('click', () => { void executarLimpezaCacheManutencao_(); });
+      appMaintenanceRepairBtn?.addEventListener('click', () => { void executarReparoArmazenamentoManutencao_(); });
+      appMaintenanceResetBtn?.addEventListener('click', () => { void executarResetTotalManutencao_(); });
       appDiagnosticsCloseBtn?.addEventListener('click', fecharDiagnosticoApp_);
       appDiagnosticsRefreshBtn?.addEventListener('click', () => { void atualizarDiagnosticoApp_(); });
       appDiagnosticsCopyBtn?.addEventListener('click', () => { void copiarRelatorioDiagnosticoApp_(); });
@@ -32703,7 +32938,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jv', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jw', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
