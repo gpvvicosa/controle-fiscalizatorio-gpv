@@ -1,3 +1,4 @@
+// V23.9.99kl — novo shell visual; atualização segura e cache offline preservados.
 // V23.9.99kk — pré-cache do bombeiro transparente, demais regras de SW preservadas.
 // V23.9.99kj — shell do topo desktop refinado; cache e atualização preservados.
 // V23.9.99kj — shell do cabeçalho desktop; ativação e cache offline KB/KH preservados.
@@ -49,9 +50,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261104-v23-9-99-kk-bombeiro-grafite';
+const CACHE_NAME = 'gpv-vistorias-shell-20261104-v23-9-99-kl-identidade-programadas';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99kk';
+const VERSION = '23.9.99kl';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
