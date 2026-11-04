@@ -1,4 +1,4 @@
-// V23.9.99jy — refinamento visual da Manutenção do aplicativo; mantém as proteções da JW.
+// V23.9.99jz — refinamento visual da Manutenção do aplicativo; mantém as proteções da JW.
 // V23.9.99js — Vistoria Acessória como opção própria no cadastro e correção segura da classificação após a finalização.
 // V23.9.99jr — sincronização offline resiliente e vínculos do imóvel separados entre proprietário e responsável pelo uso opcional.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
@@ -69,7 +69,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jy';
+      const APP_VERSION = '23.9.99jz';
       const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2960,7 +2960,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jy';
+      const APP_REVISION_UI_ = '23.9.99jz';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5804,7 +5804,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jy', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jz', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -6584,6 +6584,8 @@
         if (mobileChoiceState.overlay) return mobileChoiceState;
         const overlay = document.createElement('div');
         overlay.className = 'mobile-choice-overlay';
+        // V23.9.99jz — garante que a lista móvel fique acima de qualquer modal operacional.
+        overlay.style.zIndex = '2147483500';
         overlay.hidden = true;
         overlay.innerHTML = `
           <section class="mobile-choice-sheet" role="dialog" aria-modal="true" aria-labelledby="mobileChoiceTitle">
@@ -6787,11 +6789,17 @@
             return;
           }
 
+          // V23.9.99jz — só cancela o seletor nativo depois que o seletor personalizado
+          // confirmou que conseguiu abrir. Se ele falhar, o navegador mantém o fallback nativo.
+          let abriu = true;
+          if (mobileChoiceState.target !== alvo || mobileChoiceState.overlay?.hidden) {
+            try { abriu = abrirEscolhaMovel_(alvo); } catch (erro) { abriu = false; console.warn('[GPV] Seletor móvel indisponível; usando seletor nativo.', erro); }
+          }
+          if (!abriu) { limparGesto(); return; }
           event.preventDefault();
           event.stopImmediatePropagation();
           limparGesto();
           alvo.blur?.();
-          if (mobileChoiceState.target !== alvo || mobileChoiceState.overlay?.hidden) abrirEscolhaMovel_(alvo);
         }, true);
 
         window.addEventListener('resize', () => { if (!escolhaMovelDisponivel_()) fecharEscolhaMovel_(); });
@@ -8504,7 +8512,7 @@
         return texto;
       }
 
-      // V23.9.99jy — nascimento usa conversão exclusiva em DD/MM/AAAA.
+      // V23.9.99jz — nascimento usa conversão exclusiva em DD/MM/AAAA.
       // Não reutiliza o formatador genérico do Painel para evitar interpretação
       // ambígua de dia/mês em datas pessoais.
       function formatarDataNascimentoFicha_(valor) {
@@ -21671,7 +21679,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       function formatarDataNascimentoDigitacao_(valor) {
         const texto = String(valor || '').trim();
 
-        // V23.9.99jy — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
+        // V23.9.99jz — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
         // explicitamente para DD/MM/AAAA antes de qualquer tratamento numérico.
         const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
         if (iso) {
@@ -25906,7 +25914,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jy', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jz', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -33039,7 +33047,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jy', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jz', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
