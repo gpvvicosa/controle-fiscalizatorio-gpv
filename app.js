@@ -1,4 +1,4 @@
-// V23.9.99jx — refinamento visual da Manutenção do aplicativo; mantém as proteções da JW.
+// V23.9.99jy — refinamento visual da Manutenção do aplicativo; mantém as proteções da JW.
 // V23.9.99js — Vistoria Acessória como opção própria no cadastro e correção segura da classificação após a finalização.
 // V23.9.99jr — sincronização offline resiliente e vínculos do imóvel separados entre proprietário e responsável pelo uso opcional.
 // V23.9.99jm — Filtro rígido por endereço, reconciliação pré-carregada e Pendências na Home.
@@ -69,7 +69,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99jx';
+      const APP_VERSION = '23.9.99jy';
       const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2670,6 +2670,7 @@
       const appMaintenanceBlockDetails = document.getElementById('appMaintenanceBlockDetails');
       const appMaintenanceCacheBtn = document.getElementById('appMaintenanceCacheBtn');
       const appMaintenanceRepairBtn = document.getElementById('appMaintenanceRepairBtn');
+      const appMaintenanceClearResolvedBtn = document.getElementById('appMaintenanceClearResolvedBtn');
       const appMaintenanceResetBtn = document.getElementById('appMaintenanceResetBtn');
       const syncCenterBtn = document.getElementById('syncCenterBtn');
       const syncCenterModal = document.getElementById('syncCenterModal');
@@ -2959,7 +2960,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99jx';
+      const APP_REVISION_UI_ = '23.9.99jy';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -3628,13 +3629,14 @@
           ['Versão', `V${APP_VERSION}`, APP_VERSION_DATE],
           ['Conexão', navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'Rede disponível' : 'Sem internet'],
           ['Fila offline', String(r.fila || 0), `${r.vistorias || 0} vistoria(s) • ${r.fotos || 0} foto(s)`],
-          ['Rascunhos', String(r.rascunhos || 0), r.cancelamentos ? `${r.cancelamentos} cancelamento(s) aguardando` : (r.armazenamento ? `Uso local: ${r.armazenamento}` : `${r.cachesQtd || 0} cache(s) do app`)]
+          ['Rascunhos', String(r.rascunhos || 0), r.armazenamento ? `Uso local: ${r.armazenamento}` : `${r.cachesQtd || 0} cache(s) do app`],
+          ['Cancelamentos locais', String(r.cancelamentos || 0), r.cancelamentos ? 'Marcador(es) aguardando sincronização' : 'Nenhum marcador pendente']
         ];
         appMaintenanceSummary.innerHTML = metricas.map(([rotulo, valor, detalhe]) => `<div class="app-maintenance-metric"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong><small>${escapeHtml(detalhe)}</small></div>`).join('');
       }
 
       function bloquearBotoesManutencao_(bloquear) {
-        [appMaintenanceCacheBtn, appMaintenanceRepairBtn, appMaintenanceResetBtn].forEach(btn => { if (btn) btn.disabled = Boolean(bloquear); });
+        [appMaintenanceCacheBtn, appMaintenanceRepairBtn, appMaintenanceClearResolvedBtn, appMaintenanceResetBtn].forEach(btn => { if (btn) btn.disabled = Boolean(bloquear); });
       }
 
       async function atualizarResumoManutencao_(mensagem = '') {
@@ -3649,7 +3651,7 @@
         const protegido = motivos.length > 0;
         if (appMaintenanceStatus) {
           appMaintenanceStatus.textContent = mensagem || (protegido
-            ? 'Há dados operacionais protegidos neste aparelho. As rotinas seguras continuam disponíveis; a redefinição total está bloqueada.'
+            ? 'Há dados operacionais locais neste aparelho. Você pode tentar sincronizar, limpar marcadores já resolvidos ou redefinir o aplicativo com confirmação reforçada.'
             : 'Aparelho pronto para manutenção. Nenhum rascunho ou envio pendente foi encontrado.');
           appMaintenanceStatus.className = `app-maintenance-status ${protegido ? 'is-warning' : 'is-ok'}`;
         }
@@ -3661,10 +3663,9 @@
         if (appMaintenanceBlockDetails) {
           appMaintenanceBlockDetails.hidden = true;
           appMaintenanceBlockDetails.innerHTML = protegido
-            ? `<strong>Redefinição total bloqueada por segurança:</strong><ul>${motivos.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+            ? `<strong>Dados locais detectados:</strong><ul>${motivos.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><small>A redefinição continua disponível, mas poderá apagar esses dados locais deste aparelho.</small>`
             : '';
         }
-        if (appMaintenanceResetBtn) appMaintenanceResetBtn.disabled = protegido;
         return resumo;
       }
 
@@ -3780,6 +3781,39 @@
         }
       }
 
+      async function executarLimpezaPendenciasLocaisResolvidas_() {
+        let cancelamentos = lerCancelamentosRascunhoPendentes_();
+        if (!cancelamentos.length) {
+          await avisarGpv_('Nenhum marcador local de cancelamento foi encontrado para limpar.', 'Pendências locais');
+          await atualizarResumoManutencao_();
+          return;
+        }
+
+        if (navigator.onLine && usuarioPodeOperar_()) {
+          if (appMaintenanceStatus) {
+            appMaintenanceStatus.textContent = 'Conferindo se os cancelamentos locais ainda precisam ser sincronizados...';
+            appMaintenanceStatus.className = 'app-maintenance-status';
+          }
+          await processarCancelamentosRascunhoPendentes_().catch(() => 0);
+          cancelamentos = lerCancelamentosRascunhoPendentes_();
+          if (!cancelamentos.length) {
+            await atualizarResumoManutencao_('Os marcadores pendentes foram sincronizados e removidos automaticamente.');
+            return;
+          }
+        }
+
+        const quantidade = cancelamentos.length;
+        const ok = await confirmarGpv_(
+          `Ainda existem ${quantidade} marcador(es) local(is) de cancelamento. Use esta opção somente quando você souber que essas situações já foram resolvidas. A limpeza remove apenas o aviso local deste aparelho; não envia cancelamento ao servidor e não apaga vistorias, fotos ou rascunhos. Continuar?`,
+          'Limpar pendências locais já resolvidas',
+          { tom:'warning', rotuloConfirmar:'Limpar marcadores', rotuloCancelar:'Cancelar' }
+        );
+        if (!ok) return;
+
+        try { localStorage.setItem(DRAFT_CANCEL_QUEUE_STORAGE, '[]'); } catch (_) {}
+        await atualizarResumoManutencao_(`${quantidade} marcador(es) local(is) removido(s). Vistorias, fotos e rascunhos foram preservados.`);
+      }
+
       function apagarBancoOfflineManutencao_() {
         return new Promise(resolve => {
           if (!('indexedDB' in window)) return resolve(true);
@@ -3796,31 +3830,70 @@
       }
 
       async function executarResetTotalManutencao_() {
-        const resumo = await resumoManutencaoApp_();
-        if (resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0) {
-          await avisarGpv_(
-            `Redefinição bloqueada para proteger seus dados. Existem ${resumo.rascunhos} rascunho(s), ${resumo.fila} envio(s) offline ou ${resumo.cancelamentos} cancelamento(s) ainda pendente(s). Sincronize/conclua esses itens primeiro.`,
-            'Dados operacionais preservados',
-            { tom:'warning' }
-          );
-          return;
-        }
+        let resumo = await resumoManutencaoApp_();
+        let temDadosLocais = resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0;
+
         if (!navigator.onLine) {
-          await avisarGpv_('A redefinição total exige internet para que o aplicativo possa ser baixado novamente imediatamente.', 'Sem internet', { tom:'warning' });
+          await avisarGpv_('A redefinição está disponível, mas exige internet para que o aplicativo possa ser baixado novamente imediatamente. Conecte o aparelho e tente outra vez.', 'Sem internet', { tom:'warning' });
           return;
         }
+
+        if (temDadosLocais) {
+          const detalhes = [
+            resumo.vistorias ? `${resumo.vistorias} vistoria(s) aguardando envio` : '',
+            resumo.fotos ? `${resumo.fotos} foto(s) aguardando envio` : '',
+            resumo.rascunhos ? `${resumo.rascunhos} rascunho(s) local(is)` : '',
+            resumo.cancelamentos ? `${resumo.cancelamentos} cancelamento(s) local(is)` : ''
+          ].filter(Boolean).join(' • ');
+
+          const escolha = await escolherOpcaoGpv_(
+            `Foram encontrados dados locais neste aparelho: ${detalhes}.\n\nA redefinição apagará os dados locais deste aparelho. Registros que já foram gravados no servidor/planilha não serão apagados.`,
+            [
+              { valor:'sincronizar', titulo:'Tentar sincronizar primeiro', subtitulo:'Tenta enviar filas e cancelamentos antes de qualquer redefinição.' },
+              { valor:'continuar', titulo:'Redefinir mesmo assim', subtitulo:'Prossegue mesmo com os dados locais indicados acima. Use somente se você já conferiu a situação.' }
+            ],
+            'Dados locais encontrados',
+            { tom:'warning', rotuloCancelar:'Cancelar' }
+          );
+          if (!escolha) return;
+
+          if (escolha === 'sincronizar') {
+            bloquearBotoesManutencao_(true);
+            if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Tentando sincronizar os dados locais antes da redefinição...'; appMaintenanceStatus.className = 'app-maintenance-status'; }
+            try {
+              await sincronizarTudoPendente_(false);
+              try { await sincronizarRascunhoCompartilhado_('em_andamento', true); } catch (_) {}
+              try { await sincronizarEstadosRascunhosLocais_({ mostrarStatus:false }); } catch (_) {}
+            } finally {
+              bloquearBotoesManutencao_(false);
+            }
+            resumo = await atualizarResumoManutencao_();
+            temDadosLocais = resumo.fila > 0 || resumo.rascunhos > 0 || resumo.cancelamentos > 0;
+            if (temDadosLocais) {
+              await avisarGpv_('Ainda existem dados locais após a tentativa de sincronização. Você pode conferir a lista, limpar marcadores já resolvidos ou tocar em “Redefinir aplicativo” novamente e escolher “Redefinir mesmo assim”.', 'Ainda há dados locais', { tom:'warning' });
+              return;
+            }
+          }
+        }
+
         const primeiro = await confirmarGpv_(
-          'Esta opção é excepcional. Ela encerrará a sessão, removerá caches e configurações locais e recriará o PWA neste aparelho. Nenhuma vistoria/rascunho pendente foi detectada. Deseja continuar?',
-          'Redefinir aplicativo'
+          temDadosLocais
+            ? 'Você escolheu redefinir mesmo com dados locais detectados. Esta ação encerrará a sessão, removerá caches, configurações e dados locais deste aparelho. Dados já gravados no servidor/planilha permanecem lá. Deseja continuar?'
+            : 'Esta opção encerrará a sessão, removerá caches e configurações locais e recriará o PWA neste aparelho. Deseja continuar?',
+          'Redefinir aplicativo',
+          { tom:'warning', rotuloConfirmar:'Continuar', rotuloCancelar:'Cancelar' }
         );
         if (!primeiro) return;
+
         const segundo = await confirmarGpv_(
           'Confirma a redefinição completa deste aparelho? Depois será necessário entrar novamente com seu usuário.',
-          'Confirmação final'
+          'Confirmação final',
+          { tom:'warning', rotuloConfirmar:'Redefinir agora', rotuloCancelar:'Cancelar' }
         );
         if (!segundo) return;
+
         bloquearBotoesManutencao_(true);
-        if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Redefinindo o aplicativo com segurança...'; appMaintenanceStatus.className = 'app-maintenance-status is-warning'; }
+        if (appMaintenanceStatus) { appMaintenanceStatus.textContent = 'Redefinindo o aplicativo...'; appMaintenanceStatus.className = 'app-maintenance-status is-warning'; }
         try {
           try { localStorage.clear(); } catch (_) {}
           try { sessionStorage.clear(); } catch (_) {}
@@ -5731,7 +5804,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99jx', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99jy', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -8431,7 +8504,7 @@
         return texto;
       }
 
-      // V23.9.99jx — nascimento usa conversão exclusiva em DD/MM/AAAA.
+      // V23.9.99jy — nascimento usa conversão exclusiva em DD/MM/AAAA.
       // Não reutiliza o formatador genérico do Painel para evitar interpretação
       // ambígua de dia/mês em datas pessoais.
       function formatarDataNascimentoFicha_(valor) {
@@ -21598,7 +21671,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       function formatarDataNascimentoDigitacao_(valor) {
         const texto = String(valor || '').trim();
 
-        // V23.9.99jx — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
+        // V23.9.99jy — aceita AAAA-MM-DD com ou sem hora, mas sempre converte
         // explicitamente para DD/MM/AAAA antes de qualquer tratamento numérico.
         const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
         if (iso) {
@@ -25833,7 +25906,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jx', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99jy', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
@@ -32426,9 +32499,10 @@ Deseja usar o endereço cadastral do CNPJ?`,
         const abrir = appMaintenanceBlockDetails.hidden;
         appMaintenanceBlockDetails.hidden = !abrir;
         appMaintenanceBlockDetailsBtn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-        appMaintenanceBlockDetailsBtn.textContent = abrir ? 'Ocultar motivo do bloqueio' : 'Ver o que está impedindo a redefinição';
+        appMaintenanceBlockDetailsBtn.textContent = abrir ? 'Ocultar dados locais' : 'Ver dados locais detectados';
       });
       appMaintenanceRepairBtn?.addEventListener('click', () => { void executarReparoArmazenamentoManutencao_(); });
+      appMaintenanceClearResolvedBtn?.addEventListener('click', () => { void executarLimpezaPendenciasLocaisResolvidas_(); });
       appMaintenanceResetBtn?.addEventListener('click', () => { void executarResetTotalManutencao_(); });
       appDiagnosticsCloseBtn?.addEventListener('click', fecharDiagnosticoApp_);
       appDiagnosticsRefreshBtn?.addEventListener('click', () => { void atualizarDiagnosticoApp_(); });
@@ -32965,7 +33039,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jx', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99jy', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
             // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
