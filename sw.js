@@ -1,3 +1,4 @@
+// V23.9.99kb — SW aguarda autorização da página antes de assumir o controle; aviso e ociosidade são gerenciados no app.
 // V23.9.99ka — shell novo para atualização protegida, sem recargas em ciclo.
 // V23.9.99jz — Refinamento visual da Manutenção; cache exclusivo desta versão.
 // V23.9.99jz — hotfix do shell/cache e migração forçada das versões JR/JS.
@@ -39,9 +40,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261104-v23-9-99-ka-update-guard';
+const CACHE_NAME = 'gpv-vistorias-shell-20261104-v23-9-99-kb-intelligent-update';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99ka';
+const VERSION = '23.9.99kb';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -118,11 +119,10 @@ async function instalarShellAtual_() {
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    // O fluxo de atualização usa skipWaiting para que aparelhos vindos das versões
-    // anteriores consigam migrar em uma única abertura. A página só recarrega depois
-    // de controllerchange/clients.claim, portanto uma vistoria em andamento não é perdida.
+    // Em instalações existentes, permanece waiting até a página confirmar que
+    // pode aplicar com segurança (ou até todas as abas antigas serem fechadas).
+    // Na primeira instalação, o navegador ativa naturalmente sem SKIP_WAITING.
     await instalarShellAtual_();
-    await self.skipWaiting();
   })());
 });
 

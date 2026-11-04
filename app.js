@@ -1,3 +1,4 @@
+// V23.9.99kb — aviso persistente, atualização em ociosidade com proteção operacional e sem recarga em ciclo.
 // V23.9.99ka — atualização automática com recarga única protegida e manutenção com cores legíveis.
 // V23.9.99jz — refinamento visual da Manutenção do aplicativo; mantém as proteções da JW.
 // V23.9.99js — Vistoria Acessória como opção própria no cadastro e correção segura da classificação após a finalização.
@@ -70,7 +71,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ka';
+      const APP_VERSION = '23.9.99kb';
       const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2965,7 +2966,7 @@
       let retornoLiberacaoConsultaAssinatura_ = '';
       let retornoLiberacaoDocumentoBlobUrl_ = '';
       let retornoLiberacaoDocumentoExterno_ = '';
-      const APP_REVISION_UI_ = '23.9.99ka';
+      const APP_REVISION_UI_ = '23.9.99kb';
       const APP_LAST_ERROR_KEY_ = 'gpvLastUiErrorV1';
       const APP_LAST_RECOVERY_KEY_ = 'gpvLastUiRecoveryV1';
       let ultimaRecuperacaoInterface_ = '';
@@ -5480,27 +5481,129 @@
         return false;
       }
 
+      const GPV_UPDATE_IDLE_MS_KB_ = 90 * 1000;
+      const GPV_UPDATE_POSTPONE_MS_KB_ = 30 * 60 * 1000;
+      let swUltimaInteracaoUsuario_ = Date.now();
+      let swAtualizacaoAdiadaAte_ = 0;
+      let swAutoAplicacaoOciosaLiberada_ = false;
+      let swAtualizacaoVerificacaoAutoEmCurso_ = false;
+      const gpvUpdateNotice_ = document.getElementById('gpvUpdateNotice');
+      const gpvUpdateTitle_ = document.getElementById('gpvUpdateTitle');
+      const gpvUpdateDetail_ = document.getElementById('gpvUpdateDetail');
+      const gpvUpdateNowBtn_ = document.getElementById('gpvUpdateNowBtn');
+      const gpvUpdateLaterBtn_ = document.getElementById('gpvUpdateLaterBtn');
+
+      function campoComFocoParaAtualizacao_() {
+        const elemento = document.activeElement;
+        return Boolean(elemento?.matches?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));
+      }
+
+      function appSeguroParaAtualizacaoAgora_() {
+        return document.visibilityState === 'visible' &&
+          !document.hidden && !appTemInteracaoCriticaParaAtualizacao_() &&
+          !campoComFocoParaAtualizacao_() &&
+          !document.body.classList.contains('daily-motivational-open') &&
+          !document.querySelector('.loading.show');
+      }
+
+      function apresentarAvisoAtualizacao_() {
+        if (!gpvUpdateNotice_) return;
+        const visivel = swAppLiberadoParaUso_ && swAtualizacaoPendente_ && !swRecarregamentoAtualizacaoEmCurso_;
+        gpvUpdateNotice_.hidden = !visivel;
+        if (!visivel) return;
+        const adiado = Date.now() < swAtualizacaoAdiadaAte_;
+        const seguro = appSeguroParaAtualizacaoAgora_();
+        gpvUpdateNotice_.classList.toggle('is-compact', adiado);
+        if (gpvUpdateTitle_) gpvUpdateTitle_.textContent = adiado ? 'Atualização pendente' : 'Nova atualização disponível';
+        if (gpvUpdateDetail_) gpvUpdateDetail_.textContent = seguro
+          ? 'Você pode atualizar agora; o app também atualizará sozinho quando ficar ocioso.'
+          : 'Conclua a vistoria ou a operação atual antes de atualizar.';
+        if (gpvUpdateNowBtn_) {
+          gpvUpdateNowBtn_.disabled = Boolean(swAtualizacaoManualSolicitada_);
+          gpvUpdateNowBtn_.textContent = adiado ? 'Atualizar' : 'Atualizar agora';
+        }
+        if (gpvUpdateLaterBtn_) gpvUpdateLaterBtn_.hidden = adiado;
+      }
+
       function registrarAtualizacaoSegundoPlano_() {
-        // KA: após liberar o app para uso, jamais reabrir o splash, nem
-        // iniciar instalação/recarga em segundo plano. O SW pode baixar a
-        // versão; ela será aplicada na próxima abertura ou sob comando manual.
+        // KB: sem reabrir o splash. Um aviso aparece depois que o app estiver pronto;
+        // a aplicação poderá ser manual ou automática em ociosidade real.
         swAtualizacaoPendente_ = true;
         if (!swAppLiberadoParaUso_) return false;
+        apresentarAvisoAtualizacao_();
         if (!swAtualizacaoSegundoPlanoAvisada_) {
           swAtualizacaoSegundoPlanoAvisada_ = true;
-          if (appStatus) appStatus.textContent = 'Atualização preparada para a próxima abertura.';
-          mostrarFeedbackPremium_('Uma atualização está disponível. Ela será aplicada na próxima abertura ou em Mais → Atualizar app.', 'info');
+          if (appStatus) appStatus.textContent = 'Nova versão pronta. Atualize agora ou continue trabalhando.';
+          mostrarFeedbackPremium_('Nova versão disponível. Use o aviso para atualizar ou continue seu trabalho normalmente.', 'info');
         }
         return true;
       }
 
       function appPodeAplicarAtualizacaoSilenciosa_() {
         if (!swAtualizacaoPendente_ || swRecarregamentoAtualizacaoEmCurso_) return false;
-        // KA: atualização descoberta depois da abertura é apenas preparada.
-        if (swAppLiberadoParaUso_ && !swAtualizacaoManualSolicitada_) return false;
-        // KA: não repetir tentativa automática após falha nesta abertura.
+        if (swAppLiberadoParaUso_ && !swAtualizacaoManualSolicitada_ && !swAutoAplicacaoOciosaLiberada_) return false;
+        // Nunca aplicar se uma operação crítica/etapa/modal estiver aberta.
+        if (swAppLiberadoParaUso_ && !appSeguroParaAtualizacaoAgora_()) return false;
         if (swTentativaAtivacaoAutomaticaNestaAbertura_ && !swAtualizacaoManualSolicitada_) return false;
         return !appTemInteracaoCriticaParaAtualizacao_();
+      }
+
+      function verificarAtualizacaoEmOciosidade_() {
+        if (!swAppLiberadoParaUso_ || !swAtualizacaoPendente_ || swRecarregamentoAtualizacaoEmCurso_) return;
+        apresentarAvisoAtualizacao_();
+        if (swAtualizacaoVerificacaoAutoEmCurso_ || swAtualizacaoManualSolicitada_) return;
+        if (swTentativaAtivacaoAutomaticaNestaAbertura_) return;
+        if (Date.now() < swAtualizacaoAdiadaAte_) return;
+        if (Date.now() - swUltimaInteracaoUsuario_ < GPV_UPDATE_IDLE_MS_KB_) return;
+        if (!appSeguroParaAtualizacaoAgora_()) return;
+        swAutoAplicacaoOciosaLiberada_ = true;
+        swAtualizacaoVerificacaoAutoEmCurso_ = true;
+        Promise.resolve(aplicarAtualizacaoSilenciosaSeSeguro_()).catch(() => {
+          // Uma falha nesta tentativa não pode iniciar novas tentativas automáticas
+          // em ciclo; o usuário mantém o comando manual e os dados preservados.
+          swTentativaAtivacaoAutomaticaNestaAbertura_ = true;
+          swRecarregamentoAtualizacaoEmCurso_ = false;
+          encerrarVisualAtualizacaoAutomatica_();
+        }).finally(() => {
+          swAtualizacaoVerificacaoAutoEmCurso_ = false;
+          swAutoAplicacaoOciosaLiberada_ = false;
+          apresentarAvisoAtualizacao_();
+        });
+      }
+
+      function iniciarAvisoInteligenteAtualizacao_() {
+        // Apenas eventos reais do usuário adiam a recarga; o app não deve
+        // interpretar alterações programáticas no formulário como atividade.
+        const marcar = event => { if (event.isTrusted) swUltimaInteracaoUsuario_ = Date.now(); };
+        for (const evento of ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart', 'touchmove']) {
+          document.addEventListener(evento, marcar, { passive:true, capture:true });
+        }
+        gpvUpdateNowBtn_?.addEventListener('click', () => {
+          swUltimaInteracaoUsuario_ = Date.now();
+          if (!appSeguroParaAtualizacaoAgora_()) {
+            apresentarAvisoAtualizacao_();
+            void avisarGpv_('Conclua a vistoria, feche os formulários e aguarde o fim dos envios antes de atualizar. A versão nova continuará disponível.', 'Atualização protegida', { tom:'warning' });
+            return;
+          }
+          swAtualizacaoAdiadaAte_ = 0;
+          void atualizarAplicativo_();
+        });
+        gpvUpdateLaterBtn_?.addEventListener('click', () => {
+          swUltimaInteracaoUsuario_ = Date.now();
+          swAtualizacaoAdiadaAte_ = Date.now() + GPV_UPDATE_POSTPONE_MS_KB_;
+          apresentarAvisoAtualizacao_();
+        });
+        // Voltar ao primeiro plano não significa ociosidade: só considerar
+        // atualização automática depois de uma nova janela sem interação.
+        document.addEventListener('visibilitychange', () => {
+          swUltimaInteracaoUsuario_ = Date.now();
+          if (document.visibilityState === 'visible') apresentarAvisoAtualizacao_();
+        });
+        window.addEventListener('focus', () => {
+          swUltimaInteracaoUsuario_ = Date.now();
+          apresentarAvisoAtualizacao_();
+        });
+        setInterval(verificarAtualizacaoEmOciosidade_, 15000);
       }
 
       function mostrarAtualizacaoAutomatica_() {
@@ -5553,7 +5656,7 @@
         if (swRecargaAutomaticaNestaAba_) return false;
         try {
           const anterior = JSON.parse(sessionStorage.getItem(SW_RELOAD_GUARD_KEY_KA_) || 'null');
-          if (anterior && Number.isFinite(Number(anterior.em)) &&
+          if (anterior && anterior.origem === APP_VERSION && Number.isFinite(Number(anterior.em)) &&
               Date.now() - Number(anterior.em) >= 0 && Date.now() - Number(anterior.em) < 10 * 60 * 1000) {
             return false;
           }
@@ -5631,6 +5734,11 @@
 
         if (!appPodeAplicarAtualizacaoSilenciosa_()) {
           if (swAppLiberadoParaUso_) registrarAtualizacaoSegundoPlano_();
+          if (swAtualizacaoManualSolicitada_ && swAppLiberadoParaUso_) {
+            swAtualizacaoManualSolicitada_ = false;
+            if (updateAppBtn) updateAppBtn.disabled = false;
+            apresentarAvisoAtualizacao_();
+          }
           return false;
         }
 
@@ -5639,6 +5747,8 @@
           swWorkerAtualizacaoPendente_ = null;
           swAtualizacaoManualSolicitada_ = false;
           encerrarVisualAtualizacaoAutomatica_();
+          apresentarAvisoAtualizacao_();
+          if (updateAppBtn) updateAppBtn.disabled = false;
           if (appStatus) appStatus.textContent = 'A atualização automática já foi executada recentemente; o aplicativo continuará disponível.';
           return false;
         }
@@ -5649,7 +5759,10 @@
 
         if (!swAtualizacaoManualSolicitada_) swTentativaAtivacaoAutomaticaNestaAbertura_ = true;
         swRecarregamentoAtualizacaoEmCurso_ = true;
-        mostrarAtualizacaoAutomatica_();
+        // KB: durante o uso, a aplicação acontece sem fazer o splash reaparecer.
+        // O splash permanece apenas para atualização detectada na abertura.
+        if (!swAppLiberadoParaUso_) mostrarAtualizacaoAutomatica_();
+        apresentarAvisoAtualizacao_();
 
         let registro = null;
         try {
@@ -5691,10 +5804,28 @@
 
         if (!controladorNovoPronto) {
           swRecarregamentoAtualizacaoEmCurso_ = false;
-          swAtualizacaoPendente_ = false;
+          swTentativaAtivacaoAutomaticaNestaAbertura_ = true;
+          swAtualizacaoPendente_ = true; // mantém o aviso e o botão para tentar manualmente
           swAtualizacaoManualSolicitada_ = false;
           encerrarVisualAtualizacaoAutomatica_();
-          if (appStatus) appStatus.textContent = 'Atualização não confirmada. O app continuará funcionando; a próxima abertura fará nova verificação.';
+          apresentarAvisoAtualizacao_();
+          if (updateAppBtn) updateAppBtn.disabled = false;
+          if (appStatus) appStatus.textContent = 'Atualização não confirmada. O app continuará funcionando; você poderá verificar novamente em Mais → Atualizar app.';
+          return false;
+        }
+
+        // Um militar pode começar a digitar enquanto o novo SW ativa.
+        // Mesmo após controllerchange, não recarregar se o trabalho começou.
+        const atualizacaoFoiManual = swAtualizacaoManualSolicitada_;
+        if (swAppLiberadoParaUso_ &&
+            (!appSeguroParaAtualizacaoAgora_() ||
+              (!atualizacaoFoiManual && Date.now() - swUltimaInteracaoUsuario_ < GPV_UPDATE_IDLE_MS_KB_))) {
+          swRecarregamentoAtualizacaoEmCurso_ = false;
+          swAtualizacaoPendente_ = true;
+          swAtualizacaoManualSolicitada_ = false;
+          if (updateAppBtn) updateAppBtn.disabled = false;
+          encerrarVisualAtualizacaoAutomatica_();
+          apresentarAvisoAtualizacao_();
           return false;
         }
 
@@ -5704,6 +5835,7 @@
         swAtualizacaoSegundoPlanoAvisada_ = false;
         swAtualizacaoManualSolicitada_ = false;
         registrarRecargaAtualizacaoUnica_();
+        apresentarAvisoAtualizacao_();
 
         try {
           sessionStorage.setItem('gpv_auto_update_applied_v1', String(Date.now()));
@@ -5834,7 +5966,7 @@
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
             registro = await Promise.race([
-              navigator.serviceWorker.register('./sw.js?v=23.9.99ka', { updateViaCache: 'none' }),
+              navigator.serviceWorker.register('./sw.js?v=23.9.99kb', { updateViaCache: 'none' }),
               new Promise(resolve => setTimeout(() => resolve(null), 3500))
             ]);
           }
@@ -25397,6 +25529,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (!mostrar) {
           await loadInitialData();
           swAppLiberadoParaUso_ = true;
+          swUltimaInteracaoUsuario_ = Date.now();
+          if (swAtualizacaoPendente_) registrarAtualizacaoSegundoPlano_();
           return;
         }
 
@@ -25438,6 +25572,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         // A partir daqui a sessão está interativa: qualquer versão descoberta depois
         // permanece em segundo plano e não faz a saudação reaparecer automaticamente.
         swAppLiberadoParaUso_ = true;
+        swUltimaInteracaoUsuario_ = Date.now();
+        if (swAtualizacaoPendente_) registrarAtualizacaoSegundoPlano_();
         if (erroCarga) throw erroCarga;
       }
 
@@ -25924,18 +26060,18 @@ Deseja usar o endereço cadastral do CNPJ?`,
 
       async function atualizarAplicativo_() {
         fecharMenuMais_();
-        if (!navigator.onLine) {
-          avisarGpv_('Conecte o aparelho à internet para buscar a versão mais recente do aplicativo.', 'Sem internet', { tom: 'warning' });
+        if (!navigator.onLine && !swAtualizacaoPendente_) {
+          avisarGpv_('Conecte o aparelho à internet para buscar a versão mais recente do aplicativo.', 'Sem internet', { tom:'warning' });
           return;
         }
 
-        if (appTemInteracaoCriticaParaAtualizacao_()) {
+        if (!appSeguroParaAtualizacaoAgora_()) {
           avisarGpv_(
-            'Há uma vistoria ou etapa operacional em andamento. A atualização será aplicada automaticamente quando for seguro, sem perder o trabalho atual.',
+            'Há uma vistoria, formulário ou operação em andamento. Conclua essa etapa e atualize pelo aviso. Nada será interrompido.',
             'Atualização protegida',
             { tom:'warning' }
           );
-          swAtualizacaoPendente_ = true;
+          apresentarAvisoAtualizacao_();
           return;
         }
 
@@ -25946,14 +26082,18 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try {
           let registro = await navigator.serviceWorker.getRegistration();
           if (!registro) {
-            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99ka', { updateViaCache:'none' });
+            registro = await navigator.serviceWorker.register('./sw.js?v=23.9.99kb', { updateViaCache:'none' });
           }
           observarAtualizacaoSilenciosaPwa_(registro);
           swRegistroSilencioso_ = registro;
 
-          const controladorAntes = navigator.serviceWorker.controller;
-          swControladorAntesDaAtualizacao_ = controladorAntes || null;
-          await registro.update();
+          // Se outro aparelho/aba já ativou o novo controlador, preservar a
+          // referência do antigo para que Atualizar agora realmente recarregue.
+          const controladorAntes = swControladorAntesDaAtualizacao_ || navigator.serviceWorker.controller;
+          if (!swControladorAntesDaAtualizacao_) swControladorAntesDaAtualizacao_ = controladorAntes || null;
+          if (navigator.onLine) await Promise.race([
+            registro.update(), new Promise(resolve => setTimeout(resolve, 6000))
+          ]);
           const worker = registro.waiting || registro.installing || null;
 
           if (!worker) {
@@ -25965,8 +26105,10 @@ Deseja usar o endereço cadastral do CNPJ?`,
               return;
             }
             swAtualizacaoManualSolicitada_ = false;
-            appStatus.textContent = `Aplicativo já está na versão V${APP_VERSION}.`;
-            mostrarFeedbackPremium_(`Você já está usando a versão V${APP_VERSION}.`, 'success');
+            swAtualizacaoPendente_ = false;
+            apresentarAvisoAtualizacao_();
+            appStatus.textContent = 'Nenhuma atualização nova foi encontrada neste momento.';
+            mostrarFeedbackPremium_('Nenhuma atualização nova foi encontrada neste momento.', 'info');
             if (updateAppBtn) updateAppBtn.disabled = false;
             return;
           }
@@ -25976,11 +26118,12 @@ Deseja usar o endereço cadastral do CNPJ?`,
           await aplicarAtualizacaoSilenciosaSeSeguro_();
         } catch (erro) {
           console.log('Atualização manual do app:', erro && erro.message ? erro.message : erro);
-          appStatus.textContent = 'Não foi possível concluir a atualização agora. O app tentará novamente automaticamente.';
+          appStatus.textContent = 'Não foi possível concluir a atualização agora. Você pode tentar novamente em Mais → Atualizar app.';
           if (updateAppBtn) updateAppBtn.disabled = false;
           swRecarregamentoAtualizacaoEmCurso_ = false;
           swAtualizacaoManualSolicitada_ = false;
           encerrarVisualAtualizacaoAutomatica_();
+          apresentarAvisoAtualizacao_();
         }
       }
 
@@ -33085,11 +33228,11 @@ Deseja usar o endereço cadastral do CNPJ?`,
         });
         window.addEventListener('load', async () => {
           try {
-            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99ka', { updateViaCache: 'none' });
+            const reg = await navigator.serviceWorker.register('./sw.js?v=23.9.99kb', { updateViaCache: 'none' });
             observarAtualizacaoSilenciosaPwa_(reg);
             // Verificação periódica para aparelhos/abas que permanecem abertos por
-            // muitas horas ou dias. Se houver nova versão e nenhuma interação operacional
-            // crítica estiver em andamento, ela é aplicada automaticamente em uma recarga.
+            // muitas horas ou dias. Versão pronta é avisada e aplicada apenas
+            // com confirmação ou em ociosidade, após as verificações de segurança.
             setInterval(() => {
               if (document.visibilityState === 'visible') void verificarAtualizacaoSilenciosaPwa_();
             }, 30 * 60 * 1000);
@@ -33098,6 +33241,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       }
 
       instalarEscolhaMovel_();
+      iniciarAvisoInteligenteAtualizacao_();
       iniciarWatchdogInterface_();
       iniciarAtualizacaoPeriodicaPainel_();
       repararInterfaceOrfa_('inicialização');
