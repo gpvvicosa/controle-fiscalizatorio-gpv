@@ -316,3 +316,114 @@ body.records-mode #recordsPanel .gpv-kr-close-search{display:none!important}
     object-position:center bottom!important;
   }
 }
+
+/* V23.9.99ks — revisão 2 (desktop): mesma central compacta do celular.
+   Os atalhos reutilizam botões, eventos e contadores já existentes.
+   Os elementos originais são mantidos no DOM para sincronização e permissões. */
+@media (min-width:1051px) {
+  body.records-mode #recordsPanel .gpv-kr-shortcuts {
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    align-items:stretch!important;
+    gap:12px!important;
+    margin:0 16px 14px!important;
+    min-width:0!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut:not([hidden]) {
+    display:grid!important;
+    grid-template-columns:38px minmax(0,1fr) auto!important;
+    align-items:center!important;
+    gap:10px!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:83px!important;
+    padding:12px 14px!important;
+    margin:0!important;
+    border:1px solid #dde4eb!important;
+    border-top:3px solid #e9872d!important;
+    border-radius:15px!important;
+    background:linear-gradient(155deg,#fff 0%,#f8fafc 100%)!important;
+    box-shadow:0 5px 14px rgba(26,39,54,.065)!important;
+    text-align:left!important;
+    color:#26323e!important;
+    cursor:pointer!important;
+    transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut:not([hidden]):hover {
+    border-color:#e7a66b!important;
+    box-shadow:0 9px 20px rgba(26,39,54,.11)!important;
+    transform:translateY(-1px)!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut:focus-visible {
+    outline:3px solid rgba(239,139,45,.68)!important;
+    outline-offset:2px!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut svg {
+    width:33px!important;height:33px!important;
+    stroke:#bb631b!important;stroke-width:1.8!important;
+    fill:none!important;stroke-linecap:round!important;stroke-linejoin:round!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut > span:not(.gpv-kr-chevron) {
+    display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut strong {
+    font-size:13px!important;line-height:1.18!important;font-weight:850!important;
+    color:#26323e!important;overflow-wrap:anywhere!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut small {
+    font-size:10.5px!important;line-height:1.24!important;color:#637186!important;
+    white-space:normal!important;overflow-wrap:anywhere!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut > b {
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;
+    min-width:34px!important;min-height:34px!important;padding:5px 8px!important;
+    border-radius:10px!important;background:#fff1e4!important;color:#98500e!important;
+    font-size:13px!important;line-height:1!important;font-variant-numeric:tabular-nums!important;
+    white-space:nowrap!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-chevron {
+    color:#b66219!important;font-size:22px!important;
+  }
+  /* Evita repetir os quatro atalhos em cartões grandes. Não remove os alvos DOM. */
+  body.records-mode #recordsPanel .dashboard-operational-alerts > #dashboardPendingCenterCard,
+  body.records-mode #recordsPanel .dashboard-technical-search,
+  body.records-mode #recordsPanel .dashboard-technical-search-compact,
+  body.records-mode #recordsPanel #inspectionSuggestionsCard {
+    display:none!important;
+  }
+  /* Campo/filtros de processo surgem apenas após selecionar Consultar processo. */
+  body.records-mode #recordsPanel #recordsFiltersPanel {
+    display:none!important;
+  }
+  body.records-mode #recordsPanel.gpv-kr-search-open #recordsFiltersPanel {
+    display:block!important;
+    margin:0 16px 14px!important;
+    scroll-margin-top:10px!important;
+  }
+  body.records-mode #recordsPanel.gpv-kr-search-open .gpv-kr-close-search {
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    gap:7px!important;
+    width:100%!important;
+    padding:9px 14px!important;
+    background:transparent!important;border:0!important;
+    color:#99520e!important;font-size:13px!important;font-weight:800!important;
+    cursor:pointer!important;
+  }
+}
+@media (min-width:1051px) and (max-width:1260px) {
+  body.records-mode #recordsPanel .gpv-kr-shortcuts {
+    gap:8px!important;margin-inline:12px!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut:not([hidden]) {
+    grid-template-columns:29px minmax(0,1fr) auto!important;
+    gap:7px!important;padding:10px!important;min-height:77px!important;
+  }
+  body.records-mode #recordsPanel .gpv-kr-shortcut svg {width:27px!important;height:27px!important;}
+  body.records-mode #recordsPanel .gpv-kr-shortcut strong {font-size:11.8px!important;}
+  body.records-mode #recordsPanel .gpv-kr-shortcut small {font-size:9.5px!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+  body.records-mode #recordsPanel .gpv-kr-shortcut {transition:none!important;transform:none!important;}
+}
