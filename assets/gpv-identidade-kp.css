@@ -467,3 +467,268 @@ body:not(.records-mode) #vistoriaForm .btn.btn-primary:not(.btn-danger):not(.is-
 body .app-more-menu{
   background:#f4f6f9!important;
 }
+
+
+/* ============================================================================
+   GPV V23.9.99kq — Ficha ampliada e assinatura triangular institucional
+   Somente apresentação: não altera conteúdo, controles ou cores de situação.
+   ============================================================================ */
+:root{
+  --gpv-kq-orange:#f28a22;
+  --gpv-kq-orange-soft:rgba(242,138,34,.13);
+  --gpv-kq-graphite:#252c35;
+}
+/* Cabeçalho da Ficha: o título deve contrastar com o grafite mesmo quando
+   CSS legado aplica vermelho diretamente ao <strong>. */
+body.records-mode .record-detail-topbar,
+body:not(.records-mode) .record-detail-topbar{
+  position:relative!important;
+  isolation:isolate;
+  padding-left:clamp(28px,2.2vw,38px)!important;
+}
+body.records-mode .record-detail-topbar::before,
+body:not(.records-mode) .record-detail-topbar::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:clamp(19px,1.5vw,26px);
+  height:100%;
+  background:var(--gpv-kq-orange);
+  clip-path:polygon(0 0,100% 50%,0 100%);
+  pointer-events:none;
+  z-index:0;
+}
+body.records-mode .record-detail-panel-title,
+body.records-mode .record-detail-panel-title strong,
+body.records-mode #recordDetailTitle,
+body:not(.records-mode) .record-detail-panel-title,
+body:not(.records-mode) .record-detail-panel-title strong,
+body:not(.records-mode) #recordDetailTitle{
+  color:#fff!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+body.records-mode .record-detail-panel-title svg,
+body:not(.records-mode) .record-detail-panel-title svg{
+  color:#ffa44d!important;
+  stroke:#ffa44d!important;
+}
+/* Em telas largas, campos de um mesmo grupo dividem toda a largura disponível.
+   auto-fit colapsa colunas vazias: três campos passam a ocupar três colunas
+   proporcionais, em vez de três cartões estreitos à esquerda. */
+@media(min-width:1050px){
+  body.records-mode .record-detail-module-panel .record-detail-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields{
+    display:grid!important;
+    width:100%!important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))!important;
+    gap:clamp(9px,.9vw,14px)!important;
+    padding:clamp(10px,1vw,15px)!important;
+    align-items:stretch!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-group:not(.record-operational-summary) > .record-detail-fields > .record-detail-field,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-group:not(.record-operational-summary) > .record-detail-fields > .record-detail-field{
+    min-width:0!important;
+    width:100%!important;
+    max-width:none!important;
+    justify-self:stretch!important;
+    box-sizing:border-box!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-group > .record-detail-fields > .record-detail-field.is-wide,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-group > .record-detail-fields > .record-detail-field.is-wide{
+    grid-column:1 / -1!important;
+  }
+}
+@media(min-width:680px) and (max-width:1049px){
+  body.records-mode .record-detail-module-panel .record-detail-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields{
+    display:grid!important;
+    width:100%!important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr))!important;
+    gap:10px!important;
+    padding:11px!important;
+  }
+}
+/* A Ficha mantém o status de regularização/liberação/advertência intacto.
+   O pequeno triângulo no título institucional é puramente decorativo. */
+body.records-mode .record-detail-heading,
+body:not(.records-mode) .record-detail-heading{
+  position:relative!important;
+  isolation:isolate;
+}
+body.records-mode .record-detail-heading::before,
+body:not(.records-mode) .record-detail-heading::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:26px;
+  height:29px;
+  clip-path:polygon(0 0,100% 50%,0 100%);
+  background:var(--gpv-kq-orange);
+  pointer-events:none;
+}
+/* Cabeçalhos dos grupos: laranja apenas no elemento estrutural, sem pintar
+   campos cujo conteúdo sinalize prazo, situação ou sanção. */
+body.records-mode .record-detail-module-panel .record-detail-group > h3,
+body:not(.records-mode) .record-detail-module-panel .record-detail-group > h3{
+  background:linear-gradient(90deg,#fff5ea 0%,#ffffff 36%)!important;
+  color:#273544!important;
+  border-left:4px solid #ee8629!important;
+  border-bottom:1px solid #e9edf2!important;
+  min-height:44px!important;
+  font-size:clamp(12px,.86vw,15px)!important;
+  line-height:1.25!important;
+}
+/* Campos padronizados, sem comprimir textos de CNPJ, PF, PSCIP ou endereço. */
+body.records-mode .record-detail-module-panel .record-detail-field,
+body:not(.records-mode) .record-detail-module-panel .record-detail-field{
+  min-width:0!important;
+  overflow-wrap:anywhere!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-copy-row,
+body:not(.records-mode) .record-detail-module-panel .record-detail-copy-row{
+  min-width:0!important;
+  gap:8px!important;
+}
+body.records-mode .record-detail-module-panel .record-detail-copy-value,
+body:not(.records-mode) .record-detail-module-panel .record-detail-copy-value{
+  overflow-wrap:anywhere!important;
+  min-width:0!important;
+}
+/* Menu de seções uniforme no PC/tablet; o comportamento horizontal do celular
+   continua independente e com rolagem própria. */
+@media(min-width:900px){
+  body.records-mode .record-detail-section-nav,
+  body:not(.records-mode) .record-detail-section-nav{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:9px!important;
+    padding:11px 13px!important;
+  }
+  body.records-mode .record-detail-section-btn,
+  body:not(.records-mode) .record-detail-section-btn{
+    min-height:46px!important;
+    border-radius:12px!important;
+    padding:8px 12px!important;
+  }
+}
+/* Triângulo institucional discreto em cabeçalhos de Vistoria e módulos
+   compartilhados. Não interfere nas cores de botões de risco ou destrutivos. */
+body:not(.records-mode) .inspection-flow-section > .section-head,
+body:not(.records-mode) .vistoria-flow-section > .section-head,
+.app-more-menu-head,
+.useful-links-header{
+  position:relative!important;
+  isolation:isolate;
+}
+body:not(.records-mode) .inspection-flow-section > .section-head::before,
+body:not(.records-mode) .vistoria-flow-section > .section-head::before,
+.app-more-menu-head::before,
+.useful-links-header::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  width:20px;
+  height:34px;
+  clip-path:polygon(0 0,100% 50%,0 100%);
+  background:var(--gpv-kq-orange);
+  pointer-events:none;
+  z-index:0;
+}
+body:not(.records-mode) .inspection-flow-section > .section-head,
+body:not(.records-mode) .vistoria-flow-section > .section-head{
+  padding-left:max(24px,1.5rem)!important;
+  border-bottom-color:rgba(238,134,41,.28)!important;
+}
+.app-more-menu-head,
+.useful-links-header{
+  padding-left:max(26px,1.7rem)!important;
+}
+/* Outras janelas com títulos: marca de seção triangular em linha, sem gerar
+   sobreposição em modais com botão fechar na extremidade. */
+:is(.app-diagnostics-card,.app-maintenance-card,.system-manual-card,
+.duvidas-card,.goals-modal-card,.sync-center-card,.technical-search-card,
+.registered-inspection-detail-card) > .review-head h2::before{
+  content:"";
+  display:inline-block;
+  vertical-align:middle;
+  margin-right:9px;
+  width:12px;
+  height:16px;
+  background:var(--gpv-kq-orange);
+  clip-path:polygon(0 0,100% 50%,0 100%);
+}
+/* Filtros e lista de Programadas retêm a correção de rolagem da KL. */
+#programmedListModal .programmed-list-head{
+  border-bottom:2px solid rgba(238,134,41,.38)!important;
+}
+#programmedListModal .programmed-modal-title-wrap h2::before{
+  content:"";
+  display:inline-block;
+  width:11px;
+  height:15px;
+  margin-right:8px;
+  vertical-align:middle;
+  background:var(--gpv-kq-orange);
+  clip-path:polygon(0 0,100% 50%,0 100%);
+}
+/* Os filtros e formulários da vistoria não são redesenhados estruturalmente. */
+@media(max-width:679px){
+  body.records-mode .record-detail-topbar,
+  body:not(.records-mode) .record-detail-topbar{
+    padding-left:24px!important;
+  }
+  body.records-mode .record-detail-topbar::before,
+  body:not(.records-mode) .record-detail-topbar::before{
+    width:14px;
+  }
+  body.records-mode .record-detail-heading::before,
+  body:not(.records-mode) .record-detail-heading::before{
+    width:16px;
+    height:20px;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-group > .record-detail-fields,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-group > .record-detail-fields{
+    min-width:0!important;
+    width:100%!important;
+    grid-template-columns:1fr!important;
+  }
+  body.records-mode .record-detail-module-panel .record-detail-field,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-field{
+    grid-column:auto!important;
+    width:100%!important;
+    max-width:none!important;
+  }
+  body:not(.records-mode) .inspection-flow-section > .section-head::before,
+  body:not(.records-mode) .vistoria-flow-section > .section-head::before,
+  .app-more-menu-head::before,
+  .useful-links-header::before{
+    width:14px;
+    height:25px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .record-detail-section-btn,
+  .record-detail-field{transition:none!important;}
+}
+
+/* O grupo Edificação/Local tem endereço e cidade de largura total.
+   Três colunas fixas nos primeiros campos impedem a reserva de uma
+   quarta coluna vazia quando há campos que atravessam todo o grid. */
+@media(min-width:1050px){
+  body.records-mode .record-detail-module-panel .record-detail-group.record-building-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-group.record-building-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+@media(min-width:680px) and (max-width:1049px){
+  body.records-mode .record-detail-module-panel .record-detail-group.record-building-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields,
+  body:not(.records-mode) .record-detail-module-panel .record-detail-group.record-building-group:not(.record-operational-summary):not(.record-location-summary-group) > .record-detail-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
