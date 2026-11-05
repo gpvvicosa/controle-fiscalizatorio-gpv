@@ -1,3 +1,4 @@
+// V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
 // V23.9.99kk — topo composto com bombeiro transparente; sem alteração operacional.
 // V23.9.99kj — refino visual do topo desktop; lógica operacional preservada.
@@ -80,7 +81,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99kn';
+      const APP_VERSION = '23.9.99ko';
       const APP_VERSION_DATE = '04/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
