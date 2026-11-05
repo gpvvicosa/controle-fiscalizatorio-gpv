@@ -1,4 +1,4 @@
-// V23.9.99kq — ampliação visual da Ficha e triângulos de cabeçalho, SW operacional inalterado.
+// V23.9.99kr — ampliação visual da Ficha e triângulos de cabeçalho, SW operacional inalterado.
 // V23.9.99kp — nova camada visual interna e cache do CSS; atualização protegida mantida.
 // V23.9.99ko — novo shell visual; atualização segura e cache offline preservados.
 // V23.9.99kn — novo shell visual; atualização segura e cache offline preservados.
@@ -53,9 +53,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261104-v23-9-99-kq-ficha-triangulos';
+const CACHE_NAME = 'gpv-vistorias-shell-20261105-v23-9-99-kr-home-compacta';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99kq';
+const VERSION = '23.9.99kr';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -69,6 +69,7 @@ const VERSION = '23.9.99kq';
 // que sobrevive às trocas de versão do shell e não bloqueia a atualização do aplicativo.
 const CORE_SHELL = [
   `./assets/gpv-identidade-kp.css?v=${VERSION}`,
+  `./assets/gpv-inicio-kr.css?v=${VERSION}`,
   './',
   './index.html',
   `./styles.css?v=${VERSION}`,

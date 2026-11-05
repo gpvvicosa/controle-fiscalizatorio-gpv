@@ -82,8 +82,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99kq';
-      const APP_VERSION_DATE = '04/11/2026';
+      const APP_VERSION = '23.9.99kr';
+      const APP_VERSION_DATE = '05/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -32883,6 +32883,59 @@ Deseja usar o endereço cadastral do CNPJ?`,
       infoscipFiscalizacaoManualsBtn?.addEventListener('click', abrirManuaisInfoscipFiscalizacao_);
       dashboardTechnicalSearchForm?.addEventListener('submit', event => { event.preventDefault(); abrirPesquisaTecnicaUnificada_(dashboardTechnicalSearchInput?.value || ''); });
       dashboardTechnicalSearchCompactBtn?.addEventListener('click', () => abrirPesquisaTecnicaUnificada_(dashboardTechnicalSearchInput?.value || technicalSearchLastQuery_ || ''));
+
+      // KR — atalhos móveis reusam as ações e contagens originais do Painel.
+      // Não duplicam fluxos de API, filtros, permissões nem registram nova vistoria.
+      (() => {
+        const abrirProcesso = document.getElementById('gpvKrOpenProcessShortcut');
+        const fecharProcesso = document.getElementById('gpvKrCloseSearch');
+        const abrirTecnica = document.getElementById('gpvKrOpenTechShortcut');
+        const abrirPendencias = document.getElementById('gpvKrOpenPendingShortcut');
+        const abrirHistorico = document.getElementById('gpvKrOpenHistoryShortcut');
+        const painel = document.getElementById('recordsPanel');
+        const fontePendencias = document.getElementById('dashboardPendingCenterCard');
+        const fonteHistorico = document.getElementById('inspectionSuggestionsCard');
+        const destinoPendencias = document.getElementById('gpvKrPendingCount');
+        const destinoHistorico = document.getElementById('gpvKrHistoryCount');
+        const campoBusca = document.getElementById('recordsSearch');
+        const abrirBusca = abrir => {
+          if (!painel || !recordsFiltersPanel) return;
+          painel.classList.toggle('gpv-kr-search-open', abrir);
+          abrirProcesso?.setAttribute('aria-expanded', String(abrir));
+          if (abrir) {
+            recordsFiltersPanel.scrollIntoView({behavior:'auto',block:'start'});
+            try { campoBusca?.focus({preventScroll:true}); } catch (_) { campoBusca?.focus(); }
+          } else {
+            abrirProcesso?.scrollIntoView({behavior:'auto',block:'nearest'});
+          }
+        };
+        abrirProcesso?.addEventListener('click', () => abrirBusca(!painel?.classList.contains('gpv-kr-search-open')));
+        fecharProcesso?.addEventListener('click', () => abrirBusca(false));
+        abrirTecnica?.addEventListener('click', () => dashboardTechnicalSearchCompactBtn?.click());
+        abrirPendencias?.addEventListener('click', () => {
+          if (fontePendencias && !fontePendencias.hidden) fontePendencias.click();
+        });
+        abrirHistorico?.addEventListener('click', () => fonteHistorico?.click());
+        const sincronizar = () => {
+          if (destinoPendencias && fontePendencias) {
+            const contagem = document.getElementById('dashboardPendingCenterCount')?.textContent?.trim() || '—';
+            if (destinoPendencias.textContent !== contagem) destinoPendencias.textContent = contagem;
+            if (abrirPendencias && abrirPendencias.hidden !== fontePendencias.hidden) abrirPendencias.hidden = fontePendencias.hidden;
+          }
+          if (destinoHistorico && fonteHistorico) {
+            const contagem = document.getElementById('inspectionSuggestionsCount')?.textContent?.trim() || '—';
+            if (destinoHistorico.textContent !== contagem) destinoHistorico.textContent = contagem;
+            if (abrirHistorico && abrirHistorico.hidden !== fonteHistorico.hidden) abrirHistorico.hidden = fonteHistorico.hidden;
+          }
+        };
+        sincronizar();
+        if (typeof MutationObserver !== 'undefined') {
+          const observador = new MutationObserver(sincronizar);
+          if (fontePendencias) observador.observe(fontePendencias,{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+          if (fonteHistorico) observador.observe(fonteHistorico,{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+        }
+      })();
+
       vistoriaTechnicalSearchForm?.addEventListener('submit', event => { event.preventDefault(); try { saveDraft(); } catch (e) {} abrirPesquisaTecnicaUnificada_(vistoriaTechnicalSearchInput?.value || ''); });
       technicalUnifiedSearchCloseBtn?.addEventListener('click', fecharPesquisaTecnicaUnificada_);
       technicalUnifiedSearchModal?.addEventListener('click', event => {
