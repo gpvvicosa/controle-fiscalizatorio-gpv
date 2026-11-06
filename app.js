@@ -1,3 +1,4 @@
+// V23.9.99la — atualização das artes do bombeiro na abertura e miniatura, para mobile e PC; animação leve/offline preservada.
 // V23.9.99kp — identidade interna unificada por CSS; lógica operacional KO preservada.
 // V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
@@ -82,7 +83,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99kz';
+      const APP_VERSION = '23.9.99kv';
       const APP_VERSION_DATE = '05/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -25455,7 +25456,6 @@ Deseja usar o endereço cadastral do CNPJ?`,
         overlay.className = 'daily-motivational-overlay';
         overlay.setAttribute('aria-hidden', 'true');
         overlay.innerHTML = `
-          <div class="gpv-kx-caption" aria-hidden="true"><strong>CONTROLE DE VISTORIAS</strong><span>GPV • 3º PELOTÃO — VIÇOSA</span></div>
           <div class="daily-motivational-card" role="status" aria-live="polite">
             <div class="daily-motivational-mark" aria-hidden="true">✓</div>
             <span class="daily-motivational-kicker">GPV — 3º Pelotão Viçosa</span>
