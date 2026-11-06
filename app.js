@@ -82,7 +82,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99kw';
+      const APP_VERSION = '23.9.99kx';
       const APP_VERSION_DATE = '05/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -25455,6 +25455,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         overlay.className = 'daily-motivational-overlay';
         overlay.setAttribute('aria-hidden', 'true');
         overlay.innerHTML = `
+          <div class="gpv-kx-caption" aria-hidden="true"><strong>CONTROLE DE VISTORIAS</strong><span>GPV • 3º PELOTÃO — VIÇOSA</span></div>
           <div class="daily-motivational-card" role="status" aria-live="polite">
             <div class="daily-motivational-mark" aria-hidden="true">✓</div>
             <span class="daily-motivational-kicker">GPV — 3º Pelotão Viçosa</span>
