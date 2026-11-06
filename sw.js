@@ -1,3 +1,4 @@
+// V23.9.99kz — animacao visual leve de ate 9,2s, sem espera adicional nem alteracao de logica.
 // V23.9.99ky — texto flutuante sobre a foto; mensagens e sincronizacao inalteradas.
 // V23.9.99kx — visual da saudacao com foto natural e legenda responsiva; ciclo operacional intocado.
 // V23.9.99kw — fundos dedicados da saudação e animação visual, sem alteração de ativação do PWA.
@@ -57,9 +58,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261105-v23-9-99-ky-saudacao-sem-cartao';
+const CACHE_NAME = 'gpv-vistorias-shell-20261105-v23-9-99-kz-animacao-leve';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99ky';
+const VERSION = '23.9.99kz';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -79,6 +80,7 @@ const CORE_SHELL = [
   `./assets/gpv-saudacao-kw.css?v=${VERSION}`,
   `./assets/gpv-saudacao-kx.css?v=${VERSION}`,
   `./assets/gpv-saudacao-ky.css?v=${VERSION}`,
+  `./assets/gpv-saudacao-kz.css?v=${VERSION}`,
   `./assets/abertura-saudacao-mobile-kx.webp?v=${VERSION}`,
   `./assets/abertura-saudacao-desktop-kx.webp?v=${VERSION}`,
   `./assets/abertura-saudacao-mobile-kw.webp?v=${VERSION}`,
