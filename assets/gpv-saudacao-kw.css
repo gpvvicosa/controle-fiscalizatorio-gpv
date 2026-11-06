@@ -1,0 +1,122 @@
+/* GPV V23.9.99kw — saudacao da abertura: fundos reais dedicados e animacao discreta.
+   SOMENTE VISUAL. Textos/horarios, autenticação, carregamento e dados continuam originais. */
+.daily-motivational-overlay{
+  isolation:isolate;
+  overflow:hidden;
+  background:#1d2833!important;
+}
+.daily-motivational-overlay::before{
+  content:"";
+  position:absolute;
+  inset:-18px;
+  z-index:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(125deg,rgba(17,27,39,.56),rgba(17,27,39,.48) 53%,rgba(17,27,39,.65)),
+    url("abertura-saudacao-desktop-kw.webp?v=23.9.99kw");
+  background-size:cover;
+  background-position:center center;
+  background-repeat:no-repeat;
+  filter:blur(2.5px);
+  transform:scale(1.025);
+  animation:gpvKwBackgroundDrift 16s ease-in-out infinite alternate;
+}
+.daily-motivational-overlay::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(24,34,46,.10),rgba(16,27,38,.24));
+}
+.daily-motivational-overlay .daily-motivational-card{
+  position:relative;
+  z-index:1;
+  width:min(540px,calc(100vw - 36px));
+  max-height:calc(100dvh - 36px);
+  overflow-y:auto;
+  padding:clamp(20px,3.3vw,30px);
+  background:rgba(255,255,255,.965);
+  border:1px solid rgba(255,255,255,.87);
+  border-radius:26px;
+  box-shadow:0 22px 70px rgba(4,15,29,.32),0 2px 8px rgba(4,15,29,.08);
+  transform:translateY(12px) scale(.985);
+  animation:gpvKwCardIn .52s cubic-bezier(.22,.74,.2,1) both;
+  scrollbar-width:thin;
+}
+.daily-motivational-overlay .daily-motivational-mark{
+  width:60px;
+  height:60px;
+  margin:0 auto 13px;
+  border-radius:19px;
+  background:linear-gradient(145deg,#e6f9ee,#cdf1db);
+  border:1px solid #b3dfc5;
+  box-shadow:0 7px 22px rgba(16,145,69,.12);
+  animation:gpvKwMarkBreath 3.2s ease-in-out infinite!important;
+}
+.daily-motivational-overlay .daily-motivational-mark::after{
+  inset:-5px;
+  border:1px solid rgba(30,146,84,.21);
+  border-radius:23px;
+  animation:gpvKwRing 3.2s ease-out infinite!important;
+}
+.daily-motivational-overlay .daily-motivational-kicker{color:#7e3230;letter-spacing:.12em}
+.daily-motivational-overlay .daily-motivational-loading{
+  height:5px;
+  margin:22px 0 12px;
+  background:#e6ebec;
+  box-shadow:inset 0 1px 2px rgba(30,49,67,.05);
+}
+.daily-motivational-overlay .daily-motivational-loading span,
+.daily-motivational-overlay.is-updating .daily-motivational-loading span{
+  width:36%;
+  background:linear-gradient(90deg,#bb6621,#f4a14a,#bb6621);
+  animation:gpvKwProgress 1.8s ease-in-out infinite!important;
+}
+.daily-motivational-overlay.is-ready .daily-motivational-loading span{
+  width:100%;
+  transform:none!important;
+  background:linear-gradient(90deg,#198448,#3cbe74)!important;
+  animation:none!important;
+}
+.daily-motivational-overlay.leaving .daily-motivational-card{
+  opacity:0;
+  transform:translateY(8px) scale(.99);
+  transition:opacity .25s ease,transform .25s ease;
+}
+@keyframes gpvKwBackgroundDrift{from{transform:scale(1.025)}to{transform:scale(1.065)}}
+@keyframes gpvKwCardIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes gpvKwMarkBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+@keyframes gpvKwRing{0%{opacity:0;transform:scale(.84)}22%{opacity:.45}70%,100%{opacity:0;transform:scale(1.12)}}
+@keyframes gpvKwProgress{0%{transform:translateX(-110%)}100%{transform:translateX(290%)}}
+@media(max-width:899px){
+  .daily-motivational-overlay::before{
+    background-image:
+      linear-gradient(180deg,rgba(19,30,43,.40),rgba(19,30,43,.62)),
+      url("abertura-saudacao-mobile-kw.webp?v=23.9.99kw");
+    background-position:center 48%;
+  }
+}
+@media(max-width:640px){
+  .daily-motivational-overlay{padding:15px!important}
+  .daily-motivational-overlay .daily-motivational-card{
+    width:100%;
+    max-height:calc(100dvh - 30px);
+    padding:26px 20px 24px;
+    border-radius:25px;
+  }
+  .daily-motivational-overlay .daily-motivational-mark{width:56px;height:56px;margin-bottom:12px;border-radius:18px}
+  .daily-motivational-overlay .daily-motivational-card h2{font-size:clamp(21px,5.7vw,25px);line-height:1.2}
+  .daily-motivational-overlay .daily-motivational-card p{font-size:clamp(14px,4vw,16px);line-height:1.45}
+  .daily-motivational-overlay .daily-motivational-loading{margin:20px 0 12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .daily-motivational-overlay::before,
+  .daily-motivational-overlay .daily-motivational-card,
+  .daily-motivational-overlay .daily-motivational-mark,
+  .daily-motivational-overlay .daily-motivational-mark::after,
+  .daily-motivational-overlay .daily-motivational-loading span{
+    animation:none!important;
+  }
+  .daily-motivational-overlay .daily-motivational-card{opacity:1;transform:none}
+}
