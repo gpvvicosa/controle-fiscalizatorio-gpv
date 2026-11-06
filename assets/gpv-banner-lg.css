@@ -1,0 +1,71 @@
+/* GPV V23.9.99lg — composição horizontal desktop, mantendo LC/LE/LF e o mobile intocados. */
+@media (min-width:1181px) {
+  /* Centraliza o conjunto como um todo dentro da área disponível antes das ações. */
+  body.records-mode .topbar.app-header .gpv-kh-header-banner,
+  .topbar.app-header .gpv-kh-header-banner {
+    justify-content:center!important;
+    gap:clamp(22px,2.8vw,56px)!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity {
+    flex:0 1 auto!important;
+    width:max-content!important;
+    max-width:calc(100% - 150px)!important;
+    height:auto!important;
+    padding:0!important;
+    margin:0!important;
+    justify-content:center!important;
+    align-items:flex-start!important;
+    gap:7px!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong {
+    font-size:clamp(22px,1.75vw,34px)!important;
+    font-weight:900!important;
+    line-height:1.08!important;
+    white-space:nowrap!important;
+  }
+  .topbar.app-header .gpv-kh-header-banner .gpv-lg-second-line,
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-lg-second-line {
+    display:flex!important;
+    align-items:baseline!important;
+    flex-wrap:nowrap!important;
+    gap:clamp(12px,1.2vw,26px)!important;
+    min-width:0!important;
+    white-space:nowrap!important;
+    line-height:1.04!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv,
+  .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv {
+    display:inline-block!important;
+    font-size:clamp(34px,2.5vw,48px)!important;
+    line-height:1.02!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle {
+    display:inline-block!important;
+    font-size:clamp(14px,1.13vw,21px)!important;
+    line-height:1.1!important;
+    white-space:nowrap!important;
+  }
+  /* Bombeiro ao lado das legendas, sem brasão, sem alterar os botões. */
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro {
+    flex:0 0 auto!important;
+    height:123px!important;
+    max-height:123px!important;
+    margin:0!important;
+    transform:none!important;
+  }
+}
+/* Desktop compacto: preserva todos os controles e impede sobreposição. */
+@media (min-width:1181px) and (max-width:1450px) {
+  body.records-mode .topbar.app-header .gpv-kh-header-banner,
+  .topbar.app-header .gpv-kh-header-banner {gap:clamp(10px,1.4vw,22px)!important;}
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong {font-size:clamp(19px,1.6vw,24px)!important;}
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv,
+  .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv {font-size:clamp(30px,2.35vw,37px)!important;}
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle {font-size:clamp(12px,1.08vw,16px)!important;}
+}
