@@ -1,0 +1,57 @@
+/* V23.9.99lf — Refinamento exclusivo do cabeçalho desktop (sobre a LE).
+   Sem símbolos/brasões adicionais, preservando triângulo, bombeiro e controles. */
+@media (min-width:1181px) {
+  /* Remove o segundo símbolo junto aos controles; não altera indicador de sincronização. */
+  body.records-mode .topbar.app-header .dashboard-gpv-mark,
+  .topbar.app-header .dashboard-gpv-mark,
+  body.records-mode .topbar.app-header .brand-mark,
+  .topbar.app-header .brand-mark {
+    display:none!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-le-brasao,
+  .topbar.app-header .gpv-kh-header-banner .gpv-le-brasao {display:none!important;}
+  /* Mantém o triângulo laranja gerado pelo CSS LE à esquerda. */
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity {
+    justify-content:center!important;
+    align-items:flex-start!important;
+    gap:3px!important;
+    padding-top:0!important;
+    padding-bottom:0!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong {
+    font-size:clamp(18px,1.58vw,29px)!important;
+    line-height:1.08!important;
+    letter-spacing:-.018em!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv,
+  .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv {
+    font-size:clamp(26px,2.05vw,39px)!important;
+    line-height:1.02!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle {
+    font-size:clamp(11px,.94vw,16px)!important;
+    line-height:1.14!important;
+    font-weight:800!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro {
+    height:124px!important;max-height:124px!important;
+    align-self:flex-end!important;
+    margin-right:clamp(8px,1vw,20px)!important;
+    object-fit:contain!important;object-position:bottom center!important;
+    filter:none!important;transform:none!important;
+  }
+}
+@media (min-width:1181px) and (max-width:1430px) {
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong {
+    font-size:clamp(17px,1.44vw,22px)!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro {
+    height:123px!important;max-height:123px!important;
+  }
+}
