@@ -1,0 +1,54 @@
+/* GPV V23.9.99lc — banner integral aprovado, sem componentes duplicados.
+   A imagem já contém título, emblema e bombeiro; as camadas de composição
+   anteriores permanecem no DOM apenas por compatibilidade. Nenhuma regra
+   operacional, de atualização, de saudação ou de permissões é alterada. */
+
+/* Tela principal, celular e tablet: exibir exclusivamente o banner completo. */
+.hero.gpv-kg-hero::after,
+body.records-mode .hero.gpv-kg-hero::after {
+  display: none !important;
+  content: none !important;
+}
+.hero.gpv-kg-hero .gpv-lb-hero-bombeiro,
+body.records-mode .hero.gpv-kg-hero .gpv-lb-hero-bombeiro {
+  display: none !important;
+}
+.hero.gpv-kg-hero .hero-banner,
+body.records-mode .hero.gpv-kg-hero .hero-banner {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+/* Desktop: usar a arte inteira no espaço do cabeçalho, sem duplicar textos ou militar. */
+@media (min-width: 1181px) {
+  body.records-mode .topbar.app-header .gpv-kh-header-banner {
+    position: relative !important;
+    isolation: isolate !important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner::before,
+  body.records-mode .topbar.app-header .gpv-kh-header-banner::after {
+    display: none !important;
+    content: none !important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity,
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro {
+    display: none !important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-legacy-banner {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    aspect-ratio: auto !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
