@@ -1,0 +1,89 @@
+/* V23.9.99le: texto + brasão + bombeiro separados no desktop. LC é base. */
+@media (min-width:1181px) {
+  body.records-mode .topbar.app-header,
+  .topbar.app-header {background:#242b34!important}
+  body.records-mode .topbar.app-header .topbar-inner,
+  .topbar.app-header .topbar-inner {
+    height:124px!important;min-height:124px!important;max-height:124px!important;
+    padding:0 clamp(12px,1.7vw,34px) 0 0!important;
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    gap:clamp(8px,1vw,20px)!important;overflow:hidden!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner,
+  .topbar.app-header .gpv-kh-header-banner {
+    display:flex!important;position:relative!important;isolation:isolate!important;
+    flex:1 1 auto!important;width:auto!important;max-width:none!important;min-width:0!important;
+    height:124px!important;min-height:124px!important;max-height:124px!important;
+    align-self:stretch!important;align-items:center!important;justify-content:flex-start!important;
+    padding:0!important;margin:0!important;gap:clamp(8px,.7vw,14px)!important;
+    background:transparent!important;overflow:hidden!important;
+  }
+  /* Triângulo laranja fixado ao canto esquerdo da faixa; sem brilho. */
+  body.records-mode .topbar.app-header .gpv-kh-header-banner::before,
+  .topbar.app-header .gpv-kh-header-banner::before {
+    display:block!important;content:""!important;position:absolute!important;
+    inset:0 auto 0 0!important;width:clamp(70px,6.2vw,118px)!important;
+    background:#fb850c!important;clip-path:polygon(0 0,48% 0,100% 50%,48% 100%,0 100%)!important;
+    box-shadow:none!important;opacity:1!important;z-index:0!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner::after,
+  .topbar.app-header .gpv-kh-header-banner::after {display:none!important;content:none!important}
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-legacy-banner,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-legacy-banner {display:none!important}
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity {
+    display:flex!important;position:relative!important;z-index:1!important;
+    flex:1 1 auto!important;width:auto!important;max-width:none!important;min-width:0!important;
+    height:100%!important;margin:0!important;padding:0 0 0 clamp(88px,7.2vw,138px)!important;
+    justify-content:center!important;align-items:flex-start!important;flex-direction:column!important;
+    gap:1px!important;text-align:left!important;border:0!important;background:none!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong {
+    display:block!important;color:#fff!important;font-size:clamp(17px,1.7vw,30px)!important;
+    line-height:1.06!important;font-weight:900!important;letter-spacing:-.03em!important;
+    text-shadow:none!important;white-space:nowrap!important;margin:0!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv,
+  .topbar.app-header .gpv-kh-header-banner .gpv-le-title-gpv {
+    display:block!important;font-size:clamp(25px,2.45vw,44px)!important;line-height:1!important;
+    font-weight:900!important;letter-spacing:.025em!important;color:#fff!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-subtitle {
+    display:block!important;color:#fff!important;font-size:clamp(10px,1vw,18px)!important;
+    line-height:1.14!important;font-weight:800!important;white-space:nowrap!important;
+    letter-spacing:.015em!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-le-brasao,
+  .topbar.app-header .gpv-kh-header-banner .gpv-le-brasao {
+    display:block!important;position:relative!important;z-index:2!important;align-self:center!important;
+    flex:0 0 auto!important;width:clamp(48px,4.65vw,86px)!important;
+    height:clamp(48px,4.65vw,86px)!important;max-width:none!important;max-height:none!important;
+    margin:0!important;padding:0!important;object-fit:contain!important;aspect-ratio:1!important;
+    border:0!important;box-shadow:none!important;transform:none!important;
+  }
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro {
+    display:block!important;position:relative!important;z-index:2!important;align-self:flex-end!important;
+    flex:0 0 auto!important;width:auto!important;height:122px!important;
+    max-height:122px!important;max-width:none!important;min-width:0!important;
+    margin:0 clamp(0px,.5vw,10px) 0 0!important;padding:0!important;
+    object-fit:contain!important;object-position:bottom center!important;
+    aspect-ratio:auto!important;transform:none!important;filter:none!important;box-shadow:none!important;
+  }
+  body.records-mode .topbar.app-header .dashboard-header-actions,
+  .topbar.app-header .dashboard-header-actions {flex:0 0 auto!important;margin-left:auto!important;gap:clamp(6px,.7vw,14px)!important}
+}
+@media (min-width:1181px) and (max-width:1430px) {
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-le-brasao,
+  .topbar.app-header .gpv-kh-header-banner .gpv-le-brasao {width:50px!important;height:50px!important}
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-bombeiro {height:114px!important;max-height:114px!important}
+  body.records-mode .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong,
+  .topbar.app-header .gpv-kh-header-banner .gpv-kk-identity strong {font-size:clamp(16px,1.55vw,23px)!important}
+}
+@media (max-width:1180px) {
+  /* Preserva o banner móvel/tablet validado na LC; nunca exibe a identidade desktop. */
+  .topbar.app-header .gpv-le-brasao {display:none!important}
+}

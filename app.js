@@ -1,5 +1,6 @@
-// V23.9.99lc — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
-// V23.9.99lc — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
+// V23.9.99le — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
+// V23.9.99le — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
+// V23.9.99le — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
 // V23.9.99kp — identidade interna unificada por CSS; lógica operacional KO preservada.
 // V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
@@ -84,7 +85,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lc';
+      const APP_VERSION = '23.9.99le';
       const APP_VERSION_DATE = '06/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
