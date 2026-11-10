@@ -24,12 +24,15 @@
 }
 @media(min-width:901px) {
   .gpv-li-scrollbar {position:fixed;z-index:995;display:block;box-sizing:border-box;
-    height:16px;overflow-x:auto;overflow-y:hidden;border:1px solid #b1c0d0;border-radius:8px;
-    background:#dee7ef;scrollbar-width:auto;scrollbar-color:#778fa7 #dee7ef;
-    box-shadow:0 2px 8px rgba(29,45,62,.12);overscroll-behavior-x:contain}
+    height:20px;overflow-x:auto;overflow-y:hidden;border:1px solid #b9650b;border-radius:8px;
+    background:#354352;scrollbar-width:auto;scrollbar-color:#ed8916 #354352;
+    box-shadow:0 0 0 2px rgba(255,255,255,.72),0 3px 12px rgba(20,30,40,.22);overscroll-behavior-x:contain}
   .gpv-li-scrollbar-inner {height:1px;pointer-events:none}
-  .gpv-li-scrollbar::-webkit-scrollbar {height:12px}
-  .gpv-li-scrollbar::-webkit-scrollbar-track {background:#dee7ef;border-radius:8px}
-  .gpv-li-scrollbar::-webkit-scrollbar-thumb {background:#7b90a7;border-radius:8px;border:2px solid #dee7ef}
+  .gpv-li-scrollbar::-webkit-scrollbar {height:16px}
+  .gpv-li-scrollbar::-webkit-scrollbar-track {background:#354352;border-radius:8px}
+  .gpv-li-scrollbar::-webkit-scrollbar-thumb {background:#ed8916;border-radius:8px;border:2px solid #354352}
   .gpv-li-scrollbar:focus-visible {outline:2px solid #d87c22;outline-offset:2px}
 }
+
+/* LK: o controle horizontal pertence somente à tabela; nunca à ficha sobreposta. */
+.record-detail-screen.show ~ .gpv-li-scrollbar, body:has(#recordDetailScreen.show) .gpv-li-scrollbar {display:none!important}

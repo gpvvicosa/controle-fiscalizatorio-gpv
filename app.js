@@ -1,9 +1,9 @@
-// V23.9.99lj — refinamento exclusivamente visual da tabela do Painel desktop.
-// V23.9.99lj — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
-// V23.9.99lj — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
-// V23.9.99lj — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
-// V23.9.99lj — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
-// V23.9.99lj — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
+// V23.9.99lk — refinamento exclusivamente visual da tabela do Painel desktop.
+// V23.9.99lk — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
+// V23.9.99lk — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
+// V23.9.99lk — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
+// V23.9.99lk — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
+// V23.9.99lk — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
 // V23.9.99kp — identidade interna unificada por CSS; lógica operacional KO preservada.
 // V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
@@ -88,7 +88,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lj';
+      const APP_VERSION = '23.9.99lk';
       const APP_VERSION_DATE = '10/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -11652,7 +11652,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : modeloRedsEfetivo_('liberacao', 'liberado');
       }
 
-      // V23.9.99lj — modelo local e editável para REDS de operação Alerta Vermelho.
+      // V23.9.99lk — modelo local e editável para REDS de operação Alerta Vermelho.
       // Não altera a demanda, as sanções, o banco nem os modelos administrativos do backend.
       function ehDemandaAlertaVermelho_(registro) {
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Alerta Vermelho'));
@@ -14431,7 +14431,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         if (alvo === 'localizacao') hidratarMapaFichaSeNecessario_();
       }
 
-      // V23.9.99lj — barra horizontal flutuante sincronizada com a tabela desktop.
+      // V23.9.99lk — barra horizontal flutuante sincronizada com a tabela desktop.
       (function instalarRolagemTabelaLi_() {
         const tabela = document.querySelector('#recordsPanel .records-table-wrap');
         const barra = document.getElementById('gpvLiScrollbar');
@@ -14445,9 +14445,10 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
           const rodape = document.querySelector('.app-credit');
           const fr = rodape?.getBoundingClientRect();
           const rodapeVisivel = fr && fr.height > 0 && fr.top < innerHeight && fr.bottom > innerHeight - 80;
-          const margemInferior = rodapeVisivel ? Math.max(12, innerHeight - fr.top + 8) : 12;
+          const margemInferior = rodapeVisivel ? Math.max(12, innerHeight - fr.top + 8) : 4;
           const limiteVisivel = innerHeight - margemInferior - 18;
-          const painelVisivel = document.body.classList.contains('records-mode') && rect.width > 0 && rect.height > 0;
+          const fichaAberta = Boolean(document.getElementById('recordDetailScreen')?.classList.contains('show'));
+          const painelVisivel = !fichaAberta && document.body.classList.contains('records-mode') && rect.width > 0 && rect.height > 0;
           const excesso = tabela.scrollWidth - tabela.clientWidth;
           const deveMostrar = innerWidth >= 901 && painelVisivel && excesso > 4 && rect.top < limiteVisivel && rect.bottom > limiteVisivel + 4;
           barra.hidden = !deveMostrar;
@@ -14476,11 +14477,15 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         window.addEventListener('resize', agendar, { passive:true });
         window.addEventListener('orientationchange', agendar, { passive:true });
         if (typeof ResizeObserver !== 'undefined') new ResizeObserver(agendar).observe(tabela);
-        if (typeof MutationObserver !== 'undefined') new MutationObserver(agendar).observe(document.body, { attributes:true, attributeFilter:['class'] });
+        if (typeof MutationObserver !== 'undefined') {
+          new MutationObserver(agendar).observe(document.body, { attributes:true, attributeFilter:['class'] });
+          const ficha = document.getElementById('recordDetailScreen');
+          if (ficha) new MutationObserver(agendar).observe(ficha, { attributes:true, attributeFilter:['class', 'aria-hidden'] });
+        }
         agendar();
       })();
 
-      // V23.9.99lj — atalhos somente visuais: acionam os mesmos botões já auditados.
+      // V23.9.99lk — atalhos somente visuais: acionam os mesmos botões já auditados.
       function atualizarAtalhosCorrecaoLi_() {
         const barra = document.getElementById('gpvLiCorrections');
         if (!barra) return;
