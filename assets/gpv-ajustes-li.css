@@ -1,0 +1,35 @@
+/* GPV V23.9.99li — Navegação da tabela e correções acessíveis. Sem novas rotas de gravação. */
+.gpv-li-corrections[hidden], .gpv-li-corrections-buttons button[hidden], .gpv-li-scrollbar[hidden] {display:none!important}
+.gpv-li-corrections {
+  margin:10px 0 12px; padding:11px 13px; border-radius:15px;
+  background:#f1f5fa; border:1px solid #d4deea; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+.gpv-li-corrections-label {display:flex;align-items:center;gap:7px;flex-wrap:wrap;color:#263b50}
+.gpv-li-corrections-label > span {color:#d9750e;font-size:18px}
+.gpv-li-corrections-label strong {font-size:13px;font-weight:850}
+.gpv-li-corrections-label small {font-size:11px;color:#667789}
+.gpv-li-corrections-buttons {display:flex;flex-wrap:wrap;gap:7px}
+.gpv-li-corrections-buttons button {border:1px solid #c7d2df; border-radius:9px; background:#fff; color:#24394c;
+  font-family:inherit;font-size:12px;font-weight:800; line-height:1.3; padding:8px 11px; cursor:pointer; min-height:37px}
+.gpv-li-corrections-buttons button[data-gpv-li-correction="recordIrregularitiesCorrectionBtn"] {border-color:#e9b57b;background:#fff5e9;color:#a95305}
+.gpv-li-corrections-buttons button:focus-visible {outline:3px solid #ee9c40;outline-offset:2px}
+.gpv-li-corrections-buttons button:hover {background:#e6edf6}
+.gpv-li-corrections-buttons button:disabled {opacity:.48;cursor:not-allowed}
+@media(max-width:700px) {
+  .gpv-li-corrections{align-items:stretch;gap:8px;padding:10px}
+  .gpv-li-corrections-label small {display:none}
+  .gpv-li-corrections-buttons {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .gpv-li-corrections-buttons button {padding:9px 5px;min-width:0;font-size:11px}
+}
+@media(min-width:901px) {
+  .gpv-li-scrollbar {position:fixed;z-index:995;display:block;box-sizing:border-box;
+    height:16px;overflow-x:auto;overflow-y:hidden;border:1px solid #b1c0d0;border-radius:8px;
+    background:#dee7ef;scrollbar-width:auto;scrollbar-color:#778fa7 #dee7ef;
+    box-shadow:0 2px 8px rgba(29,45,62,.12);overscroll-behavior-x:contain}
+  .gpv-li-scrollbar-inner {height:1px;pointer-events:none}
+  .gpv-li-scrollbar::-webkit-scrollbar {height:12px}
+  .gpv-li-scrollbar::-webkit-scrollbar-track {background:#dee7ef;border-radius:8px}
+  .gpv-li-scrollbar::-webkit-scrollbar-thumb {background:#7b90a7;border-radius:8px;border:2px solid #dee7ef}
+  .gpv-li-scrollbar:focus-visible {outline:2px solid #d87c22;outline-offset:2px}
+}

@@ -1,9 +1,9 @@
-// V23.9.99lh — refinamento exclusivamente visual da tabela do Painel desktop.
-// V23.9.99lh — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
-// V23.9.99lh — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
-// V23.9.99lh — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
-// V23.9.99lh — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
-// V23.9.99lh — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
+// V23.9.99li — refinamento exclusivamente visual da tabela do Painel desktop.
+// V23.9.99li — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
+// V23.9.99li — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
+// V23.9.99li — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
+// V23.9.99li — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
+// V23.9.99li — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
 // V23.9.99kp — identidade interna unificada por CSS; lógica operacional KO preservada.
 // V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
@@ -88,7 +88,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lh';
+      const APP_VERSION = '23.9.99li';
       const APP_VERSION_DATE = '06/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -14355,6 +14355,82 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         if (alvo === 'localizacao') hidratarMapaFichaSeNecessario_();
       }
 
+      // V23.9.99li — barra horizontal flutuante sincronizada com a tabela desktop.
+      (function instalarRolagemTabelaLi_() {
+        const tabela = document.querySelector('#recordsPanel .records-table-wrap');
+        const barra = document.getElementById('gpvLiScrollbar');
+        const interno = document.getElementById('gpvLiScrollbarInner');
+        if (!tabela || !barra || !interno) return;
+        let agendado = false;
+        let sincronizando = false;
+        function atualizar() {
+          agendado = false;
+          const rect = tabela.getBoundingClientRect();
+          const rodape = document.querySelector('.app-credit');
+          const fr = rodape?.getBoundingClientRect();
+          const rodapeVisivel = fr && fr.height > 0 && fr.top < innerHeight && fr.bottom > innerHeight - 80;
+          const margemInferior = rodapeVisivel ? Math.max(12, innerHeight - fr.top + 8) : 12;
+          const limiteVisivel = innerHeight - margemInferior - 18;
+          const painelVisivel = document.body.classList.contains('records-mode') && rect.width > 0 && rect.height > 0;
+          const excesso = tabela.scrollWidth - tabela.clientWidth;
+          const deveMostrar = innerWidth >= 901 && painelVisivel && excesso > 4 && rect.top < limiteVisivel && rect.bottom > limiteVisivel + 4;
+          barra.hidden = !deveMostrar;
+          if (!deveMostrar) return;
+          barra.style.left = Math.max(0, rect.left) + 'px';
+          barra.style.width = Math.min(rect.width, innerWidth - Math.max(0,rect.left)) + 'px';
+          barra.style.bottom = margemInferior + 'px';
+          interno.style.width = tabela.scrollWidth + 'px';
+          if (!sincronizando && Math.abs(barra.scrollLeft - tabela.scrollLeft) > 1) barra.scrollLeft = tabela.scrollLeft;
+        }
+        function agendar() {
+          if (agendado) return;
+          agendado = true;
+          requestAnimationFrame(atualizar);
+        }
+        barra.addEventListener('scroll', () => {
+          if (barra.hidden) return;
+          sincronizando = true;
+          tabela.scrollLeft = barra.scrollLeft;
+          sincronizando = false;
+        }, { passive:true });
+        tabela.addEventListener('scroll', () => {
+          if (!sincronizando) barra.scrollLeft = tabela.scrollLeft;
+        }, { passive:true });
+        document.addEventListener('scroll', agendar, { passive:true, capture:true });
+        window.addEventListener('resize', agendar, { passive:true });
+        window.addEventListener('orientationchange', agendar, { passive:true });
+        if (typeof ResizeObserver !== 'undefined') new ResizeObserver(agendar).observe(tabela);
+        if (typeof MutationObserver !== 'undefined') new MutationObserver(agendar).observe(document.body, { attributes:true, attributeFilter:['class'] });
+        agendar();
+      })();
+
+      // V23.9.99li — atalhos somente visuais: acionam os mesmos botões já auditados.
+      function atualizarAtalhosCorrecaoLi_() {
+        const barra = document.getElementById('gpvLiCorrections');
+        if (!barra) return;
+        const registro = recordDetailRegistroAtual;
+        const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        if (!registro || historico || !usuarioPodeOperar_()) { barra.hidden = true; return; }
+        let disponiveis = 0;
+        barra.querySelectorAll('[data-gpv-li-correction]').forEach(atalho => {
+          const original = document.getElementById(atalho.dataset.gpvLiCorrection || '');
+          const painel = original?.closest('.record-correction-panel');
+          const disponivel = Boolean(original && !original.disabled && !original.hidden && painel && !painel.hidden);
+          atalho.hidden = !disponivel;
+          atalho.disabled = !disponivel;
+          if (disponivel) disponiveis += 1;
+        });
+        barra.hidden = disponiveis === 0;
+      }
+      document.getElementById('gpvLiCorrections')?.addEventListener('click', event => {
+        const botao = event.target.closest('[data-gpv-li-correction]');
+        if (!botao || botao.hidden || botao.disabled || !recordDetailRegistroAtual || !usuarioPodeOperar_()) return;
+        const original = document.getElementById(botao.dataset.gpvLiCorrection || '');
+        const painel = original?.closest('.record-correction-panel');
+        if (!original || original.disabled || original.hidden || !painel || painel.hidden) return;
+        original.click();
+      });
+
       function atualizarNavegacaoFicha_(registro) {
         const pet = registroEhPetFicha_(registro);
         if (recordDetailSectionLocalLabel) recordDetailSectionLocalLabel.textContent = pet ? 'PET / Evento' : 'Local';
@@ -14655,7 +14731,8 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         atualizarLinkPlanilha_(registro?.planilhaUrl || '');
         aplicarPermissoesInterface_();
         atualizarNavegacaoFicha_(registro);
-        requestAnimationFrame(() => atualizarNavegacaoFicha_(registro));
+        atualizarAtalhosCorrecaoLi_();
+        requestAnimationFrame(() => { atualizarNavegacaoFicha_(registro); atualizarAtalhosCorrecaoLi_(); });
         if (!coordenadasFicha && !registro?.parcial) {
           recordAddressMapLazyPending_ = { registro, token: addressMapRequestToken };
           hidratarMapaFichaSeNecessario_();
