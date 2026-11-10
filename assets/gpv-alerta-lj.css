@@ -1,0 +1,11 @@
+/* V23.9.99lj — campos exclusivamente locais do modelo de histórico Alerta Vermelho. */
+.record-alerta-vermelho-fields{grid-column:1/-1;width:100%;box-sizing:border-box;margin:12px 0;padding:14px;border:1px solid #b9c9d5;border-radius:12px;background:#f2f6f9;color:#253342}
+.record-alerta-vermelho-fields[hidden]{display:none!important}
+.record-alerta-vermelho-fields h4{font-size:15px;font-weight:800;margin:0 0 5px}
+.record-alerta-vermelho-fields p{font-size:12px;line-height:1.45;margin:0 0 12px}
+.record-alerta-vermelho-fields label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;min-width:0;margin-bottom:10px}
+.record-alerta-vermelho-fields label small{font-weight:400}
+.record-alerta-vermelho-fields input,.record-alerta-vermelho-fields textarea{box-sizing:border-box;width:100%;border:1px solid #9eafbe;border-radius:8px;padding:10px;font:inherit;color:#152333;background:white;resize:vertical}
+.record-alerta-vermelho-fields .record-alerta-vermelho-grid{display:grid;grid-template-columns:1fr .55fr 1.5fr;gap:10px}
+.record-alerta-vermelho-fields .record-alerta-vermelho-note{margin:4px 0 0;color:#604b25}
+@media(max-width:680px){.record-alerta-vermelho-fields .record-alerta-vermelho-grid{grid-template-columns:1fr}}

@@ -1,9 +1,9 @@
-// V23.9.99li — refinamento exclusivamente visual da tabela do Painel desktop.
-// V23.9.99li — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
-// V23.9.99li — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
-// V23.9.99li — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
-// V23.9.99li — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
-// V23.9.99li — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
+// V23.9.99lj — refinamento exclusivamente visual da tabela do Painel desktop.
+// V23.9.99lj — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
+// V23.9.99lj — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
+// V23.9.99lj — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
+// V23.9.99lj — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
+// V23.9.99lj — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
 // V23.9.99kp — identidade interna unificada por CSS; lógica operacional KO preservada.
 // V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
@@ -88,8 +88,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99li';
-      const APP_VERSION_DATE = '06/11/2026';
+      const APP_VERSION = '23.9.99lj';
+      const APP_VERSION_DATE = '10/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -2319,6 +2319,12 @@
       const recordRedsCopyBtn = document.getElementById('recordRedsCopyBtn');
       const recordRedsCopyStatus = document.getElementById('recordRedsCopyStatus');
       const recordRedsModelSelect = document.getElementById('recordRedsModelSelect');
+      const recordAlertaVermelhoFields = document.getElementById('recordAlertaVermelhoFields');
+      const recordAlertaVermelhoOperacao = document.getElementById('recordAlertaVermelhoOperacao');
+      const recordAlertaVermelhoAno = document.getElementById('recordAlertaVermelhoAno');
+      const recordAlertaVermelhoOs = document.getElementById('recordAlertaVermelhoOs');
+      const recordAlertaVermelhoConstatacao = document.getElementById('recordAlertaVermelhoConstatacao');
+      const recordAlertaVermelhoProvidencias = document.getElementById('recordAlertaVermelhoProvidencias');
       const recordAutoNumberWrap = document.getElementById('recordAutoNumberWrap');
       const recordAutoNumberInput = document.getElementById('recordAutoNumberInput');
       const recordAutoNumberSaveBtn = document.getElementById('recordAutoNumberSaveBtn');
@@ -11646,6 +11652,62 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : modeloRedsEfetivo_('liberacao', 'liberado');
       }
 
+      // V23.9.99lj — modelo local e editável para REDS de operação Alerta Vermelho.
+      // Não altera a demanda, as sanções, o banco nem os modelos administrativos do backend.
+      function ehDemandaAlertaVermelho_(registro) {
+        return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Alerta Vermelho'));
+      }
+
+      function sugestaoConstatacaoAlertaVermelho_(registro) {
+        const n = normalize(valorCampoFicha_(registro, 'Irregularidades constatadas'));
+        const bruto = String(valorCampoFicha_(registro, 'Irregularidades constatadas') || '').trim();
+        const licenciamento = normalize(valorCampoFicha_(registro, 'Situação do licenciamento'));
+        const sancao = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção'));
+        if (n.includes(normalize('AVCB vencido')) || n.includes(normalize('AVCB/CLCB vencido')) || licenciamento === normalize('vencido')) {
+          return 'DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO FUNCIONA SEM AVCB VÁLIDO JUNTO AO CBMMG, UMA VEZ QUE O AVCB SE ENCONTRA COM PRAZO DE VALIDADE EXPIRADO.';
+        }
+        if (n.includes(normalize('Brigada de Incêndio'))) {
+          return 'DURANTE A VISTORIA, CONSTATOU-SE QUE A EDIFICAÇÃO NÃO APRESENTOU CERTIFICADO VÁLIDO DE BRIGADA DE INCÊNDIO.';
+        }
+        if (bruto) return `DURANTE A VISTORIA, FORAM REGISTRADAS AS SEGUINTES IRREGULARIDADES: ${bruto.toUpperCase()}.`;
+        if (sancao === normalize('Regularizado')) return 'DURANTE A VISTORIA, NÃO FORAM CONSTATADAS IRREGULARIDADES NAS MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO.';
+        if (sancao === normalize('Local fechado')) return 'NO LOCAL, NÃO FOI POSSÍVEL REALIZAR A VISTORIA EM RAZÃO DE O ESTABELECIMENTO ENCONTRAR-SE FECHADO.';
+        return '';
+      }
+
+      function preencherCamposAlertaVermelho_(registro) {
+        if (!recordAlertaVermelhoFields) return;
+        recordAlertaVermelhoFields.hidden = false;
+        // Não presumir que a ordem/número da operação de um exemplo vale para outras operações.
+        if (recordAlertaVermelhoOperacao) recordAlertaVermelhoOperacao.value = '';
+        if (recordAlertaVermelhoOs) recordAlertaVermelhoOs.value = '';
+        if (recordAlertaVermelhoAno) recordAlertaVermelhoAno.value = '';
+        if (recordAlertaVermelhoConstatacao) recordAlertaVermelhoConstatacao.value = sugestaoConstatacaoAlertaVermelho_(registro);
+        if (recordAlertaVermelhoProvidencias) recordAlertaVermelhoProvidencias.value = '';
+      }
+
+      function montarHistoricoAlertaVermelho_(registro) {
+        const ordem = String(recordAlertaVermelhoOperacao?.value || '').trim().toUpperCase();
+        const ano = String(recordAlertaVermelhoAno?.value || '').trim();
+        const os = String(recordAlertaVermelhoOs?.value || '').trim().toUpperCase();
+        const constatacao = String(recordAlertaVermelhoConstatacao?.value || '').trim().toUpperCase();
+        const providencias = String(recordAlertaVermelhoProvidencias?.value || '').trim().toUpperCase();
+        const pf = String(valorCampoFicha_(registro, 'Nº do PF') || '').trim();
+        const auto = String(recordAutoNumberInput?.value || valorCampoFicha_(registro, 'Nº do Auto') || '').trim();
+        const sancao = normalize(registro?.situacaoAtual || valorCampoFicha_(registro, 'Sanção'));
+        const partes = [
+          `${ordem || '[INFORMAR NÚMERO DA OPERAÇÃO]'} OPERAÇÃO "ALERTA VERMELHO" ${ano || '[INFORMAR ANO]'}. EM CUMPRIMENTO À ORDEM DE SERVIÇO Nº ${os || '[INFORMAR ORDEM DE SERVIÇO]'}, FOI REALIZADA VISTORIA DE FISCALIZAÇÃO NA EDIFICAÇÃO CITADA NO ENDEREÇO DESTE RELATÓRIO.`,
+          constatacao || '[DESCREVER A CONSTATAÇÃO EFETIVAMENTE VERIFICADA NA VISTORIA]'
+        ];
+        if (pf) partes.push(`A CONSTATAÇÃO FOI REGISTRADA NO PROCESSO FISCALIZATÓRIO Nº ${pf}.`);
+        // Número preenchido, isoladamente, não permite presumir que o auto foi emitido.
+        if (auto && sancao === normalize('Autuado')) {
+          partes.push(`FOI EMITIDO O AUTO DE INFRAÇÃO ADMINISTRATIVA Nº ${auto}, NO SISTEMA INFOSCIP.`);
+        }
+        if (providencias) partes.push(providencias);
+        return partes.join('\n\n');
+      }
+
       function sugestaoModeloFiscalizacao_(registro, situacao) {
         const n = normalize(situacao);
         const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
@@ -11709,6 +11771,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const ehAcessoria = demanda.includes(normalize('Vistoria Acessória')) || normalize(valorCampoFicha_(registro, 'Tipo de vistoria')).includes(normalize('Vistoria Acessória'));
         const ehRenovacaoAvcb = demanda.includes(normalize('Renovação AVCB'));
         const opcoes = [
+          ...(ehDemandaAlertaVermelho_(registro) ? [['alertaVermelho', 'Fiscalização — Operação Alerta Vermelho']] : []),
           ...(ehRenovacaoAvcb ? [['renovacaoAvcb', 'Fiscalização — Renovação AVCB']] : []),
           ...(ehAcessoria ? (() => {
             const resultado = normalize(valorCampoFicha_(registro, 'Resultado da vistoria acessória'));
@@ -11759,7 +11822,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           const option = document.createElement('option'); option.value = valor; option.textContent = rotulo; recordRedsModelSelect.appendChild(option);
         });
         const sugerido = sugestaoModeloFiscalizacao_(registro, situacao);
-        recordRedsModelSelect.value = modeloRedsEfetivo_('fiscalizacao', sugerido) ? sugerido : opcoes[0][0];
+        recordRedsModelSelect.value = ehDemandaAlertaVermelho_(registro) ? 'alertaVermelho' : (modeloRedsEfetivo_('fiscalizacao', sugerido) ? sugerido : opcoes[0][0]);
         return recordRedsModelSelect.value;
       }
 
@@ -11888,6 +11951,12 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : (demanda.includes('liberacao') || [normalize('Liberado'), normalize('Notificado')].includes(normalize(situacao)));
         if (ehLiberacao) return;
         const chaveModelo = recordRedsModelSelect?.value || sugestaoModeloFiscalizacao_(registro, situacao);
+        if (recordAlertaVermelhoFields) recordAlertaVermelhoFields.hidden = chaveModelo !== 'alertaVermelho';
+        if (chaveModelo === 'alertaVermelho' && ehDemandaAlertaVermelho_(registro)) {
+          recordRedsReportModel.textContent = 'Operação Alerta Vermelho — confira a Ordem de Serviço, o resultado e as providências antes de copiar.';
+          recordRedsReportText.value = montarHistoricoAlertaVermelho_(registro);
+          return;
+        }
         const modelo = modeloRedsEfetivo_('fiscalizacao', chaveModelo);
         if (!modelo) {
           recordRedsReportPanel.hidden = true;
@@ -11908,6 +11977,8 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           carregarModelosRedsPersonalizados_(false).catch(() => {});
         }
         recordRedsRegistroAtual = registro;
+        if (recordAlertaVermelhoFields) recordAlertaVermelhoFields.hidden = true;
+        if (ehDemandaAlertaVermelho_(registro)) preencherCamposAlertaVermelho_(registro);
         if (recordInfoscipHistoryPanel) recordInfoscipHistoryPanel.hidden = true;
         if (recordInfoscipHistoryText) recordInfoscipHistoryText.value = '';
         if (recordInfoscipCopyStatus) recordInfoscipCopyStatus.textContent = '';
@@ -11998,6 +12069,11 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
       async function copiarRelatorioReds_() {
         const texto = String(recordRedsReportText?.value || '');
         if (!texto) return;
+        if (recordRedsModelSelect?.value === 'alertaVermelho' && /\[INFORMAR |\[DESCREVER A CONSTATAÇÃO/.test(texto)) {
+          if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = 'Preencha o número da operação, ano, Ordem de Serviço e constatação antes de copiar.';
+          recordAlertaVermelhoFields?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          return;
+        }
         try {
           if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
           else {
@@ -14355,7 +14431,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         if (alvo === 'localizacao') hidratarMapaFichaSeNecessario_();
       }
 
-      // V23.9.99li — barra horizontal flutuante sincronizada com a tabela desktop.
+      // V23.9.99lj — barra horizontal flutuante sincronizada com a tabela desktop.
       (function instalarRolagemTabelaLi_() {
         const tabela = document.querySelector('#recordsPanel .records-table-wrap');
         const barra = document.getElementById('gpvLiScrollbar');
@@ -14404,7 +14480,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         agendar();
       })();
 
-      // V23.9.99li — atalhos somente visuais: acionam os mesmos botões já auditados.
+      // V23.9.99lj — atalhos somente visuais: acionam os mesmos botões já auditados.
       function atualizarAtalhosCorrecaoLi_() {
         const barra = document.getElementById('gpvLiCorrections');
         if (!barra) return;
@@ -32149,6 +32225,10 @@ Deseja usar o endereço cadastral do CNPJ?`,
           recordInfoscipModelSelect.value = chaveInfoscip;
           atualizarTextoHistoricoInfoscipFiscalizacao_();
         }
+      });
+      [recordAlertaVermelhoOperacao, recordAlertaVermelhoAno, recordAlertaVermelhoOs,
+        recordAlertaVermelhoConstatacao, recordAlertaVermelhoProvidencias].forEach(campo => {
+        campo?.addEventListener('input', atualizarTextoRelatorioRedsFiscalizacao_);
       });
       recordAutoNumberInput?.addEventListener('input', atualizarTextoRelatorioRedsFiscalizacao_);
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
