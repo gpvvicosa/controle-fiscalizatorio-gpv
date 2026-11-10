@@ -1,0 +1,34 @@
+/* GPV V23.9.99ll — colunas proporcionais ao espaco disponivel.
+   A barra horizontal da LK so surge se houver excesso real. Nao altera mobile. */
+@media (min-width:901px) {
+  body.records-mode #recordsPanel .records-table-wrap {
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    overflow-x:auto!important;
+  }
+  body.records-mode #recordsPanel .records-table {
+    width:100%!important;
+    min-width:1320px!important;
+    table-layout:fixed!important;
+  }
+  /* Percentuais totalizam 100% e crescem com a largura efetiva da tabela.
+     Em telas mais estreitas, a rolagem continua disponivel sem esmagar os dados. */
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(1)  {width:6%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(2)  {width:13%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(3)  {width:16%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(4)  {width:6%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(5)  {width:11%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(6)  {width:9%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(7)  {width:8%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(8)  {width:12%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(9)  {width:8%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(10) {width:6%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(11) {width:5%!important;}
+  body.records-mode #recordsPanel .records-table tbody td {
+    overflow-wrap:break-word!important;
+  }
+  body.records-mode #recordsPanel .records-table tbody td:nth-child(2),
+  body.records-mode #recordsPanel .records-table tbody td:nth-child(3),
+  body.records-mode #recordsPanel .records-table tbody td:nth-child(8) {min-width:0!important;}
+}
