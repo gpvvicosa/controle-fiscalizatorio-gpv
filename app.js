@@ -1,8 +1,9 @@
-// V23.9.99lg — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
-// V23.9.99lg — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
-// V23.9.99lg — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
-// V23.9.99lg — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
-// V23.9.99lg — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
+// V23.9.99lh — refinamento exclusivamente visual da tabela do Painel desktop.
+// V23.9.99lh — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
+// V23.9.99lh — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
+// V23.9.99lh — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
+// V23.9.99lh — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
+// V23.9.99lh — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
 // V23.9.99kp — identidade interna unificada por CSS; lógica operacional KO preservada.
 // V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
@@ -87,7 +88,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lg';
+      const APP_VERSION = '23.9.99lh';
       const APP_VERSION_DATE = '06/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
