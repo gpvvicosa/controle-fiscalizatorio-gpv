@@ -1,0 +1,32 @@
+/* GPV V23.9.99lm — Nº PF na consulta de fiscalizações desktop.
+   Somente apresentação. Sem alteração de cadastro, classificação ou servidor. */
+@media (min-width:901px) {
+  body.records-mode #recordsPanel .records-table {
+    width:100%!important;
+    min-width:1440px!important;
+    table-layout:fixed!important;
+  }
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(1)  {width:6%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(2)  {width:12%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(3)  {width:14%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(4)  {width:6%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(5)  {width:10%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(6)  {width:9%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(7)  {width:7%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(8)  {width:11%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(9)  {width:8%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(10) {width:8%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(11) {width:5%!important;}
+  body.records-mode #recordsPanel .records-table :is(th,td):nth-child(12) {width:4%!important;}
+  body.records-mode #recordsPanel .records-table .records-pf-cell {overflow-wrap:anywhere!important;}
+  body.records-mode #recordsPanel .records-pf-copy {
+    display:inline-block;max-width:100%;padding:3px 5px;
+    border:1px solid transparent;border-radius:5px;background:transparent;
+    color:inherit;font:inherit;text-align:left;cursor:copy;
+    overflow-wrap:anywhere;
+  }
+  body.records-mode #recordsPanel .records-pf-copy:hover,
+  body.records-mode #recordsPanel .records-pf-copy:focus-visible {
+    background:#fff3e4;border-color:#e4a462;color:#87450d;
+  }
+}

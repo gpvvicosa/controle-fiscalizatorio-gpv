@@ -1,9 +1,9 @@
-// V23.9.99ll — refinamento exclusivamente visual da tabela do Painel desktop.
-// V23.9.99ll — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
-// V23.9.99ll — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
-// V23.9.99ll — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
-// V23.9.99ll — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
-// V23.9.99ll — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
+// V23.9.99lm — refinamento exclusivamente visual da tabela do Painel desktop.
+// V23.9.99lm — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
+// V23.9.99lm — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
+// V23.9.99lm — cabeçalho desktop composto com texto, brasão e foto original independentes; mobile preservado.
+// V23.9.99lm — cabeçalho único com nova imagem aprovada; operações mantidas da LB.
+// V23.9.99lm — hotfix da LA: recupera saudação KZ e troca bombeiro do banner sem alterar regras operacionais.
 // V23.9.99kp — identidade interna unificada por CSS; lógica operacional KO preservada.
 // V23.9.99ko — ajuste visual proporcional do topo desktop; operação da KN preservada.
 // V23.9.99kn — identidade GPV e rolagem da janela Programadas; regras operacionais KK preservadas.
@@ -88,7 +88,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ll';
+      const APP_VERSION = '23.9.99lm';
       const APP_VERSION_DATE = '10/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -8942,7 +8942,7 @@
         if (!itens.length) {
           const possuiFiltros = Object.values(filtrosConsultaAtuais_()).some(Boolean);
           recordsList.innerHTML = mobilePainel ? `<div class="records-empty records-empty--premium"><span class="records-empty-icon" aria-hidden="true">⌕</span><strong>${possuiFiltros ? 'Nenhum processo encontrado' : 'Nenhum registro disponível'}</strong><p>${possuiFiltros ? 'Tente remover um filtro ou usar outro termo de busca.' : 'Quando houver registros disponíveis, eles aparecerão aqui.'}</p>${possuiFiltros ? '<button type="button" class="btn btn-secondary" data-clear-record-filters>Limpar filtros</button>' : ''}</div>` : '';
-          recordsTableBody.innerHTML = mobilePainel ? '' : '<tr><td colspan="11" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
+          recordsTableBody.innerHTML = mobilePainel ? '' : '<tr><td colspan="12" class="records-table-empty">Nenhum registro encontrado.</td></tr>';
           atualizarPainelFiltrosPremium_();
           return;
         }
@@ -8962,6 +8962,7 @@
             <td>${statusPainelItemHtml_(item)}</td>
             <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
             <td class="records-mono">${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
+            <td class="records-mono records-pf-cell">${String(item.pf || '').trim() ? `<button type="button" class="records-pf-copy" data-copy-record-pf="${escapeAttr(String(item.pf).trim())}" title="Copiar Nº PF ${escapeAttr(String(item.pf).trim())}" aria-label="Copiar Nº PF ${escapeAttr(String(item.pf).trim())}">${destacarBuscaPainelHtml_(String(item.pf).trim())}</button>` : '—'}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
             <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" ${item.sincronizacaoPendente ? 'disabled title="Sincronizando com a planilha" aria-label="Aguardando sincronização"' : `data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}"`}>
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19M9 11h7M9 15h5"/></svg>
@@ -11652,7 +11653,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           : modeloRedsEfetivo_('liberacao', 'liberado');
       }
 
-      // V23.9.99ll — modelo local e editável para REDS de operação Alerta Vermelho.
+      // V23.9.99lm — modelo local e editável para REDS de operação Alerta Vermelho.
       // Não altera a demanda, as sanções, o banco nem os modelos administrativos do backend.
       function ehDemandaAlertaVermelho_(registro) {
         return normalize(valorCampoFicha_(registro, 'Demanda')).includes(normalize('Alerta Vermelho'));
@@ -14431,7 +14432,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         if (alvo === 'localizacao') hidratarMapaFichaSeNecessario_();
       }
 
-      // V23.9.99ll — barra horizontal flutuante sincronizada com a tabela desktop.
+      // V23.9.99lm — barra horizontal flutuante sincronizada com a tabela desktop.
       (function instalarRolagemTabelaLi_() {
         const tabela = document.querySelector('#recordsPanel .records-table-wrap');
         const barra = document.getElementById('gpvLiScrollbar');
@@ -14485,7 +14486,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         agendar();
       })();
 
-      // V23.9.99ll — atalhos somente visuais: acionam os mesmos botões já auditados.
+      // V23.9.99lm — atalhos somente visuais: acionam os mesmos botões já auditados.
       function atualizarAtalhosCorrecaoLi_() {
         const barra = document.getElementById('gpvLiCorrections');
         if (!barra) return;
@@ -32699,7 +32700,14 @@ Deseja usar o endereço cadastral do CNPJ?`,
         }
         if (card) abrirDetalheRegistro_(card.dataset.recordKey || '', Number(card.dataset.recordLine || 0));
       });
-      recordsTableBody?.addEventListener('click', event => {
+      recordsTableBody?.addEventListener('click', async event => {
+        const copiarPf = event.target.closest('[data-copy-record-pf]');
+        if (copiarPf) {
+          event.stopPropagation();
+          const ok = await copiarTextoClipboard_(copiarPf.dataset.copyRecordPf || '');
+          avisarGpv_(ok ? 'Número do PF copiado.' : 'Não foi possível copiar o número do PF.', ok ? 'PF copiado' : 'Falha ao copiar', { tom: ok ? 'success' : 'warning' });
+          return;
+        }
         const botaoFicha = event.target.closest('[data-open-record-detail]');
         if (botaoFicha) {
           event.stopPropagation();
