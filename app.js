@@ -88,7 +88,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ls';
+      const APP_VERSION = '23.9.99lt';
       const APP_VERSION_DATE = '11/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -9211,8 +9211,8 @@
 
       function validarRespostaMetasHk_(resposta) {
         const versao = String(resposta?.versaoCalculoMetas || '').trim();
-        if (versao === '23.9.99hk') return resposta;
-        const erro = new Error('O cálculo de Metas do servidor ainda não está na versão 23.9.99hk. Atualize a implantação do Google Apps Script.');
+        if (['23.9.99hk', '23.9.99ls', '23.9.99lt'].includes(versao)) return resposta;
+        const erro = new Error('O cálculo de Metas do servidor ainda não está em uma versão compatível. Atualize a implantação do Google Apps Script.');
         erro.code = 'METAS_BACKEND_DESATUALIZADO';
         throw erro;
       }
@@ -14696,6 +14696,39 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
           ['CEP do responsável', naoInformadoResponsavel_(cepResponsavelFicha)],
           ['Endereço completo do responsável', naoInformadoResponsavel_(enderecoResponsavelCompletoFicha)]
         ];
+        // LT — edicao de nivel de risco em vistoria ja finalizada, sem alterar outros campos.
+        const tipoRiscoFicha = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+        const demandaRiscoFicha = normalize(valorCampoFicha_(registro, 'Demanda'));
+        const historicoRiscoFicha = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
+        const riscoElegivelFicha = tipoRiscoFicha.includes('fiscalizacao') && !eventoFicha && !registroEhEventoDeclaratorio_(registro) &&
+          !demandaRiscoFicha.includes(normalize('PET')) && !historicoRiscoFicha;
+        const riscoCampoAtualFicha = String(valorCampoFicha_(registro, 'Nível de risco') || '').trim().toUpperCase();
+        const riscoNumericoAreaFicha = numeroAreaM2_(valorCampoFicha_(registro, 'Área m²', 'Área'));
+        const riscoAutomaticoFicha = riscoElegivelFicha && Number.isFinite(riscoNumericoAreaFicha) && riscoNumericoAreaFicha > 930;
+        const riscoTextoFicha = riscoCampoAtualFicha
+          ? `Nível ${riscoCampoAtualFicha}`
+          : (riscoAutomaticoFicha ? 'Nível III pela área (ainda sem registro explícito)' : 'Ainda não classificado');
+        const blocoEdicaoNivelFicha = riscoElegivelFicha
+          ? `<section class="gpv-lt-risk-card" aria-label="Classificação de risco da vistoria">
+               <div class="gpv-lt-risk-head"><div><strong>Classificação de risco</strong><span>${escapeHtml(riscoTextoFicha)}</span></div>
+                 ${usuarioPodeOperar_() ? '<button type="button" class="gpv-lt-risk-toggle" data-gpv-lt-risk-open>Alterar nível de risco</button>' : ''}
+               </div>
+               ${usuarioPodeOperar_() ? `<form class="gpv-lt-risk-form" data-gpv-lt-risk-form hidden>
+                 <label for="gpvLtNivelRisco">Nível correto da edificação</label>
+                 <select id="gpvLtNivelRisco" data-gpv-lt-risk-select required>
+                   <option value="">Selecione um nível</option>
+                   <option value="I" ${!riscoAutomaticoFicha && riscoCampoAtualFicha === 'I' ? 'selected' : ''}>Nível I</option>
+                   <option value="II" ${!riscoAutomaticoFicha && riscoCampoAtualFicha === 'II' ? 'selected' : ''}>Nível II</option>
+                   <option value="III" ${riscoAutomaticoFicha || riscoCampoAtualFicha === 'III' ? 'selected' : ''}>Nível III</option>
+                 </select>
+                 ${riscoAutomaticoFicha ? '<small>Área superior a 930 m²: o Nível III é obrigatório.</small>' : ''}
+                 <label for="gpvLtMotivoRisco">Motivo da alteração</label>
+                 <textarea id="gpvLtMotivoRisco" data-gpv-lt-risk-reason rows="2" minlength="5" maxlength="500" required placeholder="Descreva brevemente a conferência realizada"></textarea>
+                 <p data-gpv-lt-risk-message aria-live="polite"></p>
+                 <div class="gpv-lt-risk-actions"><button type="submit">Salvar classificação</button><button type="button" data-gpv-lt-risk-cancel>Cancelar</button></div>
+               </form>` : ''}
+             </section>`
+          : '';
         const blocoRecuperacaoEnderecoResponsavel = montarRecuperacaoEnderecoResponsavelFicha_(
           cepResponsavelFicha,
           enderecoResponsavelBrutoFicha,
@@ -14780,7 +14813,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
             montarEstimativaMultaFicha_(registro)
           }</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="processo">${montarGrupoFicha_('Processo', processo, 'record-process-group record-detail-group--wide')}</div>` +
-          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}${blocoResumoLocalizacaoLocalFicha}</div>` +
+          `<div class="record-detail-module-panel" data-record-section-panel="local">${blocoEventoFicha}${montarGrupoFicha_(petFicha ? 'Local do evento' : 'Edificação / Local', local, 'record-building-group record-detail-group--wide')}${blocoResumoLocalizacaoLocalFicha}${blocoEdicaoNivelFicha}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="responsavel">${montarGrupoFicha_(eventoFicha || petFicha ? 'Responsável que acompanhou a vistoria' : 'Responsável', responsavel, 'record-responsible-group record-detail-group--wide')}${blocoRecuperacaoEnderecoResponsavel}</div>` +
           `<div class="record-detail-module-panel" data-record-section-panel="localizacao">${montarGrupoFicha_('Localização', localizacao, 'record-location-captured record-location-group record-detail-group--wide')}${mapaLocalizacaoFicha}</div>`;
 
@@ -32031,6 +32064,75 @@ Deseja usar o endereço cadastral do CNPJ?`,
         try { document.activeElement?.blur?.(); } catch (e) {}
         const item = preparacoesVistoria.find(p => String(p.id) === String(btn.dataset.preparacaoId));
         if (item) abrirDetalheVistoriaCadastrada_('programada', item);
+      });
+      // LT: controle dedicado, dentro da Ficha, para a classificacao de risco de vistoria finalizada.
+      recordDetailGroups?.addEventListener('click', event => {
+        const card = event.target.closest('.gpv-lt-risk-card');
+        if (!card) return;
+        if (event.target.closest('[data-gpv-lt-risk-open]')) {
+          event.preventDefault();
+          if (!usuarioPodeOperar_() || !navigator.onLine) {
+            avisarGpv_('Entre com seu Nº BM e conecte-se à internet para alterar o nível.', 'Classificação de risco');
+            return;
+          }
+          const form = card.querySelector('[data-gpv-lt-risk-form]');
+          if (!form) return;
+          form.hidden = false;
+          const seletor = form.querySelector('[data-gpv-lt-risk-select]');
+          const area = numeroAreaM2_(valorCampoFicha_(recordDetailRegistroAtual, 'Área m²', 'Área'));
+          if (Number.isFinite(area) && area > 930 && seletor) {
+            seletor.value = 'III';
+            for (const opt of seletor.options) opt.disabled = opt.value === 'I' || opt.value === 'II';
+          }
+          form.querySelector('[data-gpv-lt-risk-reason]')?.focus();
+        }
+        if (event.target.closest('[data-gpv-lt-risk-cancel]')) {
+          event.preventDefault();
+          const form = card.querySelector('[data-gpv-lt-risk-form]');
+          if (form) form.hidden = true;
+        }
+      });
+      recordDetailGroups?.addEventListener('submit', async event => {
+        const form = event.target.closest?.('[data-gpv-lt-risk-form]');
+        if (!form) return;
+        event.preventDefault();
+        if (!usuarioPodeOperar_() || !recordDetailRegistroAtual || !recordsState.chaveSelecionada) return;
+        const select = form.querySelector('[data-gpv-lt-risk-select]');
+        const motivo = String(form.querySelector('[data-gpv-lt-risk-reason]')?.value || '').replace(/\s+/g, ' ').trim();
+        const nivelRisco = String(select?.value || '');
+        const mensagem = form.querySelector('[data-gpv-lt-risk-message]');
+        const botao = form.querySelector('button[type="submit"]');
+        const area = numeroAreaM2_(valorCampoFicha_(recordDetailRegistroAtual, 'Área m²', 'Área'));
+        if (!['I','II','III'].includes(nivelRisco) || (Number.isFinite(area) && area > 930 && nivelRisco !== 'III')) {
+          if (mensagem) mensagem.textContent = 'Selecione um nível válido. Acima de 930 m², somente o Nível III é permitido.';
+          return;
+        }
+        if (motivo.length < 5) { if (mensagem) mensagem.textContent = 'Informe um motivo com pelo menos 5 caracteres.'; return; }
+        if (!navigator.onLine) { if (mensagem) mensagem.textContent = 'A alteração exige conexão com a internet.'; return; }
+        const confirmou = await confirmarGpv_(`Classificação selecionada: Nível ${nivelRisco}\nMotivo: ${motivo}`, 'Confirmar classificação de risco',
+          { rotuloConfirmar:'Salvar classificação', rotuloCancelar:'Revisar' });
+        if (!confirmou) return;
+        if (botao) botao.disabled = true;
+        if (mensagem) mensagem.textContent = 'Gravando na planilha e registrando auditoria...';
+        const chave = recordsState.chaveSelecionada;
+        const linhaHint = Number(recordsState.linhaSelecionada || recordDetailRegistroAtual?.linhaAtual || 0);
+        try {
+          const resposta = await apiRequest('config', {
+            consulta:'nivel_risco_corrigir', chave, linhaHint, nivelRisco, motivo,
+            nivelAnterior: String(valorCampoFicha_(recordDetailRegistroAtual, 'Nível de risco') || '').trim().toUpperCase(),
+            dispositivo:nomeDispositivo_()
+          }, 85000, { noRetry:true });
+          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível salvar o nível de risco.');
+          limparCachesConsulta_();
+          try { localStorage.removeItem(GOALS_CACHE_STORAGE); } catch (erro) {}
+          const aviso = resposta?.aviso ? ` ${resposta.aviso}` : '';
+          mostrarFeedbackPremium_(`Nível ${resposta.nivelRisco || nivelRisco} registrado na Ficha.${aviso}`, resposta?.aviso ? 'warning' : 'success');
+          await abrirDetalheRegistro_(chave, Number(resposta.linha || linhaHint));
+          void carregarMetas_(true, false);
+          if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar:true, motivo:'nivel de risco corrigido' });
+        } catch (erro) {
+          if (mensagem) mensagem.textContent = String(erro?.message || 'Falha ao salvar a classificação. Consulte a Ficha antes de repetir.');
+        } finally { if (botao) botao.disabled = false; }
       });
       recordDetailGroups?.addEventListener('click', event => {
         const tentarLocalizacao = event.target.closest('[data-retry-record-location]');

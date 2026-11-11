@@ -2950,6 +2950,19 @@
   <link rel="stylesheet" href="assets/gpv-tabela-ll.css?v=23.9.99ln">
   <link rel="stylesheet" href="assets/gpv-pf-lm.css?v=23.9.99ln">
   <link rel="stylesheet" href="assets/gpv-ficha-ln.css?v=23.9.99ln">
+
+  <style id="gpv-lt-ficha-risco">
+    .gpv-lt-risk-card{margin:12px 0 0;padding:14px;border:1px solid rgba(181,126,44,.45);border-radius:14px;background:rgba(248,244,232,.92);color:#28303a}
+    .gpv-lt-risk-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .gpv-lt-risk-head>div{display:grid;gap:4px}.gpv-lt-risk-head strong{font-size:14px}.gpv-lt-risk-head span{font-size:13px}
+    .gpv-lt-risk-toggle,.gpv-lt-risk-actions button{padding:10px 14px;border-radius:10px;border:1px solid #985e18;background:#fff;color:#3b3024;font-weight:700;cursor:pointer}
+    .gpv-lt-risk-form{margin-top:12px;display:grid;gap:8px}.gpv-lt-risk-form[hidden]{display:none!important}
+    .gpv-lt-risk-form label{font-size:13px;font-weight:700}.gpv-lt-risk-form select,.gpv-lt-risk-form textarea{width:100%;min-height:42px;border:1px solid #b8b3a8;border-radius:9px;padding:10px;color:#28303a;background:#fff;font-size:16px}
+    .gpv-lt-risk-form textarea{min-height:74px;resize:vertical}.gpv-lt-risk-form small{font-size:12px;color:#7b3b10}
+    .gpv-lt-risk-form p{font-size:13px;min-height:1em;margin:0;color:#73401a}.gpv-lt-risk-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .gpv-lt-risk-actions button[type=submit]{background:#8c4f13;color:white}.gpv-lt-risk-actions button:disabled{opacity:.6;cursor:wait}
+    @media(max-width:480px){.gpv-lt-risk-head{align-items:stretch}.gpv-lt-risk-toggle{width:100%}.gpv-lt-risk-actions button{flex:1}}
+  </style>
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -6730,7 +6743,7 @@
   <script src="config.js?v=23.9.99ln"></script>
   <script src="ocupacoes.js?v=23.9.99ln"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99ln"></script>
-  <script src="app.js?v=23.9.99ls"></script>
+  <script src="app.js?v=23.9.99lt"></script>
   <script src="assets/gpv-ficha-ln.js?v=23.9.99ln" defer></script>
 
 </body>
