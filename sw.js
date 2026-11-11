@@ -64,9 +64,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261110-v23-9-99-li-atalhos-e-scroll';
+const CACHE_NAME = 'gpv-vistorias-shell-20261111-v23-9-99-ln-ficha-mobile';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99lm';
+const VERSION = '23.9.99ln';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -97,6 +97,8 @@ const CORE_SHELL = [
   `./assets/gpv-alerta-lj.css?v=${VERSION}`,
   `./assets/gpv-tabela-ll.css?v=${VERSION}`,
   `./assets/gpv-pf-lm.css?v=${VERSION}`,
+  `./assets/gpv-ficha-ln.css?v=${VERSION}`,
+  `./assets/gpv-ficha-ln.js?v=${VERSION}`,
   `./assets/abertura-saudacao-mobile-kx.webp?v=${VERSION}`,
   `./assets/abertura-saudacao-desktop-kx.webp?v=${VERSION}`,
   `./assets/abertura-saudacao-mobile-kw.webp?v=${VERSION}`,

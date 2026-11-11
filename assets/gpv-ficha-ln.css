@@ -1,0 +1,128 @@
+/* GPV V23.9.99ln — Ficha do Processo Mobile Premium.
+   Restrito ao modal no celular. Nenhum campo, permissao ou fluxo foi removido. */
+.gpv-ln-more-button {display:none}
+@media (max-width:680px) {
+  body.records-mode #recordDetailScreen .record-detail-topbar {
+    display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+    justify-content:space-between!important;gap:7px!important;
+    min-height:52px!important;padding:7px 10px!important;
+    position:relative!important;z-index:12!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-panel-title {min-width:0!important;min-height:38px!important;flex:1 1 auto!important}
+  body.records-mode #recordDetailScreen .record-detail-panel-title strong {font-size:13px!important;white-space:nowrap!important}
+  body.records-mode #recordDetailScreen .record-detail-top-actions {
+    width:auto!important;display:flex!important;grid-template-columns:none!important;
+    align-items:center!important;gap:6px!important;position:static!important;flex:0 0 auto!important;
+  }
+  body.records-mode #recordDetailScreen .gpv-ln-more-button {
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;
+    min-height:38px!important;min-width:94px!important;padding:0 9px!important;border-radius:10px!important;
+    border:1px solid #5e7185!important;background:#354454!important;color:#fff!important;
+    font-size:10px!important;font-weight:800!important;line-height:1.2!important;cursor:pointer!important;
+  }
+  body.records-mode #recordDetailScreen .gpv-ln-more-button[aria-expanded="true"]{border-color:#ffa545!important;background:#9f4c0d!important}
+  body.records-mode #recordDetailScreen .record-detail-back {width:38px!important;height:38px!important;flex:0 0 38px!important}
+  body.records-mode #recordDetailScreen .record-detail-access {display:none!important}
+  body.records-mode #recordDetailScreen .record-detail-top-actions :is(.record-detail-summary-copy,.record-detail-infoscip-link,.record-detail-sheet-link) {
+    display:none!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-top-actions.gpv-ln-menu-open :is(.record-detail-summary-copy,.record-detail-infoscip-link,.record-detail-sheet-link):not([hidden]) {
+    display:flex!important;position:absolute!important;right:10px!important;left:auto!important;
+    width:min(230px,calc(100vw - 20px))!important;min-height:40px!important;
+    font-size:11px!important;padding:0 13px!important;justify-content:flex-start!important;
+    color:#243245!important;background:#fff!important;border:1px solid #d8e0ea!important;
+    box-shadow:0 5px 16px rgba(21,31,42,.15)!important;z-index:15!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-top-actions.gpv-ln-menu-open .record-detail-summary-copy{top:calc(100% + 5px)!important}
+  body.records-mode #recordDetailScreen .record-detail-top-actions.gpv-ln-menu-open .record-detail-infoscip-link{top:calc(100% + 49px)!important}
+  body.records-mode #recordDetailScreen .record-detail-top-actions.gpv-ln-menu-open .record-detail-sheet-link{top:calc(100% + 93px)!important}
+  body.records-mode #recordDetailScreen .record-detail-top-actions.gpv-ln-menu-open .record-detail-summary-copy::after,
+  body.records-mode #recordDetailScreen .record-detail-top-actions.gpv-ln-menu-open .record-detail-infoscip-link::after,
+  body.records-mode #recordDetailScreen .record-detail-top-actions.gpv-ln-menu-open .record-detail-sheet-link::after{display:none!important}
+  body.records-mode #recordDetailScreen .record-detail-heading{padding:12px 12px 10px!important;gap:5px!important}
+  body.records-mode #recordDetailScreen .record-detail-heading .record-detail-section-label{margin-bottom:3px!important}
+  body.records-mode #recordDetailScreen .record-detail-line{font-size:19px!important;line-height:1.15!important}
+  body.records-mode #recordDetailScreen .record-detail-heading p{font-size:10px!important;line-height:1.3!important}
+  body.records-mode #recordDetailScreen .record-current-status{
+    width:100%!important;min-height:43px!important;padding:7px 11px!important;
+    flex-direction:row!important;align-items:center!important;justify-content:space-between!important;
+  }
+  /* Navegacao numa unica faixa: nenhuma aba some, e scroll pertence apenas as abas. */
+  body.records-mode #recordDetailScreen .record-detail-section-nav{
+    display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+    overflow-x:auto!important;overflow-y:hidden!important;
+    grid-template-columns:none!important;gap:7px!important;
+    margin:0 -7px 8px!important;padding:7px 7px 9px!important;
+    -webkit-overflow-scrolling:touch!important;scrollbar-width:thin!important;
+    scrollbar-color:#c6d1dd transparent!important;scroll-snap-type:x proximity!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-section-nav::-webkit-scrollbar{display:block!important;height:3px!important}
+  body.records-mode #recordDetailScreen .record-detail-section-nav::-webkit-scrollbar-thumb{background:#c6d1dd!important;border-radius:9px!important}
+  body.records-mode #recordDetailScreen .record-detail-section-btn {
+    flex:0 0 auto!important;width:auto!important;min-width:91px!important;max-width:176px!important;
+    min-height:42px!important;padding:6px 9px!important;display:inline-flex!important;
+    flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;
+    gap:6px!important;white-space:normal!important;line-height:1.15!important;
+    font-size:10px!important;text-align:left!important;scroll-snap-align:start!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-section-btn .record-detail-section-icon{width:26px!important;height:26px!important;flex:0 0 26px!important}
+  body.records-mode #recordDetailScreen .gpv-li-corrections {padding:8px!important;margin:5px 0!important;gap:7px!important}
+  body.records-mode #recordDetailScreen .gpv-li-corrections-label {gap:5px!important}
+  body.records-mode #recordDetailScreen .gpv-li-corrections-label small{font-size:9px!important;line-height:1.2!important}
+  body.records-mode #recordDetailScreen .gpv-li-corrections-buttons{gap:6px!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.records-mode #recordDetailScreen .gpv-li-corrections-buttons button {min-height:36px!important;padding:6px 8px!important;font-size:10px!important}
+  body.records-mode #recordDetailScreen .record-detail-section-hint {margin:6px 1px!important;font-size:10px!important}
+  body.records-mode #recordDetailScreen .record-detail-section-tools {margin:5px 0!important}
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-group{
+    margin-bottom:9px!important;border-radius:13px!important;
+    box-shadow:0 3px 10px rgba(15,23,42,.035)!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-group h3{
+    min-height:39px!important;padding:9px 11px!important;font-size:12px!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-fields{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px!important;padding:7px!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-field,
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-field:nth-child(odd){
+    grid-column:1/-1!important;min-height:52px!important;padding:8px 9px!important;
+    border-radius:10px!important;box-shadow:none!important;
+  }
+  body.records-mode #recordDetailScreen .record-building-group .record-detail-field.gpv-ln-metric,
+  body.records-mode #recordDetailScreen .record-building-group .record-detail-field.gpv-ln-metric:nth-child(odd){
+    grid-column:span 1!important;min-width:0!important;padding:8px 6px!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-field label{
+    min-height:0!important;font-size:9px!important;line-height:1.2!important;letter-spacing:.02em!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-field .record-detail-copy-row{
+    gap:3px!important;margin-top:3px!important;
+  }
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-field .record-detail-copy-value{
+    min-width:0!important;font-size:12px!important;line-height:1.3!important;overflow-wrap:anywhere!important;
+  }
+  body.records-mode #recordDetailScreen .record-building-group .gpv-ln-metric .record-detail-copy-value{font-size:11px!important}
+  body.records-mode #recordDetailScreen .record-building-group .gpv-ln-metric .record-copy-value-btn {
+    flex:0 0 24px!important;min-width:24px!important;width:24px!important;min-height:26px!important;height:26px!important;padding:0!important
+  }
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-field .record-copy-value-btn{
+    flex:0 0 29px!important;min-width:29px!important;width:29px!important;
+    min-height:29px!important;height:29px!important;
+  }
+  body.records-mode #recordDetailScreen .record-location-summary-group .record-detail-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  body.records-mode #recordDetailScreen .record-location-summary-group .record-detail-field,
+  body.records-mode #recordDetailScreen .record-location-summary-group .record-detail-field:nth-child(odd){grid-column:span 1!important}
+  body.records-mode #recordDetailScreen .record-location-summary-group .record-detail-field:first-child{grid-column:1/-1!important}
+  body.records-mode #recordDetailScreen .record-location-summary-actions{
+    margin:0 0 8px!important;padding:8px 10px!important;gap:7px!important;flex-wrap:wrap!important;
+  }
+  body.records-mode #recordDetailScreen .record-location-summary-actions a{min-height:35px!important}
+}
+@media (max-width:350px){
+  body.records-mode #recordDetailScreen .record-detail-panel-title strong{font-size:12px!important}
+  body.records-mode #recordDetailScreen .gpv-ln-more-button{min-width:84px!important;font-size:9px!important}
+  body.records-mode #recordDetailScreen .record-detail-module-panel .record-detail-fields{gap:4px!important;padding:5px!important}
+}

@@ -88,8 +88,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lm';
-      const APP_VERSION_DATE = '10/11/2026';
+      const APP_VERSION = '23.9.99ln';
+      const APP_VERSION_DATE = '11/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -10724,8 +10724,10 @@
         if (!validos.length) return '';
         return `<section class="record-detail-group${classeExtra ? ` ${escapeAttr(classeExtra)}` : ''}"><h3>${escapeHtml(titulo)}</h3><div class="record-detail-fields">${validos.map(([rotulo, valor]) => {
           const classeCampo = classeCampoFicha_(rotulo, valor);
+          // LN: somente etiqueta de apresentacao para indicadores compactos da ficha mobile.
+          const ehMetricaFicha = /^(area|pavimentos|altura)(?:\s|\(|$)/i.test(normalize(rotulo));
           const podeCopiar = normalize(valor || '') !== normalize('Não informado');
-          return `<div class="record-detail-field${classeCampo ? ` ${escapeAttr(classeCampo)}` : ''}"><label>${escapeHtml(rotulo)}</label><div class="record-detail-copy-row"><span class="record-detail-copy-value">${escapeHtml(valor)}</span>${podeCopiar ? botaoCopiarValorFichaHtml_(rotulo, valor) : ''}</div></div>`;
+          return `<div class="record-detail-field${classeCampo ? ` ${escapeAttr(classeCampo)}` : ''}${ehMetricaFicha ? ' gpv-ln-metric' : ''}"><label>${escapeHtml(rotulo)}</label><div class="record-detail-copy-row"><span class="record-detail-copy-value">${escapeHtml(valor)}</span>${podeCopiar ? botaoCopiarValorFichaHtml_(rotulo, valor) : ''}</div></div>`;
         }).join('')}</div></section>`;
       }
 
