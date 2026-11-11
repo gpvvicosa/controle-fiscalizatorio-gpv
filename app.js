@@ -88,7 +88,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ln';
+      const APP_VERSION = '23.9.99ls';
       const APP_VERSION_DATE = '11/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2448,6 +2448,8 @@
       const vistoriadorResponsavelSelect = document.getElementById('vistoriadorResponsavel');
       const categoriaMetaSelect = document.getElementById('categoriaMeta');
       const areaInput = document.getElementById('area');
+      const nivelRiscoManualSelect = document.getElementById('nivelRiscoManual');
+      const nivelRiscoManualHint = document.getElementById('nivelRiscoManualHint');
       const areaLabel = document.getElementById('areaLabel');
       const areaMetaStatus = document.getElementById('areaMetaStatus');
       const vistoriaFineEstimate = document.getElementById('vistoriaFineEstimate');
@@ -16457,13 +16459,54 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         const tipo = normalize(payload?.tipoVistoria || '');
         const fiscalizacao = tipo.includes('fiscalizacao');
         const area = numeroAreaM2_(payload?.area);
-        if (fiscalizacao && Number.isFinite(area) && area > 930 && !partes.some(v => normalize(v) === normalize('Nível de risco III'))) {
+        const nivelIII = Number.isFinite(area) && area > 930 || String(payload?.nivelRisco || payload?.nivelRiscoManual || '').toUpperCase() === 'III';
+        if (fiscalizacao && nivelIII && !partes.some(v => normalize(v) === normalize('Nível de risco III'))) {
           partes.push('Nível de risco III');
         }
         return partes.join(' | ');
       }
 
+      // LS: preserva a automacao LN acima de 930 m2 e impede escolha inferior.
+      // O nivel confirmado segue no envio e fica registrado na Ficha/Metas.
+      function sincronizarClassificacaoManualComAutomatica_() {
+        const seletor = nivelRiscoManualSelect;
+        if (!seletor) return;
+        const area = numeroAreaM2_(areaInput?.value);
+        const nivelIIIautomatico = ehFluxoFiscalizacao_() && !ehEventoDeclaratorio_()
+          && Number.isFinite(area) && area > 930;
+        const eraAutomatico = seletor.dataset.gpvLrRiscoForcado === '1';
+        if (nivelIIIautomatico) {
+          if (!eraAutomatico) {
+            // Guarda a escolha feita antes do enquadramento, para restaurar se
+            // a area for corrigida ou o tipo de vistoria mudar.
+            seletor.dataset.gpvLrRiscoAnterior = ['I', 'II', 'III'].includes(seletor.value) ? seletor.value : '';
+          }
+          seletor.value = 'III';
+          seletor.disabled = true;
+          seletor.dataset.gpvLrRiscoForcado = '1';
+          if (nivelRiscoManualHint) nivelRiscoManualHint.textContent =
+            'Nível III automático por área superior a 930 m² na Fiscalização. O nível será registrado na Planilha Google, aparecerá na Ficha e contará uma vez nas Metas após a sincronização.';
+          return;
+        }
+        if (eraAutomatico) seletor.value = seletor.dataset.gpvLrRiscoAnterior || '';
+        delete seletor.dataset.gpvLrRiscoForcado;
+        delete seletor.dataset.gpvLrRiscoAnterior;
+        if (ehEventoDeclaratorio_()) {
+          // Evento declaratorio usa categoria de meta propria, sem nivel de risco.
+          seletor.value = '';
+          seletor.disabled = true;
+          if (nivelRiscoManualHint) nivelRiscoManualHint.textContent =
+            'Não se aplica a eventos declaratórios: a categoria de meta do evento permanece independente.';
+          return;
+        }
+        seletor.disabled = false;
+        if (nivelRiscoManualHint) nivelRiscoManualHint.textContent = ehFluxoFiscalizacao_()
+          ? 'Selecione I, II ou III, se conhecido. O nível será salvo na Planilha Google e aparecerá na Ficha. Nível III também contará nas Metas Mensais uma vez por vistoria após a sincronização.'
+          : 'Seleção opcional: o nível será salvo na Planilha Google e aparecerá na Ficha. A meta Nível III é aplicada às fiscalizações.';
+      }
+
       function atualizarVerificacaoMetasFiscalizacao_() {
+        sincronizarClassificacaoManualComAutomatica_();
         const eventoDeclaratorio = ehEventoDeclaratorio_();
         const fiscalizacao = ehFluxoFiscalizacao_() && !eventoDeclaratorio;
         if (areaInput) areaInput.required = fiscalizacao;
@@ -16505,8 +16548,13 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
           areaMetaStatus.textContent = `Meta verificada: ${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m² — enquadra-se automaticamente em Nível de risco III (> 930 m²)${categoriaManual ? ` e também mantém a categoria ${categoriaManual}` : ''}.`;
           return;
         }
+        if (nivelRiscoManualSelect?.value === 'III') {
+          areaMetaStatus.className = 'lookup-status show success';
+          areaMetaStatus.textContent = `Nível III selecionado manualmente para ${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m². Após a sincronização, contará uma vez nas Metas Mensais${categoriaManual ? `, preservando também ${categoriaManual}` : ''}.`;
+          return;
+        }
         areaMetaStatus.className = 'lookup-status show info';
-        areaMetaStatus.textContent = `Meta verificada: ${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m² — não se enquadra automaticamente em Nível de risco III pela regra de área${categoriaManual ? `. Categoria informada: ${categoriaManual}.` : '. Nenhuma outra categoria de meta foi selecionada.'}`;
+        areaMetaStatus.textContent = `Meta verificada: ${area.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} m² — não se enquadra automaticamente em Nível de risco III pela regra de área${nivelRiscoManualSelect?.value ? `. Nível ${nivelRiscoManualSelect.value} selecionado.` : ''}${categoriaManual ? ` Categoria informada: ${categoriaManual}.` : ''}`;
       }
 
       function atualizarOpcoesSancaoPorFluxo_() {
@@ -18630,6 +18678,10 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
           area: eventoDeclaratorio ? '' : value('area'),
           pavimentos: eventoDeclaratorio ? '' : value('pavimentos'),
           altura: eventoDeclaratorio ? '' : value('altura'),
+          // LS: nivel efetivo enviado ao Apps Script; conservamos o campo local
+          // para rascunhos da LR.1 que venham a ser reabertos nesta versao.
+          nivelRiscoManual: eventoDeclaratorio ? '' : ((ehFluxoFiscalizacao_() && numeroAreaM2_(value('area')) > 930) ? 'III' : value('nivelRiscoManual')),
+          nivelRisco: eventoDeclaratorio ? '' : ((ehFluxoFiscalizacao_() && numeroAreaM2_(value('area')) > 930) ? 'III' : value('nivelRiscoManual')),
           ocupacao: eventoDeclaratorio ? '' : ocupacaoTextoFinal(),
           proprietarioEdificacao: eventoTemporario ? '' : padronizarTextoCadastroCliente_(value('proprietarioEdificacao')),
           proprietarioDocumento: eventoTemporario ? '' : value('proprietarioDocumento'),
@@ -24309,6 +24361,13 @@ Deseja usar o endereço cadastral do CNPJ?`,
 
       function applyPayload(p, recordId = '') {
         if (!p || typeof p !== 'object') return;
+        if (nivelRiscoManualSelect) {
+          nivelRiscoManualSelect.disabled = false;
+          delete nivelRiscoManualSelect.dataset.gpvLrRiscoForcado;
+          delete nivelRiscoManualSelect.dataset.gpvLrRiscoAnterior;
+          // Compatibilidade com rascunhos importados de uma versao com nivelRisco.
+          if (p.nivelRiscoManual == null && p.nivelRisco != null) p = { ...p, nivelRiscoManual: p.nivelRisco };
+        }
         vistoriaAguardandoPrimeiraEdicao_ = false;
         clearTimeout(vistoriaEstadoInicialTimer_);
         vistoriaEstadoInicialTimer_ = null;
@@ -24485,6 +24544,12 @@ Deseja usar o endereço cadastral do CNPJ?`,
         dduEmUsoNumero = '';
         processoAcessoriaVinculado = null;
         form.reset();
+        if (nivelRiscoManualSelect) {
+          nivelRiscoManualSelect.disabled = false;
+          nivelRiscoManualSelect.value = '';
+          delete nivelRiscoManualSelect.dataset.gpvLrRiscoForcado;
+          delete nivelRiscoManualSelect.dataset.gpvLrRiscoAnterior;
+        }
         resetarIrregularidadesFiscalizacao_();
         renderizarMedidasProjetoPrevistasCampo_('');
         if (limpezaForte) limparCamposFormularioEncerrado_();
@@ -32081,6 +32146,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       areaInput?.addEventListener('input', () => { atualizarVerificacaoMetasFiscalizacao_(); atualizarEstimativaMultaVistoria_(); scheduleDraftSave(); });
       areaInput?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); atualizarEstimativaMultaVistoria_(); scheduleDraftSave(); });
       categoriaMetaSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
+      nivelRiscoManualSelect?.addEventListener('change', () => { atualizarVerificacaoMetasFiscalizacao_(); scheduleDraftSave(); });
       document.getElementById('demandaPrincipal')?.addEventListener('input', () => { atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); atualizarCampoRenovacaoAvcb_(); agendarConsultaProcessoPf_('form', 250); });
       document.getElementById('demandaPrincipal')?.addEventListener('change', () => { if (ehFluxoLiberacao_()) atualizarOpcoesDemandaPorFluxo_(); atualizarHintDemandaPorFluxo_(); aplicarModoEventoDeclaratorio_({ silencioso: true }); atualizarCampoRenovacaoAvcb_(); agendarConsultaProcessoPf_('form', 100); });
       categoriaMetaSelect?.addEventListener('change', atualizarConsultaTecnicaContextual_);

@@ -5093,6 +5093,16 @@
               <label for="altura">Altura</label>
               <input id="altura" name="altura" inputmode="decimal" placeholder="Altura">
             </div>
+            <div class="field">
+              <label for="nivelRiscoManual">Nível de risco — seleção manual (opcional)</label>
+              <select id="nivelRiscoManual" name="nivelRiscoManual" aria-describedby="nivelRiscoManualHint">
+                <option value="">Não classificado</option>
+                <option value="I">Nível I</option>
+                <option value="II">Nível II</option>
+                <option value="III">Nível III</option>
+              </select>
+              <div class="hint" id="nivelRiscoManualHint">Classifique manualmente como I, II ou III. O nível será salvo na Planilha Google e aparecerá na Ficha. Em Fiscalização, Nível III contará uma vez nas Metas; área superior a 930 m² mantém o enquadramento automático.</div>
+            </div>
             <div class="field wide occupancy-field">
               <label>Ocupação / atividade — CBMMG</label>
               <input type="hidden" id="ocupacao" name="ocupacao" value="">
@@ -6720,7 +6730,7 @@
   <script src="config.js?v=23.9.99ln"></script>
   <script src="ocupacoes.js?v=23.9.99ln"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99ln"></script>
-  <script src="app.js?v=23.9.99ln"></script>
+  <script src="app.js?v=23.9.99ls"></script>
   <script src="assets/gpv-ficha-ln.js?v=23.9.99ln" defer></script>
 
 </body>
