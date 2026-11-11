@@ -88,7 +88,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lt';
+      const APP_VERSION = '23.9.99lu';
       const APP_VERSION_DATE = '11/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -32116,13 +32116,17 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (mensagem) mensagem.textContent = 'Gravando na planilha e registrando auditoria...';
         const chave = recordsState.chaveSelecionada;
         const linhaHint = Number(recordsState.linhaSelecionada || recordDetailRegistroAtual?.linhaAtual || 0);
+        let gravacaoNaoConfirmada = false;
         try {
           const resposta = await apiRequest('config', {
             consulta:'nivel_risco_corrigir', chave, linhaHint, nivelRisco, motivo,
             nivelAnterior: String(valorCampoFicha_(recordDetailRegistroAtual, 'Nível de risco') || '').trim().toUpperCase(),
             dispositivo:nomeDispositivo_()
           }, 85000, { noRetry:true });
-          if (!resposta?.ok) throw new Error(resposta?.error || 'Não foi possível salvar o nível de risco.');
+          if (!resposta?.ok || resposta?.gravacaoConfirmada !== true ||
+              String(resposta?.nivelRisco || '') !== nivelRisco) {
+            throw new Error(resposta?.error || 'O servidor não confirmou a gravação da classificação. Não repita o envio sem conferir a Ficha.');
+          }
           limparCachesConsulta_();
           try { localStorage.removeItem(GOALS_CACHE_STORAGE); } catch (erro) {}
           const aviso = resposta?.aviso ? ` ${resposta.aviso}` : '';
@@ -32131,8 +32135,31 @@ Deseja usar o endereço cadastral do CNPJ?`,
           void carregarMetas_(true, false);
           if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar:true, motivo:'nivel de risco corrigido' });
         } catch (erro) {
-          if (mensagem) mensagem.textContent = String(erro?.message || 'Falha ao salvar a classificação. Consulte a Ficha antes de repetir.');
-        } finally { if (botao) botao.disabled = false; }
+          // LU: o timeout pode ocorrer DEPOIS da gravação na planilha.
+          // Conferir a própria Ficha por leitura leve, nunca reenviar automaticamente.
+          if (mensagem) mensagem.textContent = 'Conferindo o nível registrado no servidor...';
+          let nivelConfirmado = '';
+          try {
+            const leitura = await apiRequest('config', {
+              consulta:'registro', chave, linhaHint, modoRapido:true
+            }, 30000, {noRetry:true});
+            if (leitura?.ok && Array.isArray(leitura.campos)) {
+              const item = leitura.campos.find(c => normalize(c?.rotulo || '') === normalize('Nível de risco'));
+              nivelConfirmado = String(item?.valor || '').trim().toUpperCase();
+            }
+          } catch (_) {}
+          if (nivelConfirmado === nivelRisco) {
+            limparCachesConsulta_();
+            try { localStorage.removeItem(GOALS_CACHE_STORAGE); } catch (_) {}
+            mostrarFeedbackPremium_(`Nível ${nivelRisco} confirmado na Ficha após conferência.`, 'success');
+            if (mensagem) mensagem.textContent = 'Gravação confirmada na Planilha Google. Atualize a Ficha para visualizar.';
+            try { await abrirDetalheRegistro_(chave, linhaHint); } catch (_) {}
+          } else {
+            if (mensagem) mensagem.textContent = 'Não foi possível confirmar a gravação. Não clique novamente em Salvar. Feche e reabra a Ficha. Detalhe: ' + String(erro?.message || 'sem confirmação do servidor').slice(0,260);
+            // Mantém a prevenção de duplo envio enquanto esta Ficha estiver aberta.
+            gravacaoNaoConfirmada = true;
+          }
+        } finally { if (botao) botao.disabled = gravacaoNaoConfirmada; }
       });
       recordDetailGroups?.addEventListener('click', event => {
         const tentarLocalizacao = event.target.closest('[data-retry-record-location]');
