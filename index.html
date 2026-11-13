@@ -2963,6 +2963,18 @@
     .gpv-lt-risk-actions button[type=submit]{background:#8c4f13;color:white}.gpv-lt-risk-actions button:disabled{opacity:.6;cursor:wait}
     @media(max-width:480px){.gpv-lt-risk-head{align-items:stretch}.gpv-lt-risk-toggle{width:100%}.gpv-lt-risk-actions button{flex:1}}
   </style>
+  <style id="gpv-lw-quick-regularization">
+    .gpv-lw-status-actions{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap}
+    .gpv-lw-regularize-btn{border:1px solid #16834b;border-radius:10px;background:#16834b;color:#fff;font-size:12px;font-weight:700;line-height:1.25;font-family:inherit;min-height:33px;padding:8px 12px;cursor:pointer;box-shadow:0 4px 10px rgba(22,131,75,.14)}
+    .gpv-lw-regularize-btn:hover{background:#10683b}
+    .gpv-lw-regularize-btn:focus-visible{outline:3px solid #e6b350;outline-offset:2px}
+    .gpv-lw-regularize-btn[hidden]{display:none!important}
+    .gpv-lw-regularization-help{font-size:12px;line-height:1.5;border-left:3px solid #e89a2e;padding:8px 10px;background:#fff7e9;color:#564123;border-radius:6px}
+    #recordDocumentRegularizationRef{width:100%;min-height:42px;border:1px solid #b6c1cf;border-radius:10px;padding:9px 11px;background:#fff;color:#1e293b;font-size:16px}
+    #recordDocumentRegularizationRefRow small,#recordDocumentRegularizationObservationHint{display:block;margin-top:4px;font-size:11px;line-height:1.4;color:#536276}
+    #recordDocumentRegularizationRefRow[hidden]{display:none!important}
+    @media(max-width:650px){.gpv-lw-status-actions{gap:6px}.gpv-lw-regularize-btn{min-height:32px;padding:7px 9px;font-size:12px}.record-current-status{max-width:100%}}
+  </style>
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -5258,7 +5270,10 @@
         </div>
         <div class="record-current-status">
           <span class="record-current-status-label">Situação atual</span>
-          <span class="status-badge status-neutral" id="recordDetailStatusBadge">Situação</span>
+          <div class="gpv-lw-status-actions">
+            <span class="status-badge status-neutral" id="recordDetailStatusBadge">Situação</span>
+            <button class="gpv-lw-regularize-btn" id="recordQuickRegularizeBtn" type="button" hidden title="Registrar regularização comprovada sem nova vistoria">✓ Regularizar</button>
+          </div>
         </div>
       </div>
 
@@ -5527,26 +5542,33 @@
       <header>
         <div>
           <span>INFOSCIP Fiscalização</span>
-          <h2 id="recordDocumentRegularizationTitle">Registrar regularização documental</h2>
+          <h2 id="recordDocumentRegularizationTitle">Regularizar processo fiscalizatório</h2>
         </div>
         <button id="recordDocumentRegularizationCloseBtn" type="button" aria-label="Fechar">×</button>
       </header>
       <div class="record-status-update-body">
         <div class="record-status-current">Situação atual: <strong id="recordDocumentRegularizationCurrent">—</strong></div>
-        <label>Documento ou pendência regularizada
+        <p class="gpv-lw-regularization-help">Use este atalho somente quando a regularização estiver comprovada documentalmente, sem necessidade de vistoria presencial. Irregularidades físicas que exigem conferência em campo devem ser tratadas por Vistoria Acessória.</p>
+        <label>Motivo da regularização
           <select id="recordDocumentRegularizationType">
-            <option value="Certificado de brigadistas">Certificado de brigadistas</option>
-            <option value="Documentação do PSCIP">Documentação do PSCIP</option>
-            <option value="Documento de licenciamento">Documento de licenciamento</option>
-            <option value="Outra pendência documental">Outra pendência documental</option>
+            <option value="" selected>Selecione o motivo</option>
+            <option value="AVCB emitido">AVCB emitido</option>
+            <option value="CLCB emitido">CLCB emitido</option>
+            <option value="Pendência sanada">Pendência sanada</option>
+            <option value="Brigada atualizada">Brigada atualizada</option>
+            <option value="Outros">Outros</option>
           </select>
         </label>
-        <label class="record-correction-reason" for="recordDocumentRegularizationObservation">
-          <span>Observação</span>
-          <textarea id="recordDocumentRegularizationObservation" rows="3" maxlength="600" placeholder="Ex.: Certificado de brigadistas atualizado pelo RT e conferido no INFOSCIP."></textarea>
-          <small>Opcional. A informação ficará registrada na auditoria da Ficha.</small>
+        <label id="recordDocumentRegularizationRefRow">Número ou identificação do comprovante
+          <input id="recordDocumentRegularizationRef" type="text" maxlength="160" autocomplete="off" placeholder="Ex.: nº do AVCB/CLCB ou do certificado">
+          <small id="recordDocumentRegularizationRefHint">Obrigatório para AVCB, CLCB ou Brigada; opcional nos demais casos.</small>
         </label>
-        <label class="record-status-confirm"><input id="recordDocumentRegularizationConfirm" type="checkbox"> <span>Consultei o INFOSCIP e confirmei que a pendência documental foi regularizada.</span></label>
+        <label class="record-correction-reason" for="recordDocumentRegularizationObservation">
+          <span>Descrição / observação</span>
+          <textarea id="recordDocumentRegularizationObservation" rows="3" maxlength="500" placeholder="Descreva a pendência sanada, a comprovação ou outro motivo."></textarea>
+          <small id="recordDocumentRegularizationObservationHint">Obrigatória em “Pendência sanada” e “Outros”; informação registrada na auditoria.</small>
+        </label>
+        <label class="record-status-confirm"><input id="recordDocumentRegularizationConfirm" type="checkbox"> <span>Conferi a regularização no INFOSCIP ou na documentação oficial pertinente e confirmo que esta pendência não exige nova vistoria. Estou ciente de que multas anteriores não são canceladas automaticamente.</span></label>
         <div class="record-status-update-message" id="recordDocumentRegularizationMessage" role="status" aria-live="polite"></div>
       </div>
       <footer>
@@ -5810,6 +5832,7 @@
           <div class="field"><label for="prepareNomeFantasia" id="prepareNomeFantasiaLabel">Nome Fantasia</label><input id="prepareNomeFantasia"></div>
           <div class="field"><label for="prepareRazaoSocial">Razão Social</label><input id="prepareRazaoSocial"></div>
           <div class="field"><label for="prepareArea">Área (m²)</label><input id="prepareArea" inputmode="decimal"></div>
+          <div class="field" id="prepareNivelRiscoWrap"><label for="prepareNivelRisco">Nível de risco <span class="field-optional">opcional</span></label><select id="prepareNivelRisco" aria-describedby="prepareNivelRiscoHint"><option value="">Ainda não classificado</option><option value="I">Nível I</option><option value="II">Nível II</option><option value="III">Nível III</option></select><div class="hint" id="prepareNivelRiscoHint" role="status" aria-live="polite">Selecione I, II ou III, se conhecido. Acima de 930 m², a Fiscalização exige Nível III.</div></div>
           <div class="field wide prepare-project-data" id="prepareLiberacaoProjetoWrap" hidden>
             <div class="prepare-project-card">
               <div class="prepare-project-head">
@@ -6743,7 +6766,7 @@
   <script src="config.js?v=23.9.99ln"></script>
   <script src="ocupacoes.js?v=23.9.99ln"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99ln"></script>
-  <script src="app.js?v=23.9.99lu"></script>
+  <script src="app.js?v=23.9.99lw"></script>
   <script src="assets/gpv-ficha-ln.js?v=23.9.99ln" defer></script>
 
 </body>

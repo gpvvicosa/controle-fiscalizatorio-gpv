@@ -88,8 +88,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lu';
-      const APP_VERSION_DATE = '11/11/2026';
+      const APP_VERSION = '23.9.99lw';
+      const APP_VERSION_DATE = '13/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -2231,6 +2231,7 @@
       const recordNotificationsTopBtn = document.getElementById('recordNotificationsTopBtn');
       const recordNotificationsTopText = document.getElementById('recordNotificationsTopText');
       const recordCurrentStatus = document.querySelector('.record-current-status');
+      const recordQuickRegularizeBtn = document.getElementById('recordQuickRegularizeBtn');
       const recordQuickActionsPanel = document.getElementById('recordQuickActionsPanel');
       const recordQuickHistoryBtn = document.getElementById('recordQuickHistoryBtn');
       const recordHistoryBackBtn = document.getElementById('recordHistoryBackBtn');
@@ -2247,6 +2248,9 @@
       const recordDocumentRegularizationSaveBtn = document.getElementById('recordDocumentRegularizationSaveBtn');
       const recordDocumentRegularizationCurrent = document.getElementById('recordDocumentRegularizationCurrent');
       const recordDocumentRegularizationType = document.getElementById('recordDocumentRegularizationType');
+      const recordDocumentRegularizationRef = document.getElementById('recordDocumentRegularizationRef');
+      const recordDocumentRegularizationRefRow = document.getElementById('recordDocumentRegularizationRefRow');
+      const recordDocumentRegularizationRefHint = document.getElementById('recordDocumentRegularizationRefHint');
       const recordDocumentRegularizationObservation = document.getElementById('recordDocumentRegularizationObservation');
       const recordDocumentRegularizationConfirm = document.getElementById('recordDocumentRegularizationConfirm');
       const recordDocumentRegularizationMessage = document.getElementById('recordDocumentRegularizationMessage');
@@ -2655,6 +2659,9 @@
       const preparedForUserNotice = document.getElementById('preparedForUserNotice');
       const programDeadlineNotice = document.getElementById('programDeadlineNotice');
       const prepareTipo = document.getElementById('prepareTipo');
+      const prepareAreaInput = document.getElementById('prepareArea');
+      const prepareNivelRiscoSelect = document.getElementById('prepareNivelRisco');
+      const prepareNivelRiscoHint = document.getElementById('prepareNivelRiscoHint');
       const prepareData = document.getElementById('prepareData');
       const prepareVistoriador = document.getElementById('prepareVistoriador');
       const prepareCidade = document.getElementById('prepareCidade');
@@ -12324,14 +12331,34 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const mostrar = podeRegistrarRegularizacaoDocumentalFicha_(registro);
         recordDocumentRegularizationPanel.hidden = !mostrar;
         recordDocumentRegularizationBtn.disabled = !mostrar;
+        if (recordQuickRegularizeBtn) {
+          const demanda = normalize(valorCampoFicha_(registro, 'Demanda'));
+          const tipoCadastro = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
+          const permitidoAtalho = mostrar && tipoCadastro.includes(normalize('Fiscalização')) && !demanda.includes(normalize('Vistoria Acessória'));
+          recordQuickRegularizeBtn.hidden = !permitidoAtalho;
+          recordQuickRegularizeBtn.disabled = !permitidoAtalho;
+        }
+      }
+
+      function atualizarCamposRegularizacaoRapidaFicha_() {
+        const motivo = String(recordDocumentRegularizationType?.value || '');
+        const referenciaObrigatoria = ['AVCB emitido', 'CLCB emitido', 'Brigada atualizada'].includes(motivo);
+        if (recordDocumentRegularizationRefRow) recordDocumentRegularizationRefRow.hidden = !motivo;
+        if (recordDocumentRegularizationRef) recordDocumentRegularizationRef.required = referenciaObrigatoria;
+        if (recordDocumentRegularizationRefHint) recordDocumentRegularizationRefHint.textContent = referenciaObrigatoria
+          ? 'Obrigatório. Informe o número ou identificador do documento válido.'
+          : 'Opcional. Informe uma referência verificável, se disponível.';
+        if (recordDocumentRegularizationObservation) recordDocumentRegularizationObservation.required = ['Pendência sanada', 'Outros'].includes(motivo);
       }
 
       function abrirRegularizacaoDocumentalFicha_() {
         const registro = recordDocumentRegularizationRegistroAtual;
         if (!registro || !recordDocumentRegularizationModal || !podeRegistrarRegularizacaoDocumentalFicha_(registro)) return;
         if (recordDocumentRegularizationCurrent) recordDocumentRegularizationCurrent.textContent = registro.situacaoAtual || valorCampoFicha_(registro, 'Sanção') || '—';
-        if (recordDocumentRegularizationType) recordDocumentRegularizationType.value = 'Certificado de brigadistas';
+        if (recordDocumentRegularizationType) recordDocumentRegularizationType.value = '';
+        if (recordDocumentRegularizationRef) recordDocumentRegularizationRef.value = '';
         if (recordDocumentRegularizationObservation) recordDocumentRegularizationObservation.value = '';
+        atualizarCamposRegularizacaoRapidaFicha_();
         if (recordDocumentRegularizationConfirm) recordDocumentRegularizationConfirm.checked = false;
         if (recordDocumentRegularizationMessage) {
           recordDocumentRegularizationMessage.textContent = '';
@@ -12353,17 +12380,32 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const registro = recordDocumentRegularizationRegistroAtual;
         if (!registro || !recordsState.chaveSelecionada || !podeRegistrarRegularizacaoDocumentalFicha_(registro)) return;
         const tipoDocumento = String(recordDocumentRegularizationType?.value || '').trim();
+        const documentoReferencia = String(recordDocumentRegularizationRef?.value || '').replace(/\s+/g, ' ').trim();
         const observacao = String(recordDocumentRegularizationObservation?.value || '').replace(/\s+/g, ' ').trim();
-        if (!tipoDocumento) {
+        const mensagens = {
+          '': 'Selecione o motivo da regularização.',
+          'AVCB emitido': 'Informe o número ou identificação do AVCB emitido.',
+          'CLCB emitido': 'Informe o número ou identificação do CLCB emitido.',
+          'Brigada atualizada': 'Informe a identificação do certificado ou comprovante da Brigada.'
+        };
+        let erroValidacao = '';
+        if (!['AVCB emitido', 'CLCB emitido', 'Pendência sanada', 'Brigada atualizada', 'Outros'].includes(tipoDocumento)) {
+          erroValidacao = mensagens[''];
+        } else if (['AVCB emitido', 'CLCB emitido', 'Brigada atualizada'].includes(tipoDocumento) && documentoReferencia.length < 3) {
+          erroValidacao = mensagens[tipoDocumento];
+        } else if (['Pendência sanada', 'Outros'].includes(tipoDocumento) && observacao.length < 10) {
+          erroValidacao = 'Descreva o motivo e a comprovação (mínimo de 10 caracteres).';
+        }
+        if (erroValidacao) {
           if (recordDocumentRegularizationMessage) {
-            recordDocumentRegularizationMessage.textContent = 'Informe o documento ou a pendência que foi regularizada.';
+            recordDocumentRegularizationMessage.textContent = erroValidacao;
             recordDocumentRegularizationMessage.className = 'record-status-update-message error';
           }
           return;
         }
         if (!recordDocumentRegularizationConfirm?.checked) {
           if (recordDocumentRegularizationMessage) {
-            recordDocumentRegularizationMessage.textContent = 'Confirme que consultou o INFOSCIP e verificou a regularização documental.';
+            recordDocumentRegularizationMessage.textContent = 'Confirme a conferência no INFOSCIP ou em documento oficial e a inexistência de necessidade de nova vistoria.';
             recordDocumentRegularizationMessage.className = 'record-status-update-message error';
           }
           return;
@@ -12377,7 +12419,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         const confirmar = await confirmarGpv_(
-          `A situação atual do processo será registrada como Regularizado sem criar uma nova vistoria.\n\nDocumento/pendência: ${tipoDocumento}\n\nO resultado original da fiscalização permanecerá preservado no histórico.`,
+          `A situação atual será Regularizado, sem criar nova vistoria.\n\nMotivo: ${tipoDocumento}${documentoReferencia ? `\nComprovante: ${documentoReferencia}` : ''}${observacao ? `\nDescrição: ${observacao}` : ''}\n\nO resultado original e as multas anteriores serão preservados.`,
           'Confirmar regularização documental?',
           { rotuloConfirmar: 'Confirmar regularização', rotuloCancelar: 'Voltar' }
         );
@@ -12385,7 +12427,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
         if (recordDocumentRegularizationSaveBtn) recordDocumentRegularizationSaveBtn.disabled = true;
         if (recordDocumentRegularizationMessage) {
-          recordDocumentRegularizationMessage.textContent = 'Registrando regularização documental...';
+          recordDocumentRegularizationMessage.textContent = 'Registrando regularização comprovada...';
           recordDocumentRegularizationMessage.className = 'record-status-update-message';
         }
 
@@ -12398,18 +12440,38 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
             linhaHint,
             tipoDocumento,
             observacao,
+            documentoReferencia,
+            origemAtalho: 'ficha_lw',
             confirmadoInfoscip: true,
             dispositivo: nomeDispositivo_()
           }, 55000);
 
           fecharRegularizacaoDocumentalFicha_();
           limparCachesConsulta_();
-          appStatus.textContent = '✓ Regularização documental registrada. Não foi criada nova vistoria e o resultado original foi preservado.';
+          appStatus.textContent = '✓ Processo regularizado. A autuação original e eventuais multas anteriores foram preservadas.';
           await abrirDetalheRegistro_(chave, Number(resposta?.linha || linhaHint), { forcarRede: true });
           if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'regularização documental' });
         } catch (erro) {
-          if (recordDocumentRegularizationMessage) {
-            recordDocumentRegularizationMessage.textContent = erro?.message || 'Não foi possível registrar a regularização documental.';
+          if (erro?.code === 'REQUEST_TIMEOUT') {
+            if (recordDocumentRegularizationMessage) {
+              recordDocumentRegularizationMessage.textContent = 'A resposta demorou. Conferindo a situação no servidor antes de permitir outra tentativa...';
+              recordDocumentRegularizationMessage.className = 'record-status-update-message';
+            }
+            const confirmada = await verificarAtualizacaoSituacaoAposTimeout_(chave, linhaHint, 'Regularizado');
+            if (confirmada) {
+              fecharRegularizacaoDocumentalFicha_();
+              limparCachesConsulta_();
+              appStatus.textContent = '✓ Regularização confirmada no servidor. Histórico original preservado.';
+              await abrirDetalheRegistro_(chave, Number(confirmada?.linhaAtual || linhaHint), { forcarRede: true });
+              if (document.body.classList.contains('records-mode')) void carregarRegistros_(false, { forcar: true, motivo: 'regularização confirmada' });
+              return;
+            }
+            if (recordDocumentRegularizationMessage) {
+              recordDocumentRegularizationMessage.textContent = 'Não foi possível confirmar. Feche e reabra a Ficha antes de repetir a ação.';
+              recordDocumentRegularizationMessage.className = 'record-status-update-message error';
+            }
+          } else if (recordDocumentRegularizationMessage) {
+            recordDocumentRegularizationMessage.textContent = erro?.message || 'Não foi possível registrar a regularização.';
             recordDocumentRegularizationMessage.className = 'record-status-update-message error';
           }
         } finally {
@@ -27586,6 +27648,40 @@ Deseja usar o endereço cadastral do CNPJ?`,
         lista.innerHTML = medidas.map(item => `<span>${escapeHtml(item)}</span>`).join('');
       }
 
+      // LV — mantem a classificacao do cadastro previo coerente com a vistoria.
+      // O valor anterior so e restaurado se a area ou o tipo deixarem de exigir III.
+      function sincronizarNivelRiscoPreparacao_() {
+        const seletor = prepareNivelRiscoSelect;
+        if (!seletor) return;
+        const evento = ehEventoDeclaratorioPreparacao_();
+        const tipo = String(prepareTipo?.value || '');
+        const fiscalizacao = tipo === 'fiscalizacao' || tipo === 'acessoria';
+        const area = numeroAreaM2_(prepareAreaInput?.value);
+        const automatico = fiscalizacao && !evento && Number.isFinite(area) && area > 930;
+        const eraAutomatico = seletor.dataset.gpvLvRiscoForcado === '1';
+        if (automatico) {
+          if (!eraAutomatico) {
+            seletor.dataset.gpvLvRiscoAnterior = ['I', 'II', 'III'].includes(seletor.value) ? seletor.value : '';
+          }
+          seletor.value = 'III';
+          seletor.disabled = true;
+          seletor.dataset.gpvLvRiscoForcado = '1';
+          if (prepareNivelRiscoHint) prepareNivelRiscoHint.textContent = 'Nível III automático: Fiscalização com área acima de 930 m². Não é possível escolher nível inferior.';
+          return;
+        }
+        if (eraAutomatico) seletor.value = seletor.dataset.gpvLvRiscoAnterior || '';
+        delete seletor.dataset.gpvLvRiscoForcado;
+        delete seletor.dataset.gpvLvRiscoAnterior;
+        if (evento) {
+          seletor.value = '';
+          seletor.disabled = true;
+          if (prepareNivelRiscoHint) prepareNivelRiscoHint.textContent = 'Não se aplica a Eventos declaratórios.';
+          return;
+        }
+        seletor.disabled = false;
+        if (prepareNivelRiscoHint) prepareNivelRiscoHint.textContent = 'Opcional. Se informado, acompanhará a vistoria e a classificação final será registrada na coluna CO.';
+      }
+
       function atualizarCamposPreparacaoPorTipo_() {
         const tipoSelecionado = String(prepareTipo?.value || '');
         const pet = tipoSelecionado === 'pet';
@@ -27649,6 +27745,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           if (declaracao && normalize(demanda?.value || '') !== normalize('Eventos declaratórios')) declaracao.value = '';
         }
         if (prepareDwgWrap) prepareDwgWrap.hidden = false;
+        sincronizarNivelRiscoPreparacao_();
       }
 
 
@@ -27693,6 +27790,12 @@ Deseja usar o endereço cadastral do CNPJ?`,
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
+        if (prepareNivelRiscoSelect) {
+          prepareNivelRiscoSelect.disabled = false;
+          prepareNivelRiscoSelect.value = '';
+          delete prepareNivelRiscoSelect.dataset.gpvLvRiscoForcado;
+          delete prepareNivelRiscoSelect.dataset.gpvLvRiscoAnterior;
+        }
         if (prepareDwgFile) prepareDwgFile.value = '';
         preparacaoAnexosExistentes_ = [];
         preparacaoAnexosRemover_ = new Set();
@@ -29264,6 +29367,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
+        set('prepareNivelRisco', item.nivelRisco || '');
         restaurarOcupacoesPreparacao_(item.ocupacao || '');
         set('preparePavimentos', item.pavimentos || '');
         set('prepareAltura', item.altura || '');
@@ -29341,6 +29445,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           nomeFantasia: padronizarTextoCadastroCliente_(g('prepareNomeFantasia')),
           razaoSocial: padronizarTextoCadastroCliente_(g('prepareRazaoSocial')),
           area: g('prepareArea'),
+          nivelRisco: eventoDeclaratorio ? '' : ((tipo === 'fiscalizacao' && Number.isFinite(numeroAreaM2_(g('prepareArea'))) && numeroAreaM2_(g('prepareArea')) > 930) ? 'III' : g('prepareNivelRisco')),
           ocupacao: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? ocupacaoPreparacaoTextoFinal_() : '',
           pavimentos: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('preparePavimentos').replace(/\D/g, '').slice(0, 3) : '',
           altura: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('prepareAltura') : '',
@@ -29547,6 +29652,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           ['nomeFantasia', 'nomeFantasia'],
           ['razaoSocial', 'razaoSocial'],
           ['area', 'area'],
+          ['nivelRisco', 'nivelRisco'],
           ['ocupacao', 'ocupacao'],
           ['pavimentos', 'pavimentos'],
           ['altura', 'altura'],
@@ -30481,6 +30587,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('prepareNomeFantasia', item.nomeFantasia || '');
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
+        set('prepareNivelRisco', item.nivelRisco || '');
         set('prepareCep', formatarCepCliente_(item.cep || ''));
         set('prepareEndereco', item.endereco || '');
         set('prepareNumero', item.numero || '');
@@ -31291,6 +31398,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('rotaMapsUrl', item.rotaUrl || '');
         set('pf', item.pf);
         set('area', item.area);
+        // A escolha feita no cadastro previo acompanha a vistoria operacional.
+        set('nivelRiscoManual', item.nivelRisco);
         set('pavimentos', item.pavimentos);
         set('altura', item.altura);
         if (item.ocupacao) restaurarOcupacoesSelecionadas(item.ocupacao);
@@ -31884,6 +31993,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
       });
       prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
+      prepareAreaInput?.addEventListener('input', sincronizarNivelRiscoPreparacao_);
+      prepareAreaInput?.addEventListener('change', sincronizarNivelRiscoPreparacao_);
       document.getElementById('prepareMedidasProjetoBtn')?.addEventListener('click', () => {
         const painel = document.getElementById('prepareMedidasProjetoPanel');
         const botao = document.getElementById('prepareMedidasProjetoBtn');
@@ -33038,6 +33149,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
       });
       recordInfoscipUpdateBtn?.addEventListener('click', abrirAtualizacaoSituacaoInfoscip_);
       recordDocumentRegularizationBtn?.addEventListener('click', abrirRegularizacaoDocumentalFicha_);
+      recordQuickRegularizeBtn?.addEventListener('click', abrirRegularizacaoDocumentalFicha_);
+      recordDocumentRegularizationType?.addEventListener('change', atualizarCamposRegularizacaoRapidaFicha_);
       recordDocumentRegularizationCloseBtn?.addEventListener('click', fecharRegularizacaoDocumentalFicha_);
       recordDocumentRegularizationCancelBtn?.addEventListener('click', fecharRegularizacaoDocumentalFicha_);
       recordDocumentRegularizationSaveBtn?.addEventListener('click', salvarRegularizacaoDocumentalFicha_);
