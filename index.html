@@ -4397,7 +4397,7 @@
                 <option value="">Selecione</option>
                 <option value="sim">Sim</option>
                 <option value="nao">Não</option>
-                <option value="dispensado">Dispensado</option>
+                <option value="dispensado">Dispensado de PSCIP</option>
               </select>
               <div class="hint">Informe separadamente se já existe Processo de Segurança Contra Incêndio e Pânico. Se a edificação for dispensada de PSCIP, selecione Dispensado.</div>
             </div>
@@ -5841,7 +5841,7 @@
           <div class="field"><label for="prepareCidade">Cidade</label><select id="prepareCidade" aria-label="Cidade da vistoria programada"><option value="Viçosa">Viçosa</option></select><div class="hint">Selecione uma cidade da área de cobertura. Registros antigos fora da lista são preservados para conferência.</div></div>
           <div class="field" id="prepareDemandaWrap"><label for="prepareDemanda">Demanda</label><input id="prepareDemanda" list="dlDemanda" autocomplete="off" placeholder="Selecione ou digite a demanda"><div class="hint">Para evento declaratório, selecione “Eventos declaratórios”.</div></div>
           <div class="field" id="prepareDataRenovacaoAvcbWrap" hidden><label class="required" for="prepareDataRenovacaoAvcb">Data de renovação do AVCB</label><input id="prepareDataRenovacaoAvcb" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/AAAA"><div class="hint">Obrigatória somente quando a demanda for Renovação AVCB.</div></div>
-          <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP / Projeto antigo</label><input id="preparePscip" value="PRJ" autocomplete="off" inputmode="text" maxlength="13" placeholder="PRJ + 10 números ou 44/2016"><div class="hint">Fiscalização aceita PRJ atual ou processo antigo (ex.: 44/2016). Para Vistoria de Liberação, é obrigatório informar o novo PRJ do sistema atual.</div></div>
+          <div class="field" id="preparePscipWrap"><label for="preparePscip">Nº do PSCIP / Projeto antigo</label><input id="preparePscip" value="PRJ" autocomplete="off" inputmode="text" maxlength="13" placeholder="PRJ + 10 números ou 44/2016"><label id="preparePscipDispensadoWrap" style="align-items:center;gap:9px;margin-top:9px;font-weight:700;cursor:pointer" hidden><input id="preparePscipDispensado" type="checkbox" style="width:18px;height:18px;flex:none">Dispensado de PSCIP</label><div class="hint" id="preparePscipHint">Fiscalização aceita PRJ atual ou processo antigo (ex.: 44/2016). Para Vistoria de Liberação, é obrigatório informar o novo PRJ do sistema atual.</div></div>
           <div class="field" id="prepareEventoDeclaracaoWrap" hidden><label class="required" for="prepareEventoDeclaracaoNumero">Nº da declaração INFOSCIP</label><input id="prepareEventoDeclaracaoNumero" autocomplete="off" maxlength="20" placeholder="Ex.: 2026RME09669"><div class="hint">Evento declaratório não utiliza PRJ. Informe o ano, as letras do código de risco e a sequência numérica.</div></div>
           <div class="field"><label for="preparePf">Nº do PF</label><input id="preparePf" autocomplete="off" placeholder="Informe o PF ou deixe preencher automaticamente"><div class="lookup-status" id="preparePfLookupStatus" role="status" aria-live="polite"></div><div class="establishment-history-results pf-history-results" id="preparePfLookupResults" hidden></div></div>
           <div class="field"><label for="prepareNomeFantasia" id="prepareNomeFantasiaLabel">Nome Fantasia</label><input id="prepareNomeFantasia"></div>
@@ -6796,7 +6796,7 @@
   <script src="config.js?v=23.9.99ln"></script>
   <script src="ocupacoes.js?v=23.9.99ln"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99ln"></script>
-  <script src="app.js?v=23.9.99ma"></script>
+  <script src="app.js?v=23.9.99mb"></script>
   <script src="assets/gpv-ficha-ln.js?v=23.9.99ln" defer></script>
 
 </body>

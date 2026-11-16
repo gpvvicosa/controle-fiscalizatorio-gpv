@@ -1,3 +1,4 @@
+// V23.9.99mb — dispensa explicita de PSCIP no cadastro, campo e Ficha, sem confundir com numero ausente.
 // V23.9.99ma — sincronizacao silenciosa entre aparelhos por revisao do servidor; sem recarga de pagina.
 // V23.9.99lz — selecao multipla de irregularidades preliminares no cadastro, confirmacao manual em campo; preserva WhatsApp LY.
 // V23.9.99ly — WhatsApp ao autuado: AVCB vencido com prazos e nome institucional por extenso; demais fluxos preservados.
@@ -91,7 +92,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ma';
+      const APP_VERSION = '23.9.99mb';
       const APP_VERSION_DATE = '16/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -8969,6 +8970,12 @@
         return `<div class="records-card-city-warning" role="note"><span aria-hidden="true">⚠</span><span><strong>Conferir cidade</strong><small>Cadastro: ${escapeHtml(cidade)} · identificação do órgão: ${escapeHtml(municipio)}</small></span></div>`;
       }
 
+      function textoPscipPainelMb_(item) {
+        const projeto = String(item?.projeto || '').trim();
+        if (projeto) return projetoPscipOperacional_(projeto);
+        return normalize(item?.possuiPscip || '') === normalize('Dispensado') ? 'Dispensado' : '—';
+      }
+
       function renderizarRegistros_() {
         const todosItens = recordsState.itens || [];
         const progressivo = recordsState.modoProgressivo === true;
@@ -8998,7 +9005,7 @@
             <td>${escapeHtml(padronizarDemandaPainelIF_(item.demanda) || '—')}</td>
             <td>${statusPainelItemHtml_(item)}</td>
             <td class="records-next-action-cell" title="${escapeAttr([proximaAcao.principal, proximaAcao.detalhe].filter(Boolean).join(' — '))}"><strong>${escapeHtml(proximaAcao.principal)}</strong>${proximaAcao.detalhe ? `<small>${escapeHtml(proximaAcao.detalhe)}</small>` : ''}</td>
-            <td class="records-mono">${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</td>
+            <td class="records-mono">${destacarBuscaPainelHtml_(textoPscipPainelMb_(item))}</td>
             <td class="records-mono records-pf-cell">${String(item.pf || '').trim() ? `<button type="button" class="records-pf-copy" data-copy-record-pf="${escapeAttr(String(item.pf).trim())}" title="Copiar Nº PF ${escapeAttr(String(item.pf).trim())}" aria-label="Copiar Nº PF ${escapeAttr(String(item.pf).trim())}">${destacarBuscaPainelHtml_(String(item.pf).trim())}</button>` : '—'}</td>
             <td>${escapeHtml(item.tipoVistoria || '—')}</td>
             <td class="records-ficha-cell"><button class="records-ficha-btn" type="button" ${item.sincronizacaoPendente ? 'disabled title="Sincronizando com a planilha" aria-label="Aguardando sincronização"' : `data-open-record-detail="${escapeAttr(item.chave || '')}" data-record-line="${Number(item.linha || 0)}" title="Abrir Ficha do Processo" aria-label="Abrir ficha de ${escapeAttr(titulo)}"`}>
@@ -9025,7 +9032,7 @@
               <div class="records-card-meta">
                 <div class="records-meta-item records-meta-item--city"><span>Cidade</span><strong>${destacarBuscaPainelHtml_(padronizarCidadeCadastroCliente_(item.cidade) || '—')}</strong></div>
                 <div class="records-meta-item records-meta-item--doc"><span>${escapeHtml(identificadorPainel_(item).rotulo)}</span><strong>${destacarBuscaPainelHtml_(identificadorPainel_(item).valor)}</strong></div>
-                <div class="records-meta-item records-meta-item--pscip"><span>Nº PSCIP</span><strong>${destacarBuscaPainelHtml_(item.projeto ? projetoPscipOperacional_(item.projeto) : '—')}</strong></div>
+                <div class="records-meta-item records-meta-item--pscip"><span>Nº PSCIP</span><strong>${destacarBuscaPainelHtml_(textoPscipPainelMb_(item))}</strong></div>
                 <div class="records-meta-item records-meta-item--pf"><span>Nº PF</span><strong>${escapeHtml(item.pf || '—')}</strong></div>
               </div>
               ${atalhosCardPainelHtml_(item)}
@@ -10313,6 +10320,7 @@
           demanda: String(p.demandaPrincipal || p.demanda || '').trim(),
           sancao: String(p.sancao || p._appSancaoPretendida || '').trim(),
           projeto: String(p.pscip || p.projeto || '').trim(),
+          possuiPscip: String(p._appPossuiPscip || p.possuiPscip || '').trim(),
           pf: String(p.pf || '').trim(),
           tipoVistoria: String(p.tipoVistoria || '').trim(),
           vistoriadorResponsavel: String(p.vistoriadorResponsavel || p.enviadoPor || '').trim(),
@@ -13267,6 +13275,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           campo('documentoEstabelecimento', 'estabelecimento', pet ? 'CNPJ / CPF do organizador' : 'CNPJ / CPF do estabelecimento', ['CNPJ'], { mostrar: !evento, inputmode: 'numeric' }),
 
           campo('pscip', 'processo', pet ? 'Nº do PSCIP do PET' : 'Nº do PSCIP / Projeto', ['Nº do PSCIP / Projeto'], { mostrar: !evento, placeholder: 'PRJ + 10 números ou 44/2016' }),
+          campo('possuiPscip', 'processo', 'Possui PSCIP?', ['Possui PSCIP?'], { mostrar: fiscalizacao && !evento, tipo: 'select', opcoes: ['Sim', 'Não', 'Dispensado'] }),
           campo('pf', 'processo', 'Nº do PF', ['Nº do PF'], { mostrar: !evento }),
           campo('numeroAuto', 'processo', 'Nº do Auto', ['Nº do Auto'], { mostrar: !evento }),
           campo('resim', 'processo', 'RESIM', ['RESIM'], { mostrar: !evento }),
@@ -14780,7 +14789,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         const razaoSocial = valorCampoFicha_(registro, 'Razão Social');
         const idsProjetoFicha = identificadoresProjetoFicha_(registro);
         const processo = [
-          ['PSCIP atual', idsProjetoFicha.atual],
+          ['PSCIP atual', idsProjetoFicha.atual || (!idsProjetoFicha.antigo && normalize(valorCampoFicha_(registro, 'Possui PSCIP?')) === normalize('Dispensado') ? 'Dispensado' : '')],
           ['Processo antigo', idsProjetoFicha.antigo],
           ['Nº do PF', valorCampoFicha_(registro, 'Nº do PF')],
           ['Nº do Auto', valorCampoFicha_(registro, 'Nº do Auto')],
@@ -27904,6 +27913,19 @@ Deseja usar o endereço cadastral do CNPJ?`,
           pscipWrap.hidden = evento;
           pscipWrap.classList.toggle('is-required-prep', liberacao && !evento);
         }
+        // MB: dispensa explicita, somente em Fiscalizacao comum / Acessoria.
+        const dispensadoWrap = document.getElementById('preparePscipDispensadoWrap');
+        const dispensadoCheck = document.getElementById('preparePscipDispensado');
+        const permiteDispensa = tipoSelecionado === 'fiscalizacao' || tipoSelecionado === 'acessoria';
+        if (dispensadoWrap) {
+          dispensadoWrap.hidden = !permiteDispensa || evento;
+          dispensadoWrap.style.display = dispensadoWrap.hidden ? 'none' : 'flex';
+        }
+        if (dispensadoCheck && (!permiteDispensa || evento)) dispensadoCheck.checked = false;
+        if (pscip) {
+          pscip.disabled = Boolean(permiteDispensa && !evento && dispensadoCheck?.checked);
+          pscip.setAttribute('aria-disabled', pscip.disabled ? 'true' : 'false');
+        }
         if (eventoWrap) eventoWrap.hidden = !evento;
         atualizarCampoRenovacaoAvcbPreparacao_();
         const dataLabel = document.getElementById('prepareDataLabel');
@@ -27993,6 +28015,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
+        const dispensaReset = document.getElementById('preparePscipDispensado');
+        if (dispensaReset) dispensaReset.checked = false;
         restaurarIrregularidadesPreviasPreparacao_('');
         if (prepareNivelRiscoSelect) {
           prepareNivelRiscoSelect.disabled = false;
@@ -28370,7 +28394,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           campos.push(campoDetalheCadastrado_('Data Expiração', formatarDataPreparacao_(item.dataLimite)));
           campos.push(campoDetalheCadastrado_('Situação do prazo', prazo.r));
           campos.push(campoDetalheCadastrado_('CNPJ / CPF', item.cnpj || item.cpf));
-          campos.push(campoDetalheCadastrado_('Nº do PSCIP / Projeto', item.pscip ? projetoPscipOperacional_(item.pscip) : 'Não informado'));
+          campos.push(campoDetalheCadastrado_('Nº do PSCIP / Projeto', item.pscip ? projetoPscipOperacional_(item.pscip) : (item.possuiPscip === 'dispensado' ? 'Dispensado' : 'Não informado')));
           campos.push(campoDetalheCadastrado_('Nº do PF', item.pf));
           campos.push(campoResponsavelDdu_(item.vistoriadorResponsavel));
           campos.push(campoDetalheCadastrado_('Nome Fantasia', item.nomeFantasia));
@@ -28433,7 +28457,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           processo.push(campoSeInformadoDetalhe_('Data prevista', formatarDataPreparacao_(item.dataPrevista)));
           processo.push(campoSeInformadoDetalhe_('Vistoriador responsável', item.vistoriadorResponsavel));
           processo.push(campoSeInformadoDetalhe_('Demanda', item.demandaPrincipal || (eventoDeclaratorio ? 'Eventos declaratórios' : '')));
-          processo.push(campoSeInformadoDetalhe_('Nº do PSCIP / Projeto', item.pscip ? projetoPscipOperacional_(item.pscip) : ''));
+          processo.push(campoSeInformadoDetalhe_('Nº do PSCIP / Projeto', item.pscip ? projetoPscipOperacional_(item.pscip) : (item.possuiPscip === 'dispensado' ? 'Dispensado' : '')));
           processo.push(campoSeInformadoDetalhe_('Nº do PF', item.pf));
           if (item.eventoDeclaracaoNumero) processo.push(campoDetalheCadastrado_('Declaração INFOSCIP', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero)));
           if (item.dataRenovacaoAvcb) processo.push(campoDetalheCadastrado_('Data de renovação do AVCB', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb)));
@@ -29565,6 +29589,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('prepareDemanda', item.demandaPrincipal || (item.eventoDeclaracaoNumero ? 'Eventos declaratórios' : ''));
         prepareNaturezaSugerida_ = String(item.natureza || '').trim();
         set('preparePscip', item.pscip ? projetoPscipOperacional_(item.pscip) : 'PRJ');
+        const dispensaEdicao = document.getElementById('preparePscipDispensado');
+        if (dispensaEdicao) dispensaEdicao.checked = String(item.possuiPscip || '').toLowerCase() === 'dispensado';
         set('prepareEventoDeclaracaoNumero', formatarDeclaracaoEvento_(item.eventoDeclaracaoNumero || ''));
         set('prepareDataRenovacaoAvcb', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb || ''));
         set('preparePf', item.pf || '');
@@ -29627,7 +29653,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         const acessoria = tipoSelecionado === 'acessoria';
         const tipo = pet ? 'liberacao' : (acessoria ? 'fiscalizacao' : tipoSelecionado);
         const eventoDeclaratorio = tipo === 'fiscalizacao' && !acessoria && normalize(g('prepareDemanda')) === normalize('Eventos declaratórios');
-        const pscipInformado = eventoDeclaratorio ? '' : projetoPscipOperacional_(g('preparePscip'));
+        const dispensadoPscipPreparacao = !eventoDeclaratorio && tipo === 'fiscalizacao' && Boolean(document.getElementById('preparePscipDispensado')?.checked);
+        const pscipInformado = eventoDeclaratorio || dispensadoPscipPreparacao ? '' : projetoPscipOperacional_(g('preparePscip'));
         return {
           _appPreparacao: 'sim',
           _appPreparacaoEdicao: preparacaoEditandoId ? 'sim' : 'nao',
@@ -29641,7 +29668,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
           categoriaMeta: eventoDeclaratorio ? 'Eventos declaratórios' : '',
           eventoDeclaracaoNumero: eventoDeclaratorio ? formatarDeclaracaoEvento_(g('prepareEventoDeclaracaoNumero')) : '',
           dataRenovacaoAvcb: ehRenovacaoAvcbPreparacao_() ? formatarDataRenovacaoAvcbDigitacao_(g('prepareDataRenovacaoAvcb')) : '',
-          _appPossuiPscip: eventoDeclaratorio ? 'nao' : (tipo === 'liberacao' ? 'sim' : (pscipProjetoValido_(pscipInformado) ? 'sim' : 'nao')),
+          _appPossuiPscip: eventoDeclaratorio ? 'nao' : (tipo === 'liberacao' ? 'sim' : (dispensadoPscipPreparacao ? 'dispensado' : (pscipProjetoValido_(pscipInformado) ? 'sim' : 'nao'))),
+          _appPscipCondicaoMb: 'sim',
           pscip: eventoDeclaratorio ? '' : pscipInformado,
           pf: g('preparePf'),
           cnpj: g('prepareCnpj'),
@@ -31638,6 +31666,9 @@ Deseja usar o endereço cadastral do CNPJ?`,
           if (possuiPscipSelect) possuiPscipSelect.value='sim';
           set('pscip', projetoPscipOperacional_(item.pscip));
           syncPscip_();
+        } else if (item.possuiPscip === 'dispensado') {
+          if (possuiPscipSelect) possuiPscipSelect.value = 'dispensado';
+          syncPscip_();
         }
         if (item.dataRenovacaoAvcb) {
           set('dataRenovacaoAvcb', formatarDataRenovacaoAvcbDigitacao_(item.dataRenovacaoAvcb));
@@ -32223,6 +32254,10 @@ Deseja usar o endereço cadastral do CNPJ?`,
       instalarProtecaoPscip_(document.getElementById('preparePscip'), () => agendarConsultaProcessoPf_('prepare'));
       document.getElementById('preparePf')?.addEventListener('input', () => agendarConsultaProcessoPf_('prepare', 320));
       document.getElementById('preparePf')?.addEventListener('blur', () => agendarConsultaProcessoPf_('prepare', 80));
+      document.getElementById('preparePscipDispensado')?.addEventListener('change', () => {
+        atualizarCamposPreparacaoPorTipo_();
+        agendarConsultaProcessoPf_('prepare');
+      });
       document.getElementById('preparePscip')?.addEventListener('blur', () => {
         const el = document.getElementById('preparePscip');
         if (el && !ehEventoDeclaratorioPreparacao_()) el.value = normalizarIdentificadorProjetoAoSair_(el.value);
