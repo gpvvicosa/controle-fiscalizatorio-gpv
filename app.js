@@ -1,3 +1,4 @@
+// V23.9.99ly — WhatsApp ao autuado: AVCB vencido com prazos e nome institucional por extenso; demais fluxos preservados.
 // V23.9.99lm — refinamento exclusivamente visual da tabela do Painel desktop.
 // V23.9.99lm — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
 // V23.9.99lm — cabeçalho desktop sem brasões, tipografia equilibrada, bombeiro original; mobile e lógica operacional preservados.
@@ -88,7 +89,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lx';
+      const APP_VERSION = '23.9.99ly';
       const APP_VERSION_DATE = '16/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -7390,7 +7391,8 @@
         linhas.push('');
         linhas.push('A situação do licenciamento e a disponibilização do AVCB devem ser acompanhadas pelo *INFOSCIP*.');
         linhas.push('');
-        linhas.push('*Grupamento de Prevenção e Vistoria — 3º Pelotão Viçosa — CBMMG*');
+        linhas.push('*Corpo de Bombeiros Militar de Minas Gerais (CBMMG)*');
+        linhas.push('*Grupamento de Prevenção e Vistoria de Viçosa*');
 
         return linhas.join('\n');
       }
@@ -7409,7 +7411,8 @@
         linhas.push('');
         linhas.push('Após a correção das irregularidades, poderá ser solicitada *nova vistoria*. Também é possível apresentar *pedido de reconsideração de ato*, nos termos do art. 16 do Decreto Estadual nº 47.998/2020, cabendo recurso conforme o art. 17 do mesmo Decreto.');
         linhas.push('');
-        linhas.push('*Grupamento de Prevenção e Vistoria — 3º Pelotão Viçosa — CBMMG*');
+        linhas.push('*Corpo de Bombeiros Militar de Minas Gerais (CBMMG)*');
+        linhas.push('*Grupamento de Prevenção e Vistoria de Viçosa*');
 
         return linhas.join('\n');
       }
@@ -7441,39 +7444,48 @@
         const data = dataOrientacao_(p?._appCriadoEm);
         const linhas = [];
 
-        linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
+        linhas.push(nome ? `Olá, ${nome}!` : 'Olá!');
         linhas.push('');
-        linhas.push(`Durante Vistoria de Fiscalização realizada pelo CBMMG${estabelecimento ? ` na edificação *${estabelecimento}*` : ' na edificação'}${data ? `, em *${data}*` : ''}, foi constatado que o *AVCB encontra-se vencido*.`);
+        linhas.push(`O *Corpo de Bombeiros Militar de Minas Gerais (CBMMG)*, por meio do *Grupamento de Prevenção e Vistoria de Viçosa*, realizou uma vistoria de fiscalização${estabelecimento ? ` na edificação *${estabelecimento}*` : ' na edificação'}${data ? `, em *${data}*` : ''}.`);
         linhas.push('');
-        linhas.push('🚨 *IRREGULARIDADE CONSTATADA — AVCB VENCIDO*');
+        linhas.push('🚨 *A EDIFICAÇÃO FOI AUTUADA*');
         linhas.push('');
-        linhas.push('É necessário providenciar a *renovação do AVCB* o quanto antes.');
+        linhas.push('*IRREGULARIDADE CONSTATADA — AVCB VENCIDO*');
+        linhas.push('Durante a fiscalização, foi constatado que o *Auto de Vistoria do Corpo de Bombeiros (AVCB)* estava com o prazo de validade expirado, sem comprovação de renovação válida na data da vistoria.');
         linhas.push('');
-        linhas.push('👷‍♂️ *O QUE FAZER*');
+        linhas.push('📋 *O QUE FAZER PARA REGULARIZAR?*');
+        linhas.push('1. Procure o responsável técnico ou profissional legalmente habilitado para verificar os procedimentos necessários à renovação do AVCB.');
+        linhas.push('2. Providencie a renovação e obtenha o AVCB válido junto ao CBMMG.');
+        linhas.push('3. Depois de regularizar, acesse o *INFOSCIP Fiscalização* e faça a *Comunicação de Correção da Irregularidade*, apresentando a documentação comprobatória.');
+        linhas.push('Se houver outras irregularidades registradas, consulte o Auto de Infração e providencie também as correções correspondentes.');
         linhas.push('');
-        linhas.push('Procure o *responsável técnico ou profissional legalmente habilitado* para verificar o processo de segurança contra incêndio e orientar as providências necessárias para a renovação.');
+        linhas.push('⏳ *ATENÇÃO AO PRAZO PARA REGULARIZAÇÃO!*');
+        linhas.push('Após a formalização da *Advertência Escrita*, o responsável deve providenciar a correção da irregularidade, observando os prazos e as comunicações oficiais do processo fiscalizatório.');
         linhas.push('');
-        linhas.push('📬 *AUTUAÇÃO*');
+        linhas.push('⚠️ *O QUE PODE ACONTECER SE NÃO REGULARIZAR?*');
+        linhas.push('• *60 dias após a formalização da Advertência Escrita:* se a irregularidade persistir, está prevista a aplicação da *primeira multa*.');
+        linhas.push('• *30 dias após a aplicação da primeira multa:* persistindo a irregularidade, está prevista uma *segunda multa, em dobro e cumulativamente*.');
+        linhas.push('• A continuidade da situação irregular poderá gerar outras sanções administrativas previstas na legislação, conforme as circunstâncias e o andamento do processo.');
+        linhas.push('• Multas não pagas poderão ser encaminhadas para inscrição na *Dívida Ativa do Estado*.');
         linhas.push('');
-        linhas.push('O *Auto de Infração será enviado pelos Correios* ao endereço da edificação, por correspondência com *Aviso de Recebimento – AR*.');
+        linhas.push('*IMPORTANTE:* esses prazos são contados dos atos formais do processo, e *não da data de envio desta mensagem*. A regularização posterior não cancela automaticamente eventuais multas já aplicadas.');
         linhas.push('');
-        linhas.push('Caso a irregularidade permaneça, o processo poderá evoluir para *Advertência Escrita* e, após o prazo mínimo previsto, poderá haver aplicação de *multa*.');
+        linhas.push('✅ *NÃO DEIXE PARA A ÚLTIMA HORA!*');
+        linhas.push('Se não for possível concluir a regularização no prazo, o interessado poderá apresentar ao CBMMG pedido fundamentado de prorrogação, com justificativa e cronograma, sujeito à análise da autoridade competente.');
         linhas.push('');
-        linhas.push('✅ *APÓS REGULARIZAR*');
+        linhas.push('📬 *COMUNICAÇÃO OFICIAL*');
+        linhas.push('A autuação e os atos posteriores serão formalmente comunicados pelos meios previstos na legislação. Esta mensagem é orientativa e não substitui a comunicação oficial.');
         linhas.push('');
-        linhas.push('Depois de obter o *AVCB válido*, faça a *Comunicação de Correção da Irregularidade pelo INFOSCIP Fiscalização*, anexando a documentação que comprove a regularização.');
+        linhas.push('🔗 *INFOSCIP Fiscalização:*');
+        linhas.push('https://fiscalizacaobombeiros.mg.gov.br');
         linhas.push('');
-        linhas.push('🌐 *INFOSCIP Fiscalização:*');
-        linhas.push('fiscalizacaobombeiros.mg.gov.br');
-        linhas.push('');
-        linhas.push('📘 Consulte também o *Manual do Autuado* para orientações sobre prazos, defesa e regularização:');
-        linhas.push('');
+        linhas.push('📖 *Manual do Autuado:*');
         linhas.push('https://drive.google.com/file/d/1ruWxhB-8QVlOAV6o6eItqOeHgjUyKvt0/view?usp=sharing');
         linhas.push('');
-        linhas.push('📲 Dúvidas: *GPV Viçosa — (31) 3612-3894*');
+        linhas.push('📲 Dúvidas: *(31) 3612-3894*');
         linhas.push('');
-        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais – CBMMG*');
-        linhas.push('*GPV — 3º Pelotão Viçosa*');
+        linhas.push('*Corpo de Bombeiros Militar de Minas Gerais (CBMMG)*');
+        linhas.push('*Grupamento de Prevenção e Vistoria de Viçosa*');
         return linhas.join('\n');
       }
 
@@ -7486,7 +7498,7 @@
         linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
         linhas.push('');
         linhas.push(
-          `Foi realizada uma *Vistoria de Fiscalização pelo Corpo de Bombeiros Militar de Minas Gerais – CBMMG*${estabelecimento ? ` na edificação *${estabelecimento}*` : ' na edificação'}${data ? `, em *${data}*` : ''}.`
+          `Foi realizada uma *Vistoria de Fiscalização pelo Corpo de Bombeiros Militar de Minas Gerais (CBMMG)*, por meio do *Grupamento de Prevenção e Vistoria de Viçosa*,${estabelecimento ? ` na edificação *${estabelecimento}*` : ' na edificação'}${data ? `, em *${data}*` : ''}.`
         );
         linhas.push('');
         linhas.push('🔥 *IRREGULARIDADE CONSTATADA — BRIGADA DE INCÊNDIO*');
@@ -7516,7 +7528,7 @@
         linhas.push('');
         linhas.push('⚠️ *Não recebeu a comunicação esperada ou possui dúvidas sobre o processo?*');
         linhas.push('');
-        linhas.push('Entre em contato com o *GPV Viçosa* pelo WhatsApp:');
+        linhas.push('Entre em contato com o *Grupamento de Prevenção e Vistoria de Viçosa* pelo WhatsApp:');
         linhas.push('📲 (31) 3612-3894');
         linhas.push('');
         linhas.push('📘 *IMPORTANTE*');
@@ -7588,8 +7600,8 @@
         linhas.push('');
         linhas.push('Esta mensagem possui caráter *orientativo e complementar* e não substitui as comunicações oficiais realizadas no processo de fiscalização.');
         linhas.push('');
-        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais – CBMMG*');
-        linhas.push('*GPV — 3º Pelotão Viçosa*');
+        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais (CBMMG)*');
+        linhas.push('*Grupamento de Prevenção e Vistoria de Viçosa*');
 
         return linhas.join('\n');
       }
@@ -7601,7 +7613,7 @@
         const linhas = [];
 
         linhas.push(nome ? `Olá, ${nome}.` : 'Olá.');
-        linhas.push(`Foi realizada uma vistoria pelo CBMMG${estabelecimento ? ` no estabelecimento ${estabelecimento}` : ''}${data ? ` em ${data}` : ''}.`);
+        linhas.push(`O Corpo de Bombeiros Militar de Minas Gerais (CBMMG), por meio do Grupamento de Prevenção e Vistoria de Viçosa, realizou uma vistoria${estabelecimento ? ` no estabelecimento *${estabelecimento}*` : ''}${data ? ` em *${data}*` : ''}.`);
         linhas.push('');
         linhas.push('🚒 *FOI AUTUADO PELO CORPO DE BOMBEIROS?*');
         linhas.push('📌 Veja abaixo as principais orientações.');
@@ -7612,7 +7624,7 @@
         linhas.push('');
         linhas.push('⚠️ *Não recebeu a correspondência em até 15 dias?*');
         linhas.push('');
-        linhas.push('Entre em contato com o GPV Viçosa pelo WhatsApp:');
+        linhas.push('Entre em contato com o *Grupamento de Prevenção e Vistoria de Viçosa* pelo WhatsApp:');
         linhas.push('📲 (31) 3612-3894');
         linhas.push('');
         linhas.push('📘 *IMPORTANTE*');
@@ -7661,8 +7673,8 @@
         linhas.push('');
         linhas.push('O descumprimento das exigências e dos prazos poderá resultar na aplicação das medidas administrativas cabíveis, inclusive multa, embargo, interdição ou cancelamento do AVCB/CLCB, conforme o caso.');
         linhas.push('');
-        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais*');
-        linhas.push('*GPV — 3º Pelotão Viçosa*');
+        linhas.push('🔥 *Corpo de Bombeiros Militar de Minas Gerais (CBMMG)*');
+        linhas.push('*Grupamento de Prevenção e Vistoria de Viçosa*');
         return linhas.join('\n');
       }
 
@@ -7672,11 +7684,13 @@
           if (situacao === normalize('Liberado')) return montarMensagemLiberadoWhatsApp_(p);
           if (situacao === normalize('Notificado')) return montarMensagemNotificadoWhatsApp_(p);
         }
-        if (irregularidadeBrigadaFiscalizacaoNoPayload_(p)) {
-          return montarMensagemBrigadaFiscalizacaoWhatsApp_(p);
-        }
+        // A seleção explícita de AVCB vencido deve prevalecer quando houver
+        // mais de uma irregularidade; o texto orienta a conferir as demais no Auto.
         if (irregularidadeAvcbVencidoFiscalizacaoNoPayload_(p)) {
           return montarMensagemAvcbVencidoFiscalizacaoWhatsApp_(p);
+        }
+        if (irregularidadeBrigadaFiscalizacaoNoPayload_(p)) {
+          return montarMensagemBrigadaFiscalizacaoWhatsApp_(p);
         }
         return montarMensagemOrientacoesAutuado_(p);
       }
