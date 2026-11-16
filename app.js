@@ -1,3 +1,4 @@
+// V23.9.99lz — selecao multipla de irregularidades preliminares no cadastro, confirmacao manual em campo; preserva WhatsApp LY.
 // V23.9.99ly — WhatsApp ao autuado: AVCB vencido com prazos e nome institucional por extenso; demais fluxos preservados.
 // V23.9.99lm — refinamento exclusivamente visual da tabela do Painel desktop.
 // V23.9.99lm — versão visual do cabeçalho desktop; sem modificação das funções operacionais.
@@ -89,7 +90,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99ly';
+      const APP_VERSION = '23.9.99lz';
       const APP_VERSION_DATE = '16/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -24471,6 +24472,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
 
       function applyPayload(p, recordId = '') {
         if (!p || typeof p !== 'object') return;
+        // Evita exibir em outro rascunho os indícios de uma vistoria anterior.
+        mostrarIrregularidadesPreviasNaFicha_('');
         if (nivelRiscoManualSelect) {
           nivelRiscoManualSelect.disabled = false;
           delete nivelRiscoManualSelect.dataset.gpvLrRiscoForcado;
@@ -24565,6 +24568,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       }
 
       function prepararFormularioNovaVistoria_(origem = 'Nova vistoria') {
+        mostrarIrregularidadesPreviasNaFicha_('');
         deduplicarRascunhosLocais_();
         if (rascunhoAtualEmAndamento_()) {
           saveDraft();
@@ -27697,6 +27701,42 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (prepareNivelRiscoHint) prepareNivelRiscoHint.textContent = 'Opcional. Se informado, acompanhará a vistoria e a classificação final será registrada na coluna CO.';
       }
 
+      // LZ: escolhas do cadastro previo sao indicios, jamais constatações em campo.
+      function irregularidadesPreviasPreparacaoSelecionadas_() {
+        const selecionadas = Array.from(document.querySelectorAll('[data-prepare-irregularidade-previa]:checked'))
+          .map(el => String(el.value || '').trim());
+        const outras = String(document.getElementById('prepareIrregularidadeOutra')?.value || '').replace(/[|\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+        if (selecionadas.includes('Outros') && outras.length < 3) throw new Error('Descreva a opção Outros com pelo menos 3 caracteres.');
+        return selecionadas.filter(item => item !== 'Outros').concat(selecionadas.includes('Outros') ? [`Outros: ${outras}`] : []).join(' | ');
+      }
+
+      function restaurarIrregularidadesPreviasPreparacao_(valor) {
+        const partes = String(valor || '').split(/\s+\|\s+/).map(v => v.trim()).filter(Boolean);
+        const checks = Array.from(document.querySelectorAll('[data-prepare-irregularidade-previa]'));
+        checks.forEach(el => { el.checked = partes.some(v => v === el.value || (el.value === 'Outros' && v.startsWith('Outros: '))); });
+        const outra = partes.find(v => v.startsWith('Outros: '));
+        const campo = document.getElementById('prepareIrregularidadeOutra');
+        if (campo) campo.value = outra ? outra.slice('Outros: '.length) : '';
+        atualizarCamposIrregularidadesPreviasPreparacao_();
+      }
+
+      function atualizarCamposIrregularidadesPreviasPreparacao_() {
+        const mostrar = String(prepareTipo?.value || '') === 'fiscalizacao' && !ehEventoDeclaratorioPreparacao_();
+        const wrap = document.getElementById('prepareIrregularidadesPreviasWrap');
+        if (wrap) wrap.hidden = !mostrar;
+        const outros = document.querySelector('[data-prepare-irregularidade-previa][value="Outros"]');
+        const outroWrap = document.getElementById('prepareIrregularidadeOutraWrap');
+        if (outroWrap) outroWrap.hidden = !mostrar || !outros?.checked;
+      }
+
+      function mostrarIrregularidadesPreviasNaFicha_(valor) {
+        const wrap = document.getElementById('gpvLzAvisoPreliminares');
+        const texto = document.getElementById('gpvLzAvisoPreliminaresTexto');
+        const v = String(valor || '').trim();
+        if (texto) texto.textContent = v.replace(/\s+\|\s+/g, ' • ');
+        if (wrap) wrap.hidden = !v;
+      }
+
       function atualizarCamposPreparacaoPorTipo_() {
         const tipoSelecionado = String(prepareTipo?.value || '');
         const pet = tipoSelecionado === 'pet';
@@ -27761,6 +27801,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         }
         if (prepareDwgWrap) prepareDwgWrap.hidden = false;
         sincronizarNivelRiscoPreparacao_();
+        atualizarCamposIrregularidadesPreviasPreparacao_();
       }
 
 
@@ -27805,6 +27846,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           const el = document.getElementById(id); if (el) el.value = '';
         });
         if (prepareTipo) prepareTipo.value = '';
+        restaurarIrregularidadesPreviasPreparacao_('');
         if (prepareNivelRiscoSelect) {
           prepareNivelRiscoSelect.disabled = false;
           prepareNivelRiscoSelect.value = '';
@@ -29383,6 +29425,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('prepareRazaoSocial', item.razaoSocial || '');
         set('prepareArea', item.area || '');
         set('prepareNivelRisco', item.nivelRisco || '');
+        restaurarIrregularidadesPreviasPreparacao_(item.irregularidadesPrevias || '');
         restaurarOcupacoesPreparacao_(item.ocupacao || '');
         set('preparePavimentos', item.pavimentos || '');
         set('prepareAltura', item.altura || '');
@@ -29461,6 +29504,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           razaoSocial: padronizarTextoCadastroCliente_(g('prepareRazaoSocial')),
           area: g('prepareArea'),
           nivelRisco: eventoDeclaratorio ? '' : ((tipo === 'fiscalizacao' && Number.isFinite(numeroAreaM2_(g('prepareArea'))) && numeroAreaM2_(g('prepareArea')) > 930) ? 'III' : g('prepareNivelRisco')),
+          irregularidadesPrevias: (tipoSelecionado === 'fiscalizacao' && !eventoDeclaratorio) ? irregularidadesPreviasPreparacaoSelecionadas_() : '',
           ocupacao: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? ocupacaoPreparacaoTextoFinal_() : '',
           pavimentos: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('preparePavimentos').replace(/\D/g, '').slice(0, 3) : '',
           altura: (!pet && ['liberacao','fiscalizacao'].includes(tipo)) ? g('prepareAltura') : '',
@@ -29668,6 +29712,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           ['razaoSocial', 'razaoSocial'],
           ['area', 'area'],
           ['nivelRisco', 'nivelRisco'],
+          ['irregularidadesPrevias', 'irregularidadesPrevias'],
           ['ocupacao', 'ocupacao'],
           ['pavimentos', 'pavimentos'],
           ['altura', 'altura'],
@@ -31384,6 +31429,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
             if (!detalhe?.payload) throw new Error('Rascunho compartilhado não encontrado.');
             currentRecordId = String(item.rascunhoId || currentRecordId);
             applyPayload(detalhe.payload, item.rascunhoId);
+            mostrarIrregularidadesPreviasNaFicha_(item.irregularidadesPrevias || '');
             preparacaoEmUsoId = String(item.id || preparacaoEmUsoId || '');
             atualizarBotaoCancelarPreenchimentoTopo_();
             saveDraft();
@@ -31397,6 +31443,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         }
 
         if (!prepararFormularioNovaVistoria_('Vistoria programada')) return false;
+        mostrarIrregularidadesPreviasNaFicha_('');
         preparacaoEmUsoId = String(item.id || '');
         atualizarBotaoCancelarPreenchimentoTopo_();
         aplicarFluxoVistoria_(item.tipoPreparacao === 'liberacao' ? 'liberacao' : 'fiscalizacao', { silencioso: true });
@@ -31415,6 +31462,8 @@ Deseja usar o endereço cadastral do CNPJ?`,
         set('area', item.area);
         // A escolha feita no cadastro previo acompanha a vistoria operacional.
         set('nivelRiscoManual', item.nivelRisco);
+        // Apenas lembra indícios levantados no cadastro; não marca irregularidades constatadas.
+        mostrarIrregularidadesPreviasNaFicha_(item.irregularidadesPrevias || '');
         set('pavimentos', item.pavimentos);
         set('altura', item.altura);
         if (item.ocupacao) restaurarOcupacoesSelecionadas(item.ocupacao);
@@ -31464,7 +31513,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         rolarParaFormularioProgramado_();
         capturarEstadoInicialVistoria_();
         if (draftStatus) draftStatus.textContent = 'Aguardando primeiro preenchimento';
-        appStatus.textContent = `Vistoria cadastrada carregada para consulta/preenchimento${item.vistoriadorResponsavel ? ` — responsável previsto: ${item.vistoriadorResponsavel}` : ''}. O rascunho só será criado após a primeira alteração operacional.`;
+        appStatus.textContent = `Vistoria cadastrada carregada para consulta/preenchimento${item.vistoriadorResponsavel ? ` — responsável previsto: ${item.vistoriadorResponsavel}` : ''}.${item.irregularidadesPrevias ? ' Há possíveis irregularidades registradas no pré-cadastro; confirme na etapa Irregularidades constatadas.' : ''} O rascunho só será criado após a primeira alteração operacional.`;
         return true;
       }
 
@@ -32008,6 +32057,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         renderizarAnexosTemporarios_(document.getElementById('prepareAttachmentsList'), preparacaoAnexosExistentes_, preparacaoAnexosRemover_, preparacaoAnexosNovos_, 'prepare');
       });
       prepareTipo?.addEventListener('change', atualizarCamposPreparacaoPorTipo_);
+      document.querySelectorAll('[data-prepare-irregularidade-previa]').forEach(el => el.addEventListener('change', atualizarCamposIrregularidadesPreviasPreparacao_));
       prepareAreaInput?.addEventListener('input', sincronizarNivelRiscoPreparacao_);
       prepareAreaInput?.addEventListener('change', sincronizarNivelRiscoPreparacao_);
       document.getElementById('prepareMedidasProjetoBtn')?.addEventListener('click', () => {

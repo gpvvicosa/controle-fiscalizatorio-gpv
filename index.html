@@ -2974,7 +2974,18 @@
     #recordDocumentRegularizationRefRow small,#recordDocumentRegularizationObservationHint{display:block;margin-top:4px;font-size:11px;line-height:1.4;color:#536276}
     #recordDocumentRegularizationRefRow[hidden]{display:none!important}
     @media(max-width:650px){.gpv-lw-status-actions{gap:6px}.gpv-lw-regularize-btn{min-height:32px;padding:7px 9px;font-size:12px}.record-current-status{max-width:100%}}
-  </style>
+    /* GPV LZ: escolha multipla compacta, sem alterar a ficha ou o resultado da vistoria. */
+  .gpv-lz-preliminares-box{border:1px solid #dbe3ec;border-radius:14px;padding:12px;min-width:0;background:#f8fafc}
+  .gpv-lz-preliminares-box legend{font-size:.85rem;font-weight:800;color:#243347;padding:0 5px}
+  .gpv-lz-preliminares-options{display:flex;flex-wrap:wrap;gap:8px;margin:3px 0 10px}
+  .gpv-lz-preliminares-options label{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid #e1e6ec;background:white;border-radius:10px;padding:10px 12px;min-height:42px;font-size:.85rem;line-height:1.2;flex:1 1 155px}
+  .gpv-lz-preliminares-options input{width:18px;height:18px;accent-color:#a51d21;margin:0;flex:0 0 auto}
+  .gpv-lz-preliminares-options label:has(input:checked){background:#fff4f4;border-color:#c9575b;color:#86191d;font-weight:700}
+  #prepareIrregularidadeOutraWrap{margin-top:8px}
+  #prepareIrregularidadeOutra{width:100%;box-sizing:border-box}
+  #gpvLzAvisoPreliminares .lookup-status{line-height:1.5}
+  @media(max-width:460px){.gpv-lz-preliminares-options{gap:6px}.gpv-lz-preliminares-options label{flex:1 1 100%;min-height:39px;padding:9px 10px}}
+</style>
 </head>
 <body>
 <div id="appStatus" hidden aria-live="polite"></div>
@@ -4998,6 +5009,9 @@
         </div>
         <div class="section-body">
           <div class="grid">
+            <div class="field wide" id="gpvLzAvisoPreliminares" hidden>
+              <div class="lookup-status show info" role="note"><strong>Informações do cadastro prévio — conferir em campo:</strong> <span id="gpvLzAvisoPreliminaresTexto"></span><div>Marque abaixo apenas as irregularidades efetivamente constatadas. O pré-cadastro não confirma nem autua automaticamente.</div></div>
+            </div>
             <div class="field wide">
               <label for="irregularidadesFiscalizacaoStatus">Houve irregularidade constatada em campo?</label>
               <select id="irregularidadesFiscalizacaoStatus" name="irregularidadesFiscalizacaoStatus">
@@ -5834,6 +5848,21 @@
           <div class="field"><label for="prepareRazaoSocial">Razão Social</label><input id="prepareRazaoSocial"></div>
           <div class="field"><label for="prepareArea">Área (m²)</label><input id="prepareArea" inputmode="decimal"></div>
           <div class="field" id="prepareNivelRiscoWrap"><label for="prepareNivelRisco">Nível de risco <span class="field-optional">opcional</span></label><select id="prepareNivelRisco" aria-describedby="prepareNivelRiscoHint"><option value="">Ainda não classificado</option><option value="I">Nível I</option><option value="II">Nível II</option><option value="III">Nível III</option></select><div class="hint" id="prepareNivelRiscoHint" role="status" aria-live="polite">Selecione I, II ou III, se conhecido. Acima de 930 m², a Fiscalização exige Nível III.</div></div>
+          <div class="field wide gpv-lz-preliminares" id="prepareIrregularidadesPreviasWrap" hidden>
+            <fieldset class="gpv-lz-preliminares-box">
+              <legend>Possíveis irregularidades <span class="field-optional">opcional</span></legend>
+              <div class="gpv-lz-preliminares-options" aria-describedby="prepareIrregularidadesPreviasHint">
+                <label><input type="checkbox" data-prepare-irregularidade-previa value="AVCB vencido"> <span>AVCB vencido</span></label>
+                <label><input type="checkbox" data-prepare-irregularidade-previa value="Brigada de Incêndio"> <span>Brigada de incêndio</span></label>
+                <label><input type="checkbox" data-prepare-irregularidade-previa value="Outros"> <span>Outros</span></label>
+              </div>
+              <div class="field" id="prepareIrregularidadeOutraWrap" hidden>
+                <label for="prepareIrregularidadeOutra">Descreva a outra situação <span class="required">*</span></label>
+                <textarea id="prepareIrregularidadeOutra" rows="2" maxlength="400" placeholder="Ex.: iluminação de emergência pendente"></textarea>
+              </div>
+              <div class="hint" id="prepareIrregularidadesPreviasHint">É possível marcar várias opções. Estas informações são preliminares e deverão ser confirmadas durante a fiscalização; não geram autuação automática.</div>
+            </fieldset>
+          </div>
           <div class="field wide prepare-project-data" id="prepareLiberacaoProjetoWrap" hidden>
             <div class="prepare-project-card">
               <div class="prepare-project-head">
@@ -6767,7 +6796,7 @@
   <script src="config.js?v=23.9.99ln"></script>
   <script src="ocupacoes.js?v=23.9.99ln"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99ln"></script>
-  <script src="app.js?v=23.9.99ly"></script>
+  <script src="app.js?v=23.9.99lz"></script>
   <script src="assets/gpv-ficha-ln.js?v=23.9.99ln" defer></script>
 
 </body>
