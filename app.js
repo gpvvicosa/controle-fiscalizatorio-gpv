@@ -88,8 +88,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lw';
-      const APP_VERSION_DATE = '13/11/2026';
+      const APP_VERSION = '23.9.99lx';
+      const APP_VERSION_DATE = '16/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -12342,7 +12342,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
 
       function atualizarCamposRegularizacaoRapidaFicha_() {
         const motivo = String(recordDocumentRegularizationType?.value || '');
-        const referenciaObrigatoria = ['AVCB emitido', 'CLCB emitido', 'Brigada atualizada'].includes(motivo);
+        const referenciaObrigatoria = ['AVCB emitido', 'AVCB renovado', 'CLCB emitido', 'Brigada atualizada'].includes(motivo);
         if (recordDocumentRegularizationRefRow) recordDocumentRegularizationRefRow.hidden = !motivo;
         if (recordDocumentRegularizationRef) recordDocumentRegularizationRef.required = referenciaObrigatoria;
         if (recordDocumentRegularizationRefHint) recordDocumentRegularizationRefHint.textContent = referenciaObrigatoria
@@ -12385,13 +12385,14 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const mensagens = {
           '': 'Selecione o motivo da regularização.',
           'AVCB emitido': 'Informe o número ou identificação do AVCB emitido.',
+          'AVCB renovado': 'Informe o número ou identificação do AVCB renovado.',
           'CLCB emitido': 'Informe o número ou identificação do CLCB emitido.',
           'Brigada atualizada': 'Informe a identificação do certificado ou comprovante da Brigada.'
         };
         let erroValidacao = '';
-        if (!['AVCB emitido', 'CLCB emitido', 'Pendência sanada', 'Brigada atualizada', 'Outros'].includes(tipoDocumento)) {
+        if (!['AVCB emitido', 'AVCB renovado', 'CLCB emitido', 'Pendência sanada', 'Brigada atualizada', 'Outros'].includes(tipoDocumento)) {
           erroValidacao = mensagens[''];
-        } else if (['AVCB emitido', 'CLCB emitido', 'Brigada atualizada'].includes(tipoDocumento) && documentoReferencia.length < 3) {
+        } else if (['AVCB emitido', 'AVCB renovado', 'CLCB emitido', 'Brigada atualizada'].includes(tipoDocumento) && documentoReferencia.length < 3) {
           erroValidacao = mensagens[tipoDocumento];
         } else if (['Pendência sanada', 'Outros'].includes(tipoDocumento) && observacao.length < 10) {
           erroValidacao = 'Descreva o motivo e a comprovação (mínimo de 10 caracteres).';

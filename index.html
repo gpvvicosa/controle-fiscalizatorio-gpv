@@ -5553,6 +5553,7 @@
           <select id="recordDocumentRegularizationType">
             <option value="" selected>Selecione o motivo</option>
             <option value="AVCB emitido">AVCB emitido</option>
+            <option value="AVCB renovado">AVCB renovado</option>
             <option value="CLCB emitido">CLCB emitido</option>
             <option value="Pendência sanada">Pendência sanada</option>
             <option value="Brigada atualizada">Brigada atualizada</option>
@@ -5560,8 +5561,8 @@
           </select>
         </label>
         <label id="recordDocumentRegularizationRefRow">Número ou identificação do comprovante
-          <input id="recordDocumentRegularizationRef" type="text" maxlength="160" autocomplete="off" placeholder="Ex.: nº do AVCB/CLCB ou do certificado">
-          <small id="recordDocumentRegularizationRefHint">Obrigatório para AVCB, CLCB ou Brigada; opcional nos demais casos.</small>
+          <input id="recordDocumentRegularizationRef" type="text" maxlength="160" autocomplete="off" placeholder="Ex.: nº do AVCB emitido/renovado, CLCB ou certificado">
+          <small id="recordDocumentRegularizationRefHint">Obrigatório para AVCB emitido/renovado, CLCB ou Brigada; opcional nos demais casos.</small>
         </label>
         <label class="record-correction-reason" for="recordDocumentRegularizationObservation">
           <span>Descrição / observação</span>
@@ -6766,7 +6767,7 @@
   <script src="config.js?v=23.9.99ln"></script>
   <script src="ocupacoes.js?v=23.9.99ln"></script>
   <script src="notificacoes-infoscip.js?v=23.9.99ln"></script>
-  <script src="app.js?v=23.9.99lw"></script>
+  <script src="app.js?v=23.9.99lx"></script>
   <script src="assets/gpv-ficha-ln.js?v=23.9.99ln" defer></script>
 
 </body>
