@@ -1,3 +1,4 @@
+// V23.9.99ma — sincronizacao silenciosa entre aparelhos por revisao do servidor; sem recarga de pagina.
 // V23.9.99lz — selecao multipla de irregularidades preliminares no cadastro, confirmacao manual em campo; preserva WhatsApp LY.
 // V23.9.99ly — WhatsApp ao autuado: AVCB vencido com prazos e nome institucional por extenso; demais fluxos preservados.
 // V23.9.99lm — refinamento exclusivamente visual da tabela do Painel desktop.
@@ -90,7 +91,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99lz';
+      const APP_VERSION = '23.9.99ma';
       const APP_VERSION_DATE = '16/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -125,6 +126,8 @@
       const PROCESS_STATUS_SYNC_STORAGE = 'gpvProcessStatusSyncV1';
       const PANEL_FOREGROUND_REFRESH_MS = 2 * 60 * 1000;
       const PANEL_PERIODIC_REFRESH_MS = 2 * 60 * 1000;
+      const PANEL_LIVE_CHECK_MS = 12 * 1000; // consulta leve, apenas com Painel aberto
+      const PANEL_LIVE_RETRY_MS = 30 * 1000; // evita sobrecarga se o servidor falhar
       const PANEL_SESSION_FRESH_MS = 2 * 60 * 1000;
       const PANEL_SERVER_REVISION_TIMEOUT_MS = 4500;
       const PANEL_REQUEST_STALE_MS = 25 * 1000;
@@ -3064,6 +3067,15 @@
       let recordsRequestStartedAt_ = 0;
       let recordsForegroundRefreshTimer_ = null;
       let recordsPeriodicRefreshTimer_ = null;
+      let painelLiveTimer_ = null;
+      let painelLiveRevisao_ = '';
+      let painelLiveChecando_ = false;
+      let painelLiveAplicando_ = false;
+      let painelLivePendente_ = false;
+      let painelLiveUltimaConsultaEm_ = 0;
+      let painelLiveUltimaRevisaoConfirmadaEm_ = 0;
+      let painelLiveUltimaFalhaEm_ = 0;
+      let painelLiveUltimaAplicacaoEm_ = 0;
       let operationalListsRefreshTimer_ = null;
       let recordsPostSyncTimers_ = [];
       let atualizacaoPlanilhaPromise_ = null;
@@ -7875,6 +7887,7 @@
         if (painel && swAtualizacaoPendente_) {
           setTimeout(() => aplicarAtualizacaoSilenciosaSeSeguro_(), 150);
         }
+        if (painel) setTimeout(() => { void verificarRevisaoPainelLive_(true); }, 1400);
       }
 
       function atualizarVistaNaUrl_(modo) {
@@ -10047,7 +10060,7 @@
           recordsForegroundRefreshTimer_ = null;
           if (!navigator.onLine || document.visibilityState !== 'visible') return;
           if (!document.body.classList.contains('records-mode')) return;
-          void carregarRegistros_(true, { forcar, silenciosa: true, motivo });
+          void carregarRegistros_(false, { forcar, silenciosa: true, semIndicador: true, motivo });
         }, Math.max(80, Number(opcoes.atraso || 240)));
       }
 
@@ -10068,17 +10081,150 @@
         void motivo;
       }
 
+      // V23.9.99ma — somente um marcador leve trafega a cada verificação. A lista
+      // não é consultada, redesenhada ou bloqueada enquanto a revisão não mudar.
+      // A chamada é restrita à sessão autorizada e ao Painel visível.
+      function painelPodeConsultarRevisaoLive_() {
+        return Boolean(navigator.onLine && authState.sessionToken &&
+          document.visibilityState === 'visible' &&
+          document.body.classList.contains('records-mode'));
+      }
+
+      function painelPodeAplicarLive_() {
+        if (!painelPodeConsultarRevisaoLive_() || recordsState.carregando) return false;
+        if (document.body.classList.contains('detail-open') ||
+            document.body.classList.contains('review-open') ||
+            recordDetailScreen?.classList.contains('show')) return false;
+        // Se o usuário está lendo páginas antigas, não altera a paginação.
+        if (recordsState.modoProgressivo === true && Number(recordsState.pagina || 1) > 1) return false;
+        // Não desloca o cursor enquanto o vistoriador edita os filtros do Painel.
+        const ativo = document.activeElement;
+        if (ativo && recordsPanel?.contains(ativo) &&
+            ['INPUT', 'TEXTAREA', 'SELECT'].includes(ativo.tagName)) return false;
+        return true;
+      }
+
+      async function aplicarNovidadesPainelLive_() {
+        if (painelLiveAplicando_ || !painelPodeAplicarLive_()) {
+          painelLivePendente_ = true;
+          return false;
+        }
+        painelLiveAplicando_ = true;
+        try {
+          const painelPadrao = filtrosPainelPadraoSemBusca_();
+          if (painelPadrao) {
+            if (inicioRapidoPromise_) {
+              painelLivePendente_ = true;
+              return false;
+            }
+            // Reutiliza o endpoint dos registros recentes. Não recarrega a página,
+            // não exibe skeleton e não modifica o formulário de vistoria.
+            const r = await carregarInicioRapido_({ forcar: true, limite: 100 });
+            if (!r?.recentes || !painelPodeAplicarLive_() || !filtrosPainelPadraoSemBusca_()) {
+              painelLivePendente_ = true;
+              return false;
+            }
+            const antes = JSON.stringify((recordsState.itens || []).filter(x => !x?.sincronizacaoPendente));
+            const depois = respostaPainelComPendenciasLocais_({
+              itens: r.recentes.itens || [],
+              total: (r.recentes.itens || []).length,
+              resumo: recordsState.resumo || {},
+              filtrosDisponiveis: {}
+            });
+            const novos = JSON.stringify((depois?.itens || []).filter(x => !x?.sincronizacaoPendente));
+            if (antes !== novos) {
+              const rolagem = window.scrollY;
+              const rolagemLista = recordsList?.scrollTop || 0;
+              aplicarRegistrosRapidosPainel_(r.recentes);
+              if (recordsList) recordsList.scrollTop = rolagemLista;
+              if (window.scrollY !== rolagem) window.scrollTo(0, rolagem);
+            }
+            // A consolidação dos indicadores não bloqueia os novos registros.
+            void carregarResumoPainelLeve_({ forcar: true });
+          } else {
+            const anterior = ultimaRespostaPainelEm_();
+            // Preserva os filtros, busca e página selecionada pelo vistoriador.
+            await carregarRegistros_(false, {
+              forcar: true, silenciosa: true, semIndicador: true,
+              motivo: 'sincronização silenciosa entre aparelhos'
+            });
+            if (!ultimaRespostaPainelEm_() || ultimaRespostaPainelEm_() <= anterior) {
+              painelLivePendente_ = true;
+              return false;
+            }
+          }
+          painelLiveUltimaAplicacaoEm_ = Date.now();
+          painelLivePendente_ = false;
+          return true;
+        } catch (_) {
+          painelLivePendente_ = true;
+          return false;
+        } finally {
+          painelLiveAplicando_ = false;
+        }
+      }
+
+      async function verificarRevisaoPainelLive_(forcarConsulta = false) {
+        if (!painelPodeConsultarRevisaoLive_() || painelLiveChecando_ || painelLiveAplicando_) return;
+        const agora = Date.now();
+        if (painelLiveUltimaFalhaEm_ && agora - painelLiveUltimaFalhaEm_ < PANEL_LIVE_RETRY_MS) return;
+        if (!forcarConsulta && agora - painelLiveUltimaConsultaEm_ < PANEL_LIVE_CHECK_MS - 150) return;
+        if (forcarConsulta && agora - painelLiveUltimaConsultaEm_ < 2500) return;
+        painelLiveChecando_ = true;
+        painelLiveUltimaConsultaEm_ = agora;
+        try {
+          const atual = await apiRequest('config', { consulta: 'painel_revisao' },
+            PANEL_SERVER_REVISION_TIMEOUT_MS, { noRetry: true });
+          if (!painelPodeConsultarRevisaoLive_()) return;
+          if (atual?.confiavel !== true || !atual?.revisaoPainel) return;
+          painelLiveUltimaRevisaoConfirmadaEm_ = Date.now();
+          const revisao = String(atual.revisaoPainel);
+          const mudou = Boolean(painelLiveRevisao_ && painelLiveRevisao_ !== revisao);
+          const primeira = !painelLiveRevisao_;
+          // Na primeira leitura, uma única consulta reconcilia a lista que já
+          // estava na tela. Isso cobre novas linhas gravadas antes da 1ª sondagem.
+          const primeiraDefasada = primeira &&
+            (!inicioRapidoAtualizadoEm_ || Date.now() - inicioRapidoAtualizadoEm_ > 5000);
+          if (mudou || painelLivePendente_ || primeiraDefasada) {
+            const atualizado = await aplicarNovidadesPainelLive_();
+            if (atualizado) painelLiveRevisao_ = revisao;
+            else painelLivePendente_ = true;
+          } else if (primeira) {
+            painelLiveRevisao_ = revisao;
+          }
+          painelLiveUltimaFalhaEm_ = 0;
+        } catch (_) {
+          // Falha silenciosa: dados já exibidos não são apagados. A rotina
+          // periódica tradicional permanece como contingência.
+          painelLiveUltimaFalhaEm_ = Date.now();
+        } finally {
+          painelLiveChecando_ = false;
+        }
+      }
+
+      function iniciarSincronizacaoLivePainel_() {
+        clearInterval(painelLiveTimer_);
+        painelLiveTimer_ = setInterval(() => {
+          void verificarRevisaoPainelLive_();
+        }, PANEL_LIVE_CHECK_MS);
+      }
+
       function iniciarAtualizacaoPeriodicaPainel_() {
         clearInterval(recordsPeriodicRefreshTimer_);
         recordsPeriodicRefreshTimer_ = setInterval(() => {
           if (!navigator.onLine || document.visibilityState !== 'visible') return;
           if (!document.body.classList.contains('records-mode')) return;
+          // Se a revisão leve está sendo confirmada, não faz releitura pesada.
+          if (painelLiveUltimaRevisaoConfirmadaEm_ &&
+              Date.now() - painelLiveUltimaRevisaoConfirmadaEm_ < PANEL_PERIODIC_REFRESH_MS) return;
+          if (!painelPodeAplicarLive_()) return;
           const ultimaResposta = ultimaRespostaPainelEm_();
           if (ultimaResposta && Date.now() - ultimaResposta < PANEL_PERIODIC_REFRESH_MS) return;
-          void carregarRegistros_(true, {
+          void carregarRegistros_(false, {
             substituirSeAntiga: true,
             silenciosa: true,
-            motivo: 'atualização periódica'
+            semIndicador: true,
+            motivo: 'contingência da atualização periódica'
           });
         }, PANEL_PERIODIC_REFRESH_MS);
       }
@@ -10411,15 +10557,15 @@
         const requestController = new AbortController();
         recordsRequestController_ = requestController;
         recordsRequestStartedAt_ = Date.now();
-        if (recordsRefreshBtn) {
+        if (recordsRefreshBtn && opcoes.semIndicador !== true) {
           recordsRefreshBtn.disabled = false;
           recordsRefreshBtn.classList.add('is-loading');
           recordsRefreshBtn.setAttribute('aria-busy', 'true');
         }
         atualizarPaginacao_();
-        definirBuscaPainelEmAndamento_(buscaAtiva);
+        if (opcoes.semIndicador !== true) definirBuscaPainelEmAndamento_(buscaAtiva);
 
-        if (buscaAtiva) {
+        if (buscaAtiva && opcoes.silenciosa !== true) {
           recordsStatus.className = 'records-status searching';
           recordsStatus.innerHTML = '<strong>Buscando registros atuais...</strong> Consultando estabelecimento, CNPJ/CPF, PSCIP, endereço e nº do endereço.';
         } else if (!opcoes.silenciosa) {
@@ -10568,6 +10714,7 @@
             void consultarAlertaHistoricoLocalNovaVistoria_(pendente.origem || 'form');
           }, 180);
         }
+        if (painelLivePendente_) setTimeout(() => { void verificarRevisaoPainelLive_(true); }, 350);
       }
 
       function descricaoSituacaoPainel_(situacao) {
@@ -33690,6 +33837,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
           repararInterfaceOrfa_('retorno ao primeiro plano');
           if (authState.sessionToken) validarSessaoLocalAtivaBm_();
           agendarAtualizacaoPainelAoRetornar_('retorno ao primeiro plano');
+          void verificarRevisaoPainelLive_(true);
           agendarAtualizacaoListasOperacionaisAoRetornar_('retorno ao primeiro plano', 260, { forcar: ficouForaPor >= 5 * 60 * 1000 });
 
           // Retornar ao PWA continua sendo oportunidade de conferir a versão. Se o militar
@@ -33715,6 +33863,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         repararInterfaceOrfa_('foco da janela');
         if (authState.sessionToken) validarSessaoLocalAtivaBm_();
         agendarAtualizacaoPainelAoRetornar_('foco da janela');
+        void verificarRevisaoPainelLive_(true);
         agendarAtualizacaoListasOperacionaisAoRetornar_('foco da janela', 300);
         verificarAtualizacaoSilenciosaPwa_();
         aplicarAtualizacaoSilenciosaSeSeguro_();
@@ -33726,6 +33875,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         invalidarConsultasAntigasAoRetornar_();
         repararInterfaceOrfa_(event.persisted ? 'restauração BFCache' : 'pageshow');
         agendarAtualizacaoPainelAoRetornar_(event.persisted ? 'restauração BFCache' : 'pageshow');
+        void verificarRevisaoPainelLive_(true);
         agendarAtualizacaoListasOperacionaisAoRetornar_(event.persisted ? 'restauração BFCache' : 'pageshow', 340);
         if (event.persisted) {
           verificarAtualizacaoSilenciosaPwa_(true);
@@ -33882,6 +34032,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       iniciarAvisoInteligenteAtualizacao_();
       iniciarWatchdogInterface_();
       iniciarAtualizacaoPeriodicaPainel_();
+      iniciarSincronizacaoLivePainel_();
       repararInterfaceOrfa_('inicialização');
       inicializarCatalogoNotificacoes_();
       renderizarNotificacoesLiberacao_();
