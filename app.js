@@ -1,3 +1,4 @@
+// V23.9.99mc — preserva a escolha de Liberação P01002 no alerta de histórico mesmo com consultas simultâneas; reconfere o endereço.
 // V23.9.99mb — dispensa explicita de PSCIP no cadastro, campo e Ficha, sem confundir com numero ausente.
 // V23.9.99ma — sincronizacao silenciosa entre aparelhos por revisao do servidor; sem recarga de pagina.
 // V23.9.99lz — selecao multipla de irregularidades preliminares no cadastro, confirmacao manual em campo; preserva WhatsApp LY.
@@ -92,8 +93,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mb';
-      const APP_VERSION_DATE = '16/11/2026';
+      const APP_VERSION = '23.9.99mc';
+      const APP_VERSION_DATE = '18/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -23712,7 +23713,19 @@ Deseja usar o endereço cadastral do CNPJ?`,
             { rotuloCancelar:'Fechar alerta' }
           );
           estado.exibindo = false;
-          if (seq !== estado.seq || !escolha) return;
+          if (!escolha) return;
+          // MC: a consulta automática do PF/PSCIP pode alterar seq enquanto
+          // o vistoriador decide neste diálogo. Isso NÃO deve descartar a
+          // escolha consciente (especialmente Liberação P01002) e reabrir
+          // o mesmo aviso. A proteção real aqui é o endereço: se ele mudou
+          // durante a decisão, descarte a escolha e consulte o novo local.
+          const assinaturaAoEscolher = assinaturaHistoricoLocalNovaVistoria_(
+            filtrosHistoricoLocalNovaVistoria_(origem)
+          );
+          if (assinaturaAoEscolher !== assinatura) {
+            agendarAlertaHistoricoLocalNovaVistoria_(origem, 180);
+            return;
+          }
           await aplicarEscolhaHistoricoLocalNovaVistoria_(origem, escolha, resposta, assinatura);
         } catch (erro) {
           estado.exibindo = false;
