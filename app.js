@@ -1,3 +1,4 @@
+// V23.9.99me — permite ao painel ler detalhes de Metas do backend MD sem bloquear versões anteriores.
 // V23.9.99mc — preserva a escolha de Liberação P01002 no alerta de histórico mesmo com consultas simultâneas; reconfere o endereço.
 // V23.9.99mb — dispensa explicita de PSCIP no cadastro, campo e Ficha, sem confundir com numero ausente.
 // V23.9.99ma — sincronizacao silenciosa entre aparelhos por revisao do servidor; sem recarga de pagina.
@@ -93,8 +94,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mc';
-      const APP_VERSION_DATE = '18/11/2026';
+      const APP_VERSION = '23.9.99me';
+      const APP_VERSION_DATE = '19/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -9254,7 +9255,7 @@
 
       function validarRespostaMetasHk_(resposta) {
         const versao = String(resposta?.versaoCalculoMetas || '').trim();
-        if (['23.9.99hk', '23.9.99ls', '23.9.99lt'].includes(versao)) return resposta;
+        if (['23.9.99hk', '23.9.99ls', '23.9.99lt', '23.9.99md'].includes(versao)) return resposta;
         const erro = new Error('O cálculo de Metas do servidor ainda não está em uma versão compatível. Atualize a implantação do Google Apps Script.');
         erro.code = 'METAS_BACKEND_DESATUALIZADO';
         throw erro;

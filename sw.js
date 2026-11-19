@@ -1,3 +1,4 @@
+// V23.9.99me — compatibilidade de detalhes das Metas com backend MD; sem alteracao no backend.
 // V23.9.99lm — fundo cinza-grafite e tabela responsiva no PC, sem alteracao das regras operacionais.
 // V23.9.99lm — compõe legendas em duas linhas no desktop; mantém bombeiro e operações offline.
 // V23.9.99lm — somente nova folha CSS do cabeçalho desktop e cache de versão; ativação protegida mantida.
@@ -64,9 +65,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261118-v23-9-99-mc-liberacao-alerta-historico';
+const CACHE_NAME = 'gpv-vistorias-shell-20261119-v23-9-99-me-metas-detalhes-md';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99mc';
+const VERSION = '23.9.99me';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
