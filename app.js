@@ -1,3 +1,4 @@
+// V23.9.99mi — PDF auxiliar para lançamento de notificações INFOSCIP em Vistorias de Liberação.
 // V23.9.99mh — Imagens oficiais do Anexo B da IT 15, sem mudanças operacionais.
 // V23.9.99mg — Biblioteca de placas de sinalização (IT15), sem mudanças operacionais.
 // V23.9.99mf — Biblioteca de simbologias offline, sem alterar as rotinas operacionais.
@@ -97,7 +98,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mh';
+      const APP_VERSION = '23.9.99mi';
       const APP_VERSION_DATE = '23/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -2349,6 +2350,7 @@
       const recordNotificationsSummary = document.getElementById('recordNotificationsSummary');
       const recordNotificationsList = document.getElementById('recordNotificationsList');
       const recordNotificationsCopyAllBtn = document.getElementById('recordNotificationsCopyAllBtn');
+      const recordNotificationsPdfBtn = document.getElementById('recordNotificationsPdfBtn');
       const recordNotificationsStatus = document.getElementById('recordNotificationsStatus');
       const recordGeneralPhotosPanel = document.getElementById('recordGeneralPhotosPanel');
       const recordGeneralPhotosSummary = document.getElementById('recordGeneralPhotosSummary');
@@ -12355,6 +12357,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const total = recordNotificationsAtual.length;
         if (!total) {
           recordNotificationsPanel.hidden = true;
+          if (recordNotificationsPdfBtn) recordNotificationsPdfBtn.hidden = true;
           recordNotificationsList.innerHTML = '';
           if (recordNotificationsStatus) recordNotificationsStatus.textContent = '';
           if (recordNotificationsTopBtn) recordNotificationsTopBtn.hidden = true;
@@ -12363,6 +12366,10 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         }
 
         recordNotificationsPanel.hidden = false;
+        if (recordNotificationsPdfBtn) {
+          recordNotificationsPdfBtn.hidden = !fluxoLiberacaoFicha_(registro);
+          recordNotificationsPdfBtn.disabled = !fluxoLiberacaoFicha_(registro);
+        }
         if (recordNotificationsTopBtn) {
           recordNotificationsTopBtn.hidden = false;
           recordNotificationsTopBtn.setAttribute('aria-label', `${total} notificação${total === 1 ? '' : 'ões'} registrada${total === 1 ? '' : 's'}. Abrir irregularidades.`);
@@ -12460,6 +12467,67 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         if (recordNotificationsStatus) recordNotificationsStatus.textContent = ok ? 'Notificações copiadas em formato organizado, prontas para colar no ChatGPT ou em outro documento.' : 'Não foi possível copiar automaticamente.';
       }
 
+
+      // V23.9.99mi — documento de apoio para digitação no INFOSCIP.
+      // Transferência apenas em memória, em janela de mesma origem. Nenhum dado
+      // é enviado a serviços externos, gravado na planilha ou salvo no navegador.
+      function abrirPdfNotificacaoInfoscipFicha_() {
+        const registro = recordDetailRegistroAtual;
+        if (!registro || !fluxoLiberacaoFicha_(registro) || !recordNotificationsAtual.length) return;
+        const estrutura = normalizarEstruturaNotificacoes_(registro.notificacoesTemporarias);
+        const locais = estrutura.map(local => ({
+          tipo: String(local.tipoLocal || '').trim(),
+          descricaoLocal: String(local.complemento || '').trim(),
+          irregularidades: (local.irregularidades || [])
+            .filter(irregularidadeNotificacaoTemConteudo_)
+            .map(ir => ({
+              referencia: String(ir.tipoIrregularidade || '').trim(),
+              item: String(ir.itemIrregular || '').trim(),
+              descricao: String(ir.descricao || '').trim()
+            }))
+        })).filter(local => local.irregularidades.length);
+        if (!locais.length) return;
+        const ids = identificadoresProjetoFicha_(registro);
+        const payload = {
+          projeto: ids.atual || ids.antigo || valorCampoFicha_(registro, 'Nº do PSCIP / Projeto', 'Nº do Projeto'),
+          dataNotificacao: '', // A data no INFOSCIP NÃO é a data da vistoria.
+          dataResposta: '',
+          responsavelNotificacao: '', // Não supor que o vistoriador é o notificante do INFOSCIP.
+          riscoIsolado: '',
+          divisao: valorCampoFicha_(registro, 'Ocupação / Divisão', 'Ocupação', 'Divisão'),
+          areaTotal: valorCampoFicha_(registro, 'Área m²', 'Área'),
+          parcialmenteConstruida: '',
+          areaVistoria: '',
+          areaNotificada: '',
+          estabelecimento: registro.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social'),
+          locais
+        };
+        const pagina = window.open('./apoio-infoscip.html?v=23.9.99mi', '_blank');
+        if (!pagina) {
+          if (recordNotificationsStatus) recordNotificationsStatus.textContent =
+            'O navegador bloqueou a janela do PDF. Permita pop-ups deste site e tente novamente.';
+          return;
+        }
+        let concluido = false;
+        let prazo = 0;
+        const responder = event => {
+          if (event.source !== pagina || event.origin !== location.origin ||
+              event.data?.tipo !== 'GPV_MI_RELATORIO_PRONTO') return;
+          concluido = true;
+          window.clearTimeout(prazo);
+          window.removeEventListener('message', responder);
+          try { pagina.postMessage({ tipo:'GPV_MI_DADOS_RELATORIO', payload }, location.origin); }
+          catch (erro) {
+            if (recordNotificationsStatus) recordNotificationsStatus.textContent = 'Não foi possível abrir a prévia. Tente novamente.';
+          }
+        };
+        window.addEventListener('message', responder);
+        prazo = window.setTimeout(() => {
+          window.removeEventListener('message', responder);
+          if (!concluido && recordNotificationsStatus) recordNotificationsStatus.textContent =
+            'A prévia não respondeu. Confirme se a nova página apoio-infoscip.html foi publicada no GitHub.';
+        }, 20000);
+      }
 
       function fluxoLiberacaoFicha_(registro) {
         const tipo = normalize(valorCampoFicha_(registro, 'Tipo de vistoria'));
@@ -32812,6 +32880,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
       recordAutoNumberSaveBtn?.addEventListener('click', salvarNumeroAutoRegistro_);
       recordWhatsappNavBtn?.addEventListener('click', abrirWhatsAppNavegacaoFicha_);
       recordNotificationsCopyAllBtn?.addEventListener('click', copiarTodasNotificacoesFicha_);
+      recordNotificationsPdfBtn?.addEventListener('click', abrirPdfNotificacaoInfoscipFicha_);
       recordNotificationsTopBtn?.addEventListener('click', abrirNotificacoesFicha_);
       recordNotificationsList?.addEventListener('click', event => {
         const botao = event.target.closest('[data-record-notification-copy]');

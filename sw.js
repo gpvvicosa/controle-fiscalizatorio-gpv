@@ -1,3 +1,4 @@
+// V23.9.99mi — PDF auxiliar de lançamento INFOSCIP em modo offline; sem alteração de sincronização.
 // V23.9.99mh — substitui pictogramas aproximados por imagens oficiais do PDF IT 15.
 // V23.9.99mg — placas de sinalização da IT 15 no cache offline; preserva o ciclo de atualização seguro.
 // V23.9.99mf — biblioteca de simbologias disponível no cache offline do PWA.
@@ -68,9 +69,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261123-v23-9-99-mh-placas-oficiais-it15';
+const CACHE_NAME = 'gpv-vistorias-shell-20261123-v23-9-99-mi-notificacao-infoscip';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99mh';
+const VERSION = '23.9.99mi';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -125,6 +126,7 @@ const CORE_SHELL = [
   `./assets/logo-gpv.png?v=${VERSION}`,
   './simbologias.html',
   './placas-sinalizacao.html',
+  './apoio-infoscip.html',
   './offline.html'
 ];
 
