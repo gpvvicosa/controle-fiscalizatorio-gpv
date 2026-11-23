@@ -1,3 +1,4 @@
+// V23.9.99mj — nome de PDF sugerido a partir do Nº do PSCIP, sem alterar dados das notificações.
 // V23.9.99mi — PDF auxiliar para lançamento de notificações INFOSCIP em Vistorias de Liberação.
 // V23.9.99mh — Imagens oficiais do Anexo B da IT 15, sem mudanças operacionais.
 // V23.9.99mg — Biblioteca de placas de sinalização (IT15), sem mudanças operacionais.
@@ -98,7 +99,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mi';
+      const APP_VERSION = '23.9.99mj';
       const APP_VERSION_DATE = '23/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
@@ -12502,7 +12503,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           estabelecimento: registro.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social'),
           locais
         };
-        const pagina = window.open('./apoio-infoscip.html?v=23.9.99mi', '_blank');
+        const pagina = window.open('./apoio-infoscip.html?v=23.9.99mj', '_blank');
         if (!pagina) {
           if (recordNotificationsStatus) recordNotificationsStatus.textContent =
             'O navegador bloqueou a janela do PDF. Permita pop-ups deste site e tente novamente.';

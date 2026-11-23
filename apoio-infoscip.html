@@ -30,11 +30,26 @@ body{margin:0;font-size:12px}.toolbar{position:sticky;top:0;z-index:5;background
 @media screen and (max-width:700px){.sheet{margin:0;box-shadow:none;padding:12px 7px;min-height:0}.heading{grid-template-columns:82px 1fr 62px}.heading img{width:79px}.heading h1{font-size:16px}.heading .issue{font-size:8px}.info-grid{grid-template-columns:1fr 1fr;margin-bottom:12px}.area-table th{font-size:9px}.area-table td{font-size:10px}.notifications{margin:0;padding:4px}.row-heading{grid-template-columns:1fr 1.2fr}.detail-titles,.detail-values{grid-template-columns:20px 26% 26% 1fr;gap:3px}.detail-titles strong,.detail-values .editable{font-size:9px}}
 @media print{@page{size:A4 portrait;margin:9mm}html,:root,body{background:white!important}body{background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}.toolbar,.card-actions{display:none!important}.sheet{width:100%;box-shadow:none;margin:0;padding:0;min-height:0}.heading{grid-template-columns:155px 1fr 115px}.heading h1{font-size:21px}.info-grid{margin-bottom:22px}.editable{border-bottom:0}.editable:empty::before{content:''}.local{break-inside:avoid-page;page-break-inside:avoid}.bottom-note{font-size:9px}}
 </style></head><body>
-<div class="toolbar"><div><strong>Notificação Projeto — documento de apoio</strong><small>Confira ou complete os campos sublinhados; não há gravação na planilha nem envio ao INFOSCIP.</small></div><div><button id="copyAll" type="button">Copiar descrições</button> <button id="print" class="primary" type="button">Imprimir / salvar como PDF</button></div></div>
+<div class="toolbar"><div><strong>Notificação Projeto — documento de apoio</strong><small>Confira ou complete os campos sublinhados; não há gravação na planilha nem envio ao INFOSCIP.</small><small id="pdfFileName" aria-live="polite">Nome do arquivo: aguardando os dados do PSCIP.</small></div><div><button id="copyAll" type="button">Copiar descrições</button> <button id="copyFileName" type="button" disabled>Copiar nome do PDF</button> <button id="print" class="primary" type="button">Imprimir / salvar como PDF</button></div></div>
 <main class="sheet" id="sheet"><div id="pending" class="pending">Recebendo as notificações da Ficha do Processo...</div></main>
 <script>
 (function(){'use strict';
 const ORIGEM=location.origin;const sheet=document.getElementById('sheet');let dados=null;
+let nomeArquivoPdf='';
+function nomePdfPeloPscip(numero){
+  const valor=String(numero==null?'':numero).normalize('NFKC').trim()
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g,'-')
+    .replace(/\s+/g,' ').replace(/^[.\s-]+|[.\s-]+$/g,'').slice(0,72);
+  const semNumero=!valor||/^(?:dispensad[oa]|não informado|nao informado|sem pscip)$/i.test(valor);
+  return 'Notificação Projeto - '+(semNumero?'PSCIP não informado':valor)+'.pdf';
+}
+function atualizarNomeArquivoPdf(projeto){
+  nomeArquivoPdf=nomePdfPeloPscip(projeto);
+  document.title=nomeArquivoPdf.replace(/\.pdf$/i,'');
+  document.getElementById('pdfFileName').textContent='Nome sugerido ao salvar: '+nomeArquivoPdf;
+  document.getElementById('copyFileName').disabled=false;
+}
+
 const formatoData=()=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function campo(valor,rotulo){const e=el('span','editable',String(valor||''));e.contentEditable='true';e.role='textbox';e.tabIndex=0;e.setAttribute('aria-label',rotulo);e.dataset.placeholder='Preencher';e.spellcheck=false;return e}
@@ -52,9 +67,10 @@ sheet.append(el('p','bottom-note',`${contador} irregularidade(s) transcrita(s) d
 }
 async function copiar(s){try{await navigator.clipboard.writeText(String(s||''))}catch(e){const text=el('textarea');text.value=String(s||'');document.body.append(text);text.select();document.execCommand('copy');text.remove()}}
 window.addEventListener('message',e=>{if(e.origin!==ORIGEM||e.source!==window.opener||e.data?.tipo!=='GPV_MI_DADOS_RELATORIO'||dados)return;
-const p=e.data.payload;if(!p||!Array.isArray(p.locais)||p.locais.length>40)return;dados=p;faturaRelatorio(p);try{window.opener=null}catch(_){} });
+const p=e.data.payload;if(!p||!Array.isArray(p.locais)||p.locais.length>40)return;dados=p;atualizarNomeArquivoPdf(p.projeto);faturaRelatorio(p);try{window.opener=null}catch(_){} });
 window.addEventListener('DOMContentLoaded',()=>{if(window.opener){window.opener.postMessage({tipo:'GPV_MI_RELATORIO_PRONTO'},ORIGEM)}else{document.getElementById('pending').textContent='Abra o PDF pela Ficha de uma Vistoria de Liberação com notificações registradas.'}});
-document.getElementById('print').addEventListener('click',()=>{if(dados)window.print()});
+document.getElementById('print').addEventListener('click',()=>{if(!dados)return;atualizarNomeArquivoPdf(dados.projeto);window.print()});
+document.getElementById('copyFileName').addEventListener('click',async()=>{if(!nomeArquivoPdf)return;await copiar(nomeArquivoPdf);document.getElementById('copyFileName').textContent='Nome copiado';});
 document.getElementById('copyAll').addEventListener('click',()=>{if(!dados)return;copiar(dados.locais.flatMap(l=>(l.irregularidades||[]).map(i=>i.descricao||'')).join('\n\n'))});
 })();
 </script></body></html>
