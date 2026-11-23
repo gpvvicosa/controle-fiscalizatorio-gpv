@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#172b3b">
+<meta name="description" content="Consulta ilustrada de placas de sinalização de emergência por código da IT 15 CBMMG, offline após atualização do aplicativo.">
+<title>Placas de Sinalização | App do Vistoriador</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1a3044;background:#eef2f6}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}a{color:inherit}
+.mast{background:linear-gradient(115deg,#142638,#304d60);color:#fff;padding:20px max(16px,calc((100% - 1160px)/2)) 28px}
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.brand{font-size:11px;letter-spacing:.065em;font-weight:800;color:#bbd9ec;text-transform:uppercase}
+.nav{display:flex;flex-wrap:wrap;gap:8px}
+.nav a{display:inline-flex;align-items:center;min-height:38px;padding:9px 12px;border-radius:10px;border:1px solid #648196;background:#385469;text-decoration:none;font-size:12px;font-weight:750}
+h1{font-size:clamp(25px,4vw,39px);line-height:1.17;letter-spacing:-.03em;margin:18px 0 9px}
+.mast p{font-size:14px;color:#dbe8ef;line-height:1.55;max-width:760px;margin:0}
+main{max-width:1160px;margin:0 auto;padding:18px 16px 56px}
+.toolbar{background:#fff;border:1px solid #d4e0e9;border-radius:17px;padding:15px;box-shadow:0 8px 24px #2439490d}
+.search-label{display:block;font-size:13px;font-weight:800;margin:0 0 8px}
+.search{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 13px;border:1.5px solid #b9c9d5;border-radius:11px;background:#f9fbfd}
+.search:focus-within{border-color:#c34f31}
+.search input{border:0;outline:none;background:transparent;flex:1;min-width:0;font-size:15px;color:#1a3044}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.chip{border:1px solid #cddbe5;border-radius:30px;padding:8px 12px;background:#f4f8fa;color:#304a5f;font-weight:750;font-size:12px;min-height:36px}
+.chip[aria-pressed="true"]{background:#ba3b2c;color:#fff;border-color:#ba3b2c}
+.counter{font-size:12px;color:#667a8c;margin:14px 2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,225px),1fr));gap:12px}
+.sign{border:1px solid #d5e1e8;border-radius:16px;padding:13px;text-align:left;background:#fff;min-height:231px;display:flex;flex-direction:column;gap:9px;box-shadow:0 3px 10px #1b34400c}
+.sign:hover{border-color:#d17a68;box-shadow:0 9px 20px #233e4a1b}
+.visual{display:flex;align-items:center;justify-content:center;height:115px;border-radius:11px;background:#eaf0f3;overflow:hidden}
+.visual svg{width:100%;height:100%;max-width:165px;max-height:110px}
+.eyebrow{font-size:10px;letter-spacing:.065em;text-transform:uppercase;color:#ae4a34;font-weight:900}
+.name{font-size:13px;font-weight:850;line-height:1.35;color:#1d3041}
+.hint{font-size:11px;color:#687c8e;margin-top:auto}
+.empty{grid-column:1/-1;text-align:center;background:#fff;border:1px dashed #bacbd6;border-radius:12px;padding:30px;color:#516779}
+.note{background:#fff9ec;border-left:3px solid #e8a54e;border-radius:8px;margin-top:18px;padding:12px 15px;font-size:12px;line-height:1.58;color:#77542c}
+.note a{color:#145a89;font-weight:800}
+.overlay[hidden]{display:none!important}.overlay{position:fixed;inset:0;background:#0b1524cc;display:flex;align-items:center;justify-content:center;z-index:30;padding:14px}
+.dialog{background:#fff;max-width:535px;width:100%;max-height:calc(100vh - 28px);overflow:auto;border-radius:19px;padding:19px;box-shadow:0 25px 60px #0004}
+.dialog-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.dialog h2{font-size:18px;line-height:1.3;margin:4px 0 13px}
+.close{background:#eef3f7;border:0;border-radius:11px;min-height:41px;min-width:41px;font-size:24px;color:#1f3447}
+.dialog-art{background:#ebf1f5;border-radius:14px;min-height:215px;display:flex;align-items:center;justify-content:center}
+.dialog-art svg{width:min(95%,360px);max-height:255px}
+.details{line-height:1.55;font-size:13px;margin:13px 0 7px;color:#3e586a}
+.tag{font-size:11px;font-weight:800;color:#c34b37}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #ffab40;outline-offset:3px}
+@media(max-width:600px){.mast{padding:16px 16px 23px}.nav{width:100%}.nav a{flex:1;justify-content:center}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.sign{min-height:206px;padding:10px}.visual{height:95px}.name{font-size:12px}}
+@media(max-width:350px){.grid{grid-template-columns:1fr}.sign{min-height:0}.visual{height:115px}}
+@media(prefers-reduced-motion:no-preference){.sign{transition:border-color .15s,box-shadow .15s,transform .15s}.sign:hover{transform:translateY(-2px)}}
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="top"><div class="brand">CBMMG · Grupamento de Prevenção e Vistoria de Viçosa</div><nav class="nav" aria-label="Navegação"><a href="simbologias.html">Simbologia de Projetos</a><a href="./?view=painel">← Voltar ao aplicativo</a></nav></div>
+  <h1>Placas de Sinalização</h1>
+  <p>Consulta rápida por código, descrição e sistema. Inclui sinalização básica de proibição, alerta, orientação e salvamento, e equipamentos, conforme o Anexo B da IT 15.</p>
+</header>
+<main>
+ <section class="toolbar" aria-label="Busca e filtro de placas">
+  <label for="query" class="search-label">Buscar placa</label>
+  <div class="search"><span aria-hidden="true">⌕</span><input id="query" type="search" placeholder="Ex.: E5, extintor, S12, saída, alerta..." autocomplete="off" spellcheck="false"></div>
+  <div class="filters" id="filters" aria-label="Categorias"></div>
+ </section>
+ <p id="counter" class="counter" aria-live="polite"></p>
+ <section id="cards" class="grid" aria-label="Catálogo de placas"></section>
+ <aside class="note"><strong>Consulta ilustrativa:</strong> os pictogramas desta biblioteca são esquemas vetoriais simplificados, não reproduções oficiais prontas para fabricar ou especificar placas. Para aferir forma, proporção, cores, dimensionamento, instalação e aplicação, consulte a <a href="https://bombeiros.mg.gov.br/storage/files/shares/intrucoestecnicas/IT_15_1a_Ed_portaria_61_errata_33.pdf" target="_blank" rel="noopener noreferrer">IT 15 — CBMMG, Anexos A e B (documento oficial)</a>. O conteúdo da página funciona offline depois de ser armazenado pelo aplicativo; o PDF oficial exige internet.</aside>
+</main>
+<div class="overlay" id="overlay" hidden>
+ <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+  <div class="dialog-top"><div><div class="tag" id="dialogCode"></div><h2 id="dialogTitle"></h2></div><button type="button" class="close" id="close" aria-label="Fechar placa ampliada">×</button></div>
+  <div class="dialog-art" id="dialogArt"></div>
+  <p class="details" id="dialogUse"></p>
+  <p class="tag">IT 15 · Anexo B · Esquema ilustrativo</p>
+ </div>
+</div>
+<script>
+'use strict';
+const PLACAS=[{"code":"P1","name":"Proibido fumar","group":"Proibição","application":"Locais em que fumar aumenta o risco de incêndio.","terms":"cigarro fumar"},{"code":"P2","name":"Proibido produzir chama","group":"Proibição","application":"Locais onde a utilização de chama aumenta o risco de incêndio.","terms":"fósforo chama fogo"},{"code":"P3","name":"Proibido utilizar água para apagar o fogo","group":"Proibição","application":"Situações em que o uso de água não é apropriado para extinção.","terms":"água balde incêndio"},{"code":"P4","name":"Proibido utilizar elevador em caso de incêndio","group":"Proibição","application":"Acessos a elevadores comuns e monta-cargas.","terms":"elevador emergência"},{"code":"P5","name":"Proibido obstruir este local","group":"Proibição","application":"Locais em que a obstrução impede o acesso a saídas, rotas ou equipamentos.","terms":"pallet passagem desobstruído"},{"code":"A1","name":"Alerta geral","group":"Alerta","application":"Quando não houver símbolo específico; deve acompanhar mensagem explicativa.","terms":"atenção perigo"},{"code":"A2","name":"Cuidado, risco de incêndio","group":"Alerta","application":"Próximo a materiais altamente inflamáveis.","terms":"fogo chama inflamável"},{"code":"A3","name":"Cuidado, risco de explosão","group":"Alerta","application":"Próximo a materiais ou gases com risco de explosão.","terms":"explosão explosivo"},{"code":"A4","name":"Cuidado, risco de corrosão","group":"Alerta","application":"Próximo a materiais corrosivos.","terms":"corrosivo ácido"},{"code":"A5","name":"Cuidado, risco de choque elétrico","group":"Alerta","application":"Próximo a instalações com risco de choque elétrico.","terms":"eletricidade raio energia"},{"code":"A6","name":"Cuidado, risco de radiação","group":"Alerta","application":"Próximo a materiais radioativos.","terms":"radioativo radiação"},{"code":"A7","name":"Cuidado, risco de exposição a produtos tóxicos","group":"Alerta","application":"Próximo a produtos tóxicos.","terms":"tóxico veneno caveira"},{"code":"S1","name":"Saída de emergência — direita","group":"Orientação e salvamento","application":"Indica o sentido de saída à direita.","terms":"fuga rota seta direita"},{"code":"S2","name":"Saída de emergência — esquerda","group":"Orientação e salvamento","application":"Indica o sentido de saída à esquerda.","terms":"fuga rota seta esquerda"},{"code":"S3","name":"Saída de emergência — acima","group":"Orientação e salvamento","application":"Indica saída de emergência acima ou à frente, conforme local de instalação.","terms":"fuga seta para cima"},{"code":"S4","name":"Saída de emergência — diagonal superior direita","group":"Orientação e salvamento","application":"Indica saída em sentido diagonal ou por rampa.","terms":"fuga diagonal subida"},{"code":"S5","name":"Saída de emergência — diagonal superior esquerda","group":"Orientação e salvamento","application":"Indica saída em sentido diagonal ou por rampa.","terms":"fuga diagonal subida"},{"code":"S6","name":"Saída de emergência — diagonal inferior direita","group":"Orientação e salvamento","application":"Indica saída em sentido diagonal ou por rampa.","terms":"fuga diagonal descida"},{"code":"S7","name":"Saída de emergência — diagonal inferior esquerda","group":"Orientação e salvamento","application":"Indica saída em sentido diagonal ou por rampa.","terms":"fuga diagonal descida"},{"code":"S8","name":"Escada de emergência — sentido descendente à direita","group":"Orientação e salvamento","application":"Orientação do fluxo no interior das escadas.","terms":"escada descida direita"},{"code":"S9","name":"Escada de emergência — sentido descendente à esquerda","group":"Orientação e salvamento","application":"Orientação do fluxo no interior das escadas.","terms":"escada descida esquerda"},{"code":"S10","name":"Escada de emergência — sentido ascendente à esquerda","group":"Orientação e salvamento","application":"Orientação do fluxo no interior das escadas.","terms":"escada subida esquerda"},{"code":"S11","name":"Escada de emergência — sentido ascendente à direita","group":"Orientação e salvamento","application":"Orientação do fluxo no interior das escadas.","terms":"escada subida direita"},{"code":"S12","name":"Saída de emergência — palavra SAÍDA","group":"Orientação e salvamento","application":"Identificação da saída de emergência.","terms":"saída identificação palavra"},{"code":"S13","name":"Saída de emergência — texto e seta","group":"Orientação e salvamento","application":"Identificação da saída com texto, pictograma e seta.","terms":"saída porta texto direita"},{"code":"S14","name":"Saída de emergência — texto e pictograma","group":"Orientação e salvamento","application":"Identificação de saída, com pictograma de evacuação.","terms":"saída porta texto"},{"code":"S15","name":"Saída de emergência acessível — pictogramas","group":"Orientação e salvamento","application":"Indicação de saída acessível com pictogramas.","terms":"acessibilidade cadeira rodas"},{"code":"S16","name":"Saída de emergência acessível — texto e seta","group":"Orientação e salvamento","application":"Indicação de saída acessível com texto e pictogramas.","terms":"acessibilidade cadeira rodas saída"},{"code":"S17","name":"Número do pavimento","group":"Orientação e salvamento","application":"Identificação do pavimento no interior da escada de emergência.","terms":"andar andar escada pavimento subsolo"},{"code":"S18","name":"Aperte e empurre — porta corta-fogo","group":"Orientação e salvamento","application":"Instrução de abertura por barra antipânico.","terms":"barra antipânico porta empurre"},{"code":"S19","name":"Abertura por barra antipânico — pictograma 1","group":"Orientação e salvamento","application":"Forma de acionamento da barra antipânico da porta.","terms":"barra antipânico porta"},{"code":"S20","name":"Abertura por barra antipânico — pictograma 2","group":"Orientação e salvamento","application":"Forma de acionamento da barra antipânico da porta.","terms":"barra antipânico porta"},{"code":"S21","name":"Dispositivo para abertura da porta de saída","group":"Orientação e salvamento","application":"Indica dispositivo para acesso a chave ou abertura de emergência.","terms":"quebre vidro chave emergência"},{"code":"E1","name":"Alarme sonoro","group":"Equipamentos e alarme","application":"Indicação do local de instalação de alarme de incêndio.","terms":"sirene aviso som"},{"code":"E2","name":"Comando manual de alarme de incêndio","group":"Equipamentos e alarme","application":"Identificação do acionador manual de alarme.","terms":"botoeira acionador alarme"},{"code":"E3","name":"Comando manual de bomba de incêndio","group":"Equipamentos e alarme","application":"Identificação do acionador manual de bomba.","terms":"botoeira bomba incêndio"},{"code":"E4","name":"Telefone ou interfone de emergência","group":"Equipamentos e alarme","application":"Indicação de comunicação com central de emergência.","terms":"telefone comunicação"},{"code":"E5","name":"Extintor de incêndio","group":"Equipamentos e alarme","application":"Identificação da localização dos extintores.","terms":"extintor combate"},{"code":"E6","name":"Extintor de incêndio — identificação complementar","group":"Equipamentos e alarme","application":"Identificação do extintor com numeração complementar.","terms":"extintor numerado"},{"code":"E7","name":"Mangotinho","group":"Equipamentos e alarme","application":"Identificação da localização do mangotinho.","terms":"mangueira hidrante"},{"code":"E8","name":"Abrigo de mangueira e hidrante","group":"Equipamentos e alarme","application":"Indicação de abrigo de mangueira com ou sem hidrante.","terms":"abrigo hidrante mangueira"},{"code":"E9","name":"Hidrante de incêndio","group":"Equipamentos e alarme","application":"Localização do hidrante quando instalado fora do abrigo de mangueiras.","terms":"hidrante"},{"code":"E10","name":"Conjunto de equipamentos de combate a incêndio","group":"Equipamentos e alarme","application":"Identificação de conjunto para evitar múltiplas placas correlatas.","terms":"conjunto equipamentos alarme hidrante extintor"},{"code":"E11","name":"Válvula de controle de chuveiros automáticos","group":"Equipamentos e alarme","application":"Indicação da válvula de controle do sistema de chuveiros automáticos.","terms":"sprinkler chuveiro válvula"},{"code":"E12","name":"Demarcação de solo para equipamentos","group":"Equipamentos e alarme","application":"Sinalização no piso para manter livre acesso aos equipamentos.","terms":"solo piso faixa amarela"},{"code":"E13","name":"Equipamentos de combate — à esquerda","group":"Equipamentos e alarme","application":"Seta que indica equipamento oculto à esquerda.","terms":"seta localização"},{"code":"E14","name":"Equipamentos de combate — à direita","group":"Equipamentos e alarme","application":"Seta que indica equipamento oculto à direita.","terms":"seta localização"},{"code":"E15","name":"Equipamentos de combate — diagonal inferior esquerda","group":"Equipamentos e alarme","application":"Seta que indica equipamento oculto em sentido diagonal.","terms":"seta localização"},{"code":"E16","name":"Equipamentos de combate — diagonal inferior direita","group":"Equipamentos e alarme","application":"Seta que indica equipamento oculto em sentido diagonal.","terms":"seta localização"}];
+
+function svgPlaca(item){
+ const K=item.code, area=K[0];
+ const g=(content)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 112" aria-hidden="true" focusable="false">${content}</svg>`;
+ const W='#fff',R='#f00023',G='#00581d',B='#101010',Y='#ffe600';
+ const path=(d,fill=W)=>`<path d="${d}" fill="${fill}"/>`;
+ const line=(d,color=W,stroke=5)=>`<path d="${d}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ const txt=(s,x,y,size=20,color=W,weight=800)=>`<text x="${x}" y="${y}" text-anchor="middle" fill="${color}" font-family="Arial, sans-serif" font-size="${size}" font-weight="${weight}">${s}</text>`;
+ const iconCig=line('M57 67 L103 67',B,8)+line('M97 67 L97 57',B,5)+line('M62 55 q-7 -8 1 -15',B,2);
+ const flame=path('M82 30 Q101 53 91 69 Q82 82 70 73 Q60 62 73 49 Q75 63 82 58 Q87 45 82 30Z',B);
+ const lightning=path('M86 28 L66 58 H78 L69 83 L103 47 H87 L99 28 Z',B);
+ const balloon=(shape)=>`<circle cx="80" cy="56" r="40" fill="white" stroke="${R}" stroke-width="10"/>${shape}${line('M52 28 L108 84',R,11)}`;
+ if(area==='P'){
+  let sym='';
+  if(K==='P1')sym=iconCig;
+  if(K==='P2')sym=line('M79 38 V70',B,9)+flame;
+  if(K==='P3')sym=line('M62 48 h32 l-4 26 h-24z',B,3)+path('M72 42 l15 10 h-18z',B)+line('M61 84 q20 -9 40 0',B,3);
+  if(K==='P4')sym=line('M58 39 H101 V79 H58 Z',B,4)+txt('↕',80,62,25,B)+line('M70 75 h20',B,4);
+  if(K==='P5')sym=line('M56 42 h48 v39 H56z M56 53 h48 M67 43 v38 M90 43 v38',B,3);
+  return g(balloon(sym));
+ }
+ if(area==='A'){
+  let sym='';
+  if(K==='A1')sym=txt('!',80,79,57,B);
+  if(K==='A2')sym=flame;
+  if(K==='A3')sym=path('M81 48 L84 27 L91 50 L109 39 L98 57 L114 65 L93 66 L99 86 L82 72 L67 89 L70 65 L50 64 L66 57 L56 44 L77 50Z',B);
+  if(K==='A4')sym=line('M53 45 L69 52 M90 42 L102 55 M64 68 h42',B,6)+path('M70 58 l-4 10 h7 z M98 59 l-3 10 h7z',B);
+  if(K==='A5')sym=lightning;
+  if(K==='A6')sym=`<circle cx="80" cy="66" r="8" fill="${B}"/>`+[0,120,240].map(d=>`<path d="M80 56 C58 54 51 39 69 33 Q80 27 86 50Z" fill="${B}" transform="rotate(${d} 80 66)"/>`).join('');
+  if(K==='A7')sym=`<circle cx="80" cy="52" r="14" fill="none" stroke="${B}" stroke-width="5"/><circle cx="75" cy="50" r="3"/><circle cx="86" cy="50" r="3"/>`+line('M69 75 L99 87 M99 75 L65 87',B,5);
+  return g(`<path d="M80 11 L129 100 H31Z" fill="${Y}" stroke="${B}" stroke-width="8" stroke-linejoin="round"/>${sym}`);
+ }
+ const exitDoor=`<rect x="17" y="20" width="49" height="70" fill="none" stroke="${W}" stroke-width="4"/>`;
+ const runner=`<circle cx="43" cy="32" r="6" fill="${W}"/>${line('M41 39 L49 55 L41 71 M48 54 L61 53 M46 50 L32 49 M41 71 L30 82 M41 71 L59 80',W,6)}`;
+ const arrow=path('M97 48 H128 V35 L152 56 L128 77 V65 H97Z');
+ const stairs=line('M91 37 h12 v13 h12 v13 h12 v12 h12',W,5);
+ if(area==='S'){
+  let sym='';
+  if(+K.slice(1)<=7){
+   let arrowShape=arrow;
+   const n=+K.slice(1);
+   if(n===2||n===5||n===7)arrowShape=`<g transform="translate(160 0) scale(-1 1)">${arrow}</g>`;
+   if(n===3)arrowShape=`<g transform="rotate(-90 123 56)">${arrow}</g>`;
+   if(n===4)arrowShape=`<g transform="rotate(-45 123 56)">${arrow}</g>`;
+   if(n===5)arrowShape=`<g transform="rotate(45 37 56)">${arrowShape}</g>`;
+   if(n===6)arrowShape=`<g transform="rotate(45 123 56)">${arrow}</g>`;
+   if(n===7)arrowShape=`<g transform="rotate(-45 37 56)">${arrowShape}</g>`;
+   sym=exitDoor+runner+arrowShape;
+  }else if(+K.slice(1)>=8&&+K.slice(1)<=11){
+   const n=+K.slice(1),mirror=(n===9||n===10);
+   sym=exitDoor+runner+(mirror?`<g transform="translate(160 0) scale(-1 1)">${stairs}</g>`:stairs);
+   sym+=n<=9?line('M119 58 l21 21 M132 79 h8 v-8',W,4):line('M119 58 l21 -21 M132 37 h8 v8',W,4);
+  }else if(K==='S12')sym=txt('SAÍDA',80,70,37);
+  else if(K==='S13')sym=txt('SAÍDA',47,69,24)+`<g transform="translate(68 2) scale(.62)">${exitDoor+runner+arrow}</g>`;
+  else if(K==='S14')sym=txt('SAÍDA',56,68,28)+`<g transform="translate(75 6) scale(.65)">${exitDoor+runner}</g>`;
+  else if(K==='S15'||K==='S16'){
+   const chair=`<circle cx="40" cy="67" r="16" fill="none" stroke="${W}" stroke-width="4"/><circle cx="40" cy="36" r="5" fill="${W}"/>${line('M40 44 v18 h19 M56 63 l7 11',W,4)}`;
+   sym=K==='S15'?chair+`<g transform="translate(60 0) scale(.76)">${runner+arrow}</g>`:txt('SAÍDA',40,40,17)+`<g transform="translate(15 16) scale(.76)">${chair}</g>`+`<g transform="translate(65 10) scale(.65)">${runner+arrow}</g>`;
+  }else if(K==='S17')sym=txt('1º',80,78,58);
+  else if(K==='S18')sym=txt('APERTE E',80,45,20)+txt('EMPURRE',80,76,24);
+  else if(K==='S19'||K==='S20')sym=runner+line('M104 24 V91 M96 56 h13',W,7)+line('M80 57 h18',W,5);
+  else if(K==='S21')sym=path('M47 32 L100 32 L113 78 L46 78Z','none')+line('M50 34 h57 l11 47 h-67z M78 41 l13 14 l-11 5 l7 11',W,6);
+  return g(`<rect x="7" y="7" width="146" height="98" rx="1" fill="${G}"/>${sym}`);
+ }
+ if(area==='E'){
+  let sym='';
+  const ext=path('M69 45 q4 -7 11 -7 h13 v44 H67 V51h7z')+line('M74 42 v-10 h22 M94 32 h8',W,6);
+  const alarm=`<rect x="56" y="25" width="48" height="51" fill="none" stroke="${W}" stroke-width="6"/><circle cx="80" cy="50" r="14" fill="${W}"/><circle cx="80" cy="50" r="5" fill="${R}"/>`;
+  if(K==='E1')sym=`<rect x="47" y="44" width="23" height="23" fill="none" stroke="${W}" stroke-width="5"/>`+path('M73 47 L112 35 V77 L73 65Z','none')+line('M74 48 L111 36 M74 64 L111 76 M110 36 V76',W,5);
+  if(K==='E2'||K==='E3')sym=alarm+txt(K==='E2'?'ALARME':'BOMBA',80,91,11);
+  if(K==='E4')sym=path('M55 29 Q47 50 63 70 Q79 92 107 82 L105 65 L91 61 L83 69 Q72 63 69 51 L78 43 L68 27Z');
+  if(K==='E5'||K==='E6')sym=ext+(K==='E6'?txt('001',118,94,11):'');
+  if(K==='E7')sym=line('M52 35 v48 M59 35 v48 M67 35 v48 M74 35 v48 M81 35 v48 M88 35 h24',W,5)+`<circle cx="112" cy="35" r="9" fill="none" stroke="${W}" stroke-width="4"/>`;
+  if(K==='E8')sym=`<circle cx="79" cy="62" r="32" fill="none" stroke="${W}" stroke-width="6"/><circle cx="79" cy="62" r="21" fill="none" stroke="${W}" stroke-width="6"/><circle cx="79" cy="62" r="10" fill="none" stroke="${W}" stroke-width="5"/>`+line('M103 37 h15 v-8',W,5);
+  if(K==='E9')sym=txt('H',80,86,84);
+  if(K==='E10')sym=path('M44 82 A36 36 0 0 1 116 82 Z');
+  if(K==='E11')sym=`<rect x="65" y="23" width="30" height="37" fill="none" stroke="${W}" stroke-width="5"/>`+line('M65 52 L80 70 L95 52 M80 71 v8 M60 85 h40',W,5);
+  if(K==='E12')return g(`<rect x="30" y="7" width="100" height="98" fill="${Y}"/><rect x="41" y="18" width="78" height="76" fill="${R}"/>`);
+  if(+K.slice(1)>=13){
+   const n=+K.slice(1);
+   sym=arrow.replace('M97 48 H128 V35 L152 56 L128 77 V65 H97Z','M50 48 H96 V33 L119 56 L96 79 V65 H50Z');
+   if(n===13)sym=`<g transform="translate(160 0) scale(-1 1)">${sym}</g>`;
+   if(n===15)sym=`<g transform="rotate(-45 80 56)">${sym}</g>`;
+   if(n===16)sym=`<g transform="rotate(45 80 56)">${sym}</g>`;
+  }
+  return g(`<rect x="30" y="7" width="100" height="98" fill="${R}"/>${sym}`);
+ }
+ return g('');
+}
+
+const cats=['Todas','Proibição','Alerta','Orientação e salvamento','Equipamentos e alarme'];
+const filters=document.getElementById('filters'),cards=document.getElementById('cards'),query=document.getElementById('query'),counter=document.getElementById('counter');
+const overlay=document.getElementById('overlay');let active='Todas',focused=null;
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function show(item){
+ focused=document.activeElement;
+ document.getElementById('dialogCode').textContent=item.code+' · '+item.group;
+ document.getElementById('dialogTitle').textContent=item.name;
+ document.getElementById('dialogArt').innerHTML=svgPlaca(item);
+ document.getElementById('dialogUse').textContent='Aplicação: '+item.application;
+ overlay.hidden=false;document.body.style.overflow='hidden';document.getElementById('close').focus();
+}
+function hide(){overlay.hidden=true;document.body.style.overflow='';if(focused&&focused.isConnected)focused.focus()}
+document.getElementById('close').addEventListener('click',hide);
+overlay.addEventListener('click',e=>{if(e.target===overlay)hide()});
+document.addEventListener('keydown',e=>{if(overlay.hidden)return;if(e.key==='Escape'){hide();e.preventDefault()}else if(e.key==='Tab'){e.preventDefault();document.getElementById('close').focus()}});
+function render(){
+ const q=norm(query.value).trim(),data=PLACAS.filter(i=>(active==='Todas'||i.group===active)&&(!q||norm([i.code,i.name,i.group,i.terms,i.application].join(' ')).includes(q)));
+ const frag=document.createDocumentFragment();
+ for(const item of data){const btn=document.createElement('button');btn.type='button';btn.className='sign';btn.setAttribute('aria-label','Ampliar '+item.code+' — '+item.name);
+  const visual=document.createElement('span');visual.className='visual';visual.innerHTML=svgPlaca(item);
+  const code=document.createElement('span');code.className='eyebrow';code.textContent=item.code+' · '+item.group;
+  const name=document.createElement('span');name.className='name';name.textContent=item.name;
+  const hint=document.createElement('span');hint.className='hint';hint.textContent='Toque para ampliar';
+  btn.append(visual,code,name,hint);btn.addEventListener('click',()=>show(item));frag.append(btn);
+ }
+ if(!data.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhuma placa encontrada. Tente outro código ou termo.';frag.append(empty)}
+ cards.replaceChildren(frag);
+ counter.textContent=data.length+' de '+PLACAS.length+' placas';
+ [...filters.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cat===active)));
+}
+for(const cat of cats){const b=document.createElement('button');b.type='button';b.className='chip';b.dataset.cat=cat;b.textContent=cat;b.addEventListener('click',()=>{active=cat;render()});filters.append(b)}
+query.addEventListener('input',render);render();
+</script>
+</body>
+</html>

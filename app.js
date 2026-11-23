@@ -1,3 +1,4 @@
+// V23.9.99mg — Biblioteca ilustrada de placas de sinalização (IT15), sem mudanças operacionais.
 // V23.9.99mf — Biblioteca de simbologias offline, sem alterar as rotinas operacionais.
 // V23.9.99me — permite ao painel ler detalhes de Metas do backend MD sem bloquear versões anteriores.
 // V23.9.99mc — preserva a escolha de Liberação P01002 no alerta de histórico mesmo com consultas simultâneas; reconfere o endereço.
@@ -95,7 +96,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mf';
+      const APP_VERSION = '23.9.99mg';
       const APP_VERSION_DATE = '23/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;

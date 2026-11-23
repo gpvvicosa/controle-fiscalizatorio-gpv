@@ -1,3 +1,4 @@
+// V23.9.99mg — placas de sinalização da IT 15 no cache offline; preserva o ciclo de atualização seguro.
 // V23.9.99mf — biblioteca de simbologias disponível no cache offline do PWA.
 // V23.9.99me — compatibilidade de detalhes das Metas com backend MD; sem alteracao no backend.
 // V23.9.99lm — fundo cinza-grafite e tabela responsiva no PC, sem alteracao das regras operacionais.
@@ -66,9 +67,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261119-v23-9-99-mf-metas-detalhes-md';
+const CACHE_NAME = 'gpv-vistorias-shell-20261123-v23-9-99-mg-placas-it15';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99mf';
+const VERSION = '23.9.99mg';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -122,6 +123,7 @@ const CORE_SHELL = [
   `./assets/bombeiro-topo.webp?v=${VERSION}`,
   `./assets/logo-gpv.png?v=${VERSION}`,
   './simbologias.html',
+  './placas-sinalizacao.html',
   './offline.html'
 ];
 
@@ -270,9 +272,10 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    if (caminhoRelativoAoEscopo_(url) === '/simbologias.html') {
+    if (['/simbologias.html','/placas-sinalizacao.html'].includes(caminhoRelativoAoEscopo_(url))) {
       event.respondWith((async () => {
-        const resultado = await cacheRapidoComAtualizacao(request, './simbologias.html', './simbologias.html');
+        const pagina = caminhoRelativoAoEscopo_(url);
+        const resultado = await cacheRapidoComAtualizacao(request, '.' + pagina, '.' + pagina);
         event.waitUntil(resultado.refresh.catch(() => {}));
         return resultado.response;
       })());
