@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#172636">
+  <meta name="description" content="Consulta visual de simbologias para projetos de segurança contra incêndio do GPV Viçosa.">
+  <title>Simbologia de Projetos | App do Vistoriador</title>
+  <style>
+    :root { font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#192b3d; background:#edf2f7; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    .mast { color:#fff; background:linear-gradient(128deg,#172636,#28445b); padding:22px max(16px,calc((100% - 1150px)/2)) 26px; }
+    .headrow { display:flex; justify-content:space-between;align-items:center;gap:12px; flex-wrap:wrap; }
+    .brand { font-size:12px;font-weight:750;letter-spacing:.075em;text-transform:uppercase;color:#b8dbec; }
+    .back { display:inline-flex; gap:8px;align-items:center; background:#344f64; color:#fff; padding:9px 13px;border-radius:10px; font-size:12px; font-weight:700; text-decoration:none; border:1px solid #638094; }
+    .back:focus-visible,.chip:focus-visible,.zoom-close:focus-visible,.symbol-card:focus-visible,input:focus-visible { outline:3px solid #ffa645;outline-offset:3px; }
+    h1 { font-size:clamp(24px,3.5vw,36px);line-height:1.18; margin:18px 0 8px; }
+    .mast p { color:#d7e5f0;max-width:760px;line-height:1.55;margin:0; font-size:14px; }
+    main { max-width:1150px;padding:20px 16px 52px;margin:auto; }
+    .toolbar { display:grid;gap:13px;background:#fff;border:1px solid #d6e0e7; border-radius:18px;padding:16px;box-shadow:0 9px 25px #243e5110; }
+    .searchlabel {font-weight:750;font-size:13px;}
+    .search {display:flex;gap:8px;align-items:center;border:1.5px solid #b6c5d3;border-radius:12px;padding:0 12px;background:#f8fbfd;}
+    .search:focus-within {border-color:#ba4b2e;}
+    .search input {width:100%;height:44px;min-width:0; background:transparent;border:0;outline:0;color:#172b3d;font-size:14px;}
+    .filters {display:flex;gap:7px;flex-wrap:wrap;}
+    .chip {border:1px solid #d2dce4; background:#f4f7f9; color:#284053;font-size:12px;font-weight:700;padding:9px 12px;border-radius:999px; min-height:36px;}
+    .chip[aria-pressed="true"] {background:#ae312b;color:#fff;border-color:#ae312b;}
+    .counter {font-size:12px;color:#586b7b;margin:14px 2px;}
+    .grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,228px),1fr));gap:13px;}
+    .symbol-card {display:flex; flex-direction:column; gap:12px; text-align:left; border:1px solid #d6e0e7;border-radius:15px;background:#fff;padding:14px; min-height:186px; box-shadow:0 2px 10px #1e3c4d0c;}
+    .symbol-card:hover {border-color:#d07163;box-shadow:0 10px 22px #24445a1a; transform:translateY(-1px);}
+    .art {display:flex;align-items:center;justify-content:center;height:83px;background:#222a30;border-radius:10px;overflow:hidden;}
+    .art img {max-height:60px;width:auto;max-width:100%;object-fit:contain;}
+    .cat {color:#b44135;text-transform:uppercase;letter-spacing:.04em;font-weight:800;font-size:10px;}
+    .name {font-size:14px;font-weight:750;line-height:1.35;color:#192c3d;}
+    .openhint {display:block;margin-top:auto;font-size:11px;color:#657989;}
+    .empty {grid-column:1/-1;text-align:center;padding:36px 10px;background:#fff;border:1px dashed #bac8d4;border-radius:14px;color:#486174;}
+    .notice {font-size:12px;line-height:1.55;color:#506272; background:#f5f9fb;border-left:3px solid #c55b36;border-radius:6px;margin-top:22px;padding:11px 14px;}
+    .zoom[hidden] {display:none!important;}
+    .zoom {position:fixed;inset:0;background:#0c1624c9;z-index:100;display:flex;align-items:center;justify-content:center;padding:14px;}
+    .zoom-panel {background:#fff;max-width:540px;width:100%;max-height:calc(100vh - 28px);overflow:auto;border-radius:19px;padding:20px;box-shadow:0 28px 65px #0005;}
+    .zoom-head {display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+    .zoom-close {border:0;background:#eef3f7;color:#223449;border-radius:12px;min-width:40px;min-height:40px;font-size:25px;line-height:1;}
+    .zoom h2 {font-size:19px;line-height:1.25;margin:5px 0 12px;}
+    .zoom-image {height:240px;background:#222a30;border-radius:12px;display:flex;justify-content:center;align-items:center;overflow:hidden;}
+    .zoom-image img {width:auto;height:auto;max-width:92%;max-height:92%;transform:scale(2);image-rendering:auto;}
+    .zoom-caption {font-size:12px;line-height:1.5;color:#586a79;margin:14px 2px 0;}
+    @media (max-width:600px) { .mast{padding:15px 16px 21px}.headrow{align-items:flex-start}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.symbol-card{padding:10px;min-height:170px}.art{height:72px}.art img{max-width:100%;max-height:56px}.name{font-size:12px}.cat{font-size:9px}.toolbar{padding:12px}.chip{font-size:11px;padding:8px 9px}.zoom-image{height:200px} }
+    @media (max-width:340px) { .grid{grid-template-columns:1fr;}.symbol-card{min-height:130px;} }
+    @media (prefers-reduced-motion:no-preference){.symbol-card{transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease;}}
+  </style>
+</head>
+<body>
+<header class="mast">
+  <div class="headrow"><div class="brand">CBMMG · Grupamento de Prevenção e Vistoria de Viçosa</div><a class="back" href="./?view=painel" id="backToApp">← Voltar ao aplicativo</a></div>
+  <h1>Biblioteca de Simbologias</h1>
+  <p>Consulta rápida de símbolos usados em projetos de segurança contra incêndio. Selecione uma categoria ou pesquise pelo nome.</p>
+</header>
+<main>
+  <section class="toolbar" aria-label="Busca e filtros">
+    <label class="searchlabel" for="search">Localizar um símbolo</label>
+    <div class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Ex.: hidrante, detector, saída, bomba..." autocomplete="off" spellcheck="false"></div>
+    <nav class="filters" id="filters" aria-label="Filtrar por sistema"></nav>
+  </section>
+  <p class="counter" id="counter" aria-live="polite"></p>
+  <section class="grid" id="symbols" aria-label="Simbologias disponíveis"></section>
+  <p class="notice">Referência visual extraída das duas imagens fornecidas para esta biblioteca. Os recortes preservam o desenho de origem, cuja resolução é limitada. Para interpretação técnica e elaboração de projeto, confira sempre as Instruções Técnicas aplicáveis do CBMMG.</p>
+</main>
+<div class="zoom" id="zoom" hidden>
+  <section class="zoom-panel" role="dialog" aria-modal="true" aria-labelledby="zoomName">
+    <div class="zoom-head"><div><div class="cat" id="zoomCat"></div><h2 id="zoomName"></h2></div><button class="zoom-close" id="zoomClose" type="button" aria-label="Fechar visualização ampliada">×</button></div>
+    <div class="zoom-image" id="zoomImage"></div>
+    <p class="zoom-caption">Símbolo ampliado para consulta. A ampliação não acrescenta detalhes além dos disponíveis na imagem original.</p>
+  </section>
+</div>
+<script>
+'use strict';
+const SIMBOLOS = [{"id":"extintor-abc","name":"Extintor com carga de pó ABC","cat":"Extintores","terms":"extintor abc pó químico seco","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAwCAIAAAD4jDEtAAAA4UlEQVR42u3buw2EMBCEYTyiEYgI6b8KQiJqufQidIH3ef9UYK0/jbSSPbbjXNLkua8903m0JMtzX0ynAJyMdvbjzMNHwKlkJxUfAaeYnTx8BJx6dpLwEXBK2snAR8Cpaiecj4BT2E4sHwGntp1APgJOeTtRfAScDnZC+Ag4L1ljN4nf1XzzcRuxgNOkd/zbR8BpZceTj4DTzY4bHwGnoR0fPgJOTzsOfASctnas+Qg4SXf0WeOzW9wFnM69Y9o+Ak5/O0Z8BJy/sGPBR8B5yZj4iyTPG/VZlzS2XrdN7/jlA8+uj8HDONvFAAAAAElFTkSuQmCC"},{"id":"iluminacao-emergencia","name":"Ponto de iluminação de emergência (h = X,X m)","cat":"Iluminação e sinalização","terms":"luminária altura luz","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAAB4UlEQVR42u2YMW7CQBBFn5EvghUkFKWgJicIaXKDdKGEA6RMlwZK06VNlSZwAlxTpLAAcRVSWGutgV3WyBiD58sFnp2x8NPMznq8ZruDyKCGIBA6QkfoCB2hI3SEjtAROiKhI3SETmnya/vmm3ixYwn2xhW+S9hVa/+dkxd0sfs1zJfAMNJK7LqPXys0gcOoL2UUtDsNQWNitIkX0rMK6ugT8GCibiPwoHcsqgceDLMPaTn7uIQXnjhp+pw9d6YAjCECoA/Al7OPS/h1nwZDAF5Vog2gm8fHJbzwxCmPzhs8wRpmAIxy+hxcGqqKa6laS4ruhLorkk5f/YnHrL2l7PoVqdX3bCIclMXHtLSEFQxgDZ8whxDWDrvhueiEsIUtzLP2lbLrV1oC3+rHj/nJFh/T0gsA9wA8QxceqrnvWHIngrFym2ldT5fFxyW86ruyJXc+1G4aan1nRxYfl/Br7VkTmMEdjNT+mpxi9OOSyce+lOvUW1E6OyeUqSqQPwefyLy0LCV3vKbhQ74EDc0NvvAJxgmnnk28uNg3egS/sLqZ76xi1S0XTd7dJ8m1Gs13UkD2Eqvp9ItD0z8Tl0R1nLrrjPbtR3qW6PK7stAROkJH6IiEjtAROkJH6AgdoXOj+gdYQLH4QQV6AQAAAABJRU5ErkJggg=="},{"id":"sinalizacao-emergencia","name":"Sinalização de emergência","cat":"Iluminação e sinalização","terms":"placa orientação saída","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAwCAIAAAD4jDEtAAAD30lEQVR42u1av2/aQBR2CPhIUAiUUKgQtbCCSjbEX0BSZcpUiYWRDJkyVOoYMaGMGbJ2CCNLp0qdIjX9CyKGSEFtZOogFH7EwXFqERNF6vCUk2UHi1D7jClPDPZx/nHffe97751vLpFKUzMbYu5JeAmuVh32F2vr5LknAREDCEbsZpHNkfcsGPAYQx37QmegY8rwSGJEDh2uVjVxSObebZi5nAgNcMdAyx3DHUsdwWovsxYdMvy37ilEI3qmL+9et7OyBKc8jT6/el0JhOC02G4Wet29aBy34MHzNFpn18inHRZyRzOlmb78hf+l71YOhkuRGByfcOfMQFFfddTgsrKUY5KnCz7y9HERY/vudRuwYFNp+O1F4xRFFXpd3OfTm7eACJzmRSErS+Vg2Bga60R6PrgSJSMEH4XW7bx7O87iljPvYsftef9H6rg9Z95FiqKuPLT/8fGD1IOWr79/8jRSX2JghytRrlY9NHU4LmI+XPcgZqBk+rK6sRIIsam0WmjAy/ZbDWAQsMkuM193DCQAZIWnUd2DjpeWNeqLLS8K+62GRpJsiV8uklOxzq6B1mRlab/V4GrVE+5cwyYgFBxcIK+9iwcmc2f0qcv05S1J3JAlZqBoQhJQbOy63ET6uOyaltMFXykSA1nZkkTcXmw3mYFSDoaBZTh+2WKE0MmLAlerFttNPUYURSWemJLpy4Vel6dRKRKrBEI8jbKylBeFKUcHpKTQ66oByvRloEadRtBycHWpjlNwsHPTmQbdMXZ4HIk0hqsESIs1cQrKi5cGL7Okh5zuVAKhHJP84fOrcSkHwwANpMXgU+qrSpEYT6NCr6sPbVPFHZLmPO440dymT9oMHaNaeUI8y9nZ4P/IHRyGcbVtXEzg9TD9kiAEeMxH9T1HvL+zuXNwdbkXjbOpdI5JalKhvCgkHhQ2lS4HwzYWE2ai89IFunV2DfhyuuDjaaTOaFaV++8+P0VR3/yBxINiV2JBaNUdu8mz4p0XhboHqcv0xEA5XloG4HC9Xuh18TJrORh2qu7ozWD1My8KOzedUT454HpCX806G51h3Cm2mxuypIemTqNV5R6Um3+qUach3+FqVT3tn+VOsd1MDJRnWXOBvDs3nRIV25LEugfZIjoWcketEfpojfuoM7cck3yn3G/e3W7H2UogtHl3S35LioVVqCkTeNTgRvxEQ6AMnqxcOdOXIVRNiFn1pZj8aoYVT7SKO2T211g9GRZ6FjGArOPprEa3Q3c0Sy2zvV+kyU9A+Al5lukaRCYmzvYrTww6/zi8Kd/rrh+qpmQfu9u0oTMMAr1g2fhifwE4jQ4dPLoThAAAAABJRU5ErkJggg=="},{"id":"hidrante-simples","name":"Hidrante simples","cat":"Hidrantes","terms":"hidrante sistema","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAABxElEQVR42u2bPZLCMAyFjUcXWVeU3P8UW1Jxli084wlkLWRFkZ7BbiE/evn0LClw+bneEvx63H9TSsX9VmkKXaJWBpem8lKCAM/40gQugs2mKk2sRrSQmSmzttKEKwXtyosd6BRb7HDrglkrg3hzXtKszPoUdVa9s9iZHxyITqLNKAre7knhujRRYkc5KOowsJTrDQol12qQGYDuHSdqWurNjg6HNt8JRIkQRGEcZ+9KnjKdklnypHgZA8ql9NHIUp2Xx8sXL70g+eDbOX1QslFnKFTJw99/R6dmsDrCULf2IY9kS8qomiidxNt7qlWMrtirB0ouAcfOaFuk+P5Q5OZtmncXKoRIiAzunnUEHL5oTgfe29hqGtOF9rwWbYKR3RKq13NWWJhU2ramEt0Ne33ySatRiNZ858llEDpyG1fWPWqJy/x7ZsXlrGCkWGR6rvF177Na5PXB9uKvHzVn1VFg5c3kk1ajh9tuPRPs6KOyHpzGm+jrNDnVuXj4lj+2Z5m0kW99Vz0VMvcB8keGmZMyEoRANMDOGXd2djWIyw5CJ1F1V58c4lcGBfW/GjkwrZyr0FnZgV35s8E5iA/JM+sL2fkDIE15lmzOCQoAAAAASUVORK5CYII="},{"id":"hidrante-recalque","name":"Hidrante de recalque","cat":"Hidrantes","terms":"recalque hidrante","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAAB2ElEQVR42u1bu5LDIAw8e/iRo3Lp//+KlFfdt1zhGU0Gg1gkcG4ZqBIH5LBZrR7B2/dxfq1RGPuCQBlhvi39/ryuF9HtFmE+XASU5K1hbHPojgKEByNudHAnsrkbKzpmRjQt5EPHrya4ESZ0uuDSZJADne64gMZpssE47FdULO8UxImDCR6PU4LaqiRmqbMeII5Cn1Vn0Ub0hDhVHmXrLB0m/RZM3BHy33ebva6Xo0iWELgU57ry/hGySVmVtUCsygqJWvVFcFGgSbSZVZWbKGBOLHcityrNzCZy2WmIzXf6EEf0RH3wwMSdDRo2kyiRQplS0ZClTzB89Qcqwy5K5M+zK9ngHeaO9/YQR5lmSAJLc4KHHYgcfjZvdI6gBzyFO4M8y7krIcUF0FjP+oju2JwLLxdAt4rHGQykJQpznqTx/9boOH3A30xIhBNnhv5Oa5FFnw0iQUfSPIOKVy0L4pQ1+rWBe5cLdC4c00CHSzarqJ4yuK9Cwtn8ndPqknk6p03SC/Yr+CK6v/nQ5V7r3z7CiN69nrSRdHGHmTvP0KekbjTcGQeQYpnv7FevPgFijfJUpfMoGL6c+ERuK5UM1JvhNLe+bY8/bjM9Y7OeBHhUvLf1fJYy/gByi5NEVoaAdAAAAABJRU5ErkJggg=="},{"id":"reserva-incendio","name":"Reserva técnica de incêndio","cat":"Hidrantes","terms":"rti reservatório água","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAwCAIAAAD4jDEtAAAAtklEQVR42u3asRGEMAwEQOP5RiAipP8qCImo5YPvwHDimdkrAI3Xskg0zevWAjmPfcl8ubLcNMfOcB57ay1tFK0S1CloonSH9nTPL+v2u943Pt5eMBQSQDVzLf6ybh8QNeOsWueWOy/+FY7oXH8mYye8WHeg6KfyeI+YXpHtTejQoUOHDh06dOgIHTp06NChQ4cOHaFDhw4dOnTo0KEjdOjQoUOHDh06dGR45zS03P9vqd7mfle+M5Y5re+BRiQAAAAASUVORK5CYII="},{"id":"acionador-bomba","name":"Acionador de bomba de incêndio (botoeira liga/desliga)","cat":"Hidrantes","terms":"botoeira bomba","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAABwklEQVR42u2bSxLCIAyGLcNFdOXS+5+iy656FhfMMEygEUISoiYrWyklH394BN3uz9fN7cKCI3A6TsfpOB2n43ScjtNxOm5OZ9iihUacx54+PIxt+qIFLhkKuPxTOkAs+OVC25QzGE2xpDs1lOVSUqKDeH4ee3kzY2oS/Ck6TcdK50s0JaCmcPQxSdFpBkUtiqafQE0f6/kaOnj31kGE1NMDUVpKbHQ+9mc/GgJKIUZRgQviNmJgwMZLCjHi2Un0C6HTYTDNl/M9uQ0L6Ax5O1S4XgfxFrayC82rGFr35md5PRen0+8wGc2oKHghBgXhsAwKYAv2O/kdrvFSfycRRMMK7+ryW1ASebBn8uKSWFAQDldbJwcvPTqTDT2PHQinhDg/Q3F1SVQQTjNNUYcJcOkquaEpnwW5wdI94Cp+qW9BOqxY1nIE4bAEl5/YGFjvzMhnyYhDzO+QW0lLVk2muCaZ6kVWamVSQY+IUrH81JLIGtPOvLyRpHpza8b4xi+Y0cGBDHIWauFcdNl65+qcL8edhfPigcgSmjXAGCT0Clq163+DwTW+rFzv2Gy99Lo5kkNAOsQs2Ob/IvF9ltNxOsr2BgBJg6KsD96PAAAAAElFTkSuQmCC"},{"id":"bomba-fluxo","name":"Bomba de incêndio automatizada acionada por chave de fluxo","cat":"Hidrantes","terms":"bomba automática chave de fluxo","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAwCAIAAAD4jDEtAAABpElEQVR42u2bQRKDIAxFa27Srrrs/U/hsquepQtnHAdKRMz/CVRWapUhz5+AIZ3uz9ctQPu85+XgEWM8S5t86axQFi7J6Z/SSZTyec8ri/U4gprYdBabtwZv0fy8kj8yGp2SEHI0CjK+lLB0dJNKaHbB0TCh6Oy6g46mEh+akeC6Pokmn8Xq+w9Np81l2gApv4bWznk0HARUOor9DWh8AQlNMs1odEBQcELzpvNBlK8gQbvVScn4AhKCaswXCgkgHDLBsUCgIStIOlKNAgjESxA40GhoCpLuVNPxWpmJJgGEICWGUPhoupmzvNBEj8qOmc08oWHLSAxH5t7MhyG3q0HpHPX50s1KJ5X9m8e+SzuUuOOVvuv4G11ZGVVed3SrcJ6VA1ozZy7atNzP2t2f2066eY6m/v6GvcO4dGgOGzrujBebR5jRcZo1pjOYfK7V4NB0oFOBPZ2RnOvyLDodmnzQKyyBDh2NpqcviZIB5q+Xlqtl1Jxa1UHyy06p9crN79wrse9Q637IVN8ND7f/SeyWMpOdKBadkjqC7I5FoRNKLEn7AuMTVgiRUcetAAAAAElFTkSuQmCC"},{"id":"tubulacao-hidrantes","name":"Tubulação da rede de hidrantes","cat":"Hidrantes","terms":"tubos rede","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAAAeUlEQVR42u3ZsQ2AIBRFUT6bSGXJ/lNYWrkK1iRq0MaCc+uXkJyEBmJZa9JNGQEdOnTo0KFDhw4d0aFDhw4dOnTo0BGdF0Ubnpb+ff7Yt+fN5eBzv5we/iTcLDp06NChQ4cOHdGhQ4cOHTp06NARHTp06NChQ4fOZJ3RIw5Ruxr37wAAAABJRU5ErkJggg=="},{"id":"avisador-sonoro","name":"Avisador sonoro","cat":"Alarme e detecção","terms":"sirene sinal sonoro","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAABF0lEQVR42u2bsRHDIAxFg45F4sql958iZarMkoImRXLGEkgo9zQAgsf/EnB2ue/HjfgRAgLoQAc60IEOdKADHegQX6NOGvf1fMQubBtxQ6qLzy92b2TS5LbQy+22H0MAUXegsw6dcFsNNBfagY42ytiX035b9cj+dKjTdEab19jSoMbnc9qUEOEYs7REPbmMtbkmqgJtnZ4NscLFg84kW9m5NHPpRqiLSyb2YCkpPJWbzqRNbo2pNamQW0WCqty4hxTmNB09hJEsa6uxXtOZK1I76mryqaP/dJZdbg6ClUS2stO8Kjfed6bRSSQcnXzQDnT86aSzlcJcaAc6znSS2uqqufRn5fBvUByi8CcAdQc60IEOdJLEG2iWhl2xgQZtAAAAAElFTkSuQmCC"},{"id":"central-alarme","name":"Central de alarme","cat":"Alarme e detecção","terms":"painel central","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAwCAIAAAD4jDEtAAAA30lEQVR42u3aPQqAMAyAUZVcRCdH738KRyfP4lAQF6Vo8ydfDiD2NbFNsB/npSNuYoDgIaTVg/ZtDbvI6W19SISXUI0v20ZloYMOOuiggw466KBDoOPbZzVseSpbtvJAvf5OjHejZiU1iKeL6mxAcqX6aWEzD5BcLsZDEiFZUuq4JEsOnX1bI0wag953ymHkPquOW1kld3zrK/pX2dcox4nuZZTpNmhvlOyubGxkrdPqGLoa/USn+VZr5w7zHXTQQQcddNBBBx10CP1OIvJvp++i529uKgsddNBBB50fxAGqMUThMimd+gAAAABJRU5ErkJggg=="},{"id":"painel-repetidor","name":"Painel repetidor do sistema","cat":"Alarme e detecção","terms":"repetidora painel","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAABDElEQVR42u2aQQqEMAxFx6EXma5cev9TuHTlWWYhiCBKtUma6MtKsEh8/UmTtt2vHz7YgX1BAJ2blqQ+NE/j+px30bp9e3XYfuTVYflu9uik8s48jdllCqtxjMgy0Q5ZGToYdKDjic5RDeJhRUc7RBZ0ntlnyaaAwtp/+aBeB5OMZ6PkT0ogrlxUV4MUTu3aeolKx5KLMB1Vp2u41DiW0EtIOm25uKbjZKfRaTW4LNXNeze/kbVop218ee/Rcz9U6qjGsRj1TisdRaoG7RnF6yQsGVnTkUpPW0YPoSM+1draYffrzDgLRTvQgQ50oPM6OpwUox1MqZM4uePZ9s4ptTKRBR3oQAc60Hm1/QHISHbnFGBU/gAAAABJRU5ErkJggg=="},{"id":"acionador-manual-alarme","name":"Acionador manual do sistema de alarme","cat":"Alarme e detecção","terms":"acionamento botoeira manual","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAwCAIAAAD4jDEtAAAAvElEQVR42u3bMQ6DMAwF0FJxkXrKmPufgpGJszBUqpCqMlQBh/b9kQHBw0ZJCMOj1Jt8yB3BTsaDzrvMU+JdRaOGGPu/xMQHo7Po0KFDhw4dOmeNULLGlmqHzqV1otSd3lnmKWtSonaSZqHflc+2TN6P/KnOS2HbYpG9MtddZz1FotToYNHSe4cOHTp06NChQ4eO0KFDhw4dOnRaJ7rZrKd26NChQ4cOnV/Igd9Cczd0N8ngPwmdRYfOyVkB69UgyUZjNt0AAAAASUVORK5CYII="},{"id":"bateria-alarme","name":"Bateria do sistema de alarme","cat":"Alarme e detecção","terms":"bateria energia reserva","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAAAxCAIAAAAz0OKIAAAAuklEQVR42u3bMQ6EIBQFQDF7kaWy9P6nsLTyLFvYGKOJWUHAzKu0wTDyhaCG7zB2cpIeAR06dOjQoUOHDh2hQ4cOHTp06Lw2n8eutMzT9jTe2JNM2FQtOttu7LpXtimV9WdCpl33rLf0+siqt7JiobcdCW+MyqLTik7Z55Gx0/hqcD2wGjyYwpZ5ut+Zx2ZDlVWTTmzqkw9jhw4dOnTo0KFDh47QoZM2GXcw2toGPEzwn4TKokOHTkX5AR31JdeSyVHrAAAAAElFTkSuQmCC"},{"id":"detector-fumaca","name":"Detector de fumaça pontual","cat":"Alarme e detecção","terms":"fumaça sensor detecção","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAwCAIAAAD1kkFqAAAA3ElEQVR42u3awQ2DMAxAUWNlkXLqsftPwZETs3SAXlrR2D/S9wAoPCWOjdkez1cYERGREmihhRZfxpjx0Os8ala//zXxjyVWWSPuGdGCb1GWaOgW13nsrUVwCsGyIEAgLCAQ/RYciGYLFESnBQ3CWgtgAdwUPRZMiAYLLES1BRmi1AIOUWfBh4h537U+O/Gb/XgBZYXFzdco21P0WqvycKUQC1jUp9sUAm3RdQGnEPbseIve8tT5CM/C+Qirc3M+grFwPkKEaLZwPsKNMW//L2ex+Q+0Z0QLLbT4Od4CWGPhphQQYwAAAABJRU5ErkJggg=="},{"id":"detector-calor","name":"Detector de calor pontual","cat":"Alarme e detecção","terms":"calor sensor detecção","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAxCAIAAAA+zpLPAAAAs0lEQVR42u3asQnDMBAF0LPQInGVMvtP4dKVZ0kRSJUQYixOQu8PYOSH9LEPLbf7IyQiIgoCFixYsGDB4pLUFg899q3potc230R1rOU2hXZGWLAYwKJ119oXLFiwYMGCBQsWLFiwYMGCBYvzOfbtNbzoYYRRciE+ukxn0cksq+u+SDTSnSyGsFjz7kyVCd/5W2r6FniXZbpOnflQ6E4WLFh01p0d/m78zOI+uDPCggWLv/ME6f4lgV+tfYwAAAAASUVORK5CYII="},{"id":"porta-corta-fogo","name":"Porta corta-fogo com resistência ao fogo de XX minutos","cat":"Rotas e compartimentação","terms":"pcf porta","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAxCAIAAAA+zpLPAAAA10lEQVR42u3bMQ6DMAyFYVP5Injq2PufgpGJs7ChqkitVMUvTvRnZADy8UJMIpb1+TKamZk9IMACCyywwAKLJs1L3c2xbx9HQlj+eKn+v/f87jKtxdXVKFP4ei+FqFf7OwodLI59i9rfgU4cpBYxyLIAtRYWWHSw0JeMRS3qz52MEbnFuKFobDE0BGMkx2L0UJCLBIsJQkEusMizmGOAkAsssEi3mOZlQS6wwOJn+39PQLOQp9xbIRctLLKf1XV+2TxFLrDAAot8C9nmmOxCC/8JMEaw+NpOCm8866j8nnoAAAAASUVORK5CYII="},{"id":"parede-corta-fogo-90","name":"Parede ou estrutura corta-fogo com TRRF 90 min","cat":"Rotas e compartimentação","terms":"resistência 90 minutos parede","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAwCAIAAAD1kkFqAAAAmUlEQVR42u3aOw6AIBAFwNVwEaksvf8pLK08i52xFdEgmVdRTxaW3zDNS0hERIwIWLBgwYIFCxYsLtm3lYW6YMGCBQsWzSW93bTVBQsWLNo9oRSvd6kbgnOcS2/2/22R56WKQm9n9vz4oaeT9SLXePFKFPRUFixYsGBRJenVLvXlXktdmCMsWLBgwYIFi5Yz+AOtLliwYHE7B+63GOFcoIFGAAAAAElFTkSuQmCC"},{"id":"parede-corta-fogo-60","name":"Parede ou estrutura corta-fogo com TRRF 60 min","cat":"Rotas e compartimentação","terms":"resistência 60 minutos parede","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAxCAIAAAA+zpLPAAAA+0lEQVR42u3aOw7DIAyAYYi4SJk69v6nYGTiLB1QK6RUSaiB2NLvEUUR+WTzCv7xfDnCOefcBgEWWGCBBRZYYIFFEyUnLMgLLLDAAgsssFAcYfYCxrZFjfg5+ys5xV/ngG275BnJq1asO01ArMuLSm4O4qDbf1qs6f1YCHm9hOMaMQHxzQVh+XTMqaogSk6VoB1HheNIuH5MoAqizd9Ro2noSofbIdpBYSzEeY0ohKgtwyFO8kIVxKTvv5QX2iAW7BU2WxADZ43uNbhOiHv27DohJqH4/V0UW3v2ufNItHNTh39FnPFhgQUWWGCBhe7w3IEmL7DAAgssBPEG3zmlcuMeFZgAAAAASUVORK5CYII="},{"id":"direcao-rota-fuga","name":"Direção de fluxo da rota de fuga","cat":"Rotas e compartimentação","terms":"seta rota evacuação sentido","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAwCAIAAAD1kkFqAAAAqklEQVR42u3ZMQ6DMBAEwAPxkVBR8v9XpKTKW1IgJY1REIiwxVyJLNkMe5aB7jHNpaqqqkfAggULFixYsGDBggULFixYRNaQsIjX8mxeH//7bUUuwiy2nv9WXq7tkT2zriv+OfJzY/tHnmylA4tszp7SIwnRsF9EWtweDblgEW5x+4lLLr7VhfxDTDiGy0WYhXcz+4UeYcGCBQsWLFiwYMFCsWDBggWLw/UGli4lzbX4vhUAAAAASUVORK5CYII="},{"id":"saida-final-rota","name":"Saída final da rota de fuga","cat":"Rotas e compartimentação","terms":"saída emergência seta","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAxCAIAAAA+zpLPAAAAs0lEQVR42u3aMQ6DIBQG4AfxIjp19P6n6NjJs3SkKdjQJjVRvrcqg5//g0BI820NFRERGQELFixYsGDBggULFixYsGDBggULFqeu6dqftz3ue4+W6qB33FzUTBe3WL455R96vniLxvSho2rdnpd/G/L6A/83RC56o2FNLRws9EgrGizKNMxCj7TWZhal0gh3UTp3aHlkCPPF7s4tC4VcNLbzyT0+uWDBggULFixYsGBxaD0BqssqYd1gU48AAAAASUVORK5CYII="},{"id":"corrimao","name":"Corrimão","cat":"Rotas e compartimentação","terms":"escada guarda","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAxCAIAAAA+zpLPAAAAe0lEQVR42u3asQ2AIABFwY9hEa0s3X8KSytmcQUTxJB4ryYhHFBBWfcjSpIsCFiwYMGCBQsWLFiwYMGCBQsWLFiwYMGCBQsWLH5bfTiuXefkK9m6HwDrl5ON65WtckdYsGDBggULFixYsGDBggWLOSv+QDsXLFiwYNHRDRouB1dilTxWAAAAAElFTkSuQmCC"},{"id":"acesso-viatura","name":"Acesso de viatura dos bombeiros","cat":"Outros sistemas","terms":"acesso cb bombeiros viatura","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAwCAIAAAD1kkFqAAAC9klEQVR42u2av2/aQBTHXyxq17JKSWlKK0QtUFDCVvEXQKX+ByyMydApW8eKCTFm69QhGVlYM1Vq+hdYbCGicuRYKNCEhlJZcM7S4SQrCsEcvld+WHcbxj6dP/fe+3797I307jsQAwAAJIFAsBAsBAvGEfH/22w1Q3bDmelaEeG5eInDbDUDLMx/a6X13V70mJXWOtrNVhORiLTuyY8YIGHQESwcIdFUFBwRxAXlR87BTS99R3SX0COWrHx98aoeiz84szzo17r2o5NYsnLxRPnyMmGoWgAcPKqHxuLINgvO8MFB3SW1rv3x969iJsc4j+4S3SUFZ1jSs8FwBPYBOCxOzTMaC8ebWyfRmHcPlV5n7/Zad8m0HZs8mB85h1eXuksaVjvALdFLggWIhBIRFERJz1YTyfubWU0kS3rWO41lNkPVvCAqD/qLLB8Sf42gqTEtpA1VO97cAoDJDPIZP7QoAHz4+2eR1ZQ3Rw5uenTpPrldTSQB4CQaW4q4sCcLL4v0HQGAC1nxP43iYB80iL49e46ltSxEeHOEVoqfylNEYT41z6i4Torxf/WmODpyHpTFtCVassIuw1jlY0V9p+6SwCISuPmAExc7ZDyvL/LxFztkXOvata69TcbzFprAzQuEuLBkBQC2yXhmFWCc0FC1eiz++XUKAPZurxfZ++Fl8V2LAsD7Wd7h8OrSbDUrvQ7jtF7VRMkURmXlZUFdg+4Sn50vD/pUbhZvMWizh9Fi8LIwVI16xIbVfhRHfuTQR1JLVthrihcO5xxqTSmwey0EHdlPZWjVaFjtI9v0iORHTqXXaVht+pNdI70nen87i5IX+DpSzOToo2rBGU4+d1iy8unN23lruyUr+6nMwkBg9i+KmRzt5dxnMa2XM1ObAlzFCQK5r2WoGuNO1mNxFH+NCAJC9g6Rs8cnCRBhY8EPArleLIsCIL30jYhwCEOO4IJYYxboIJhyZGU/R0Ff2Ib4pjGcXkuwECwEC8FCsBAsBIuVGP8AI6xgb8rdXoAAAAAASUVORK5CYII="},{"id":"central-glp","name":"Central GLP","cat":"Outros sistemas","terms":"gás liquefeito de petróleo","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAA0CAIAAABuAwN8AAABcklEQVR42u2bMQ6DMBRDP5UvUiZG7n8KRibO0gGpqlCEQklsB2DqVJFX20m+1e49jPE8ERHxcniJZZ4cXqPT6mJDoZe+DLQU1sUv8/T9ICQCFYjkgjdoLs4i55fvh1EiEFhR0AoEbhSEAoEqGvJx0DIVhnJQWQbmFJiWgZsphAKBvxxoAkFbFKpmKsxNwbRMq7qoccGFrWIPXe3sspNDpN73w9zDzGyqde4svu0RDFjxDF7KMrQYqn43O2kZ5oZNml/8YRn+Ps2b5eRbRnVaYc/49onccfabDBHhWV7JYhMiDiDCpDczeZQsVi2scvjVyL08ksxIVS0iY7G/Wm2T6NgVqYiAGQ0+910Ni5M/LzNEGuiKaJaBjynkloGtHPiWaa8rqmeZK3RFXizkXZELC+HZ2a5DDHVX5JidT1dEJdJqV1SWSNtdUanD4nW6ojMbDXl74nVFR9fGnwZT51qZRO7SFe0T0c47n/+P2LBQRUPy+QBHkzhI9AAYRgAAAABJRU5ErkJggg=="},{"id":"chave-eletrica-principal","name":"Chave elétrica principal","cat":"Instalações elétricas","terms":"energia elétrica quadro desligamento","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAxCAIAAAA+zpLPAAABIUlEQVR42u2bQRKCMBAEA7UfkZNH//8Kj558izeKElQswk4TJg9IsZ3JzCZAd7neikcppZTeCMzCLMzCLP4esX2K5+MuL2OokYbBeRT5YniPmIVZZPhF9d0uMaAgLMhb5apg6uWimINQpZL9gsECJQrrgsGCJgpKjiRE9RrK0bAoxglXhrT9QsoC6BTWBfI8MheF5JASzMolm0ivi59FprlJLxcFBATdO5PzpccWlh+0rHutaaeY33FEsig+Rca0eFXrFcnrv1gkAUQei5XlaZtxSt/5RTVnYTGCIJzNog0QVV4jRBuKqDIJ6x78jPcXBKdEsGCC0Nxf7AHiqN65hyKO5500szzMmb1lFgP+w3O/E6jtnYRPPLePzv9MeI8sjBd+Q6TpR0jn9wAAAABJRU5ErkJggg=="},{"id":"chave-eletrica-secundaria","name":"Chave elétrica secundária","cat":"Instalações elétricas","terms":"energia elétrica quadro desligamento","image":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAxCAIAAAA+zpLPAAABGklEQVR42u2bMQ6DMAxFjZWLNFPH3v8UHTv1LB1YKNCqVcH/VXyPgBB++f5OojCczpdwREREGoFZmIVZmMXX0X5/xf12lafRt+iGjfMp8sFwjZjFfjWyucIlRdcIAzLLXGXGKRfFEoTKie0XDBYoUVgXDBY0UVgXABZyCaB1QaCTFgVLFxA6LdgxnY/vzavJJTC9slyJjLdqhNNQg7+acFkFNbkvvM+z0koSbhaVnprYxOqbS1oR1X6x2j6Wj1V2DaV3zpJ/1VmF864iFh82C+/leP/iGcFB16lMEEHY++Us4fPgHoFgMbZY1KZOGoSSBROEgAUWhEYXnXq6NotF0cHHjNMgBCw6/uB522rM4/9j8H8CxDW7WYDiAcGRmNk9+9QwAAAAAElFTkSuQmCC"}];
+const CATEGORIAS = ['Todos','Extintores','Iluminação e sinalização','Hidrantes','Alarme e detecção','Rotas e compartimentação','Instalações elétricas','Outros sistemas'];
+const filtroEl = document.getElementById('filters');
+const listaEl = document.getElementById('symbols');
+const searchEl = document.getElementById('search');
+const counterEl = document.getElementById('counter');
+const zoomEl = document.getElementById('zoom');
+let categoriaAtiva='Todos';
+let focoAntesZoom=null;
+function normalizar(s) {return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
+function abrirZoom(simbolo) {
+  focoAntesZoom=document.activeElement;
+  document.getElementById('zoomCat').textContent=simbolo.cat;
+  document.getElementById('zoomName').textContent=simbolo.name;
+  const imagem=document.createElement('img');imagem.src=simbolo.image;imagem.alt=simbolo.name;
+  document.getElementById('zoomImage').replaceChildren(imagem);
+  zoomEl.hidden=false;
+  document.body.style.overflow='hidden';
+  document.getElementById('zoomClose').focus();
+}
+function fecharZoom() {
+  zoomEl.hidden=true;
+  document.body.style.overflow='';
+  if(focoAntesZoom && focoAntesZoom.isConnected)focoAntesZoom.focus();
+}
+document.getElementById('zoomClose').addEventListener('click',fecharZoom);
+zoomEl.addEventListener('click',e=>{if(e.target===zoomEl)fecharZoom();});
+document.addEventListener('keydown',e=>{
+ if(zoomEl.hidden)return;
+ if(e.key==='Escape'){e.preventDefault();fecharZoom();}
+ if(e.key==='Tab'){
+   const b=document.getElementById('zoomClose');
+   if(e.shiftKey || document.activeElement!==b){e.preventDefault();b.focus();}
+ }
+});
+function renderizar() {
+ const busca=normalizar(searchEl.value);
+ const encontrados=SIMBOLOS.filter(s=>(categoriaAtiva==='Todos'||s.cat===categoriaAtiva) && (!busca||normalizar(s.name+' '+s.cat+' '+s.terms).includes(busca)));
+ listaEl.replaceChildren();
+ const frag=document.createDocumentFragment();
+ for(const s of encontrados) {
+   const b=document.createElement('button');b.type='button';b.className='symbol-card';b.setAttribute('aria-label','Ampliar: '+s.name);
+   const art=document.createElement('span');art.className='art';
+   const img=document.createElement('img');img.src=s.image;img.alt='';img.loading='eager';art.append(img);
+   const cat=document.createElement('span');cat.className='cat';cat.textContent=s.cat;
+   const name=document.createElement('span');name.className='name';name.textContent=s.name;
+   const hint=document.createElement('span');hint.className='openhint';hint.textContent='Toque para ampliar';
+   b.append(art,cat,name,hint);b.addEventListener('click',()=>abrirZoom(s));frag.append(b);
+ }
+ if(!encontrados.length){const p=document.createElement('div');p.className='empty';p.textContent='Nenhum símbolo encontrado. Tente outro termo ou selecione “Todos”.';frag.append(p);}
+ listaEl.append(frag);
+ counterEl.textContent=encontrados.length+' de '+SIMBOLOS.length+' símbolos';
+ for(const b of filtroEl.children)b.setAttribute('aria-pressed',String(b.dataset.cat===categoriaAtiva));
+}
+for(const cat of CATEGORIAS){const b=document.createElement('button');b.type='button';b.className='chip';b.dataset.cat=cat;b.textContent=cat;b.addEventListener('click',()=>{categoriaAtiva=cat;renderizar();});filtroEl.append(b);}
+searchEl.addEventListener('input',renderizar);
+renderizar();
+</script>
+</body>
+</html>
