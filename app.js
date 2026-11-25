@@ -1,4 +1,5 @@
-// V23.9.99mp — estimativa ABC e ocupações mistas, sem mudanças nas rotinas operacionais.
+// V23.9.99mq — estimativas ABC por ocupação mista; A-2 em halls e áreas comuns, sem mudanças operacionais.
+// V23.9.99mq — estimativa ABC e ocupações mistas, sem mudanças nas rotinas operacionais.
 // V23.9.99ml — revisão obrigatória de inconsistências e remoção de rótulos auxiliares no PDF.
 // V23.9.99mk — assistente de descrições técnicas somente na prévia do PDF; Ficha preservada.
 // V23.9.99mj — nome de PDF sugerido a partir do Nº do PSCIP, sem alterar dados das notificações.
@@ -102,7 +103,7 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mp';
+      const APP_VERSION = '23.9.99mq';
       const APP_VERSION_DATE = '25/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;

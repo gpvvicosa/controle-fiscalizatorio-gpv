@@ -12,7 +12,7 @@
 .big-number{font-size:41px;font-weight:900;letter-spacing:-.04em;color:#0f6a43;line-height:1.1;margin:4px 0}
 .status-pill{display:inline-block;background:#fff2d7;color:#885913;padding:4px 8px;font-size:10px;font-weight:800;border-radius:6px}
 .summary-points{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}.summary-points>div{border:1px solid #dbe6ee;background:#fafcfe;border-radius:10px;padding:10px}.summary-points strong{font-size:16px;display:block;margin-top:3px}
-.mix-row{border:1px solid #dce6ee;background:#f7fafc;border-radius:12px;padding:12px;margin:10px 0}.mix-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.mix-row-head strong{font-size:13px}.remove-row{border:1px solid #e2cad2;border-radius:7px;background:#fff;color:#a32332;font-size:11px;padding:5px 8px}.mix-row .field{margin:6px 0}.mix-inline{display:grid;grid-template-columns:1.2fr .8fr;gap:9px}.mix-charge{font-size:12px;color:#275c84;margin-top:4px}.inline-btn{background:#e4eff8;color:#1a597d;border:1px solid #bed8ed;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:800;margin-top:6px}
+.mix-row{border:1px solid #dce6ee;background:#f7fafc;border-radius:12px;padding:12px;margin:10px 0}.mix-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.mix-row-head strong{font-size:13px}.remove-row{border:1px solid #e2cad2;border-radius:7px;background:#fff;color:#a32332;font-size:11px;padding:5px 8px}.mix-row .field{margin:6px 0}.mix-inline{display:grid;grid-template-columns:1.2fr .8fr;gap:9px}.mix-charge{font-size:12px;color:#275c84;margin-top:4px}.mix-count{display:block;margin-top:8px;padding:9px 10px;border-radius:9px;background:#edf7f1;border:1px solid #c7dfd1;color:#19573c;font-size:12px;line-height:1.35}.mix-count strong{font-weight:900}.mix-count .minor{display:block;color:#526477;font-size:11px;margin-top:2px}.per-occ-note{padding:10px;background:#fff6e8;color:#6e4c19;border-left:3px solid #e3a640;border-radius:8px;margin-top:9px;font-size:11px}.sector-n{font-weight:900;font-size:17px;color:#116b47}.hall-note{color:#205c77;font-weight:750}.sector-details{font-size:11px;color:var(--muted);margin-top:3px}.inline-btn{background:#e4eff8;color:#1a597d;border:1px solid #bed8ed;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:800;margin-top:6px}
 .choice-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:650;min-height:36px;margin:3px 0}.choice-line input{width:16px;height:16px;accent-color:#18628b}
 .slim-note{font-size:11px;color:#55697b;line-height:1.35}
 .danger{border-left:3px solid #d34a40;background:#fff4f1;border-radius:7px;padding:9px;color:#822d25;font-size:12px;margin-top:10px}
@@ -35,7 +35,7 @@
 </div>
 <label class="checkbox-card"><input type="checkbox" id="mista"> É uma edificação de <b>ocupação mista</b></label>
 <div id="mixBlock" hidden>
- <p class="slim-note">Informe cada atividade e sua área. Os valores de carga serão sugeridos individualmente.</p>
+ <p class="slim-note">Informe cada atividade e sua área. O resultado mostrará a estimativa ABC de cada ocupação. Para A-2, confira principalmente halls e circulações comuns, sem presumir extintores dentro de apartamentos.</p>
  <div id="mixRows"></div><button id="addMix" class="inline-btn" type="button">+ Acrescentar ocupação</button>
  <fieldset style="border:0;padding:0;margin-top:12px"><legend>As ocupações estão compartimentadas conforme PSCIP?</legend>
  <label class="choice-line"><input name="comp" type="radio" value="nao" checked> Não — aplicar maior carga à edificação</label>
@@ -54,7 +54,7 @@
 <div class="result-box"><div class="eyebrow">Carga de incêndio — IT 09</div><div class="value" id="risco">Aguardando dados</div><div class="muted" id="cargaInfo">Selecione a ocupação.</div><div class="muted" id="divisaoInfo">Divisão / código de ocupação: aguardando seleção.</div></div>
 <div class="result-large"><div class="eyebrow">Extintores ABC — estimativa inicial</div><div class="big-number" id="quantidade">—</div><div id="estimativaSub" class="muted">Informe ocupação e área para calcular.</div><div class="status-pill" style="margin-top:9px">ESTIMATIVA • NÃO É QUANTIDADE NORMATIVA DEFINITIVA</div></div>
 <div class="summary-points"><div><div class="eyebrow">Capacidade ABC de referência</div><strong id="capacidade">—</strong></div><div><div class="eyebrow">Caminhamento máximo</div><strong id="caminhamento">—</strong></div></div>
-<div id="sectorResults" class="table-wrap" hidden></div>
+<div id="sectorResults" class="table-wrap" hidden aria-live="polite"></div>
 <div id="avisos" class="warnings"></div>
 <div class="buttons"><button class="primary" type="button" id="copy">Copiar resumo</button><button class="secondary" type="button" id="print">Imprimir resumo</button></div><div id="feedback" class="muted" role="status"></div>
 <details class="report-details"><summary>Ver resumo técnico completo</summary><div id="report" class="summary-text">Aguardando dados.</div></details></section>
@@ -71,7 +71,7 @@
  </div></details>
 </div>
 <div class="references"><strong>Referências oficiais:</strong> <a href="https://bombeiros.mg.gov.br/storage/files/shares/intrucoestecnicas/IT_09_2a_Ed_PUBLICADA.pdf" target="_blank" rel="noopener">IT 09 — 2ª edição (Anexo A, itens 5.1, 5.9 e 5.10)</a> · <a href="https://bombeiros.mg.gov.br/storage/files/shares/intrucoestecnicas/IT_16_3a_Ed_portaria_69_emenda_11.pdf" target="_blank" rel="noopener">IT 16 — 3ª edição, emenda 11/2022 (itens 6.2.1–6.2.4, Tabelas 1 e 3–6)</a>.</div>
-</main><footer>GPV Viçosa · Calculadora ABC · V23.9.99mp · Consulta de apoio sem vínculo ou gravação de vistorias.</footer>
+</main><footer>GPV Viçosa · Calculadora ABC · V23.9.99mq · Consulta de apoio sem vínculo ou gravação de vistorias.</footer>
 <script>
 'use strict';
 const ATIVIDADES = [
@@ -128,9 +128,10 @@ function opts(){return '<option value="">Selecione uma ocupação (código — a
 $('ocupacao').innerHTML=opts();
 function occ(v,qmanual){if(v==='manual')return {name:'Carga técnica informada',q:val(qmanual)};const a=ATIVIDADES[Number(v)];return (v!==''&&a)?{name:rotuloComDivisao(a[1]),q:a[2]}:{name:'Ocupação não informada',q:null};}
 let nextId=0;
-function addMix(defaults={}){const id=++nextId,el=document.createElement('div');el.className='mix-row';el.dataset.id=id;el.innerHTML=`<div class="mix-row-head"><strong>Ocupação <span class="ord"></span></strong><button class="remove-row" type="button" title="Remover esta ocupação">Remover</button></div><div class="field"><label>Atividade</label><select class="mix-occ">${opts()}</select></div><div class="mix-inline"><div class="field"><label>Área total desse setor (m²)</label><input class="mix-area" min="0" step="any" type="number" inputmode="decimal" placeholder="Ex.: 250"></div><div class="field"><label>Pavimentos do setor</label><input class="mix-pav" min="1" max="100" step="1" type="number" value="1"></div></div><div class="field manual-q" hidden><label>Carga do PSCIP/estudo (MJ/m²)</label><input class="mix-q" type="number" min="0" step="any" placeholder="Ex.: 700"></div><div class="mix-charge">Carga sugerida: —</div>`;
+function addMix(defaults={}){const id=++nextId,el=document.createElement('div');el.className='mix-row';el.dataset.id=id;el.innerHTML=`<div class="mix-row-head"><strong>Ocupação <span class="ord"></span></strong><button class="remove-row" type="button" title="Remover esta ocupação">Remover</button></div><div class="field"><label>Atividade</label><select class="mix-occ">${opts()}</select></div><div class="mix-inline"><div class="field"><label>Área total desse setor (m²)</label><input class="mix-area" min="0" step="any" type="number" inputmode="decimal" placeholder="Ex.: 250"></div><div class="field"><label>Pavimentos do setor</label><input class="mix-pav" min="1" max="100" step="1" type="number" value="1"></div></div><div class="field manual-q" hidden><label>Carga do PSCIP/estudo (MJ/m²)</label><input class="mix-q" type="number" min="0" step="any" placeholder="Ex.: 700"></div><div class="mix-charge">Carga sugerida: —</div><div class="mix-count" hidden aria-live="polite"></div>`;
  $('mixRows').append(el);if(defaults.oc!==undefined)el.querySelector('.mix-occ').value=defaults.oc;if(defaults.area!==undefined)el.querySelector('.mix-area').value=defaults.area;if(defaults.pav!==undefined)el.querySelector('.mix-pav').value=defaults.pav;
  el.querySelector('.remove-row').addEventListener('click',()=>{if($('mixRows').children.length>2){el.remove();update();}else{$('feedback').textContent='Mantenha ao menos duas ocupações para o cálculo misto.';}});updateMixOrd();return el;}
+function isResidencialA2(name){return codigoDivisao(name)==='A-2';}
 function updateMixOrd(){[...$('mixRows').children].forEach((e,i)=>e.querySelector('.ord').textContent=i+1);}
 function routeEstimate(areaPerPiso,dist,geom){if(!Number.isFinite(areaPerPiso)||areaPerPiso<=0||!dist||areaPerPiso>1000000)return null;const w=geom?.w||Math.sqrt(areaPerPiso),h=geom?.h||Math.sqrt(areaPerPiso);if(w<=0||h<=0||w>10000||h>10000)return null;let best=null;const maxN=Math.min(600,Math.max(20,Math.ceil(w/(dist/2))+5));for(let nx=1;nx<=maxN;nx++){const rem=dist-w/(2*nx);if(rem<=1e-8)continue;const ny=Math.max(1,Math.ceil((h/(2*rem))-1e-9));const count=nx*ny;if(!best||count<best.n){best={n:count,nx,ny,w,h};}}return best;}
 function getSectors(){return [...$('mixRows').children].map((e,i)=>{const sel=e.querySelector('.mix-occ'),qmanual=e.querySelector('.mix-q');const o=occ(sel.value,qmanual.value);const area=val(e.querySelector('.mix-area').value),pav=floor(e.querySelector('.mix-pav').value);return {name:o.name,q:o.q,area,pav,id:i+1};});}
@@ -157,9 +158,46 @@ function update(){const mixed=$('mista').checked;$('simple').hidden=mixed;$('mix
  if(validCount)av.push('A estimativa considera trajetos ortogonais desobstruídos até pontos em malha. Não é um cálculo normativo de quantidade por área; o valor real pode ser maior, conforme a planta e o PSCIP.');
  if(distMed!==null&&conf){av.push(distMed>conf.dist?`ATENÇÃO: o maior percurso informado (${fmt(distMed)} m) excede os ${conf.dist} m da configuração ABC selecionada.`:`O percurso informado (${fmt(distMed)} m) não excede ${conf.dist} m; isso não comprova cobertura de todos os pontos.`);}
  if(areas.some(s=>s.pav>1)){av.push('Para mais de um pavimento, a área de cada setor foi distribuída igualmente entre eles; confira se corresponde ao edifício real.');}
- $('sectorResults').hidden=!(validCount&&sectorSummary.length>1);if(sectorSummary.length>1){$('sectorResults').innerHTML='<h3 class="section-head">Por ocupação</h3><table><thead><tr><th>Setor</th><th>ABC (estim.)</th><th>Capacidade</th></tr></thead><tbody>'+sectorSummary.map(x=>`<tr><td>${x.name}<small>Risco ${x.r} • ${fmt(x.q)} MJ/m²</small></td><td>${x.n}</td><td>${x.cap}<small>até ${x.dist} m</small></td></tr>`).join('')+'</tbody></table>';}
+
+ // Estimativa por ocupação. Quando não há compartimentação, o risco maior é
+ // aplicado também às estimativas indicativas dos setores. Esses valores não
+ // são parcelas somáveis do total: pode existir proteção/circulação compartilhada.
+ const perOcc=[];
+ if(mixed&&validCount){
+   for(const setor of setores){
+     const qEfetiva=comp==='nao'?q:setor.q;
+     const cfg=tipo(qEfetiva);
+     const porPiso=setor.area/setor.pav;
+     const prev=cfg?routeEstimate(porPiso,cfg.dist,null):null;
+     if(!prev) continue;
+     perOcc.push({name:setor.name,id:setor.id,a2:isResidencialA2(setor.name),n:prev.n*setor.pav,pav:setor.pav,cap:cfg.cap,dist:cfg.dist,q:qEfetiva,per:porPiso});
+   }
+ }
+ // Inline: mostra a estimativa ao lado de cada ocupação cadastrada.
+ [...$('mixRows').children].forEach((el,i)=>{
+   const out=el.querySelector('.mix-count'),o=perOcc[i];
+   if(!out) return;
+   out.hidden=!o;
+   if(!o){out.textContent='';return;}
+   // Conteúdo é gerado de valores de seleção e cálculos locais, nunca texto livre.
+   out.innerHTML=`<strong>${o.n} ABC — estimativa para esta ocupação</strong><span class="minor">${o.pav} pavimento(s) · ${o.cap} · percurso até ${o.dist} m</span>`+
+     (o.a2?'<span class="minor hall-note">A-2: prever pontos nos halls/circulações comuns; não implica extintor em cada apartamento.</span>':'')+
+     (comp==='nao'?'<span class="minor">Valor indicativo não aditivo: o resultado global considera possíveis áreas compartilhadas.</span>':'');
+ });
+ $('sectorResults').hidden=!(mixed&&validCount&&perOcc.length);
+ if(mixed&&validCount&&perOcc.length){
+   const titulo=comp==='sim'?'Por ocupação — setores compartimentados':'Por ocupação — referências sem compartimentação';
+   const aviso=comp==='sim'
+     ?'Estimativas independentes por setor. Confira o acesso a cada setor e os percursos reais antes de definir os pontos.'
+     :'ATENÇÃO: os valores abaixo são estimativas isoladas de planejamento, calculadas com o maior risco. NÃO SOME essas quantidades ao total: extintores podem atender áreas compartilhadas.';
+   $('sectorResults').innerHTML=`<h3 class="section-head">${titulo}</h3><table><thead><tr><th>Ocupação / referência de instalação</th><th>ABC (estim.)</th><th>Capacidade</th></tr></thead><tbody>`+
+      perOcc.map(o=>`<tr><td>${o.name}${o.a2?'<small class="hall-note">A-2: halls e circulações comuns (não por apartamento)</small>':''}<small>${o.pav} pav. · ${fmt(o.per)} m²/pav. · ${fmt(o.q)} MJ/m²</small></td><td><span class="sector-n">${o.n}</span><small>estimativa</small></td><td>${o.cap}<small>até ${o.dist} m</small></td></tr>`).join('')+
+      `</tbody></table><div class="per-occ-note">${aviso} Em A-2, confira os percursos reais desde os halls até os pontos protegidos; áreas comuns adicionais e riscos especiais podem exigir unidades próprias.</div>`;
+ }
+ if(mixed&&perOcc.some(o=>o.a2)) av.push('A-2: a previsão refere-se a pontos em halls e circulações comuns. Não se exige uma unidade dentro de cada apartamento apenas pela quantidade de apartamentos. Confira o PSCIP, o acesso a todos os pontos, o limite de caminhamento e as áreas comuns especiais (IT 16, itens 5.2.2.9 e 6.2.1).');
+ if(mixed&&comp==='nao'&&perOcc.length) av.push('Por ocupação sem compartimentação: os valores por setor são somente indicativos e NÃO devem ser somados. O dimensionamento global considera a maior carga específica (IT 09, item 5.9), a planta e possíveis extintores compartilhados.');
  $('avisos').innerHTML='<ul class="warning-list">'+av.map(a=>`<li>${a}</li>`).join('')+'</ul>';
- const lines=['GPV VIÇOSA — PRÉ-DIMENSIONAMENTO DE EXTINTORES ABC (IT 09 + IT 16)',`Ocupação mista: ${mixed?'sim':'não'}`,`Compartimentação: ${mixed?comp:'não se aplica'}`,`Carga para referência: ${q===null?'não informada':fmt(q)+' MJ/m²'}`,`Risco IT 09: ${r||'indefinido'}`,`ABC considerado: ${isABC?'sim':'não'}`,`Capacidade mínima de referência: ${conf?.cap||'indefinida'}`,`Distância máxima: ${conf?conf.dist+' m':'indefinida'}`,`Quantidade preliminar: ${validCount?count+' ABC (HIPÓTESE GEOMÉTRICA)':'não calculada'}`,`Área total: ${fmt(totalArea)} m²`,...sectorSummary.map(x=>`Setor: ${x.name}; área média/pavimento ${fmt(x.per)} m²; risco ${x.r}; ${x.n} ABC estimados; capacidade ${x.cap}; percurso máximo ${x.dist} m; malha geométrica ${x.grid}`),...av.map(a=>'Atenção: '+a),'Método: arranjo geométrico hipotético desobstruído; não equivale a quantidade normativa definitiva.','IT 09 — Anexo A, itens 5.9 e 5.10; IT 16 — itens 6.2.1 a 6.2.4, Tabelas 1 e 3–6.','Confirmar no PSCIP, caminhamento real, capacidade, classificação, riscos específicos e distribuição.'];$('report').textContent=lines.join('\n');
+ const lines=['GPV VIÇOSA — PRÉ-DIMENSIONAMENTO DE EXTINTORES ABC (IT 09 + IT 16)',`Ocupação mista: ${mixed?'sim':'não'}`,`Compartimentação: ${mixed?comp:'não se aplica'}`,`Carga para referência: ${q===null?'não informada':fmt(q)+' MJ/m²'}`,`Risco IT 09: ${r||'indefinido'}`,`ABC considerado: ${isABC?'sim':'não'}`,`Capacidade mínima de referência: ${conf?.cap||'indefinida'}`,`Distância máxima: ${conf?conf.dist+' m':'indefinida'}`,`Quantidade preliminar: ${validCount?count+' ABC (HIPÓTESE GEOMÉTRICA)':'não calculada'}`,`Área total: ${fmt(totalArea)} m²`,...sectorSummary.map(x=>`Setor: ${x.name}; área média/pavimento ${fmt(x.per)} m²; risco ${x.r}; ${x.n} ABC estimados; capacidade ${x.cap}; percurso máximo ${x.dist} m; malha geométrica ${x.grid}`),...perOcc.map(o=>`Ocupação ${o.id}: ${o.name}; ${o.n} ABC em estimativa individual; ${o.pav} pavimento(s); ${o.cap}; caminhamento até ${o.dist} m; ${o.a2?'instalação orientativa em halls/circulações comuns, não dentro de apartamentos; ':''}${comp==='nao'?'NÃO SOMAR AO TOTAL GLOBAL — proteção compartilhada possível':'setor compartimentado'}`),...av.map(a=>'Atenção: '+a),'Método: arranjo geométrico hipotético desobstruído; não equivale a quantidade normativa definitiva.','IT 09 — Anexo A, itens 5.9 e 5.10; IT 16 — itens 6.2.1 a 6.2.4, Tabelas 1 e 3–6.','Confirmar no PSCIP, caminhamento real, capacidade, classificação, riscos específicos e distribuição.'];$('report').textContent=lines.join('\n');
 }
 addMix();addMix();
 document.addEventListener('input',e=>{if(e.target.closest('main'))update()});document.addEventListener('change',e=>{if(e.target.closest('main'))update()});
