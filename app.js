@@ -1,3 +1,5 @@
+// V23.9.99mm — calculadora de extintores offline (IT 09 + IT 16), sem mudanças nas rotinas operacionais.
+// V23.9.99ml — revisão obrigatória de inconsistências e remoção de rótulos auxiliares no PDF.
 // V23.9.99mk — assistente de descrições técnicas somente na prévia do PDF; Ficha preservada.
 // V23.9.99mj — nome de PDF sugerido a partir do Nº do PSCIP, sem alterar dados das notificações.
 // V23.9.99mi — PDF auxiliar para lançamento de notificações INFOSCIP em Vistorias de Liberação.
@@ -100,8 +102,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mk';
-      const APP_VERSION_DATE = '23/11/2026';
+      const APP_VERSION = '23.9.99mm';
+      const APP_VERSION_DATE = '25/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -12511,7 +12513,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           estabelecimento: registro.titulo || valorCampoFicha_(registro, 'Nome Fantasia', 'Razão Social'),
           locais
         };
-        const pagina = window.open('./apoio-infoscip.html?v=23.9.99mk', '_blank');
+        const pagina = window.open('./apoio-infoscip.html?v=23.9.99ml', '_blank');
         if (!pagina) {
           if (recordNotificationsStatus) recordNotificationsStatus.textContent =
             'O navegador bloqueou a janela do PDF. Permita pop-ups deste site e tente novamente.';

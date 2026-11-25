@@ -1,3 +1,5 @@
+// V23.9.99mm — calculadora de extintores IT09+IT16 integrada ao shell offline.
+// V23.9.99ml — salvaguardas de impressão da Notificação Projeto e revisão de inconsistências.
 // V23.9.99mk — assistente de descrição técnica local e prévia PDF, sem backend novo.
 // V23.9.99mj — nome do PDF sugerido com o PSCIP; sem alteração de sincronização.
 // V23.9.99mi — PDF auxiliar de lançamento INFOSCIP em modo offline; sem alteração de sincronização.
@@ -71,9 +73,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261123-v23-9-99-mk-descricoes-tecnicas';
+const CACHE_NAME = 'gpv-vistorias-shell-20261125-v23-9-99-mm-calculadora-extintores';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99mk';
+const VERSION = '23.9.99mm';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
@@ -128,6 +130,7 @@ const CORE_SHELL = [
   `./assets/logo-gpv.png?v=${VERSION}`,
   './simbologias.html',
   './placas-sinalizacao.html',
+  './calculadora-extintores.html',
   './apoio-infoscip.html',
   './offline.html'
 ];
@@ -277,7 +280,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    if (['/simbologias.html','/placas-sinalizacao.html'].includes(caminhoRelativoAoEscopo_(url))) {
+    if (['/simbologias.html','/placas-sinalizacao.html','/calculadora-extintores.html'].includes(caminhoRelativoAoEscopo_(url))) {
       event.respondWith((async () => {
         const pagina = caminhoRelativoAoEscopo_(url);
         const resultado = await cacheRapidoComAtualizacao(request, '.' + pagina, '.' + pagina);
