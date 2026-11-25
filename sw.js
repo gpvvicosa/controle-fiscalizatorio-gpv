@@ -1,4 +1,4 @@
-// V23.9.99mn — calculadora rápida de extintores IT09+IT16 integrada ao shell offline.
+// V23.9.99mo — pré-dimensionamento ABC integrado ao shell offline.
 // V23.9.99ml — salvaguardas de impressão da Notificação Projeto e revisão de inconsistências.
 // V23.9.99mk — assistente de descrição técnica local e prévia PDF, sem backend novo.
 // V23.9.99mj — nome do PDF sugerido com o PSCIP; sem alteração de sincronização.
@@ -73,9 +73,9 @@
 // V23.9.99hm — atualizações descobertas após a abertura ficam em segundo plano até a próxima abertura ou ação manual.
 // V23.9.99hl — shell da abertura confiável com saudação e continuidade visual dos registros recentes.
 // V23.9.99hk — shell do rollback controlado das Metas para a rotina estável HG com backend HK.
-const CACHE_NAME = 'gpv-vistorias-shell-20261125-v23-9-99-mn-calculadora-rapida';
+const CACHE_NAME = 'gpv-vistorias-shell-20261125-v23-9-99-mo-estimativa-abc';
 const RUNTIME_CACHE_NAME = 'gpv-vistorias-runtime-documentos-v1';
-const VERSION = '23.9.99mn';
+const VERSION = '23.9.99mo';
 
 // V23.9.99hj — restaura o contrato estável de consulta das Metas através do gateway; backend HI preservado.
 // V23.9.99hi — novo shell publica revalidação das Metas e backend HI para Eventos declaratórios.
