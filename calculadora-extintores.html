@@ -30,7 +30,7 @@
 <section class="panel quick" aria-label="Dados básicos da edificação">
 <h2><span class="step">1</span> Qual a ocupação e a área?</h2>
 <div id="simple">
- <div class="field"><label for="ocupacao">Ocupação / atividade</label><select id="ocupacao"><option value="">Selecione uma ocupação</option><option value="manual">Outra atividade — informar carga técnica</option></select><small class="hint">Carga sugerida automaticamente pelo Anexo A da IT 09; confira o enquadramento exato.</small></div>
+ <div class="field"><label for="ocupacao">Ocupação / atividade</label><select id="ocupacao"><option value="">Selecione uma ocupação</option><option value="manual">Outra atividade — informar carga técnica</option></select><small class="hint">Cada opção mostra primeiro a divisão (ex.: G-4), depois a atividade e a carga sugerida pelo Anexo A da IT 09; confira o enquadramento exato.</small></div>
  <div id="manualBlock" class="field" hidden><label for="qManual">Carga específica (MJ/m²) conforme PSCIP/estudo</label><input id="qManual" type="number" min="0" step="any" inputmode="decimal" placeholder="Ex.: 700"></div>
 </div>
 <label class="checkbox-card"><input type="checkbox" id="mista"> É uma edificação de <b>ocupação mista</b></label>
@@ -51,7 +51,7 @@
 <p class="slim-note">Classe D (metais combustíveis) e classe K (óleos/gorduras de cocção) exigem análise e agentes específicos. O ABC não substitui esses agentes.</p>
 </section>
 <section class="panel results" aria-live="polite" aria-labelledby="resTitle"><h2 id="resTitle">Resultado de dimensionamento</h2>
-<div class="result-box"><div class="eyebrow">Carga de incêndio — IT 09</div><div class="value" id="risco">Aguardando dados</div><div class="muted" id="cargaInfo">Selecione a ocupação.</div></div>
+<div class="result-box"><div class="eyebrow">Carga de incêndio — IT 09</div><div class="value" id="risco">Aguardando dados</div><div class="muted" id="cargaInfo">Selecione a ocupação.</div><div class="muted" id="divisaoInfo">Divisão / código de ocupação: aguardando seleção.</div></div>
 <div class="result-large"><div class="eyebrow">Extintores ABC — estimativa inicial</div><div class="big-number" id="quantidade">—</div><div id="estimativaSub" class="muted">Informe ocupação e área para calcular.</div><div class="status-pill" style="margin-top:9px">ESTIMATIVA • NÃO É QUANTIDADE NORMATIVA DEFINITIVA</div></div>
 <div class="summary-points"><div><div class="eyebrow">Capacidade ABC de referência</div><strong id="capacidade">—</strong></div><div><div class="eyebrow">Caminhamento máximo</div><strong id="caminhamento">—</strong></div></div>
 <div id="sectorResults" class="table-wrap" hidden></div>
@@ -71,7 +71,7 @@
  </div></details>
 </div>
 <div class="references"><strong>Referências oficiais:</strong> <a href="https://bombeiros.mg.gov.br/storage/files/shares/intrucoestecnicas/IT_09_2a_Ed_PUBLICADA.pdf" target="_blank" rel="noopener">IT 09 — 2ª edição (Anexo A, itens 5.1, 5.9 e 5.10)</a> · <a href="https://bombeiros.mg.gov.br/storage/files/shares/intrucoestecnicas/IT_16_3a_Ed_portaria_69_emenda_11.pdf" target="_blank" rel="noopener">IT 16 — 3ª edição, emenda 11/2022 (itens 6.2.1–6.2.4, Tabelas 1 e 3–6)</a>.</div>
-</main><footer>GPV Viçosa · Calculadora ABC · V23.9.99mo · Consulta de apoio sem vínculo ou gravação de vistorias.</footer>
+</main><footer>GPV Viçosa · Calculadora ABC · V23.9.99mp · Consulta de apoio sem vínculo ou gravação de vistorias.</footer>
 <script>
 'use strict';
 const ATIVIDADES = [
@@ -120,9 +120,13 @@ function val(s){if(s===null||s===undefined||String(s).trim()==='')return null;le
 function floor(s){const n=Number(s);return Number.isInteger(n)&&n>=1&&n<=100?n:null;}
 function risco(q){return q===null?null:q<=300?'Baixo':q<=1200?'Médio':'Alto';}
 function tipo(q){const r=risco(q);return r==='Baixo'?{cap:'2-A:20-B:C',dist:15}:r==='Médio'?{cap:'3-A:40-B:C',dist:15}:r==='Alto'?($('capAlto').value==='40'?{cap:'3-A:40-B:C',dist:10}:{cap:'4-A:80-B:C',dist:15}):null;}
-function opts(){return '<option value="">Selecione uma atividade</option>'+ATIVIDADES.map((a,i)=>`<option value="${i}">${a[1]} — ${fmt(a[2])} MJ/m²</option>`).join('')+'<option value="manual">Outra atividade — informar carga técnica</option>';}
+// Código da divisão aparece primeiro, para consulta rápida durante a vistoria.
+function rotuloComDivisao(nome){const m=/^(.+)\s+\(([A-H]-\d{1,2})\)$/.exec(String(nome||''));return m?`${m[2]} — ${m[1]}`:String(nome||'');}
+function codigoDivisao(nome){const m=/^([A-H]-\d{1,2})\s+—/.exec(String(nome||''));return m?m[1]:'';}
+function opts(){return '<option value="">Selecione uma ocupação (código — atividade)</option>'+ATIVIDADES.map((a,i)=>`<option value="${i}">${rotuloComDivisao(a[1])} — ${fmt(a[2])} MJ/m²</option>`).join('')+'<option value="manual">Código a conferir — Outra atividade (carga manual)</option>';}
+
 $('ocupacao').innerHTML=opts();
-function occ(v,qmanual){if(v==='manual')return {name:'Carga técnica informada',q:val(qmanual)};const a=ATIVIDADES[Number(v)];return (v!==''&&a)?{name:a[1],q:a[2]}:{name:'Ocupação não informada',q:null};}
+function occ(v,qmanual){if(v==='manual')return {name:'Carga técnica informada',q:val(qmanual)};const a=ATIVIDADES[Number(v)];return (v!==''&&a)?{name:rotuloComDivisao(a[1]),q:a[2]}:{name:'Ocupação não informada',q:null};}
 let nextId=0;
 function addMix(defaults={}){const id=++nextId,el=document.createElement('div');el.className='mix-row';el.dataset.id=id;el.innerHTML=`<div class="mix-row-head"><strong>Ocupação <span class="ord"></span></strong><button class="remove-row" type="button" title="Remover esta ocupação">Remover</button></div><div class="field"><label>Atividade</label><select class="mix-occ">${opts()}</select></div><div class="mix-inline"><div class="field"><label>Área total desse setor (m²)</label><input class="mix-area" min="0" step="any" type="number" inputmode="decimal" placeholder="Ex.: 250"></div><div class="field"><label>Pavimentos do setor</label><input class="mix-pav" min="1" max="100" step="1" type="number" value="1"></div></div><div class="field manual-q" hidden><label>Carga do PSCIP/estudo (MJ/m²)</label><input class="mix-q" type="number" min="0" step="any" placeholder="Ex.: 700"></div><div class="mix-charge">Carga sugerida: —</div>`;
  $('mixRows').append(el);if(defaults.oc!==undefined)el.querySelector('.mix-occ').value=defaults.oc;if(defaults.area!==undefined)el.querySelector('.mix-area').value=defaults.area;if(defaults.pav!==undefined)el.querySelector('.mix-pav').value=defaults.pav;
@@ -136,7 +140,7 @@ function update(){const mixed=$('mista').checked;$('simple').hidden=mixed;$('mix
  const comp=document.querySelector('input[name="comp"]:checked')?.value||'nao';const setores=mixed?getSectors():[];const av=[];let areas=[],specs=[],totalArea=null,totalPav=null,q=null;
  if(!mixed){const o=occ($('ocupacao').value,$('qManual').value);q=o.q;totalArea=val($('area').value);totalPav=floor($('pav').value);areas=totalArea===null?[]:[{name:o.name,area:totalArea,pav:totalPav,q}];if(q===null)av.push('Selecione uma ocupação ou informe a carga do PSCIP/estudo.');}
  else {const valid=setores.every(s=>s.q!==null&&s.area!==null&&s.area>0&&s.pav!==null);if(!valid)av.push('Complete a atividade, a área e o número de pavimentos de cada ocupação.');if(comp==='duvida')av.push('Confira a compartimentação: sem essa informação, a estimativa quantitativa fica suspensa (IT 09, item 5.9).');if(valid&&comp==='nao'){q=Math.max(...setores.map(x=>x.q));totalArea=setores.reduce((s,x)=>s+x.area,0);totalPav=floor($('pav').value);areas=[{name:'Ocupação mista sem compartimentação',q,area:totalArea,pav:totalPav}];av.push('Sem compartimentação, adotou-se a maior carga específica para toda a edificação (IT 09, 5.9).');}if(valid&&comp==='sim'){q=Math.max(...setores.map(x=>x.q));totalArea=setores.reduce((s,x)=>s+x.area,0);areas=setores;av.push('Com compartimentação, cada ocupação foi tratada separadamente (IT 09, 5.9). Confira a compartimentação real e a distribuição nos setores.');}}
- const r=q===null?null:risco(q),conf=tipo(q);$('highBlock').hidden=r!=='Alto';$('risco').textContent=r?`Risco ${r}`:'Aguardando ocupação';$('cargaInfo').textContent=q!==null?`${fmt(q)} MJ/m² ${mixed?'(maior carga das ocupações para referência)':'(carga sugerida / informada)'}`:'Selecione a ocupação e confirme a carga.';
+ const r=q===null?null:risco(q),conf=tipo(q);$('highBlock').hidden=r!=='Alto';$('risco').textContent=r?`Risco ${r}`:'Aguardando ocupação';$('cargaInfo').textContent=q!==null?`${fmt(q)} MJ/m² ${mixed?'(maior carga das ocupações para referência)':'(carga sugerida / informada)'}`:'Selecione a ocupação e confirme a carga.';const divisoes=mixed?[...new Set(setores.map(x=>codigoDivisao(x.name)).filter(Boolean))]:[codigoDivisao(occ($('ocupacao').value,$('qManual').value).name)].filter(Boolean);$('divisaoInfo').textContent=divisoes.length?`Divisão / código: ${divisoes.join(', ')}${mixed?' (ocupações informadas)':''}`:'Divisão / código: não informado; confira o enquadramento oficial.';
  $('capacidade').textContent=conf?.cap||'—';$('caminhamento').textContent=conf?`${conf.dist} m`:'—';
  const isABC=$('abc').checked;if(!isABC)av.push('A opção ABC foi desmarcada; esta tela não dimensiona extintores exclusivos de classes A, B ou C.');
  if($('semBrigada').checked||$('garagem').checked)av.push('Em garagens e edificações sem brigada, a proteção com pó ABC é obrigatória (IT 16, item 6.2.1.2).');
