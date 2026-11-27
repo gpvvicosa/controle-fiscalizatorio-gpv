@@ -1,3 +1,4 @@
+// V23.9.99mr — datas de nascimento sem inversão, cópia completa do responsável e feedback confirmado.
 // V23.9.99mq — estimativas ABC por ocupação mista; A-2 em halls e áreas comuns, sem mudanças operacionais.
 // V23.9.99mq — estimativa ABC e ocupações mistas, sem mudanças nas rotinas operacionais.
 // V23.9.99ml — revisão obrigatória de inconsistências e remoção de rótulos auxiliares no PDF.
@@ -103,8 +104,8 @@
       const AUTH_SHARED_DEVICE_STORAGE = 'gpvVistoriasDispositivoCompartilhadoV1';
       const AUTH_LIMITED_SESSION_HOURS = 10;
       const AUTH_CLIENT_VERSION = 'bm-v1';
-      const APP_VERSION = '23.9.99mq';
-      const APP_VERSION_DATE = '25/11/2026';
+      const APP_VERSION = '23.9.99mr';
+      const APP_VERSION_DATE = '27/11/2026';
       const appBuildInfo = document.getElementById('appBuildInfo');
       if (appBuildInfo) appBuildInfo.textContent = `App do Vistoriador • V${APP_VERSION} • ${APP_VERSION_DATE}`;
       // V23.9.99gw — estabilização: retomada menos agressiva, configuração sincronizada por janela e cache documental sob demanda.
@@ -2240,6 +2241,7 @@
       const recordDetailSectionHint = document.getElementById('recordDetailSectionHint');
       const recordDetailSectionTools = document.getElementById('recordDetailSectionTools');
       const recordDetailSectionEditBtn = document.getElementById('recordDetailSectionEditBtn');
+      const recordDetailResponsibleCopyBtn = document.getElementById('recordDetailResponsibleCopyBtn');
       const recordDetailSectionLocalBtn = document.getElementById('recordDetailSectionLocalBtn');
       const recordDetailSectionLocalLabel = document.getElementById('recordDetailSectionLocalLabel');
       const recordDetailSheetLink = document.getElementById('recordDetailSheetLink');
@@ -5389,9 +5391,10 @@
             area.value = texto;
             area.setAttribute('readonly', '');
             area.style.position = 'fixed'; area.style.opacity = '0';
-            document.body.appendChild(area); area.select(); document.execCommand('copy'); area.remove();
+            document.body.appendChild(area); area.select(); const ok = document.execCommand('copy'); area.remove(); if (!ok) throw new Error('Cópia não confirmada');
           }
           if (duvidasStatus) duvidasStatus.textContent = 'Resposta copiada.';
+          feedbackCopiaConfirmadaGpv_('Resposta copiada');
         } catch (e) {
           if (duvidasStatus) duvidasStatus.textContent = 'Não foi possível copiar automaticamente.';
         }
@@ -8080,12 +8083,19 @@
         document.body.classList.remove('review-open');
       }
 
+      // MR — confirmação discreta somente após o navegador concluir a cópia.
+      function feedbackCopiaConfirmadaGpv_(rotulo = 'Informação copiada') {
+        premiumFeedbackLastText_ = ''; // cada nova cópia deve ser sinalizada, mesmo quando repetida
+        mostrarFeedbackPremium_(`✓ ${String(rotulo || 'Informação copiada').trim()}`, 'success');
+      }
+
       async function copiarTextoClipboard_(texto) {
         const valor = String(texto || '');
         if (!valor) return false;
         try {
           if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(valor);
+            feedbackCopiaConfirmadaGpv_('Informação copiada');
             return true;
           }
         } catch (e) {}
@@ -8099,6 +8109,7 @@
           area.select();
           const ok = document.execCommand('copy');
           area.remove();
+          if (ok) feedbackCopiaConfirmadaGpv_('Informação copiada');
           return Boolean(ok);
         } catch (e) {
           return false;
@@ -10851,6 +10862,7 @@
           if (label && !label.dataset.copyInitialLabel) label.dataset.copyInitialLabel = label.textContent;
           if (label) label.textContent = 'Copiado';
           if (copia.semMascara && !copia.semDdd) mostrarFeedbackPremium_(`✓ ${rotulo} copiado sem máscara para uso no REDS.`, 'success');
+          else feedbackCopiaConfirmadaGpv_(`${rotulo} copiado`);
           botao._copyFeedbackTimer = setTimeout(() => {
             botao.classList.remove('is-copied');
             botao.setAttribute('aria-label', `Copiar ${rotulo}`);
@@ -12269,12 +12281,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
           return;
         }
         try {
-          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
-          else {
-            recordRedsReportText.focus();
-            recordRedsReportText.select();
-            document.execCommand('copy');
-          }
+          if (!(await copiarTextoClipboard_(texto))) throw new Error('Não foi possível copiar o relatório.');
           if (recordRedsCopyStatus) recordRedsCopyStatus.textContent = 'Relatório copiado. Pronto para colar no REDS.';
           if (recordRedsCopyBtn) {
             const original = recordRedsCopyBtn.textContent;
@@ -12290,12 +12297,7 @@ UMA NOVA TENTATIVA DE VISTORIA SERÁ REALIZADA OPORTUNAMENTE.`
         const texto = String(recordInfoscipHistoryText?.value || '');
         if (!texto) return;
         try {
-          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
-          else {
-            recordInfoscipHistoryText.focus();
-            recordInfoscipHistoryText.select();
-            document.execCommand('copy');
-          }
+          if (!(await copiarTextoClipboard_(texto))) throw new Error('Não foi possível copiar o histórico.');
           if (recordInfoscipCopyStatus) {
             recordInfoscipCopyStatus.textContent = 'Histórico copiado. Pronto para colar no INFOSCIP Fiscalização.';
           }
@@ -14720,7 +14722,9 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         const registro = recordDetailRegistroAtual;
         const historico = Boolean(registro?.origemHistorica) || String(registro?.chave || recordsState.chaveSelecionada || '').startsWith('HIST:');
         const permitido = Boolean(cfg && registro && usuarioPodeOperar_() && !historico);
-        recordDetailSectionTools.hidden = !permitido;
+        const podeCopiarResponsavel = Boolean(registro && secao === 'responsavel');
+        if (recordDetailResponsibleCopyBtn) recordDetailResponsibleCopyBtn.hidden = !podeCopiarResponsavel;
+        recordDetailSectionTools.hidden = !permitido && !podeCopiarResponsavel;
         recordDetailSectionEditBtn.hidden = !permitido;
         if (!permitido) return;
         recordDetailSectionEditBtn.textContent = secao === 'local'
@@ -15308,6 +15312,57 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         if (status) {
           status.textContent = 'Dados básicos reaproveitados da Ficha. Confira e escolha o tipo/data da nova vistoria.';
           status.className = 'lookup-status show info';
+        }
+      }
+
+      // MR — copia todos os dados disponíveis do responsável em bloco organizado.
+      // Somente leitura: não grava na Ficha, na planilha nem no armazenamento local.
+      async function copiarDadosResponsavelFicha_() {
+        const registro = recordDetailRegistroAtual;
+        if (!registro || !recordDetailResponsibleCopyBtn) return;
+        const campos = [
+          ['Responsável / vínculo', 'Responsável'],
+          ['Nome', 'Nome'], ['RG', 'RG'], ['CPF', 'CPF'], ['Mãe', 'Mãe'],
+          ['Data de nascimento', 'Nascimento'], ['Profissão', 'Profissão'],
+          ['Estado civil', 'Estado civil'], ['Escolaridade', 'Escolaridade'],
+          ['Telefone', 'Telefone'], ['E-mail', 'E-mail'],
+          ['CEP do responsável', 'CEP do responsável'],
+          ['Endereço completo do responsável', 'Endereço do responsável']
+        ];
+        const linhas = ['DADOS DO RESPONSÁVEL'];
+        campos.forEach(([rotulo, chave]) => {
+          let valor = valorCampoFicha_(registro, chave, ...(chave === 'Nascimento' ? ['Data de nascimento'] : []));
+          if (chave === 'Nascimento') valor = formatarDataNascimentoFicha_(valor);
+          if (chave === 'CPF' && /^\d{11}$/.test(String(valor || '').replace(/\D/g,''))) valor = formatarCpfTela_(valor);
+          if (chave === 'CEP do responsável') valor = formatarCepCliente_(valor);
+          if (chave === 'Endereço do responsável') {
+            const cep = formatarCepCliente_(valorCampoFicha_(registro, 'CEP do responsável'));
+            if (valor && cep && !String(valor).replace(/\D/g,'').endsWith(cep.replace(/\D/g,''))) valor += `, CEP ${cep}`;
+          }
+          valor = String(valor == null ? '' : valor).trim();
+          if (valor && valor !== '—' && normalize(valor) !== normalize('Não informado')) linhas.push(`${rotulo}: ${valor}`);
+        });
+        if (linhas.length <= 1) {
+          avisarGpv_('Nenhum dado do responsável está disponível para copiar.', 'Responsável', { tom:'warning' });
+          return;
+        }
+        const botao = recordDetailResponsibleCopyBtn;
+        botao.disabled = true;
+        try {
+          const ok = await copiarTextoClipboard_(linhas.join('\n'));
+          if (!ok) throw new Error('Cópia não confirmada pelo navegador');
+          const anterior = 'Copiar dados do responsável';
+          botao.textContent = '✓ Dados copiados!';
+          botao.classList.add('is-copied');
+          clearTimeout(botao._copyFeedbackTimer);
+          botao._copyFeedbackTimer = setTimeout(() => {
+            botao.textContent = anterior;
+            botao.classList.remove('is-copied');
+          }, 1700);
+        } catch (erro) {
+          avisarGpv_('Não foi possível copiar os dados. Confira a permissão da área de transferência.', 'Falha ao copiar', { tom:'warning' });
+        } finally {
+          botao.disabled = false;
         }
       }
 
@@ -18542,6 +18597,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
         try {
           if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(conteudo);
+            feedbackCopiaConfirmadaGpv_('Informação copiada');
             return true;
           }
         } catch (erro) {}
@@ -18555,6 +18611,7 @@ Os Históricos para REDS e INFOSCIP passarão a usar a nova classificação. O r
           area.select();
           const ok = document.execCommand('copy');
           area.remove();
+          if (ok) feedbackCopiaConfirmadaGpv_('Informação copiada');
           return Boolean(ok);
         } catch (erro) {
           return false;
@@ -33392,6 +33449,7 @@ Deseja usar o endereço cadastral do CNPJ?`,
         if (!botao || botao.hidden) return;
         selecionarSecaoFicha_(botao.dataset.recordDetailSection || 'local', { focar: false });
       });
+      recordDetailResponsibleCopyBtn?.addEventListener('click', () => { void copiarDadosResponsavelFicha_(); });
       recordDetailSectionEditBtn?.addEventListener('click', () => {
         const secao = String(recordDetailSectionActive_ || '');
         if (!RECORD_CORRECTION_SECTION_CONFIG_[secao]) return;
